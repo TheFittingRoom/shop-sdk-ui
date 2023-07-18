@@ -37,6 +37,7 @@ export class FittingRoom {
   }
 
   public async onInit() {
+    console.log('INIT')
     const loggedIn = await this.tfrShop.onInit()
 
     if (loggedIn && this.hooks.onLogin) this.hooks.onLogin()
@@ -77,7 +78,7 @@ export class FittingRoom {
           break
 
         case types.AvatarState.PENDING:
-          this.nav.onLoading()
+          if (this.hooks.onLoading) this.hooks.onLoading()
           break
 
         case types.AvatarState.CREATED:
@@ -118,7 +119,6 @@ export class FittingRoom {
   public async tryOn() {
     try {
       if (this.hooks.onLoading) this.hooks.onLoading()
-      this.nav.onLoading()
 
       const frames = await this.tfrShop.tryOn(this.sku)
 

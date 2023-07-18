@@ -1,6 +1,6 @@
 {
   "name": "@thefittingroom/shop-ui",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "the fitting room UI library",
   "type": "module",
   "main": "./dist/esm/index.js",
@@ -11,13 +11,14 @@
     "build:dev": "npm run clean && NODE_ENV=dev rollup --config",
     "watch:prod": "npm run clean && NODE_ENV=prod rollup --config -w",
     "watch:dev": "npm run clean && NODE_ENV=dev rollup --config -w",
-    "serve": "live-server --host=localhost --port=3030 --cors"
+    "serve": "live-server --host=localhost --port=3030 --cors",
+    "pub": "npm run build:prod && npm publish --access public"
   },
   "engines": {
     "node": ">=10"
   },
   "dependencies": {
-    "@thefittingroom/sdk": "^0.0.5"
+    "@thefittingroom/sdk": "0.0.6"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^14.1.0",
