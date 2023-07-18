@@ -1,0 +1,199 @@
+.tfr-home-button-container {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 20px;
+}
+
+.tfr-home-button-container > button {
+  height: 60px;
+  width: 200px;
+  margin: 20px;
+  border: 0;
+  cursor: pointer;
+}
+
+.tfr-home-button-container > button:hover {
+  background-color: rgb(230, 230, 230);
+}
+
+*[data-tfr='hidden'] {
+  display: none;
+}
+
+/* Modal */
+.tfr-modal {
+  /* display: none; */
+  /* Hidden by default */
+  position: fixed;
+  /* Stay in place */
+  z-index: 10000;
+  /* Sit on top */
+  /* padding-top: 100px; */
+  /* Location of the box */
+  left: 0;
+  top: 0;
+  width: 100%;
+  /* Full width */
+  height: 100%;
+  /* Full height */
+  overflow: auto;
+  /* Enable scroll if needed */
+  background-color: rgba(0, 0, 0, 0.53);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tfr-modal-content {
+  width: 90%;
+  text-align: center;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.tfr-modal-content-container {
+  background-color: #ffffff;
+  max-width: 709px;
+  width: 100%;
+  margin: auto;
+  border-radius: 10px;
+  border: 1px solid #434343;
+  box-shadow: 0px 6px 6px #00000029;
+  line-height: normal;
+}
+
+/* Close button */
+.tfr-close-container {
+  text-align: end;
+}
+
+.tfr-close {
+  color: #aaaaaa;
+  font-size: 28px;
+  font-weight: bold;
+  width: 50px;
+  height: 50px;
+}
+
+.tfr-close:hover,
+.tfr-close:focus {
+  color: #000;
+  text-decoration: none;
+}
+
+/* */
+.tfr-cursor:hover {
+  cursor: pointer;
+}
+
+.tfr-underline {
+  text-decoration: underline;
+}
+
+.tfr-standard-button {
+  border-radius: 3px;
+  border: 0;
+  color: #ffffff;
+  height: 43px;
+  width: 138px;
+}
+
+.tfr-modal-title-logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tfr-girl-clothes {
+  width: 253px;
+  height: 316px;
+  display: inline-block;
+}
+
+.tfr-t-a-center {
+  text-align: center;
+}
+
+.tfr-w-70-p {
+  width: 70%;
+}
+
+.tfr-w-80-p {
+  width: 80%;
+}
+
+.tfr-w-85-p {
+  width: 85%;
+}
+
+.tfr-w-150 {
+  width: 150px;
+}
+
+.tfr-h-150 {
+  height: 150px;
+}
+
+.tfr-d-none {
+  display: none;
+}
+
+.tfr-d-block {
+  display: block;
+}
+
+.tfr-d-flex {
+  display: flex;
+}
+
+.tfr-how-it-works-item {
+  display: flex;
+  align-items: center;
+  justify-items: center;
+}
+
+.tfr-try-on-content {
+  margin-left: 60px;
+}
+
+#tfr-tryon-image {
+  max-width: 30vw;
+}
+
+.progress-bar {
+  height: 10px;
+  width: 55%;
+  background-color: white;
+  border: 1px solid rgb(189, 189, 189);
+  margin: 0 auto;
+  margin-top: 15px;
+}
+
+.progress-bar-fill {
+  display: block;
+  height: 100%;
+  background-color: #209da7;
+  animation-name: progress;
+  animation-duration: 120s;
+  text-align: center;
+  font-size: 16px;
+  color: white;
+  transition: width 600ms linear;
+}
+
+.tfr-logo-box {
+  margin: 40px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 380px;
+  width: 430px;
+  background-color: #209da7;
+}
+
+.tfr-flex {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

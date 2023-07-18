@@ -1,0 +1,126 @@
+<html lang="en">
+  <head>
+    <title>TheFittingRoom</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&family=Roboto&display=swap"
+      rel="stylesheet"
+    />
+
+    <script type="module">
+      import { InitFittingRoom, InitLocale, comps } from 'http://localhost:3030/dist/esm/main.js?language=en'
+
+      InitLocale()
+      window.mm = comps.InitModalManager('tfr-manual-modal')
+      window.comps = comps
+      window.onSignout = (colorwaySizeAssetSKU) => {
+        console.log('signout', colorwaySizeAssetSKU)
+      }
+      window.onClose = () => {
+        console.log('close')
+      }
+      window.onNavBack = () => {
+        console.log('back')
+      }
+      window.onTryOn = (colorwaySizeAssetSKU) => {
+        console.log('try on', colorwaySizeAssetSKU)
+      }
+      window.whenSignedIn = (user, colorwaySizeAssetSKU) => {
+        console.log('after sign in', user, colorwaySizeAssetSKU)
+      }
+      window.onSignIn = (colorwaySizeAssetSKU) => (username, password, validationError) => {
+        if (username.length == 0 || password.length == 0) {
+          validationError('Username or password is empty')
+        }
+      }
+      window.onNavSignIn = (colorwaySizeAssetSKU) => (email) => {
+        console.log('nav sign in', colorwaySizeAssetSKU, email)
+      }
+      window.onPasswordReset = (colorwaySizeAssetSKU) => (email) => {
+        console.log('password reset', colorwaySizeAssetSKU, email)
+      }
+      window.onNavForgotPassword = (colorwaySizeAssetSKU) => (email) => {
+        console.log('nav forgot password', colorwaySizeAssetSKU, email)
+      }
+      window.onNavScanCode = () => {
+        console.log('nav scan code')
+      }
+
+      window.addEventListener('load', (e) => {
+        let tryOnImage = document.getElementById('tfr-tryon-image')
+        let signout = document.getElementById('signout')
+        let onChange = (slider, imageUrl) => {
+          tryOnImage.src = imageUrl
+        }
+        let slider = comps.InitImageSlider('tfr-slider', onChange)
+        let tfr = InitFittingRoom(1, 'tfr-tryon-modal')
+
+        tfr.whenFramesReady = (sku, frames) => {
+          console.log('frames ready', sku, frames)
+          slider.Load(frames)
+        }
+
+        signout.addEventListener('click', () => {
+          tfr
+            .onSignout('')()
+            .then(() => {
+              console.log('signout')
+            })
+        })
+
+        document.getElementById('tryon').addEventListener('click', (e) => {
+          tfr.TryOn('5003-007-08')
+        })
+      })
+    </script>
+  </head>
+
+  <body>
+    <div class="tfr-home-button-container">
+      <button
+        onclick="window.mm.Open(window.comps.ErrorModal({error: 'custom error message', onNavBack: window.onNavBack, onClose: window.onClose}))"
+      >
+        Error Modal
+      </button>
+      <br />
+      <button onclick="window.mm.Open(window.comps.ScanCodeModal())">Scan Code Modal</button>
+      <br />
+      <button
+        onclick="window.mm.Open(window.comps.SignInModal({email:'email@mail.com', onSignIn: window.onSignIn('abc'), onNavForgotPassword: window.onNavForgotPassword('123'), onNavScanCode: window.onNavScanCode}))"
+      >
+        Sign In Modal
+      </button>
+      <br />
+      <button
+        onclick="window.mm.Open(window.comps.ForgotPasswordModal({email: 'email@mail.com', onNavSignIn: window.onNavSignIn('123'), onPasswordReset: window.onPasswordReset('123')}))"
+      >
+        Forgot Password Modal
+      </button>
+      <br />
+      <button onclick="window.mm.Open(window.comps.NoAvatarModal({}))">No Avatar Modal</button>
+      <br />
+      <button onclick="window.mm.Open(window.comps.LoadingAvatarModal({timeoutMS: 12000}))">
+        Loading Avatar Modal
+      </button>
+      <br />
+      <button
+        onclick="window.mm.Open(window.comps.SizeErrorModal({onNavBack: window.onNavBack, onClose: window.onClose, sizes: {recommended: 'large', avaliable: ['small', 'medium', 'large']}}))"
+      >
+        Size Error Modal
+      </button>
+      <br />
+      <button onclick="window.mm.Open(window.comps.ResetLinkModal({onNavSignIn: window.onNavSignIn('abc')}))">
+        Reset Link Modal
+      </button>
+      <button id="tryon">Try On</button>
+      <button id="signout">Sign Out</button>
+    </div>
+    <div id="tfr-manual-modal"></div>
+    <div id="tfr-tryon-modal"></div>
+    <input type="range" id="tfr-slider" />
+    <img id="tfr-tryon-image" src="" />
+  </body>
+</html>

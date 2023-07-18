@@ -1,0 +1,43 @@
+.tfr-title-font {
+  font-family: 'Poppins', sans-serif;
+}
+
+.tfr-body-font {
+  font-family: 'Roboto', sans-serif;
+}
+
+.tfr-light-24-300 {
+  font-size: 24px;
+  font-weight: 300;
+}
+
+.tfr-light-24-500 {
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.tfr-light-22-300 {
+  font-size: 22px;
+  font-weight: 300;
+}
+
+.tfr-light-16-300 {
+  font-size: 16px;
+  font-weight: 300;
+}
+
+.tfr-medium-16-default {
+  font-size: 16px;
+}
+
+.tfr-12-default {
+  font-size: 12px;
+}
+
+.tfr-14-default {
+  font-size: 14px;
+}
+
+.tfr-16-default {
+  font-size: 16px;
+}

@@ -1,0 +1,12 @@
+.rollup.cache/
+build/
+dist/
+node_modules/
+
+.env
+.DS_Store
+.idea
+tygo.yaml
+go.mod
+go.sum
+firebase-service-account/*

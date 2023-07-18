@@ -1,0 +1,19 @@
+@media screen and (max-width: 702px) {
+  .tfr-modal-title-logo-container {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+}
+
+@media screen and (max-width: 500px) {
+  .tfr-fieldset {
+    width: 90%;
+  }
+  .tfr-how-it-works-item {
+    flex-direction: column;
+  }
+  .tfr-try-on-content {
+    margin-left: 0px;
+    margin-top: 20px;
+  }
+}
