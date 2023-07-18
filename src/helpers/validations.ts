@@ -1,12 +1,12 @@
 export const validateEmail = (email: string): boolean => {
-  if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) {
+  if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,})+$/.test(email)) {
     return true
   }
   return false
 }
 
 export const validatePassword = (password: string): boolean => {
-  if (password.match(/^[A-Za-z]\w{7,14}$/)) {
+  if (password.match(/^.{7,}$/)) {
     return true
   }
   return false

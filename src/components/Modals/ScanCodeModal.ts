@@ -1,3 +1,4 @@
+import { initTel } from '../../helpers/telephone'
 import { ModalContent, ScanCodeModalProps } from '../../types'
 import { L } from '../locale'
 
@@ -6,11 +7,19 @@ const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
     props.onSignInNav()
   }
 
+  const onTelSubmit = () => {
+    const phone = (<HTMLInputElement>document.getElementById('tel-input')).value
+    props.onTelSubmit(phone)
+  }
+
   const onHook = () => {
+    initTel('#tel-input')
+    document.getElementById('tel-button').addEventListener('click', onTelSubmit)
     document.getElementById('tfr-sign-in-nav').addEventListener('click', onSignInNav)
   }
 
   const onUnhook = () => {
+    document.getElementById('tel-button').removeEventListener('click', onTelSubmit)
     document.getElementById('tfr-sign-in-nav').removeEventListener('click', onSignInNav)
   }
 
@@ -33,9 +42,11 @@ const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
         <div tfr-element="true" class="tfr-flex">
           <fieldset class="tfr-fieldset-element tfr-fieldset-inline tfr-mt-20">
               <legend tfr-element="true" class="tfr-label-element tfr-body-font tfr-14-default tfr-c-dark-o5">${L.PhoneNumber}</legend>
-              <input tfr-element="true" type="email" id="email-input" />
+              <div tfr-element="true" class="tfr-flex">
+                <input tfr-element="true" type="tel" id="tel-input" />
+              </div>
           </fieldset>
-          <button id="tfr-send" tfr-element="true" class="tfr-standard-button tfr-bg-aquamarina-strong tfr-c-whitetfr-title-font tfr-medium-16-default tfr-cursor tfr-mt-30" id="sign-in-button">
+          <button tfr-element="true" class="tfr-standard-button tfr-bg-aquamarina-strong tfr-c-whitetfr-title-font tfr-medium-16-default tfr-cursor tfr-mt-30" id="tel-button">
             ${L.Send}
           </button>
         </div>

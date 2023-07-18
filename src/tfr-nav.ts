@@ -9,6 +9,7 @@ export class FittingRoomNav {
     modalDivId: string,
     private readonly signIn: types.SignInModalProps['onSignIn'],
     private readonly forgotPassword: types.ForgotPasswordModalProps['onPasswordReset'],
+    private readonly submitTel: types.ScanCodeModalProps['onTelSubmit'],
   ) {
     this.manager = modals.InitModalManager(modalDivId)
   }
@@ -24,8 +25,6 @@ export class FittingRoomNav {
   public close() {
     this.manager.close()
   }
-
-  public onSignIn() {}
 
   public onSignOut() {
     this.manager.open(
@@ -52,6 +51,7 @@ export class FittingRoomNav {
     this.manager.open(
       modals.ScanCodeModal({
         onSignInNav: () => this.toSignIn(),
+        onTelSubmit: (tel: string) => this.submitTel(tel),
       }),
     )
   }

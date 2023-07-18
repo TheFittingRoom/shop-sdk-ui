@@ -107,6 +107,7 @@ export interface ResetLinkModalProps {
 }
 export interface ScanCodeModalProps {
   onSignInNav: () => void
+  onTelSubmit: (tel: string) => void
 }
 export interface LoggedOutModalProps {
   onClose: () => void

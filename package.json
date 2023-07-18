@@ -1,7 +1,7 @@
 {
-  "name": "tfr-library",
-  "version": "1.0.0",
-  "description": "the fitting room library",
+  "name": "@thefittingroom/shop-ui",
+  "version": "0.0.1-rc1",
+  "description": "the fitting room UI library",
   "type": "module",
   "scripts": {
     "clean": "rm -rf dist",

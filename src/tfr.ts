@@ -1,6 +1,7 @@
 import { Errors, TfrShop, initShop } from '@thefittingroom/sdk'
 
 import { L } from './components/locale'
+import { validateEmail, validatePassword } from './helpers/validations'
 import { FittingRoomNav } from './tfr-nav'
 import * as types from './types'
 
@@ -9,6 +10,8 @@ export interface TfrHooks {
   onLoadingComplete?: () => void
   onError?: (error: string) => void
   onAvatarReady?: (frames: types.TryOnFrames) => void
+  onLogin?: () => void
+  onLogout?: () => void
 }
 
 export class FittingRoom {
@@ -16,7 +19,12 @@ export class FittingRoom {
   private readonly tfrShop: TfrShop
 
   constructor(private readonly shopId: string | number, modalDivId: string, private readonly hooks: TfrHooks = {}) {
-    this.nav = new FittingRoomNav(modalDivId, this.signIn.bind(this), this.forgotPassword.bind(this))
+    this.nav = new FittingRoomNav(
+      modalDivId,
+      this.signIn.bind(this),
+      this.forgotPassword.bind(this),
+      this.submitTel.bind(this),
+    )
     this.tfrShop = initShop(Number(this.shopId))
   }
 
@@ -28,8 +36,13 @@ export class FittingRoom {
     return this.tfrShop
   }
 
-  public onInit() {
-    return this.tfrShop.onInit()
+  public async onInit() {
+    const loggedIn = await this.tfrShop.onInit()
+
+    if (loggedIn && this.hooks.onLogin) this.hooks.onLogin()
+    if (!loggedIn && this.hooks.onLogout) this.hooks.onLogout()
+
+    return loggedIn
   }
 
   public setSku(sku: string) {
@@ -42,13 +55,18 @@ export class FittingRoom {
 
   public async signOut() {
     await this.tfrShop.user.logout()
-    this.nav.toSignIn()
+
+    if (this.hooks.onLogout) this.hooks.onLogout()
   }
 
   public async signIn(username: string, password: string, validationError: (message: string) => void) {
     if (username.length == 0 || password.length == 0) return validationError(L.UsernameOrPasswordEmpty)
+    if (!validateEmail(username)) return validationError(L.EmailError)
+    if (!validatePassword(password)) return validationError(L.PasswordError)
 
     await this.tfrShop.user.login(username, password)
+
+    if (this.hooks.onLogin) this.hooks.onLogin()
 
     try {
       const userProfile = await this.tfrShop.user.getUserProfile()
@@ -76,10 +94,19 @@ export class FittingRoom {
     }
   }
 
+  public async submitTel(tel: string) {
+    try {
+      await this.tfrShop.submitTelephoneNumber(tel)
+      this.nav.toSignIn()
+    } catch {
+      this.nav.onError(L.SomethingWentWrong)
+    }
+  }
+
   public async forgotPassword(email: string) {
     await this.tfrShop.user.sendPasswordResetEmail(email)
 
-    this.nav.toForgotPassword()
+    this.nav.toSignIn()
   }
 
   public async passwordReset(code: string, newPassword: string) {
