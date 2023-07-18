@@ -1,8 +1,9 @@
 {
   "name": "@thefittingroom/shop-ui",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "the fitting room UI library",
   "type": "module",
+  "main": "./dist/esm/index.js",
   "scripts": {
     "clean": "rm -rf dist",
     "clean:all": "rm -rf dist && rm -rf build && rm -rf .rollup.cache",
