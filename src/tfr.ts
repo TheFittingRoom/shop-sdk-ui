@@ -25,7 +25,7 @@ export class FittingRoom {
       this.forgotPassword.bind(this),
       this.submitTel.bind(this),
     )
-    this.tfrShop = initShop(Number(this.shopId))
+    this.tfrShop = initShop(Number(this.shopId), process.env.NODE_ENV)
   }
 
   get sku() {

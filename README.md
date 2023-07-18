@@ -3,23 +3,6 @@
 ## Installation
 
 ```bash
-# install nodejs and npm
-# clone the repository
-git clone git@github.com:TheFittingRoom/shop-sdk.git
-
-# install dependencies
-npm install
-
-# Create .env file for testing on development firebase
-FIREBASE_API_KEY=AIzaSyDfjBWzpmzb-mhGN8VSURxzLg6nkzmKUD8
-FIREBASE_AUTH_DOMAIN=fittingroom-dev-5d248.firebaseapp.com
-FIREBASE_PROJECT_ID=fittingroom-dev-5d248
-FIREBASE_STORAGE_BUCKET=fittingroom-dev-5d248.appspot.com
-FIREBASE_MESSAGING_SENDER_ID=2298664147
-FIREBASE_APP_ID=1:2298664147:web:340bda75cd5d25f3997026
-FIREBASE_MEASUREMENT_ID=G-B7GDQ1Y9LL
-# point these to localhost or development
-API_ENDPOINT = https://tfr.dev.thefittingroom.xyz/v1
 LANGUAGE_URL=https://assets.dev.thefittingroom.xyz/shop-sdk/4200127/languages
 ASSETS_URL=https://assets.dev.thefittingroom.xyz/shop-sdk/assets
 

@@ -2,7 +2,7 @@ export const initTel = (selector: string) => {
   // International Telephone Input Initialize
   intlTelInputInit(document.querySelector(selector))
 
-  document.querySelector(selector).addEventListener('keyup', function (event) {
+  document.querySelector(selector).addEventListener('keyup', function () {
     function serializeForm(form) {
       var input = form.getElementsByTagName('input')
       var formData = []
@@ -12005,7 +12005,7 @@ function intlTelInputInit(element) {
 
   // update flag on keyup
   // (by extracting the dial code from the input value)
-  element.addEventListener('keyup', function (e) {
+  element.addEventListener('keyup', function () {
     var countryList = element.previousElementSibling
     var dialCodeArray = _getDialCode(element.value)
 
@@ -12019,7 +12019,7 @@ function intlTelInputInit(element) {
   })
 
   // click off to close
-  document.addEventListener('click', function (e) {
+  document.addEventListener('click', function () {
     // e.stopPropagation();
     // e.preventDefault();
 
@@ -12145,6 +12145,8 @@ function intlTelInputInit(element) {
         return [i, intlTelInput.countries[i]]
       }
     }
+
+    return null
   }
 
   // replace any existing dial code with the new one
@@ -12230,6 +12232,8 @@ function intlTelInputInit(element) {
           if (keys[e.keyCode]) {
             return false
           }
+
+          return true
         }
 
         // modern Chrome requires { passive: false } when adding event
@@ -12344,29 +12348,6 @@ function intlTelInputInit(element) {
 /**
 international Telephone Number Validation
 */
-function numberValidation(phone) {
-  if (!phone) return { valid: false }
-
-  var inputVal = phone.charAt(0) != '+' ? '+' + phone : phone
-  var dialCodeArray = _getDialCode(inputVal)
-  var countryCode = _getCountryCode(inputVal, dialCodeArray.prefixesDialCode)
-
-  return isValidNumber(inputVal, dialCodeArray.dialCode, countryCode)
-}
-
-function isValidNumber(inputVal, dialCode, countryCode) {
-  var valid = false
-  var splitPhoneNumber = _getSplitPhoneNumber(inputVal, dialCode)
-  if (
-    intlTelInput.phoneNumberValidator[countryCode] == null ||
-    (countryCode != '001' && dialCode != splitPhoneNumber.dialCode)
-  ) {
-    valid = !1
-  } else {
-    valid = -1 != dialCodePrefixesValidator(splitPhoneNumber.prefixes, intlTelInput.phoneNumberValidator[countryCode])
-  }
-  return { valid: valid }
-}
 
 // try and extract a valid international dial code from a full telephone number
 function _getDialCode(inputVal) {
