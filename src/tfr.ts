@@ -64,7 +64,11 @@ export class FittingRoom {
     if (!validateEmail(username)) return validationError(L.EmailError)
     if (!validatePassword(password)) return validationError(L.PasswordError)
 
-    await this.tfrShop.user.login(username, password)
+    try {
+      await this.tfrShop.user.login(username, password)
+    } catch (e) {
+      return validationError(L.UsernameOrPasswordIncorrect)
+    }
 
     if (this.hooks.onLogin) this.hooks.onLogin()
     this.nav.close()
