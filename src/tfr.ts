@@ -67,6 +67,7 @@ export class FittingRoom {
     await this.tfrShop.user.login(username, password)
 
     if (this.hooks.onLogin) this.hooks.onLogin()
+    this.nav.close()
 
     try {
       const userProfile = await this.tfrShop.user.getUserProfile()
@@ -124,6 +125,8 @@ export class FittingRoom {
       this.nav.close()
       if (this.hooks.onAvatarReady) this.hooks.onAvatarReady(frames)
     } catch (error) {
+      if (error instanceof Errors.AvatarNotCreatedError) return this.nav.onError(L.DontHaveAvatar)
+
       if (error instanceof Errors.RecommendedAvailableSizesError)
         return this.nav.onSizeError(error.recommended_size, error.available_sizes)
 
