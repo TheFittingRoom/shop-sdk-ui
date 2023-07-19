@@ -35,7 +35,8 @@ const hooks: TfrHooks = {
 // the div id to contain the modal elements
 const modalDivId: string = 'tfr-modal'
 
-const tfr = initFittingRoom(shopId, modalDivId, hooks)
+// initFittingRoom is an async function and must be awaited
+const tfr = await initFittingRoom(shopId, modalDivId, hooks)
 
 // on page nav to new product
 tfr.setSku(sku)

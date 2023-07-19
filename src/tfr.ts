@@ -37,7 +37,6 @@ export class FittingRoom {
   }
 
   public async onInit() {
-    console.log('INIT')
     const loggedIn = await this.tfrShop.onInit()
 
     if (loggedIn && this.hooks.onLogin) this.hooks.onLogin()
