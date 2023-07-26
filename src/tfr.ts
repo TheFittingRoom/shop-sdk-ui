@@ -128,7 +128,7 @@ export class FittingRoom {
     const lastSize = availableSizeLabels.slice(-1)
 
     const tryFirstSizes = `${L.TrySize} ${firstSizes.join(', ')}`
-    const trySizes = availableSizeLabels.length > 1 ? `${tryFirstSizes} ${L.Or} ${lastSize}` : tryFirstSizes
+    const trySizes = availableSizeLabels.length > 1 ? `${tryFirstSizes} ${L.OrSize} ${lastSize}` : tryFirstSizes
 
     return `${trySizes} ${L.WeRecommendSize} ${recommendedSizeLabel}`
   }
