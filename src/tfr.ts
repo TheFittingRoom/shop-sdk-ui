@@ -120,6 +120,19 @@ export class FittingRoom {
     this.nav.toPasswordReset()
   }
 
+  public async getRecommendedSizeString(styleId: string) {
+    const res = await this.tfrShop.getRecommendedSizesLabels(styleId)
+
+    const { availableSizeLabels, recommendedSizeLabel } = res
+    const firstSizes = availableSizeLabels.slice(0, -1)
+    const lastSize = availableSizeLabels.slice(-1)
+
+    const tryFirstSizes = `${L.TrySize} ${firstSizes.join(', ')}`
+    const trySizes = availableSizeLabels.length > 1 ? `${tryFirstSizes} ${L.Or} ${lastSize}` : tryFirstSizes
+
+    return `${trySizes} ${L.WeRecommendSize} ${recommendedSizeLabel}`
+  }
+
   public async tryOn() {
     try {
       if (this.hooks.onLoading) this.hooks.onLoading()
