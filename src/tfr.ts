@@ -130,7 +130,7 @@ export class FittingRoom {
     const tryFirstSizes = `${L.TrySize} ${firstSizes.join(', ')}`
     const trySizes = availableSizeLabels.length > 1 ? `${tryFirstSizes} ${L.OrSize} ${lastSize}` : tryFirstSizes
 
-    return `${trySizes}. ${L.WeRecommendSize} ${recommendedSizeLabel}`
+    return `${trySizes}. ${L.WeRecommendSize} ${recommendedSizeLabel}.`
   }
 
   public async tryOn() {
