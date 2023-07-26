@@ -9,7 +9,7 @@ export interface TfrHooks {
   onLoading?: () => void
   onLoadingComplete?: () => void
   onError?: (error: string) => void
-  onAvatarReady?: (frames: types.TryOnFrames) => void
+  onVtoReady?: (frames: types.TryOnFrames) => void
   onLogin?: () => void
   onLogout?: () => void
 }
@@ -127,7 +127,7 @@ export class FittingRoom {
       const frames = await this.tfrShop.tryOn(this.sku)
 
       this.nav.close()
-      if (this.hooks.onAvatarReady) this.hooks.onAvatarReady(frames)
+      if (this.hooks.onVtoReady) this.hooks.onVtoReady(frames)
     } catch (error) {
       if (error instanceof Errors.AvatarNotCreatedError) return this.nav.onError(L.DontHaveAvatar)
 
