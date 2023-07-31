@@ -15,7 +15,7 @@ function loadImages(imageURLs) {
   loadImageRecursive(imageURLs.slice(-1), imageURLs.slice(0, -1))
 }
 
-const InitImageSlider = (sliderID: string, onChange: (slider: HTMLInputElement, imageUrl: string) => void) => {
+export const InitImageSlider = (sliderID: string, onChange: (slider: HTMLInputElement, imageUrl: string) => void) => {
   const slider = <HTMLInputElement>document.getElementById(sliderID)
   if (!slider) {
     throw new Error(`Slider with id ${sliderID} not found`)
@@ -47,5 +47,3 @@ const InitImageSlider = (sliderID: string, onChange: (slider: HTMLInputElement, 
     },
   }
 }
-
-export default InitImageSlider

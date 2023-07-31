@@ -10,20 +10,20 @@ import ScanCodeModal from './Modals/ScanCodeModal'
 import SignInModal from './Modals/SignInModal'
 import SizeErrorModal from './Modals/SizeErrorModal'
 import TryOnModal from './Modals/TryOnModal'
-import InitImageSlider from './slider'
+import { InitImageSlider } from './slider'
 
 export {
-  SignInModal,
-  ForgotPasswordModal,
-  ScanCodeModal,
   ErrorModal,
-  LoadingAvatarModal,
+  ForgotPasswordModal,
+  InitImageSlider,
   InitModalManager,
+  LoadingAvatarModal,
+  LoggedOutModal,
   ModalManager,
   NoAvatarModal,
-  LoggedOutModal,
-  SizeErrorModal,
   ResetLinkModal,
-  InitImageSlider,
+  ScanCodeModal,
+  SignInModal,
+  SizeErrorModal,
   TryOnModal,
 }
