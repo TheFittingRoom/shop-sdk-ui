@@ -18,14 +18,26 @@ export class FittingRoom {
   public readonly nav: FittingRoomNav
   private readonly tfrShop: TfrShop
 
-  constructor(private readonly shopId: string | number, modalDivId: string, private readonly hooks: TfrHooks = {}) {
+  constructor(
+    private readonly shopId: string | number,
+    modalDivId: string,
+    private readonly hooks: TfrHooks = {},
+    _env?: string,
+  ) {
+    // prettier-ignore
+    const env = _env
+      ? _env
+      : typeof process !== 'undefined'
+      ? process.env.NODE_ENV
+      : 'dev'
+
     this.nav = new FittingRoomNav(
       modalDivId,
       this.signIn.bind(this),
       this.forgotPassword.bind(this),
       this.submitTel.bind(this),
     )
-    this.tfrShop = initShop(Number(this.shopId), process.env.NODE_ENV)
+    this.tfrShop = initShop(Number(this.shopId), env)
   }
 
   get sku() {
