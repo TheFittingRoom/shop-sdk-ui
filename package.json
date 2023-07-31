@@ -32,6 +32,6 @@
     "typescript": "^4.0.2"
   },
   "dependencies": {
-    "@thefittingroom/sdk": "0.0.9"
+    "@thefittingroom/sdk": "0.0.10"
   }
 }

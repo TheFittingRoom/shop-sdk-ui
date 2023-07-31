@@ -1,4 +1,4 @@
-import InitImageSlider from '../../components/slider'
+import { InitImageSlider } from '../../components/slider'
 import { ModalContent, TryOnModalProps } from '../../types'
 import { L } from '../locale'
 

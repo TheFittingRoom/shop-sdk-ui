@@ -146,6 +146,8 @@ export class FittingRoom {
   }
 
   public async tryOn() {
+    if (!this.shop.isLoggedIn) return this.nav.toScan()
+
     try {
       if (this.hooks.onLoading) this.hooks.onLoading()
 
@@ -159,7 +161,10 @@ export class FittingRoom {
       if (error instanceof Errors.RecommendedAvailableSizesError)
         return this.nav.onSizeError(error.recommended_size, error.available_sizes)
 
-      if (error instanceof Errors.UserNotLoggedInError) return this.nav.toScan()
+      if (error instanceof Errors.UserNotLoggedInError) {
+        if (this.hooks.onLoadingComplete) this.hooks.onLoadingComplete()
+        return this.nav.toScan()
+      }
 
       console.error(error.message)
       this.nav.onError(L.SomethingWentWrong)
