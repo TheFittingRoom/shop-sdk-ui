@@ -3,6 +3,7 @@ import { createUIError } from './uiError'
 var L = {
   AssociatedEmail: 'If there is an account associated with that email, We have sent a link to reset your password.',
   BackToSignIn: 'Back to sign in',
+  BrandUserIdNotSet: 'User not logged in to brand site.',
   CreateAvatarSc: 'Scan the QR code/click link to download our app and create an avatar:',
   DontHaveAcc: "Don't have an account?",
   DontHaveAvatar: "Whoops! Looks like you don't have an avatar yet.",
