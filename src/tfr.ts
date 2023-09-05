@@ -160,6 +160,8 @@ export class FittingRoom {
       this.nav.close()
       if (this.hooks.onVtoReady) this.hooks.onVtoReady(frames)
     } catch (error) {
+      if (error instanceof Errors.BrandUserIdNotSetError) return this.nav.onError(L.BrandUserIdNotSet)
+
       if (error instanceof Errors.AvatarNotCreatedError) return this.nav.onError(L.DontHaveAvatar)
 
       if (error instanceof Errors.RecommendedAvailableSizesError)

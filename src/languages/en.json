@@ -10,6 +10,7 @@
   "SignIn": "Sign in",
   "ForgotPassword": "Forgot password",
   "BackToSignIn": "Back to sign in",
+  "BrandUserIdNotSet": "User not logged in to brand site.",
   "Send": "Send",
   "ReturnToSignIn": "Return to sign in",
   "ForgotPasswordWithSymbol": "Forgot password?",
