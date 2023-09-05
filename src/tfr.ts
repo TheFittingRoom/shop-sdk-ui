@@ -111,6 +111,10 @@ export class FittingRoom {
     }
   }
 
+  public setBrandUserId(brandUserId: string | number) {
+    this.tfrShop.user.setBrandUserId(brandUserId)
+  }
+
   public async submitTel(tel: string) {
     try {
       await this.tfrShop.submitTelephoneNumber(tel)

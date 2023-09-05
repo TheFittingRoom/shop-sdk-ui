@@ -27,7 +27,7 @@ const hooks: TfrHooks = {
   onLoading: () => {},
   onLoadingComplete: () => {},
   onVtoReady: (frames: string[]) => {},
-  onError: () => {},
+  onError: (error: string) => {},
   onLogin: () => {},
   onLogout: () => {},
 }
@@ -39,7 +39,13 @@ const modalDivId: string = 'tfr-modal'
 const tfr = await initFittingRoom(shopId, modalDivId, hooks)
 
 // on page nav to new product
+// * Required for VTO
 tfr.setSku(sku)
+
+// on user login to brand site
+// * Required for VTO
+// e.g. uuid, email address, username, internal database Id
+tft.setBrandUserId(brandUserId)
 
 // close the modal
 tfr.close()
