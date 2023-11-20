@@ -22,6 +22,7 @@ export class FittingRoom {
     private readonly shopId: string | number,
     modalDivId: string,
     private readonly hooks: TfrHooks = {},
+    private readonly tryOnEnabled: boolean = false,
     _env?: string,
   ) {
     // prettier-ignore
@@ -99,7 +100,7 @@ export class FittingRoom {
 
         case types.AvatarState.CREATED:
           console.debug('avatar_state: created')
-          this.tryOn()
+          if (this.tryOnEnabled) this.tryOn()
           break
 
         default:
@@ -149,8 +150,13 @@ export class FittingRoom {
     return `${trySizes}. ${L.WeRecommendSize} ${recommendedSizeLabel}.`
   }
 
+  public onSignInClick() {
+    this.nav.toScan()
+  }
+
   public async tryOn() {
     if (!this.shop.isLoggedIn) return this.nav.toScan()
+    if (!this.tryOnEnabled) return
 
     try {
       if (this.hooks.onLoading) this.hooks.onLoading()
