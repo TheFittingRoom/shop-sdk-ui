@@ -140,14 +140,14 @@ export class FittingRoom {
   public async getRecommendedSizeString(styleId: string) {
     const res = await this.tfrShop.getRecommendedSizesLabels(styleId)
 
-    const { availableSizeLabels, recommendedSizeLabel } = res
+    const { availableSizeLabels } = res
     const firstSizes = availableSizeLabels.slice(0, -1)
     const lastSize = availableSizeLabels.slice(-1)
 
-    const tryFirstSizes = `${L.TrySize} ${firstSizes.join(', ')}`
+    const tryFirstSizes = `${L.WeRecommendSize} ${firstSizes.join(', ')}`
     const trySizes = availableSizeLabels.length > 1 ? `${tryFirstSizes} ${L.OrSize} ${lastSize}` : tryFirstSizes
 
-    return `${trySizes}. ${L.WeRecommendSize} ${recommendedSizeLabel}.`
+    return `${trySizes}.`
   }
 
   public onSignInClick() {

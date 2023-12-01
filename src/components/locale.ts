@@ -52,11 +52,10 @@ var L = {
   TryOn: 'and try on.',
   TryOnText:
     'After creating your avatar, return here and sign in. We will use the measurements from your avatar to tell you which size will fit you best, as well as let you try the garment on - all without leaving your house!',
-  TrySize: 'You can try on a size',
   UsernameOrPasswordEmpty: 'Username or password is empty.',
   UsernameOrPasswordIncorrect: 'Username or password is incorrect.',
   VirtualTryOnWith: 'Virtual try on with',
-  WeRecommendSize: 'We recommend starting with a',
+  WeRecommendSize: 'We recommend a size',
 }
 
 function findMissingLocales(defaultLocale: any, newLocale: any): { default: any; new: any } {
