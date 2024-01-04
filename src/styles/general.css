@@ -57,10 +57,18 @@
   max-width: 709px;
   width: 100%;
   margin: auto;
-  border-radius: 10px;
+  border-radius: 0;
   border: 1px solid #434343;
   box-shadow: 0px 6px 6px #00000029;
   line-height: normal;
+  height: 100%;
+}
+
+@media (min-width: 600px) {
+  .tfr-modal-content-container {
+    height: auto;
+    border-radius: 10px;
+  }
 }
 
 /* Close button */
@@ -188,7 +196,7 @@
   align-items: center;
   justify-content: center;
   height: 380px;
-  width: 430px;
+  max-width: 430px;
   background-color: #209da7;
 }
 
