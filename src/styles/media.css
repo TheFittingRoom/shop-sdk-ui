@@ -20,6 +20,10 @@
   .tfr-mobile-hidden {
     display: none;
   }
+
+  .trf-logo-title {
+    margin-bottom: 10px;
+  }
 }
 
 @media screen and (max-width: 500px) {
