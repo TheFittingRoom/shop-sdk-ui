@@ -25,7 +25,7 @@ const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
 
   const body = () => {
     return `
-        <div tfr-element="true" class="tfr-logo-box">
+        <div tfr-element="true" class="tfr-logo-box tfr-mobile-hidden">
           <div class="tfr-mr-15">
             <svg width="26" height="47" viewBox="0 0 68 124" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M0.911938 0L67.4819 17.09V106.49L0.911938 123.51V0Z" fill="white">

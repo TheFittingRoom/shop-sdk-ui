@@ -1,7 +1,24 @@
 @media screen and (max-width: 702px) {
   .tfr-modal-title-logo-container {
     display: flex;
-    flex-direction: column-reverse;
+    flex-direction: column;
+  }
+}
+
+@media screen and (min-width: 600px) {
+  .tfr-modal-content-container {
+    height: auto;
+    border-radius: 10px;
+  }
+
+  .tfr-logo-box {
+    height: 380px;
+  }
+}
+
+@media screen and (max-width: 599px) {
+  .tfr-mobile-hidden {
+    display: none;
   }
 }
 

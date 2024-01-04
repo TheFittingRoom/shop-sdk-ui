@@ -52,6 +52,12 @@
   margin-left: auto;
 }
 
+.tfr-modal-content-flex {
+  display: flex;
+  align-items: center;
+  height: calc(100% - 56px);
+}
+
 .tfr-modal-content-container {
   background-color: #ffffff;
   max-width: 709px;
@@ -62,13 +68,7 @@
   box-shadow: 0px 6px 6px #00000029;
   line-height: normal;
   height: 100%;
-}
-
-@media (min-width: 600px) {
-  .tfr-modal-content-container {
-    height: auto;
-    border-radius: 10px;
-  }
+  overflow: auto;
 }
 
 /* Close button */
@@ -105,6 +105,11 @@
   color: #ffffff;
   height: 43px;
   width: 138px;
+}
+
+.tfr-logo-container {
+  display: flex;
+  align-items: center;
 }
 
 .tfr-modal-title-logo-container {
@@ -195,7 +200,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 380px;
+  height: 180px;
   max-width: 430px;
   background-color: #209da7;
 }
