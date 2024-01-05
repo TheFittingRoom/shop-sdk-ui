@@ -10,10 +10,6 @@
     height: auto;
     border-radius: 10px;
   }
-
-  .tfr-logo-box {
-    height: 380px;
-  }
 }
 
 @media screen and (max-width: 599px) {
@@ -21,8 +17,16 @@
     display: none;
   }
 
+  .tfr-modal-content-container {
+    min-height: 100vh;
+  }
+
   .trf-logo-title {
     margin-bottom: 10px;
+  }
+
+  .tfr-modal-content-flex {
+    height: calc(100vh - 76px);
   }
 }
 

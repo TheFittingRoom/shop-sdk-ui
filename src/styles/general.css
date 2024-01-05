@@ -22,40 +22,25 @@
 
 /* Modal */
 .tfr-modal {
-  /* display: none; */
-  /* Hidden by default */
   position: fixed;
-  /* Stay in place */
   z-index: 10000;
-  /* Sit on top */
-  /* padding-top: 100px; */
-  /* Location of the box */
   left: 0;
   top: 0;
   width: 100%;
-  /* Full width */
   height: 100%;
-  /* Full height */
-  overflow: auto;
-  /* Enable scroll if needed */
   background-color: rgba(0, 0, 0, 0.53);
-
   display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .tfr-modal-content {
   width: 90%;
   text-align: center;
-  margin-right: auto;
-  margin-left: auto;
+  margin: auto;
 }
 
 .tfr-modal-content-flex {
   display: flex;
   align-items: center;
-  height: calc(100% - 56px);
 }
 
 .tfr-modal-content-container {
@@ -67,7 +52,7 @@
   border: 1px solid #434343;
   box-shadow: 0px 6px 6px #00000029;
   line-height: normal;
-  height: 100%;
+  max-height: 100vh;
   overflow: auto;
 }
 
@@ -195,14 +180,19 @@
   transition: width 600ms linear;
 }
 
+#tfr-video {
+  height: 100%;
+}
+
 .tfr-logo-box {
-  margin: 40px auto;
-  display: flex;
+  aspect-ratio: 1;
   align-items: center;
+  display: flex;
   justify-content: center;
-  height: 180px;
+  margin: auto;
+  max-height: 430px;
   max-width: 430px;
-  background-color: #209da7;
+  padding: 20px;
 }
 
 .tfr-flex {
