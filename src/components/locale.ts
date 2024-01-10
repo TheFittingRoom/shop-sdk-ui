@@ -9,7 +9,7 @@ var L = {
   EmailAddress: 'Email address',
   EmailError: 'Please enter a valid email address.',
   EnterEmailAddress: 'Enter your email address, we will send you a link to reset your password.',
-  EnterPhoneNumber: 'Enter your phone number to be texted a link to download The Fitting Room app.',
+  EnterPhoneNumber: 'Enter your number for download link',
   FailedToLoadLocale: 'Something went wrong when fetching another language.',
   ForgotPasswordWithSymbol: 'Forgot password?',
   HaveAcc: 'Have an account? Sign in',

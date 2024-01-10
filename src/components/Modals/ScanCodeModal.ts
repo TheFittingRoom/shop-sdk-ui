@@ -16,9 +16,6 @@ const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
     initTel('#tel-input')
     document.getElementById('tel-button').addEventListener('click', onTelSubmit)
     document.getElementById('tfr-sign-in-nav').addEventListener('click', onSignInNav)
-
-    const video = document.getElementById('tfr-video') as HTMLVideoElement
-    video.play()
   }
 
   const onUnhook = () => {
@@ -32,7 +29,7 @@ const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
           <div tfr-element="true" class="tfr-title-font tfr-light-16-300 tfr-mt-10">${L.ModalText}</div>
         </div>
         <div tfr-element="true" class="tfr-logo-box">
-          <video id="tfr-video">
+          <video id="tfr-video" controls>
             <source src="https://assets.dev.thefittingroom.xyz/videos/the-fitting-room.mp4" />
           </video>
         </div>
