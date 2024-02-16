@@ -1,4 +1,4 @@
-import { Errors, TfrShop, initShop } from '@thefittingroom/sdk'
+import { types as ShopTypes, TfrShop, initShop } from '@thefittingroom/sdk'
 
 import { L } from './components/locale'
 import { validateEmail, validatePassword } from './helpers/validations'
@@ -22,7 +22,6 @@ export class FittingRoom {
     private readonly shopId: string | number,
     modalDivId: string,
     private readonly hooks: TfrHooks = {},
-    private readonly tryOnEnabled: boolean = false,
     _env?: string,
   ) {
     // prettier-ignore
@@ -100,7 +99,6 @@ export class FittingRoom {
 
         case types.AvatarState.CREATED:
           console.debug('avatar_state: created')
-          if (this.tryOnEnabled) this.tryOn()
           break
 
         default:
@@ -137,46 +135,32 @@ export class FittingRoom {
     this.nav.toPasswordReset()
   }
 
-  public async getRecommendedSizeString(styleId: string) {
-    const res = await this.tfrShop.getRecommendedSizesLabels(styleId)
-
-    const { recommendedSizeLabel, availableSizeLabels } = res
-
-    return { recommendedSizeLabel, availableSizeLabels }
+  public async getMeasurementLocationsFromSku(sku: string) {
+    return this.tfrShop.getMeasurementLocationsFromSku(sku)
   }
 
   public onSignInClick() {
     this.nav.toScan()
   }
 
-  public async tryOn() {
-    if (!this.shop.isLoggedIn) return this.nav.toScan()
-    if (!this.tryOnEnabled) return
+  public async getRecommendedSizes(styleId: string) {
+    const sizeRec = await this.tfrShop.getRecommendedSizes(styleId)
 
-    try {
-      if (this.hooks.onLoading) this.hooks.onLoading()
+    if (!sizeRec) return null
 
-      const frames = await this.tfrShop.tryOn(this.sku)
-
-      this.nav.close()
-      if (this.hooks.onVtoReady) this.hooks.onVtoReady(frames)
-    } catch (error) {
-      if (error instanceof Errors.BrandUserIdNotSetError) return this.nav.onError(L.BrandUserIdNotSet)
-
-      if (error instanceof Errors.AvatarNotCreatedError) return this.nav.onError(L.DontHaveAvatar)
-
-      if (error instanceof Errors.RecommendedAvailableSizesError)
-        return this.nav.onSizeError(error.recommended_size, error.available_sizes)
-
-      if (error instanceof Errors.UserNotLoggedInError) {
-        if (this.hooks.onLoadingComplete) this.hooks.onLoadingComplete()
-        return this.nav.toScan()
-      }
-
-      console.error(error.message)
-      this.nav.onError(L.SomethingWentWrong)
-    } finally {
-      if (this.hooks.onLoadingComplete) this.hooks.onLoadingComplete()
+    return {
+      recommended: sizeRec.recommended_size.size_value.size,
+      sizes: sizeRec.fits.map((fit) => {
+        return {
+          size: sizeRec.available_sizes.find((size) => size.id === fit.size_id).size_value.size,
+          locations: fit.measurement_location_fits.map((locationFit) => {
+            return {
+              fit: ShopTypes.FitNames[locationFit.fit],
+              location: ShopTypes.MeasurementLocationName[locationFit.measurement_location],
+            }
+          }),
+        }
+      }),
     }
   }
 }
