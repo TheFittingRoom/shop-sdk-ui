@@ -1,6 +1,6 @@
 import { TfrShop } from '@thefittingroom/sdk'
 
-const svgSrc = ''
+const svgSrc = 'https://assets.dev.thefittingroom.xyz/shop-sdk/assets/login-icon.svg'
 
 export type RecommendedSize = {
   recommended: string

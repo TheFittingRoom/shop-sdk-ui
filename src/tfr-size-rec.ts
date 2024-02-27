@@ -2,8 +2,6 @@ import { types as ShopTypes, TfrShop } from '@thefittingroom/sdk'
 
 import { RecommendedSize, SizeRecComponent } from './components/SizeRec'
 
-const svgSrc = 'https://assets.dev.thefittingroom.xyz/shop-sdk/assets/login-icon.svg'
-
 export class TfrSizeRec {
   private readonly sizeRecComponent: SizeRecComponent
 
