@@ -2,7 +2,8 @@ import { types as ShopTypes, TfrShop, initShop } from '@thefittingroom/sdk'
 
 import { L } from './components/locale'
 import { validateEmail, validatePassword } from './helpers/validations'
-import { FittingRoomNav } from './tfr-nav'
+import { TfrModal } from './tfr-modal'
+import { TfrSizeRec } from './tfr-size-rec'
 import * as types from './types'
 
 export interface TfrHooks {
@@ -15,12 +16,17 @@ export interface TfrHooks {
 }
 
 export class FittingRoom {
-  public readonly nav: FittingRoomNav
+  private isLoggedIn: boolean = false
+
+  public readonly tfrModal: TfrModal
+  public readonly tfrSizeRec: TfrSizeRec
   private readonly tfrShop: TfrShop
+  private unsub: () => void = null
 
   constructor(
     private readonly shopId: string | number,
     modalDivId: string,
+    sizeRecMainDivId: string,
     private readonly hooks: TfrHooks = {},
     _env?: string,
   ) {
@@ -31,44 +37,66 @@ export class FittingRoom {
       ? process.env.NODE_ENV
       : 'dev'
 
-    this.nav = new FittingRoomNav(
+    this.tfrModal = new TfrModal(
       modalDivId,
       this.signIn.bind(this),
       this.forgotPassword.bind(this),
       this.submitTel.bind(this),
     )
     this.tfrShop = initShop(Number(this.shopId), env)
-  }
-
-  get sku() {
-    return this.nav.sku
+    this.tfrSizeRec = new TfrSizeRec(
+      sizeRecMainDivId,
+      this.tfrShop,
+      this.onSignInClick.bind(this),
+      this.signOut.bind(this),
+    )
   }
 
   get shop() {
     return this.tfrShop
   }
 
-  public async onInit() {
-    const loggedIn = await this.tfrShop.onInit()
-
-    if (loggedIn && this.hooks.onLogin) this.hooks.onLogin()
-    if (!loggedIn && this.hooks.onLogout) this.hooks.onLogout()
-
-    return loggedIn
+  get sku() {
+    return this.tfrSizeRec.sku
   }
 
   public setSku(sku: string) {
-    this.nav.setSku(sku)
+    this.tfrSizeRec.setSku(sku)
+
+    if (this.isLoggedIn) this.tfrSizeRec.setRecommendedSize()
+    else this.tfrSizeRec.setGarmentLocations()
+  }
+
+  public async onInit() {
+    this.isLoggedIn = await this.tfrShop.onInit()
+    this.tfrSizeRec.setIsLoggedIn(this.isLoggedIn)
+
+    if (this.isLoggedIn) {
+      if (this.hooks?.onLogin) this.hooks.onLogin()
+
+      this.subscribeToProfileChanges()
+    } else {
+      if (this.hooks?.onLogout) this.hooks.onLogout()
+
+      this.unsubscribeFromProfileChanges()
+    }
+
+    return this.isLoggedIn
   }
 
   public close() {
-    this.nav.close()
+    this.tfrModal.close()
   }
 
   public async signOut() {
     await this.tfrShop.user.logout()
 
-    if (this.hooks.onLogout) this.hooks.onLogout()
+    if (this.hooks?.onLogout) this.hooks.onLogout()
+
+    this.isLoggedIn = false
+    this.tfrSizeRec.setIsLoggedIn(false)
+    this.tfrSizeRec.setGarmentLocations()
+    this.unsubscribeFromProfileChanges()
   }
 
   public async signIn(username: string, password: string, validationError: (message: string) => void) {
@@ -78,35 +106,16 @@ export class FittingRoom {
 
     try {
       await this.tfrShop.user.login(username, password)
+
+      if (this.hooks?.onLogin) this.hooks.onLogin()
+      this.tfrModal.close()
+
+      this.isLoggedIn = true
+      this.tfrSizeRec.setIsLoggedIn(true)
+      this.tfrSizeRec.setRecommendedSize()
+      this.subscribeToProfileChanges()
     } catch (e) {
       return validationError(L.UsernameOrPasswordIncorrect)
-    }
-
-    if (this.hooks.onLogin) this.hooks.onLogin()
-    this.nav.close()
-
-    try {
-      const userProfile = await this.tfrShop.user.getUserProfile()
-
-      switch (userProfile.avatar_status as types.AvatarState) {
-        case types.AvatarState.NOT_CREATED:
-          this.nav.onNotCreated()
-          break
-
-        case types.AvatarState.PENDING:
-          if (this.hooks.onLoading) this.hooks.onLoading()
-          break
-
-        case types.AvatarState.CREATED:
-          console.debug('avatar_state: created')
-          break
-
-        default:
-          this.nav.onError(L.SomethingWentWrong)
-          break
-      }
-    } catch {
-      this.nav.onError(L.SomethingWentWrong)
     }
   }
 
@@ -117,22 +126,22 @@ export class FittingRoom {
   public async submitTel(tel: string) {
     try {
       await this.tfrShop.submitTelephoneNumber(tel)
-      this.nav.toSignIn()
+      this.tfrModal.toSignIn()
     } catch {
-      this.nav.onError(L.SomethingWentWrong)
+      this.tfrModal.onError(L.SomethingWentWrong)
     }
   }
 
   public async forgotPassword(email: string) {
     await this.tfrShop.user.sendPasswordResetEmail(email)
 
-    this.nav.toSignIn()
+    this.tfrModal.toSignIn()
   }
 
   public async passwordReset(code: string, newPassword: string) {
     await this.tfrShop.user.confirmPasswordReset(code, newPassword)
 
-    this.nav.toPasswordReset()
+    this.tfrModal.toPasswordReset()
   }
 
   public async getMeasurementLocationsFromSku(sku: string) {
@@ -140,27 +149,41 @@ export class FittingRoom {
   }
 
   public onSignInClick() {
-    this.nav.toScan()
+    this.tfrModal.toScan()
   }
 
-  public async getRecommendedSizes(styleId: string) {
-    const sizeRec = await this.tfrShop.getRecommendedSizes(styleId)
+  private onUserProfileChange(userProfile: ShopTypes.FirestoreUser) {
+    switch (userProfile.avatar_status as types.AvatarState) {
+      case types.AvatarState.NOT_CREATED:
+        if (this.hooks?.onError) this.hooks.onError(L.DontHaveAvatar)
+        this.tfrModal.onNotCreated()
+        break
 
-    if (!sizeRec) return null
+      case types.AvatarState.PENDING:
+        if (this.hooks?.onLoading) this.hooks.onLoading()
+        break
 
-    return {
-      recommended: sizeRec.recommended_size.size_value.size,
-      sizes: sizeRec.fits.map((fit) => {
-        return {
-          size: sizeRec.available_sizes.find((size) => size.id === fit.size_id).size_value.size,
-          locations: fit.measurement_location_fits.map((locationFit) => {
-            return {
-              fit: ShopTypes.FitNames[locationFit.fit],
-              location: ShopTypes.MeasurementLocationName[locationFit.measurement_location],
-            }
-          }),
-        }
-      }),
+      case types.AvatarState.CREATED:
+        if (this.hooks?.onLoadingComplete) this.hooks.onLoadingComplete()
+        break
+
+      default:
+        if (this.hooks?.onError) this.hooks.onError(L.SomethingWentWrong)
+        this.tfrModal.onError(L.SomethingWentWrong)
+        break
     }
+  }
+
+  private subscribeToProfileChanges() {
+    if (this.unsub) return
+
+    this.unsub = this.tfrShop.user.watchUserProfileForChanges((userProfile) => this.onUserProfileChange(userProfile))
+  }
+
+  private unsubscribeFromProfileChanges() {
+    if (!this.unsub) return
+
+    this.unsub()
+    this.unsub = null
   }
 }

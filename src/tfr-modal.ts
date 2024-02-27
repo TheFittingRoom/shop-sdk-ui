@@ -1,9 +1,8 @@
 import * as modals from './components'
 import * as types from './types'
 
-export class FittingRoomNav {
+export class TfrModal {
   private readonly manager: modals.ModalManager
-  private _sku: string
 
   constructor(
     modalDivId: string,
@@ -12,14 +11,6 @@ export class FittingRoomNav {
     private readonly submitTel: types.ScanCodeModalProps['onTelSubmit'],
   ) {
     this.manager = modals.InitModalManager(modalDivId)
-  }
-
-  public get sku(): string {
-    return this._sku
-  }
-
-  public setSku(sku: string) {
-    this._sku = sku
   }
 
   public close() {
