@@ -147,3 +147,23 @@
   border-top-right-radius: 8px;
   border-bottom-right-radius: 8px;
 }
+
+.tfr-powered-by {
+  display: flex;
+  align-items: center;
+  font-size: 10px;
+  margin-top: 10px;
+}
+
+.tfr-powered-by-logo {
+  margin: 0 4px;
+}
+
+.tfr-powered-by-logo,
+.tfr-powered-by-logo img {
+  height: 24px;
+}
+
+.tfr-powered-by-text-bold {
+  font-weight: 700;
+}

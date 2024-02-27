@@ -29,7 +29,7 @@ const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
           <div tfr-element="true" class="tfr-title-font tfr-light-16-300 tfr-mt-10">${L.ModalText}</div>
         </div>
         <div tfr-element="true" class="tfr-logo-box">
-          <video id="tfr-video" controls>
+          <video id="tfr-video" controls autoplay loop>
             <source src="https://assets.dev.thefittingroom.xyz/videos/the-fitting-room.mp4" />
           </video>
         </div>

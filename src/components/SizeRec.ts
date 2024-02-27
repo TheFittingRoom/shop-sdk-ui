@@ -1,6 +1,7 @@
 import { TfrShop } from '@thefittingroom/sdk'
 
-const svgSrc = 'https://assets.dev.thefittingroom.xyz/shop-sdk/assets/login-icon.svg'
+const loginIconSrc = 'https://assets.dev.thefittingroom.xyz/shop-sdk/assets/login-icon.svg'
+const doorLogoSrc = 'https://assets.dev.thefittingroom.xyz/shop-sdk/assets/tfr-door-brand.svg'
 
 export type RecommendedSize = {
   recommended: string
@@ -167,7 +168,7 @@ export class SizeRecComponent {
   }
 
   private renderLoginCta() {
-    return `<div class="tfr-size-rec-login-cta"><img src="${svgSrc}" /> Login to view</div>`
+    return `<div class="tfr-size-rec-login-cta"><img src="${loginIconSrc}" /> Login to view</div>`
   }
 
   private renderGarmentLocations(locations: string[]) {
@@ -193,7 +194,7 @@ export class SizeRecComponent {
                     <div id="tfr-size-recommendations-container">
                       <img id="tfr-size-rec-login-svg" src="{{ 'login-icon.svg' | asset_url }}" />
                       <div id="tfr-size-rec-title">
-                        Recommend Size:
+                        Recommended Size:
                         <div id="tfr-size-rec-size">
                           <div class="tfr-size-rec-login-cta">
                             <img  src="{{ 'login-icon.svg' | asset_url }}" /> Login to view
@@ -210,6 +211,12 @@ export class SizeRecComponent {
                       <div id="tfr-size-rec-action">
                         <div id="tfr-size-rec-action-login">Login to see your recommended size</div>
                         <div id="tfr-size-rec-action-logout">Sign out of the Fitting Room</div>
+                      </div>
+
+                      <div class="tfr-powered-by">
+                        <div>Powered by</div>
+                        <div class="tfr-powered-by-logo"><img src="${doorLogoSrc}" /></div>
+                        <div class="tfr-powered-by-text-bold">The Fitting Room</div>
                       </div>
                     </div>
                   </div>`
