@@ -23,10 +23,10 @@ import { initFittingRoom } from '@thefittingroom/shop-ui'
 const shopId: number = 9001
 
 // UI Hooks
+// These are used to hook into the lifecycle methods within the shop UI
 const hooks: TfrHooks = {
   onLoading: () => {},
   onLoadingComplete: () => {},
-  onVtoReady: (frames: string[]) => {},
   onError: (error: string) => {},
   onLogin: () => {},
   onLogout: () => {},
@@ -35,20 +35,18 @@ const hooks: TfrHooks = {
 // the div id to contain the modal elements
 const modalDivId: string = 'tfr-modal'
 
+// The div id to contain the size recommendation UI
+const sizeRecDivId: string = 'tfr-size-rec'
+
 // initFittingRoom is an async function and must be awaited
-const tfr = await initFittingRoom(shopId, modalDivId, hooks)
+const tfr = await initFittingRoom(shopId, modalDivId, sizeRecDivId, hooks, 'prod')
 
 // on page nav to new product
-// * Required for VTO
 tfr.setSku(sku)
 
 // on user login to brand site
-// * Required for VTO
 // e.g. uuid, email address, username, internal database Id
-tft.setBrandUserId(brandUserId)
-
-// close the modal
-tfr.close()
+tfr.setBrandUserId(brandUserId)
 ```
 
 Several low level methods are exposed via `tfr.shop`
