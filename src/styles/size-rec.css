@@ -167,3 +167,8 @@
 .tfr-powered-by-text-bold {
   font-weight: 700;
 }
+
+#tfr-size-recommendation-error {
+  display: none;
+  color: #8d0000;
+}

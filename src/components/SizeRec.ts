@@ -1,5 +1,3 @@
-import { TfrShop } from '@thefittingroom/sdk'
-
 const loginIconSrc = 'https://assets.dev.thefittingroom.xyz/shop-sdk/assets/login-icon.svg'
 const doorLogoSrc = 'https://assets.dev.thefittingroom.xyz/shop-sdk/assets/tfr-door-brand.svg'
 
@@ -17,6 +15,8 @@ export type RecommendedSize = {
 export class SizeRecComponent {
   private _sku: string = ''
 
+  private tfrSizeRecTitle: HTMLDivElement
+  private tfrSizeRecSubtitle: HTMLDivElement
   private tfrSizeRecActionLogin: HTMLDivElement
   private tfrSizeRecActionLogout: HTMLDivElement
   private tfrSizeRecLoading: HTMLDivElement
@@ -30,7 +30,6 @@ export class SizeRecComponent {
 
   constructor(
     sizeRecMainDivId: string,
-    private readonly tfrShop: TfrShop,
     private readonly onSignInClick: () => void,
     private readonly onSignOutClick: () => void,
   ) {
@@ -76,6 +75,10 @@ export class SizeRecComponent {
   }
 
   public setError(error: string) {
+    this.tfrSizeRecTitle.style.display = 'none'
+    this.tfrSizeRecSubtitle.style.display = 'none'
+
+    this.tfrSizeRecommendationError.style.display = 'block'
     this.tfrSizeRecommendationError.innerHTML = error
   }
 
@@ -90,6 +93,9 @@ export class SizeRecComponent {
   }
 
   private setElements() {
+    this.tfrSizeRecTitle = document.getElementById('tfr-size-rec-title') as HTMLDivElement
+    this.tfrSizeRecSubtitle = document.getElementById('tfr-size-rec-subtitle') as HTMLDivElement
+
     this.tfrSizeRecActionLogin = document.getElementById('tfr-size-rec-action-login') as HTMLDivElement
     this.tfrSizeRecActionLogout = document.getElementById('tfr-size-rec-action-logout') as HTMLDivElement
     this.tfrSizeRecTable = document.getElementById('tfr-size-rec-table') as HTMLDivElement
@@ -192,12 +198,12 @@ export class SizeRecComponent {
                       </div>
                     </div>
                     <div id="tfr-size-recommendations-container">
-                      <img id="tfr-size-rec-login-svg" src="{{ 'login-icon.svg' | asset_url }}" />
+                      <img id="tfr-size-rec-login-svg" src="${loginIconSrc}" />
                       <div id="tfr-size-rec-title">
                         Recommended Size:
                         <div id="tfr-size-rec-size">
                           <div class="tfr-size-rec-login-cta">
-                            <img  src="{{ 'login-icon.svg' | asset_url }}" /> Login to view
+                            <img  src="${loginIconSrc}" /> Login to view
                           </div>
                         </div>
                       </div>
@@ -219,7 +225,8 @@ export class SizeRecComponent {
                         <div class="tfr-powered-by-text-bold">The Fitting Room</div>
                       </div>
                     </div>
-                  </div>`
+                  </div>
+                  <div id="tfr-size-recommendation-error"></div>`
 
     sizeRecMainDiv.innerHTML = body
   }

@@ -11,12 +11,7 @@ export class TfrSizeRec {
     private readonly onSignInClick: () => void,
     private readonly onSignOutClick: () => void,
   ) {
-    this.sizeRecComponent = new SizeRecComponent(
-      sizeRecMainDivId,
-      this.tfrShop,
-      this.onSignInClick,
-      this.onSignOutClick,
-    )
+    this.sizeRecComponent = new SizeRecComponent(sizeRecMainDivId, this.onSignInClick, this.onSignOutClick)
   }
 
   public get sku() {
@@ -34,7 +29,7 @@ export class TfrSizeRec {
   public async setGarmentLocations() {
     this.sizeRecComponent.setLoading(true)
     const locations = await this.getGarmentLocations()
-    if (!locations) return
+    if (!locations) return this.sizeRecComponent.setLoading(false)
 
     this.sizeRecComponent.setGarmentLocations(locations)
     this.sizeRecComponent.setLoading(false)
@@ -43,7 +38,12 @@ export class TfrSizeRec {
   public async setRecommendedSize() {
     this.sizeRecComponent.setLoading(true)
     const sizes = await this.getRecommenedSize()
-    if (!sizes) return
+    if (!sizes) {
+      this.sizeRecComponent.setLoading(false)
+      this.sizeRecComponent.setError('No recommended size found.')
+
+      return
+    }
 
     this.sizeRecComponent.setRecommendedSize(sizes)
     this.sizeRecComponent.setLoading(false)
@@ -55,7 +55,7 @@ export class TfrSizeRec {
 
       return locations
     } catch (error) {
-      this.sizeRecComponent.setError(error.message)
+      this.sizeRecComponent.setError(error.message || error.error)
       return null
     }
   }
@@ -67,7 +67,7 @@ export class TfrSizeRec {
 
       return sizes
     } catch (error) {
-      this.sizeRecComponent.setError(error.message)
+      this.sizeRecComponent.setError(error.message || error.error)
       return null
     }
   }
