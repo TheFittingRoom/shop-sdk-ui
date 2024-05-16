@@ -15,6 +15,8 @@ export type RecommendedSize = {
 export class SizeRecComponent {
   private _sku: string = ''
 
+  private isLoggedIn: boolean = false
+
   private tfrSizeRecTitle: HTMLDivElement
   private tfrSizeRecSubtitle: HTMLDivElement
   private tfrSizeRecActionLogin: HTMLDivElement
@@ -45,6 +47,8 @@ export class SizeRecComponent {
   }
 
   public setIsLoggedIn(isLoggedIn: boolean) {
+    this.isLoggedIn = isLoggedIn
+
     if (isLoggedIn) {
       this.tfrSizeRecActionLogin.style.display = 'none'
       this.tfrSizeRecActionLogout.style.display = 'block'
@@ -53,8 +57,6 @@ export class SizeRecComponent {
     } else {
       this.tfrSizeRecActionLogin.style.display = 'block'
       this.tfrSizeRecActionLogout.style.display = 'none'
-      this.tfrSizeRecTitle.style.display = 'none'
-      this.tfrSizeRecSubtitle.style.display = 'none'
     }
   }
 
@@ -69,6 +71,13 @@ export class SizeRecComponent {
   }
 
   public setGarmentLocations(locations: string[]) {
+    if (!locations || !locations.length) {
+      this.tfrSizeRecTitle.style.display = 'none'
+      this.tfrSizeRecSubtitle.style.display = 'none'
+
+      return
+    }
+
     this.renderGarmentLocations(locations)
     this.tfrSizeRecSelect.style.display = 'none'
   }
@@ -81,6 +90,8 @@ export class SizeRecComponent {
   public setError() {
     this.tfrSizeRecTitle.style.display = 'none'
     this.tfrSizeRecSubtitle.style.display = 'none'
+
+    if (!this.isLoggedIn) return
 
     this.tfrSizeRecommendationError.style.display = 'block'
     this.tfrSizeRecommendationError.innerHTML = 'No recommended size found.'

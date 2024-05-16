@@ -75,6 +75,10 @@
   color: #209da7;
 }
 
+#tfr-size-rec-size {
+  display: inline-block;
+}
+
 #tfr-size-rec-size > .tfr-size-rec-login-cta {
   font-weight: 500;
   margin-left: 10px;

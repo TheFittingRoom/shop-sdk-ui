@@ -29,9 +29,9 @@ export class TfrSizeRec {
   public async setGarmentLocations() {
     this.sizeRecComponent.setLoading(true)
     const locations = await this.getGarmentLocations()
-    if (!locations) return this.sizeRecComponent.setLoading(false)
+    console.debug('locations', locations)
 
-    this.sizeRecComponent.setGarmentLocations(locations)
+    this.sizeRecComponent.setGarmentLocations(locations || [])
     this.sizeRecComponent.setLoading(false)
   }
 
@@ -81,10 +81,10 @@ export class TfrSizeRec {
     if (!sizeRec) return null
 
     return {
-      recommended: sizeRec.recommended_size.size_value.size,
+      recommended: sizeRec.recommended_size.label,
       sizes: sizeRec.fits.map((fit) => {
         return {
-          size: sizeRec.available_sizes.find((size) => size.id === fit.size_id).size_value.size,
+          size: sizeRec.available_sizes.find((size) => size.id === fit.size_id).label,
           locations: fit.measurement_location_fits.map((locationFit) => {
             return {
               fit: ShopTypes.FitNames[locationFit.fit],
