@@ -48,9 +48,13 @@ export class SizeRecComponent {
     if (isLoggedIn) {
       this.tfrSizeRecActionLogin.style.display = 'none'
       this.tfrSizeRecActionLogout.style.display = 'block'
+      this.tfrSizeRecTitle.style.display = 'block'
+      this.tfrSizeRecSubtitle.style.display = 'block'
     } else {
       this.tfrSizeRecActionLogin.style.display = 'block'
       this.tfrSizeRecActionLogout.style.display = 'none'
+      this.tfrSizeRecTitle.style.display = 'none'
+      this.tfrSizeRecSubtitle.style.display = 'none'
     }
   }
 
@@ -74,12 +78,12 @@ export class SizeRecComponent {
     this.tfrSizeRecSelect.style.display = 'flex'
   }
 
-  public setError(error: string) {
+  public setError() {
     this.tfrSizeRecTitle.style.display = 'none'
     this.tfrSizeRecSubtitle.style.display = 'none'
 
     this.tfrSizeRecommendationError.style.display = 'block'
-    this.tfrSizeRecommendationError.innerHTML = error
+    this.tfrSizeRecommendationError.innerHTML = 'No recommended size found.'
   }
 
   private init(sizeRecMainDivId: string) {

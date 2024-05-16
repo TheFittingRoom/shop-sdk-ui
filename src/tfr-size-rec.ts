@@ -39,8 +39,9 @@ export class TfrSizeRec {
     this.sizeRecComponent.setLoading(true)
     const sizes = await this.getRecommenedSize()
     if (!sizes) {
+      console.error('No sizes found for sku')
       this.sizeRecComponent.setLoading(false)
-      this.sizeRecComponent.setError('No recommended size found.')
+      this.sizeRecComponent.setError()
 
       return
     }
@@ -55,7 +56,8 @@ export class TfrSizeRec {
 
       return locations
     } catch (error) {
-      this.sizeRecComponent.setError(error.message || error.error)
+      console.error(error)
+      this.sizeRecComponent.setError()
       return null
     }
   }
@@ -67,7 +69,8 @@ export class TfrSizeRec {
 
       return sizes
     } catch (error) {
-      this.sizeRecComponent.setError(error.message || error.error)
+      console.error(error)
+      this.sizeRecComponent.setError()
       return null
     }
   }
