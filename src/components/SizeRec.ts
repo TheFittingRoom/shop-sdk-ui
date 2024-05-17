@@ -7,6 +7,7 @@ export type RecommendedSize = {
     size: string
     locations: {
       fit: string
+      isPerfect: boolean
       location: string
     }[]
   }[]
@@ -161,7 +162,7 @@ export class SizeRecComponent {
     const { locations } = sizes[index]
     const html = locations
       .sort(({ location: a }, { location: b }) => (a < b ? -1 : 1))
-      .map(({ location, fit }) => this.renderSizeRecTableRow(location, fit))
+      .map(({ location, fit, isPerfect }) => this.renderSizeRecTableRow(location, fit, isPerfect))
       .join('')
 
     this.tfrSizeRecTable.innerHTML = html
@@ -179,10 +180,10 @@ export class SizeRecComponent {
     this.tfrSizeRecSelect.innerHTML = html
   }
 
-  private renderSizeRecTableRow(location: string, fit: string) {
+  private renderSizeRecTableRow(location: string, fit: string, isPerfect: boolean = false) {
     return `<div class="tfr-size-rec-table-row">
               <div class="tfr-size-rec-table-cell-left">${location}</div>
-              <div class="tfr-size-rec-table-cell-right ${fit === 'Perfect Fit' ? 'perfect' : ''}">
+              <div class="tfr-size-rec-table-cell-right ${isPerfect ? 'perfect' : ''}">
                 ${fit}
               </div>
             </div>`

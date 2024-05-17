@@ -4,6 +4,7 @@ import { RecommendedSize, SizeRecComponent } from './components/SizeRec'
 
 export class TfrSizeRec {
   private readonly sizeRecComponent: SizeRecComponent
+  private readonly perfectFits = [ShopTypes.Fit.PERFECT_FIT, ShopTypes.Fit.SLIGHTLY_LOOSE, ShopTypes.Fit.SLIGHTLY_TIGHT]
 
   constructor(
     sizeRecMainDivId: string,
@@ -88,6 +89,7 @@ export class TfrSizeRec {
           locations: fit.measurement_location_fits.map((locationFit) => {
             return {
               fit: ShopTypes.FitNames[locationFit.fit],
+              isPerfect: this.perfectFits.includes(locationFit.fit),
               location: ShopTypes.MeasurementLocationName[locationFit.measurement_location],
             }
           }),
