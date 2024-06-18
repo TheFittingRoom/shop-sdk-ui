@@ -70,9 +70,15 @@ export class TfrSizeRec {
 
       return sizes
     } catch (error) {
-      console.error(error)
-      this.sizeRecComponent.setError()
-      return null
+      try {
+        const sizes = await this.getRecommendedSizes(String(this.sku))
+
+        return sizes
+      } catch (error) {
+        console.error(error)
+        this.sizeRecComponent.setError()
+        return null
+      }
     }
   }
 
