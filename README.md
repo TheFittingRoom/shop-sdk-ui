@@ -32,6 +32,8 @@ export type TfrCssVariables = {
   white?: string
   muted?: string
   dark?: string
+  grey?: string
+  lightGrey?: string
 
   // Main div stlyes
   mainBorderColor?: string
@@ -49,6 +51,12 @@ export type TfrCssVariables = {
   subtitleFont?: string
   rowFont?: string
   ctaFont?: string
+
+  // Size Selector
+  sizeSelectorTextColor?: string
+  sizeSelectorBgColor?: string
+  sizeSelectorBgColorHover?: string
+  sizeSelectorBgColorActive?: string
 }
 
 // UI Hooks
@@ -92,6 +100,8 @@ tfr.setBrandUserId(brandUserId)
   --tfr-muted: #a7a7a7;
 
   --tfr-dark: #121212;
+  --tfr-grey: #878787;
+  --tfr-light-grey: #f5f5f5;
 
   /* Main */
   --tfr-main-border-color: rgba(18, 18, 18, 0.55);
@@ -110,6 +120,12 @@ tfr.setBrandUserId(brandUserId)
   --tfr-subtitle-font: var(--tfr-main-font);
   --tfr-row-font: var(--tfr-main-font);
   --tfr-cta-font: var(--tfr-main-font);
+
+  /* Size Selector */
+  --tfr-size-selector-text-color: var(--white);
+  --tfr-size-selector-bg-color: var(--tfr-grey);
+  --tfr-size-selector-bg-color-hover: var(--tfr-light-grey);
+  --tfr-size-selector-bg-color-active: var(--tfr-dark);
 }
 ```
 

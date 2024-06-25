@@ -116,10 +116,10 @@
 
 #tfr-size-rec-select {
   align-items: center;
-  background-color: #878787;
+  background-color: var(--tfr-size-selector-bg-color);
   border-radius: 8px;
   box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.3);
-  color: var(--tfr-white);
+  color: var(--tfr-size-selector-text-color);
   display: none;
   font-size: 14px;
   height: 35px;
@@ -140,11 +140,11 @@
 
 .tfr-size-rec-select-button:hover:not(.active) {
   opacity: 0.7;
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: var(--tfr-size-selector-bg-color-hover);
 }
 
 .tfr-size-rec-select-button.active {
-  background-color: #212121;
+  background-color: var(--tfr-size-selector-bg-color-active);
   height: 45px;
 }
 

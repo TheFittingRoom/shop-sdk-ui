@@ -9,6 +9,8 @@ export type TfrCssVariables = {
   white?: string
   muted?: string
   dark?: string
+  grey?: string
+  lightGrey?: string
   mainBorderColor?: string
   mainBorderRadius?: string
   mainBorderWidth?: string
@@ -21,6 +23,10 @@ export type TfrCssVariables = {
   subtitleFont?: string
   rowFont?: string
   ctaFont?: string
+  sizeSelectorTextColor?: string
+  sizeSelectorBgColor?: string
+  sizeSelectorBgColorHover?: string
+  sizeSelectorBgColorActive?: string
 }
 
 export class TfrSizeRec {
@@ -137,6 +143,8 @@ export class TfrSizeRec {
     if (cssVariables.white) r.style.setProperty('--tfr-white', cssVariables.white)
     if (cssVariables.muted) r.style.setProperty('--tfr-muted', cssVariables.muted)
     if (cssVariables.dark) r.style.setProperty('--tfr-dark', cssVariables.dark)
+    if (cssVariables.grey) r.style.setProperty('--tfr-grey', cssVariables.grey)
+    if (cssVariables.lightGrey) r.style.setProperty('--tfr-light-grey', cssVariables.lightGrey)
     if (cssVariables.mainBorderColor) r.style.setProperty('--tfr-main-border-color', cssVariables.mainBorderColor)
     if (cssVariables.mainBorderRadius) r.style.setProperty('--tfr-main-border-radius', cssVariables.mainBorderRadius)
     if (cssVariables.mainBorderWidth) r.style.setProperty('--tfr-main-border-width', cssVariables.mainBorderWidth)
@@ -149,5 +157,13 @@ export class TfrSizeRec {
     if (cssVariables.subtitleFont) r.style.setProperty('--tfr-subtitle-font', cssVariables.subtitleFont)
     if (cssVariables.rowFont) r.style.setProperty('--tfr-row-font', cssVariables.rowFont)
     if (cssVariables.ctaFont) r.style.setProperty('--tfr-cta-font', cssVariables.ctaFont)
+    if (cssVariables.sizeSelectorTextColor)
+      r.style.setProperty('--tfr-size-selector-text-color', cssVariables.sizeSelectorTextColor)
+    if (cssVariables.sizeSelectorBgColor)
+      r.style.setProperty('--tfr-size-selector-bg-color', cssVariables.sizeSelectorBgColor)
+    if (cssVariables.sizeSelectorBgColorHover)
+      r.style.setProperty('--tfr-size-selector-bg-color-hover', cssVariables.sizeSelectorBgColorHover)
+    if (cssVariables.sizeSelectorBgColorActive)
+      r.style.setProperty('--tfr-size-selector-bg-color-active', cssVariables.sizeSelectorBgColorActive)
   }
 }
