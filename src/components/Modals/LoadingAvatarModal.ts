@@ -25,7 +25,7 @@ const LoadingAvatarModal = (props: LoadingAvatarModalProps): ModalContent => {
 
   const Body = () => {
     return `
-        <div tfr-element="true" class="tfr-title-font tfr-light-22-300 tfr-c-dark tfr-mt-60" > ${L.LoadingAvatar} </div>
+        <div tfr-element="true" class="tfr-title-font tfr-light-22-300 tfr-c-black tfr-mt-60" > ${L.LoadingAvatar} </div>
         <div class="progress-bar">
             <span class="progress-bar-fill"></span>
         </div>

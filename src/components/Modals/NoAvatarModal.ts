@@ -6,8 +6,8 @@ const NoAvatarModal = (): ModalContent => {
   const Unhook = () => void 0
   const Body = () => {
     return `
-        <div tfr-element="true" class="tfr-title-font tfr-light-22-300 tfr-c-dark tfr-mt-60">${L.DontHaveAvatar}</div>
-        <div tfr-element="true" class="tfr-title-font tfr-light-22-300 tfr-c-dark tfr-mb-60">${L.ReturnToTfr}</div>
+        <div tfr-element="true" class="tfr-title-font tfr-light-22-300 tfr-c-black tfr-mt-60">${L.DontHaveAvatar}</div>
+        <div tfr-element="true" class="tfr-title-font tfr-light-22-300 tfr-c-black tfr-mb-60">${L.ReturnToTfr}</div>
     `
   }
 

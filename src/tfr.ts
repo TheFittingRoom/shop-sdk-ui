@@ -3,7 +3,7 @@ import { types as ShopTypes, TfrShop, initShop } from '@thefittingroom/sdk'
 import { L } from './components/locale'
 import { validateEmail, validatePassword } from './helpers/validations'
 import { TfrModal } from './tfr-modal'
-import { TfrSizeRec } from './tfr-size-rec'
+import { TfrCssVariables, TfrSizeRec } from './tfr-size-rec'
 import * as types from './types'
 
 export interface TfrHooks {
@@ -28,6 +28,7 @@ export class FittingRoom {
     modalDivId: string,
     sizeRecMainDivId: string,
     private readonly hooks: TfrHooks = {},
+    cssVariables: TfrCssVariables,
     _env?: string,
   ) {
     // prettier-ignore
@@ -46,6 +47,7 @@ export class FittingRoom {
     this.tfrShop = initShop(Number(this.shopId), env)
     this.tfrSizeRec = new TfrSizeRec(
       sizeRecMainDivId,
+      cssVariables,
       this.tfrShop,
       this.onSignInClick.bind(this),
       this.signOut.bind(this),
@@ -58,6 +60,19 @@ export class FittingRoom {
 
   get sku() {
     return this.tfrSizeRec.sku
+  }
+
+  public async checkIfPublished(brandStyleIdOrSku: string) {
+    try {
+      const colorwaySizeAsset = await this.tfrShop.getColorwaySizeAssetFromSku(brandStyleIdOrSku)
+      const style = await this.tfrShop.getStyle(colorwaySizeAsset.style_id)
+
+      return Boolean(style?.is_published)
+    } catch {
+      const style = await this.tfrShop.getStyleByBrandStyleId(brandStyleIdOrSku)
+
+      return Boolean(style?.is_published)
+    }
   }
 
   public setSku(sku: string) {

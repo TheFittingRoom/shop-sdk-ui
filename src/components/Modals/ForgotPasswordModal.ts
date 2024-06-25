@@ -26,12 +26,12 @@ const ForgotPasswordModal = (props: ForgotPasswordModalProps): ModalContent => {
     return `
         <div tfr-element="true" class="tfr-title-font tfr-light-16-300 tfr-mt-20 tfr-w-70-p tfr-m-h-auto">${L.EnterEmailAddress}</div>
         <fieldset class="tfr-fieldset-element tfr-fieldset tfr-mt-30">
-            <legend tfr-element="true" class="tfr-label-element tfr-body-font tfr-14-default tfr-c-dark-o5">${L.EmailAddress}</legend>
+            <legend tfr-element="true" class="tfr-label-element tfr-body-font tfr-14-default tfr-c-black-o5">${L.EmailAddress}</legend>
             <input tfr-element="true" type="email" id="tfr-email" />
         </fieldset>
         <div tfr-element="true" class="tfr-body-font tfr-12-default tfr-c-red tfr-mt-10 tfr-d-none" id="error-msg"></div>
-        <div id="tfr-back-to-signin" tfr-element="true" class="tfr-body-font tfr-12-default tfr-c-dark-o5 tfr-underline tfr-cursor tfr-mt-30">${L.BackToSignIn}</div>
-        <button id="tfr-send-password-reset" tfr-element="true" class="tfr-standard-button tfr-bg-aquamarina-strong tfr-c-whitetfr-title-font tfr-medium-16-default tfr-cursor tfr-mt-30">
+        <div id="tfr-back-to-signin" tfr-element="true" class="tfr-body-font tfr-12-default tfr-c-black-o5 tfr-underline tfr-cursor tfr-mt-30">${L.BackToSignIn}</div>
+        <button id="tfr-send-password-reset" tfr-element="true" class="tfr-standard-button tfr-c-brand-bg tfr-c-whitetfr-title-font tfr-medium-16-default tfr-cursor tfr-mt-30">
             ${L.Send}
         </button>
     `

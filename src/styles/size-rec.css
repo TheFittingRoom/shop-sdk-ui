@@ -1,12 +1,16 @@
 #tfr-size-recommendations {
+  border: var(--tfr-main-border-width) solid var(--tfr-main-border-color);
+  border-radius: var(--tfr-main-border-radius);
+  background-color: var(--tfr-main-bg-color);
+  color: var(--tfr-dark);
+  padding: var(--tfr-main-v-padding) var(--tfr-main-h-padding);
+  width: var(--tfr-main-width);
+  font-family: var(--tfr-main-font);
+
   align-items: center;
-  border: 1px solid rgba(18, 18, 18, 0.55);
-  color: #121212;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 14px 20px;
-  width: 440px;
 }
 
 #tfr-size-recommendations-container {
@@ -25,10 +29,12 @@
   margin-bottom: 8px;
   display: flex;
   align-items: center;
+  font-family: var(--tfr-title-font);
 }
 
 #tfr-size-rec-subtitle {
   margin-bottom: 6px;
+  font-family: var(--tfr-subtitle-font);
 }
 
 #tfr-size-rec-title,
@@ -49,9 +55,10 @@
 }
 
 .tfr-size-rec-table-row {
+  font-family: var(--tfr-row-font);
   display: flex;
   justify-content: center;
-  border-top: 1px solid rgba(18, 18, 18, 0.55);
+  border-top: var(--tfr-main-border-width) solid var(--tfr-main-border-color);
   align-items: center;
   height: 40px;
 }
@@ -72,7 +79,7 @@
 }
 
 .tfr-size-rec-table-cell-right.perfect {
-  color: #209da7;
+  color: var(--tfr-brand-color);
 }
 
 #tfr-size-rec-size {
@@ -90,12 +97,13 @@
 }
 
 .tfr-size-rec-login-cta {
-  color: #a7a7a7;
+  color: var(--tfr-muted);
   display: flex;
 }
 
 #tfr-size-rec-action-login,
 #tfr-size-rec-action-logout {
+  font-family: var(--tfr-cta-font);
   display: none;
 }
 
@@ -111,7 +119,7 @@
   background-color: #878787;
   border-radius: 8px;
   box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.3);
-  color: #ffffff;
+  color: var(--tfr-white);
   display: none;
   font-size: 14px;
   height: 35px;

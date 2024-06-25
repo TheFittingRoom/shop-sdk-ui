@@ -18,9 +18,9 @@ const ResetLinkModal = (props: ResetLinkModalProps): ModalContent => {
 
   const Body = () => {
     return `
-    <div tfr-element="true" class="tfr-title-font tfr-light-22-300 tfr-c-dark tfr-mt-15-p tfr-mb-13-p tfr-w-80-p tfr-m-h-auto">${L.AssociatedEmail}</div>
+    <div tfr-element="true" class="tfr-title-font tfr-light-22-300 tfr-c-black tfr-mt-15-p tfr-mb-13-p tfr-w-80-p tfr-m-h-auto">${L.AssociatedEmail}</div>
     <div class="tfr-t-a-center">
-        <span id="tfr-back-to-signin" tfr-element="true" class="tfr-body-font tfr-16-default tfr-c-dark-o5 tfr-underline tfr-cursor tfr-mr-20">${L.BackToSignIn}</span>
+        <span id="tfr-back-to-signin" tfr-element="true" class="tfr-body-font tfr-16-default tfr-c-black-o5 tfr-underline tfr-cursor tfr-mr-20">${L.BackToSignIn}</span>
     </div>
     `
   }

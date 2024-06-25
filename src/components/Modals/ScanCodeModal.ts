@@ -38,17 +38,17 @@ const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
 
         <div tfr-element="true" class="tfr-flex">
           <fieldset class="tfr-fieldset-element tfr-fieldset-inline tfr-mt-20">
-              <legend tfr-element="true" class="tfr-label-element tfr-body-font tfr-14-default tfr-c-dark-o5">${L.PhoneNumber}</legend>
+              <legend tfr-element="true" class="tfr-label-element tfr-body-font tfr-14-default tfr-c-black-o5">${L.PhoneNumber}</legend>
               <div tfr-element="true" class="tfr-flex">
                 <input tfr-element="true" type="tel" id="tel-input" />
               </div>
           </fieldset>
-          <button tfr-element="true" class="tfr-standard-button tfr-bg-aquamarina-strong tfr-c-whitetfr-title-font tfr-medium-16-default tfr-cursor tfr-mt-30" id="tel-button">
+          <button tfr-element="true" class="tfr-standard-button tfr-c-brand-bg tfr-c-whitetfr-title-font tfr-medium-16-default tfr-cursor tfr-mt-30" id="tel-button">
             ${L.Send}
           </button>
         </div>
 
-        <div id="tfr-sign-in-nav" tfr-element="true" class="tfr-body-font tfr-mt-20 tfr-16-default tfr-c-dark-o5 tfr-underline tfr-cursor">${L.HaveAcc}</div>
+        <div id="tfr-sign-in-nav" tfr-element="true" class="tfr-body-font tfr-mt-20 tfr-16-default tfr-c-black-o5 tfr-underline tfr-cursor">${L.HaveAcc}</div>
     `
   }
 

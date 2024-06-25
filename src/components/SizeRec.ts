@@ -190,7 +190,7 @@ export class SizeRecComponent {
   }
 
   private renderLoginCta() {
-    return `<div class="tfr-size-rec-login-cta"><img src="${loginIconSrc}" /> Login to view</div>`
+    return `<div class="tfr-size-rec-login-cta"><img src="${loginIconSrc}" /> Login/Sign In to view</div>`
   }
 
   private renderGarmentLocations(locations: string[]) {
@@ -219,7 +219,7 @@ export class SizeRecComponent {
                         Recommended Size:
                         <div id="tfr-size-rec-size">
                           <div class="tfr-size-rec-login-cta">
-                            <img  src="${loginIconSrc}" /> Login to view
+                            <img  src="${loginIconSrc}" /> Login/Sign In to view
                           </div>
                         </div>
                       </div>

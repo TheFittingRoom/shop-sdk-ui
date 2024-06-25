@@ -45,10 +45,10 @@ const TryOnModal = (props: TryOnModalProps): ModalContent => {
 				<input type="range" id="tfr-slider" />
 				</div>
 				<div class="tfr-t-a-center">
-            <span id="tfr-back" tfr-element="true" class="tfr-body-font tfr-16-default tfr-c-dark-o5 tfr-underline tfr-cursor tfr-mr-20">${
+            <span id="tfr-back" tfr-element="true" class="tfr-body-font tfr-16-default tfr-c-black-o5 tfr-underline tfr-cursor tfr-mr-20">${
               L.ReturnToCatalogPage || 'Return to Catalog Page'
             }</span>
-            <span id="tfr-close" tfr-element="true" class="tfr-body-font tfr-16-default tfr-c-dark-o5 tfr-underline tfr-cursor" id="returnToSite">${
+            <span id="tfr-close" tfr-element="true" class="tfr-body-font tfr-16-default tfr-c-black-o5 tfr-underline tfr-cursor" id="returnToSite">${
               L.ReturnToProductPage || 'Return to Product Page'
             }</span>
         </div>
