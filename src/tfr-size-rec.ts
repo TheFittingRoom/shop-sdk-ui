@@ -56,10 +56,12 @@ export class TfrSizeRec {
     this.sizeRecComponent.setIsLoggedIn(isLoggedIn)
   }
 
-  public async setGarmentLocations() {
+  public async setGarmentLocations(filledLocations: string[] = []) {
     this.sizeRecComponent.setLoading(true)
-    const locations = await this.getGarmentLocations()
+    const locations = await this.getGarmentLocations(filledLocations)
+
     console.debug('locations', locations)
+    console.debug('filledLocations', filledLocations)
 
     this.sizeRecComponent.setGarmentLocations(locations || [])
     this.sizeRecComponent.setLoading(false)
@@ -80,9 +82,9 @@ export class TfrSizeRec {
     this.sizeRecComponent.setLoading(false)
   }
 
-  private async getGarmentLocations(): Promise<string[]> {
+  private async getGarmentLocations(filledLocations: string[]): Promise<string[]> {
     try {
-      const locations = await this.tfrShop.getMeasurementLocationsFromSku(this.sku)
+      const locations = await this.tfrShop.getMeasurementLocationsFromSku(this.sku, filledLocations)
 
       return locations
     } catch (error) {

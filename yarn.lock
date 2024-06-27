@@ -671,10 +671,10 @@
     estree-walker "^2.0.2"
     picomatch "^2.3.1"
 
-"@thefittingroom/sdk@1.1.12":
-  version "1.1.12"
-  resolved "https://registry.yarnpkg.com/@thefittingroom/sdk/-/sdk-1.1.12.tgz#529ae5a2185a76dd7816283b0f3823fd9f29f984"
-  integrity sha512-W2A2BrHz6p46OjjKJXHbH0aG1fnAuPsnr8GysSpjDvoh6AH9IS+rryDIzTOxnISLPCa/IXnrjGhWAOF/PDaeTA==
+"@thefittingroom/sdk@1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@thefittingroom/sdk/-/sdk-1.2.0.tgz#a7d017697f357174da47643ebe94539a06661316"
+  integrity sha512-sIGLWAtbQ7k1s3DvcDVqmYo5Ka4hSCPNbXmrqWY07Q+gbCvtUAuTNLYYx0oFmKBj+xol5YsmOsxocVb4JSL/4A==
   dependencies:
     dotenv "^16.3.1"
     firebase "^9.10.0"

@@ -122,7 +122,7 @@ tfr.setBrandUserId(brandUserId)
   --tfr-cta-font: var(--tfr-main-font);
 
   /* Size Selector */
-  --tfr-size-selector-text-color: var(--white);
+  --tfr-size-selector-text-color: var(--tfr-white);
   --tfr-size-selector-bg-color: var(--tfr-grey);
   --tfr-size-selector-bg-color-hover: var(--tfr-light-grey);
   --tfr-size-selector-bg-color-active: var(--tfr-dark);

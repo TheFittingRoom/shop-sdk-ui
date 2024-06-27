@@ -63,23 +63,16 @@ export class FittingRoom {
   }
 
   public async checkIfPublished(brandStyleIdOrSku: string) {
-    try {
-      const colorwaySizeAsset = await this.tfrShop.getColorwaySizeAssetFromSku(brandStyleIdOrSku)
-      const style = await this.tfrShop.getStyle(colorwaySizeAsset.style_id)
+    const style = await this.getStyle(brandStyleIdOrSku)
 
-      return Boolean(style?.is_published)
-    } catch {
-      const style = await this.tfrShop.getStyleByBrandStyleId(brandStyleIdOrSku)
-
-      return Boolean(style?.is_published)
-    }
+    return Boolean(style?.is_published)
   }
 
   public setSku(sku: string) {
     this.tfrSizeRec.setSku(sku)
 
     if (this.isLoggedIn) this.tfrSizeRec.setRecommendedSize()
-    else this.tfrSizeRec.setGarmentLocations()
+    else this.setGarmentLocations()
   }
 
   public async onInit() {
@@ -110,7 +103,7 @@ export class FittingRoom {
 
     this.isLoggedIn = false
     this.tfrSizeRec.setIsLoggedIn(false)
-    this.tfrSizeRec.setGarmentLocations()
+    this.setGarmentLocations()
     this.unsubscribeFromProfileChanges()
   }
 
@@ -200,5 +193,32 @@ export class FittingRoom {
 
     this.unsub()
     this.unsub = null
+  }
+
+  private async setGarmentLocations() {
+    const style = await this.getStyle(this.sku)
+
+    const filledLocations =
+      style?.sizes?.[0]?.garment_measurements.map((measurement) => measurement.garment_measurement_location) ||
+      ([] as string[])
+
+    this.tfrSizeRec.setGarmentLocations(filledLocations)
+  }
+
+  private async getStyle(brandStyleIdOrSku: string) {
+    try {
+      const colorwaySizeAsset = await this.tfrShop.getColorwaySizeAssetFromSku(brandStyleIdOrSku)
+      const style = await this.tfrShop.getStyle(colorwaySizeAsset.style_id)
+
+      return style
+    } catch {
+      try {
+        const style = await this.tfrShop.getStyleByBrandStyleId(brandStyleIdOrSku)
+
+        return style
+      } catch {
+        return null
+      }
+    }
   }
 }
