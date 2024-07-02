@@ -63,7 +63,7 @@ export class TfrSizeRec {
     console.debug('locations', locations)
     console.debug('filledLocations', filledLocations)
 
-    this.sizeRecComponent.setGarmentLocations(locations || [])
+    this.sizeRecComponent.setGarmentLocations(locations || filledLocations || [])
     this.sizeRecComponent.setLoading(false)
   }
 
