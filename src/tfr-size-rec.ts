@@ -88,9 +88,16 @@ export class TfrSizeRec {
 
       return locations
     } catch (error) {
-      console.error(error)
-      this.sizeRecComponent.setError()
-      return null
+      try {
+        const style = await this.tfrShop.getStyleByBrandStyleId(this.sku)
+        const locations = await this.tfrShop.getMeasurementLocationsFromBrandStyleId(style.id, filledLocations)
+
+        return locations
+      } catch (error) {
+        console.error(error)
+        this.sizeRecComponent.setError()
+        return null
+      }
     }
   }
 
