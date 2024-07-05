@@ -8,7 +8,8 @@
 
   --tfr-dark: #121212;
   --tfr-grey: #878787;
-  --tfr-light-grey: #f5f5f5;
+  --tfr-light-grey: #dbdcdc;
+  --tfr-dark-grey: #3f3f3f;
 
   /* Main */
   --tfr-main-border-color: rgba(18, 18, 18, 0.55);
@@ -30,7 +31,17 @@
 
   /* Size Selector */
   --tfr-size-selector-text-color: var(--tfr-white);
+  --tfr-size-selector-font-size: 14px;
+  --tfr-size-selector-font-weight: 400;
+  --tfr-size-selector-border-color: transparent;
+  --tfr-size-selector-border-width: 0;
   --tfr-size-selector-bg-color: var(--tfr-grey);
-  --tfr-size-selector-bg-color-hover: var(--tfr-light-grey);
+  --tfr-size-selector-bg-color-hover: var(--tfr-dark-grey);
   --tfr-size-selector-bg-color-active: var(--tfr-dark);
+  --tfr-size-selector-button-height: 35px;
+  --tfr-size-selector-button-active-height: 45px;
+  --tfr-size-selector-button-active-border-color: transparent;
+  --tfr-size-selector-button-active-border-width: 0;
+  --tfr-size-selector-button-radius: 8px;
+  --tfr-size-selector-button-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.3);
 }

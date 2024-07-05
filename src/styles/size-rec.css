@@ -33,14 +33,18 @@
 }
 
 #tfr-size-rec-subtitle {
-  margin-bottom: 6px;
+  background-color: var(--tfr-grey);
+  color: var(--tfr-white);
   font-family: var(--tfr-subtitle-font);
+  border-radius: 4px;
+  padding: 8px;
+  text-align: center;
+  width: 100%;
 }
 
 #tfr-size-rec-title,
 #tfr-size-rec-subtitle {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 14px;
 }
 
 #tfr-size-rec-table {
@@ -51,7 +55,7 @@
 }
 
 .tfr-size-rec-table-row:first-of-type {
-  border-top-width: 2px;
+  border-top-width: 0;
 }
 
 .tfr-size-rec-table-row {
@@ -69,7 +73,6 @@
 }
 
 .tfr-size-rec-table-cell-left {
-  font-weight: 700;
   margin-right: 70px;
   text-align: right;
 }
@@ -117,12 +120,16 @@
 #tfr-size-rec-select {
   align-items: center;
   background-color: var(--tfr-size-selector-bg-color);
-  border-radius: 8px;
-  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.3);
+  border-radius: var(--tfr-size-selector-button-radius);
+  border-color: var(--tfr-size-selector-border-color);
+  border-style: solid;
+  border-width: var(--tfr-size-selector-border-width);
+  box-shadow: var(--tfr-size-selector-button-shadow);
   color: var(--tfr-size-selector-text-color);
+  height: var(--tfr-size-selector-button-height);
   display: none;
-  font-size: 14px;
-  height: 35px;
+  font-size: var(--tfr-size-selector-font-size);
+  font-weight: var(--tfr-size-selector-font-weight);
   justify-content: center;
   margin-bottom: 20px;
   margin-top: 10px;
@@ -132,7 +139,7 @@
   align-items: center;
   cursor: pointer;
   display: flex;
-  height: 35px;
+  height: var(--tfr-size-selector-button-height);
   justify-content: center;
   transition: all 150ms ease-in;
   width: 80px;
@@ -145,19 +152,22 @@
 
 .tfr-size-rec-select-button.active {
   background-color: var(--tfr-size-selector-bg-color-active);
-  height: 45px;
+  height: var(--tfr-size-selector-button-active-height);
+  border-width: var(--tfr-size-selector-button-active-border-width);
+  border-style: solid;
+  border-color: var(--tfr-size-selector-button-active-border-color);
 }
 
 .tfr-size-rec-select-button:first-of-type,
 .tfr-size-rec-select-button.active {
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
+  border-top-left-radius: var(--tfr-size-selector-button-radius);
+  border-bottom-left-radius: var(--tfr-size-selector-button-radius);
 }
 
 .tfr-size-rec-select-button:last-of-type,
 .tfr-size-rec-select-button.active {
-  border-top-right-radius: 8px;
-  border-bottom-right-radius: 8px;
+  border-top-right-radius: var(--tfr-size-selector-button-radius);
+  border-bottom-right-radius: var(--tfr-size-selector-button-radius);
 }
 
 .tfr-powered-by {

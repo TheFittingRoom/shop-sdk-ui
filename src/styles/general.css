@@ -202,3 +202,11 @@
   align-items: center;
   justify-content: center;
 }
+
+.tfr-qr-code {
+  width: 50%;
+}
+
+.tfr-space-above {
+  margin-top: 10px;
+}

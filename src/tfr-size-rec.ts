@@ -24,9 +24,19 @@ export type TfrCssVariables = {
   rowFont?: string
   ctaFont?: string
   sizeSelectorTextColor?: string
+  sizeSelectorFontSize?: string
+  sizeSelectorFontWeight?: string
+  sizeSelectorBorderColor?: string
+  sizeSelectorBorderWidth?: string
   sizeSelectorBgColor?: string
   sizeSelectorBgColorHover?: string
   sizeSelectorBgColorActive?: string
+  sizeSelectorButtonHeight?: string
+  sizeSelectorButtonActiveHeight?: string
+  sizeSelectorButtonActiveBorderColor?: string
+  sizeSelectorButtonActiveBorderWidth?: string
+  sizeSelectorButtonRadius?: string
+  sizeSelectorButtonShadow?: string
 }
 
 export class TfrSizeRec {
@@ -166,13 +176,41 @@ export class TfrSizeRec {
     if (cssVariables.subtitleFont) r.style.setProperty('--tfr-subtitle-font', cssVariables.subtitleFont)
     if (cssVariables.rowFont) r.style.setProperty('--tfr-row-font', cssVariables.rowFont)
     if (cssVariables.ctaFont) r.style.setProperty('--tfr-cta-font', cssVariables.ctaFont)
+
+    // Size Selector
     if (cssVariables.sizeSelectorTextColor)
       r.style.setProperty('--tfr-size-selector-text-color', cssVariables.sizeSelectorTextColor)
+    if (cssVariables.sizeSelectorFontSize)
+      r.style.setProperty('--tfr-size-selector-font-size', cssVariables.sizeSelectorFontSize)
+    if (cssVariables.sizeSelectorFontWeight)
+      r.style.setProperty('--tfr-size-selector-font-weight', cssVariables.sizeSelectorFontWeight)
     if (cssVariables.sizeSelectorBgColor)
       r.style.setProperty('--tfr-size-selector-bg-color', cssVariables.sizeSelectorBgColor)
+    if (cssVariables.sizeSelectorBorderColor)
+      r.style.setProperty('--tfr-size-selector-border-color', cssVariables.sizeSelectorBorderColor)
+    if (cssVariables.sizeSelectorBorderWidth)
+      r.style.setProperty('--tfr-size-selector-border-width', cssVariables.sizeSelectorBorderWidth)
     if (cssVariables.sizeSelectorBgColorHover)
       r.style.setProperty('--tfr-size-selector-bg-color-hover', cssVariables.sizeSelectorBgColorHover)
     if (cssVariables.sizeSelectorBgColorActive)
       r.style.setProperty('--tfr-size-selector-bg-color-active', cssVariables.sizeSelectorBgColorActive)
+    if (cssVariables.sizeSelectorButtonHeight)
+      r.style.setProperty('--tfr-size-selector-button-height', cssVariables.sizeSelectorButtonHeight)
+    if (cssVariables.sizeSelectorButtonActiveHeight)
+      r.style.setProperty('--tfr-size-selector-button-active-height', cssVariables.sizeSelectorButtonActiveHeight)
+    if (cssVariables.sizeSelectorButtonActiveBorderColor)
+      r.style.setProperty(
+        '--tfr-size-selector-button-active-border-color',
+        cssVariables.sizeSelectorButtonActiveBorderColor,
+      )
+    if (cssVariables.sizeSelectorButtonActiveBorderWidth)
+      r.style.setProperty(
+        '--tfr-size-selector-button-active-border-width',
+        cssVariables.sizeSelectorButtonActiveBorderWidth,
+      )
+    if (cssVariables.sizeSelectorButtonRadius)
+      r.style.setProperty('--tfr-size-selector-button-radius', cssVariables.sizeSelectorButtonRadius)
+    if (cssVariables.sizeSelectorButtonShadow)
+      r.style.setProperty('--tfr-size-selector-button-shadow', cssVariables.sizeSelectorButtonShadow)
   }
 }
