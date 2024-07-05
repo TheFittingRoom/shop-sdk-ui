@@ -13,13 +13,13 @@ const ErrorModal = (props: ErrorModalProps) => {
   }
 
   const Hook = () => {
-    document.getElementById('tfr-back').addEventListener('click', onNavBack)
-    document.getElementById('tfr-close').addEventListener('click', onClose)
+    document.getElementById('tfr-back')?.addEventListener('click', onNavBack)
+    document.getElementById('tfr-close')?.addEventListener('click', onClose)
   }
 
   const Unhook = () => {
-    document.getElementById('tfr-back').removeEventListener('click', onNavBack)
-    document.getElementById('tfr-close').removeEventListener('click', onClose)
+    document.getElementById('tfr-back')?.removeEventListener('click', onNavBack)
+    document.getElementById('tfr-close')?.removeEventListener('click', onClose)
   }
 
   const Body = () => {

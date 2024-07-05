@@ -17,15 +17,15 @@ const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
   }
 
   const onHook = () => {
-    document.getElementById('tfr-sign-in-nav').addEventListener('click', onSignInNav)
-    document.getElementById('tfr-app-store').addEventListener('click', onCtaClickApple)
-    document.getElementById('tfr-google-play').addEventListener('click', onCtaClickGoogle)
+    document.getElementById('tfr-sign-in-nav')?.addEventListener('click', onSignInNav)
+    document.getElementById('tfr-app-store')?.addEventListener('click', onCtaClickApple)
+    document.getElementById('tfr-google-play')?.addEventListener('click', onCtaClickGoogle)
   }
 
   const onUnhook = () => {
-    document.getElementById('tfr-sign-in-nav').removeEventListener('click', onSignInNav)
-    document.getElementById('tfr-app-store').removeEventListener('click', onCtaClickApple)
-    document.getElementById('tfr-google-play').removeEventListener('click', onCtaClickGoogle)
+    document.getElementById('tfr-sign-in-nav')?.removeEventListener('click', onSignInNav)
+    document.getElementById('tfr-app-store')?.removeEventListener('click', onCtaClickApple)
+    document.getElementById('tfr-google-play')?.removeEventListener('click', onCtaClickGoogle)
   }
 
   const renderCtaText = () => (isMobile ? L.ClickHereToDownload : L.ScanQrToDownload)

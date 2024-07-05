@@ -11,13 +11,13 @@ const LoggedOutModal = (props: LoggedOutModalProps): ModalContent => {
   }
 
   const Hook = () => {
-    document.getElementById('tfr-sign-in').addEventListener('click', onNavSignIn)
-    document.getElementById('tfr-close').addEventListener('click', onClose)
+    document.getElementById('tfr-sign-in')?.addEventListener('click', onNavSignIn)
+    document.getElementById('tfr-close')?.addEventListener('click', onClose)
   }
 
   const Unhook = (): void => {
-    document.getElementById('tfr-sign-in').removeEventListener('click', onNavSignIn)
-    document.getElementById('tfr-close').removeEventListener('click', onClose)
+    document.getElementById('tfr-sign-in')?.removeEventListener('click', onNavSignIn)
+    document.getElementById('tfr-close')?.removeEventListener('click', onClose)
   }
 
   const Body = () => {

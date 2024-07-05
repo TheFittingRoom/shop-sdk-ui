@@ -9,11 +9,11 @@ const ResetLinkModal = (props: ResetLinkModalProps): ModalContent => {
   }
 
   const Hook = () => {
-    document.getElementById('tfr-back-to-signin').addEventListener('click', onNavSignIn)
+    document.getElementById('tfr-back-to-signin')?.addEventListener('click', onNavSignIn)
   }
 
   const Unhook = () => {
-    document.getElementById('tfr-back-to-signin').removeEventListener('click', onNavSignIn)
+    document.getElementById('tfr-back-to-signin')?.removeEventListener('click', onNavSignIn)
   }
 
   const Body = () => {

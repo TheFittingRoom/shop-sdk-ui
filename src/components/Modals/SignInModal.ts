@@ -23,17 +23,17 @@ const SignInModal = (props: SignInModalProps): ModalContent => {
   }
 
   const onHook = () => {
-    document.getElementById('tfr-sign-in-form').addEventListener('submit', onSignIn)
-    document.getElementById('tfr-sign-in').addEventListener('click', onSignIn)
-    document.getElementById('tfr-forgot-password').addEventListener('click', onNavForgotPassword)
-    document.getElementById('tfr-scan-code').addEventListener('click', onNavScanCode)
+    document.getElementById('tfr-sign-in-form')?.addEventListener('submit', onSignIn)
+    document.getElementById('tfr-sign-in')?.addEventListener('click', onSignIn)
+    document.getElementById('tfr-forgot-password')?.addEventListener('click', onNavForgotPassword)
+    document.getElementById('tfr-scan-code')?.addEventListener('click', onNavScanCode)
   }
 
   const onUnhook = () => {
-    document.getElementById('tfr-sign-in-form').removeEventListener('submit', onSignIn)
-    document.getElementById('tfr-sign-in').removeEventListener('click', onSignIn)
-    document.getElementById('tfr-forgot-password').removeEventListener('click', onNavForgotPassword)
-    document.getElementById('tfr-scan-code').removeEventListener('click', onNavScanCode)
+    document.getElementById('tfr-sign-in-form')?.removeEventListener('submit', onSignIn)
+    document.getElementById('tfr-sign-in')?.removeEventListener('click', onSignIn)
+    document.getElementById('tfr-forgot-password')?.removeEventListener('click', onNavForgotPassword)
+    document.getElementById('tfr-scan-code')?.removeEventListener('click', onNavScanCode)
   }
 
   const resetValidation = () => {

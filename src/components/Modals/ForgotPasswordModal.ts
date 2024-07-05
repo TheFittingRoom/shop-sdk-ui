@@ -13,13 +13,13 @@ const ForgotPasswordModal = (props: ForgotPasswordModalProps): ModalContent => {
   }
 
   const Hook = () => {
-    document.getElementById('tfr-send-password-reset').addEventListener('click', onPasswordReset)
-    document.getElementById('tfr-back-to-signin').addEventListener('click', onNavSignIn)
+    document.getElementById('tfr-send-password-reset')?.addEventListener('click', onPasswordReset)
+    document.getElementById('tfr-back-to-signin')?.addEventListener('click', onNavSignIn)
   }
 
   const Unhook = () => {
-    document.getElementById('tfr-send-password-reset').removeEventListener('click', onPasswordReset)
-    document.getElementById('tfr-back-to-signin').removeEventListener('click', onNavSignIn)
+    document.getElementById('tfr-send-password-reset')?.removeEventListener('click', onPasswordReset)
+    document.getElementById('tfr-back-to-signin')?.removeEventListener('click', onNavSignIn)
   }
 
   const Body = () => {

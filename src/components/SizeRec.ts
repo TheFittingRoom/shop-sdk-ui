@@ -53,11 +53,16 @@ export class SizeRecComponent {
     if (isLoggedIn) {
       this.tfrSizeRecActionLogin.style.display = 'none'
       this.tfrSizeRecActionLogout.style.display = 'block'
-      this.tfrSizeRecTitle.style.display = 'block'
+      this.tfrSizeRecTitle.style.display = 'flex'
       this.tfrSizeRecSubtitle.style.display = 'block'
     } else {
       this.tfrSizeRecActionLogin.style.display = 'block'
       this.tfrSizeRecActionLogout.style.display = 'none'
+
+      this.tfrSizeRecTitle.style.display = 'flex'
+      this.tfrSizeRecSubtitle.style.display = 'block'
+      this.tfrSizeRecommendationError.style.display = 'none'
+      this.tfrSizeRecommendationError.innerHTML = ''
     }
   }
 
