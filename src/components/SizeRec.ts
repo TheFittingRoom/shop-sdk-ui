@@ -58,6 +58,10 @@ export class SizeRecComponent {
       this.tfrSizeRecActionLogout.style.display = 'block'
       this.tfrSizeRecTitle.style.display = 'flex'
       this.tfrSizeRecSubtitle.style.display = 'block'
+      this.tfrSizeRecSelectContainer.style.display = 'flex'
+      this.isCollapsed = false
+      this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-up')
+      this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-down')
     } else {
       this.tfrSizeRecActionLogin.style.display = 'block'
       this.tfrSizeRecActionLogout.style.display = 'none'
@@ -219,7 +223,7 @@ export class SizeRecComponent {
       this.isCollapsed = false
       this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-up')
       this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-down')
-      this.tfrSizeRecSelectContainer.style.display = 'block'
+      this.tfrSizeRecSelectContainer.style.display = 'flex'
     } else {
       this.isCollapsed = true
       this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')

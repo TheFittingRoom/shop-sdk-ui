@@ -24,6 +24,8 @@
 
 #tfr-size-rec-select-container {
   display: none;
+  flex-direction: column;
+  align-items: center;
 }
 
 #tfr-size-rec-title {
