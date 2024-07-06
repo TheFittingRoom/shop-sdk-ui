@@ -60,8 +60,8 @@ export class SizeRecComponent {
       this.tfrSizeRecSubtitle.style.display = 'block'
       this.tfrSizeRecSelectContainer.style.display = 'flex'
       this.isCollapsed = false
-      this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-up')
-      this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-down')
+      this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')
+      this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-down')
     } else {
       this.tfrSizeRecActionLogin.style.display = 'block'
       this.tfrSizeRecActionLogout.style.display = 'none'
@@ -221,13 +221,13 @@ export class SizeRecComponent {
   private toggletSizeRecSelectContainer() {
     if (this.isCollapsed) {
       this.isCollapsed = false
-      this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-up')
-      this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-down')
+      this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')
+      this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-down')
       this.tfrSizeRecSelectContainer.style.display = 'flex'
     } else {
       this.isCollapsed = true
-      this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')
-      this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-down')
+      this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-up')
+      this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-down')
       this.tfrSizeRecSelectContainer.style.display = 'none'
     }
   }
@@ -243,7 +243,7 @@ export class SizeRecComponent {
                       </div>
                     </div>
                     <div id="tfr-size-recommendations-container">
-                      <div id="tfr-size-rec-title-toggle" class="tfr-chevron-up">v</div>
+                      <div id="tfr-size-rec-title-toggle" class="tfr-chevron-down">v</div>
 
                       <div id="tfr-size-rec-title">
                         Recommended Size:
