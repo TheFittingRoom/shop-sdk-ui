@@ -28,7 +28,10 @@ export class SizeRecComponent {
   private tfrSizeRecSelect: HTMLDivElement
   private tfrSizeRecSize: HTMLDivElement
   private tfrSizeRecTable: HTMLDivElement
+  private tfrSizeRecTitleToggle: HTMLDivElement
+  private tfrSizeRecSelectContainer: HTMLDivElement
 
+  private isCollapsed: boolean = true
   private redraw: (index: number) => void = null
 
   constructor(
@@ -124,6 +127,8 @@ export class SizeRecComponent {
     this.tfrSizeRecSize = document.getElementById('tfr-size-rec-size') as HTMLDivElement
     this.tfrSizeRecSelect = document.getElementById('tfr-size-rec-select') as HTMLDivElement
     this.tfrSizeRecLoading = document.getElementById('tfr-size-rec-loading') as HTMLDivElement
+    this.tfrSizeRecTitleToggle = document.getElementById('tfr-size-rec-title-toggle') as HTMLDivElement
+    this.tfrSizeRecSelectContainer = document.getElementById('tfr-size-rec-select-container') as HTMLDivElement
     this.tfrSizeRecommendationsContainer = document.getElementById(
       'tfr-size-recommendations-container',
     ) as HTMLDivElement
@@ -133,6 +138,7 @@ export class SizeRecComponent {
     this.tfrSizeRecActionLogin.addEventListener('click', this.onSignInClick)
     this.tfrSizeRecActionLogout.addEventListener('click', this.onSignOutClick)
     this.tfrSizeRecSelect.addEventListener('click', this.onSizeRecSelectClick.bind(this))
+    this.tfrSizeRecTitleToggle.addEventListener('click', this.toggletSizeRecSelectContainer.bind(this))
   }
 
   private onSizeRecSelectClick(e: MouseEvent) {
@@ -208,6 +214,20 @@ export class SizeRecComponent {
     this.tfrSizeRecSize.innerHTML = this.renderLoginCta()
   }
 
+  private toggletSizeRecSelectContainer() {
+    if (this.isCollapsed) {
+      this.isCollapsed = false
+      this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-up')
+      this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-down')
+      this.tfrSizeRecSelectContainer.style.display = 'block'
+    } else {
+      this.isCollapsed = true
+      this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')
+      this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-down')
+      this.tfrSizeRecSelectContainer.style.display = 'none'
+    }
+  }
+
   private render(sizeRecMainDiv: HTMLDivElement) {
     const body = `<div id="tfr-size-recommendations">
                     <div id="tfr-size-rec-loading">
@@ -219,7 +239,8 @@ export class SizeRecComponent {
                       </div>
                     </div>
                     <div id="tfr-size-recommendations-container">
-                      <img id="tfr-size-rec-login-svg" src="${loginIconSrc}" />
+                      <div id="tfr-size-rec-title-toggle" class="tfr-chevron-up">v</div>
+
                       <div id="tfr-size-rec-title">
                         Recommended Size:
                         <div id="tfr-size-rec-size">
@@ -229,12 +250,14 @@ export class SizeRecComponent {
                         </div>
                       </div>
 
-                      <div id="tfr-size-rec-select"></div>
-
-                      <div id="tfr-size-rec-subtitle">How it fits</div>
-
-                      <div id="tfr-size-rec-table"></div>
-
+                      <div id="tfr-size-rec-select-container">
+                        <div id="tfr-size-rec-select"></div>
+                        
+                        <div id="tfr-size-rec-subtitle">How it fits</div>
+                        
+                        <div id="tfr-size-rec-table"></div>
+                      </div>
+                      
                       <div id="tfr-size-rec-action">
                         <div id="tfr-size-rec-action-login">Sign up or login</div>
                         <div id="tfr-size-rec-action-logout">Sign out of the Fitting Room</div>
