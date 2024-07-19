@@ -199,8 +199,7 @@ export class FittingRoom {
     const style = await this.getStyle(this.sku)
 
     const filledLocations =
-      style?.sizes?.[0]?.garment_measurements.map((measurement) => measurement.garment_measurement_location) ||
-      ([] as string[])
+      style?.sizes?.[0]?.garment_measurements.map((measurement) => measurement.measurement_location) || ([] as string[])
 
     this.tfrSizeRec.setGarmentLocations(filledLocations)
   }

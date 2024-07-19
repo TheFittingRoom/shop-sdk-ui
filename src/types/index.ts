@@ -133,7 +133,7 @@ export type FirestoreColorwaySizeAsset = {
 
 export type FirestoreGarmentMeasurement = {
   id: number
-  garment_measurement_location: string
+  measurement_location: string
   tolerance: number
   value: number
 }
