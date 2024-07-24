@@ -145,7 +145,7 @@ export class TfrSizeRec {
             return {
               fit: ShopTypes.FitNames[locationFit.fit],
               isPerfect: this.perfectFits.includes(locationFit.fit),
-              location: ShopTypes.MeasurementLocationName[locationFit.measurement_location],
+              location: this.tfrShop.getMeasurementLocationName(locationFit.measurement_location),
             }
           }),
         }
