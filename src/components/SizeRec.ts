@@ -255,6 +255,8 @@ export class SizeRecComponent {
                       </div>
 
                       <div id="tfr-size-rec-select-container">
+                        <div id="tfr-size-how-it-fits">Select size to see how it fits:</div>
+
                         <div id="tfr-size-rec-select"></div>
                         
                         <div id="tfr-size-rec-subtitle">How it fits</div>

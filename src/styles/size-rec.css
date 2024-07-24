@@ -215,3 +215,7 @@
   display: none;
   color: #8d0000;
 }
+
+#tfr-size-rec-select-container {
+  font-size: 13px;
+}
