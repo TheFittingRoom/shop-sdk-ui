@@ -18,6 +18,7 @@ export class SizeRecComponent {
 
   private isLoggedIn: boolean = false
 
+  private tfrSizeHowItFits: HTMLDivElement
   private tfrSizeRecTitle: HTMLDivElement
   private tfrSizeRecSubtitle: HTMLDivElement
   private tfrSizeRecActionLogin: HTMLDivElement
@@ -62,6 +63,7 @@ export class SizeRecComponent {
       this.isCollapsed = false
       this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')
       this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-down')
+      this.tfrSizeHowItFits.style.display = 'block'
     } else {
       this.tfrSizeRecActionLogin.style.display = 'block'
       this.tfrSizeRecActionLogout.style.display = 'none'
@@ -70,6 +72,7 @@ export class SizeRecComponent {
       this.tfrSizeRecSubtitle.style.display = 'block'
       this.tfrSizeRecommendationError.style.display = 'none'
       this.tfrSizeRecommendationError.innerHTML = ''
+      this.tfrSizeHowItFits.style.display = 'none'
     }
   }
 
@@ -121,6 +124,7 @@ export class SizeRecComponent {
   }
 
   private setElements() {
+    this.tfrSizeHowItFits = document.getElementById('tfr-size-how-it-fits') as HTMLDivElement
     this.tfrSizeRecTitle = document.getElementById('tfr-size-rec-title') as HTMLDivElement
     this.tfrSizeRecSubtitle = document.getElementById('tfr-size-rec-subtitle') as HTMLDivElement
 

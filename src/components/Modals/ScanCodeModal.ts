@@ -28,24 +28,30 @@ const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
     document.getElementById('tfr-google-play')?.removeEventListener('click', onCtaClickGoogle)
   }
 
-  const renderCtaText = () => (isMobile ? L.ClickHereToDownload : L.ScanQrToDownload)
+  const imageBaseUrl = 'https://assets.dev.thefittingroom.xyz/images/'
 
-  const renderImages = () => {
-    const base = 'https://assets.dev.thefittingroom.xyz/images/'
+  const renderMobile = () =>
+    !isMobile
+      ? ``
+      : `<div tfr-element="true" class="tfr-title-font tfr-light-16-300 tfr-mt-10">${L.ClickHereToDownload}</div>
 
-    if (isMobile)
-      return `
-        <img src="${base}apple.png" id="tfr-app-store" />
-        <img src="${base}google.png" id="tfr-google-play" />
-      `
+    <div tfr-element="true" class="tfr-flex tfr-space-above">
+      <img src="${imageBaseUrl}apple.png" id="tfr-app-store" />
+      <img src="${imageBaseUrl}google.png" id="tfr-google-play" />
+    </div>`
 
-    return `<img src="${base}qr.png" class="tfr-qr-code" />`
-  }
+  const renderDesktop = () =>
+    isMobile
+      ? ``
+      : `<div tfr-element="true" class="tfr-title-font tfr-light-16-300 tfr-mt-10">${L.ScanQrToDownload}</div>
+    
+    <img src="${imageBaseUrl}qr.png" class="tfr-qr-code" />`
 
   const body = () => {
     return `
         <div tfr-element="true">
           <div tfr-element="true" class="tfr-title-font tfr-light-16-300 tfr-mt-10">${L.ModalText}</div>
+          ${renderDesktop()}
         </div>
         <div tfr-element="true" class="tfr-logo-box">
           <video id="tfr-video" controls autoplay loop>
@@ -53,11 +59,7 @@ const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
           </video>
         </div>
 
-        <div tfr-element="true" class="tfr-title-font tfr-light-16-300 tfr-mt-10">${renderCtaText()}</div>
-
-        <div tfr-element="true" class="tfr-flex tfr-space-above">
-          ${renderImages()}
-        </div>
+        ${renderMobile()}
 
         <div id="tfr-sign-in-nav" tfr-element="true" class="tfr-body-font tfr-mt-20 tfr-16-default tfr-c-black-o5 tfr-underline tfr-cursor">${
           L.HaveAcc

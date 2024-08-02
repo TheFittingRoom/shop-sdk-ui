@@ -38,6 +38,8 @@ export class FittingRoom {
       ? process.env.NODE_ENV
       : 'dev'
 
+    console.log('tfr-env', env)
+
     this.tfrModal = new TfrModal(
       modalDivId,
       this.signIn.bind(this),
