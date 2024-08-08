@@ -9,6 +9,8 @@ interface ModalManager {
 
 const InitModalManager = (elementID: string): ModalManager => {
   const modal = document.getElementById(elementID)
+  const body = document.querySelector('body')
+
   if (!modal) {
     throw new Error(`element with id ${elementID} not found`)
   }
@@ -48,6 +50,7 @@ const InitModalManager = (elementID: string): ModalManager => {
   }
 
   const Open = (content: ModalContent) => {
+    body.style.overflow = 'hidden'
     if (previousContent) {
       previousContent.Unhook()
     }
@@ -59,6 +62,7 @@ const InitModalManager = (elementID: string): ModalManager => {
   }
 
   const Close = () => {
+    body.style.overflow = 'auto'
     if (previousContent) {
       previousContent.Unhook()
       unhook()

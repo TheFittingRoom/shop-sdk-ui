@@ -9,6 +9,8 @@
   .tfr-modal-content-container {
     height: auto;
     border-radius: 10px;
+    width: 100%;
+    margin: auto;
   }
 }
 
@@ -19,6 +21,8 @@
 
   .tfr-modal-content-container {
     min-height: 100vh;
+    max-height: none;
+    min-width: 100vw;
   }
 
   .trf-logo-title {
@@ -27,6 +31,7 @@
 
   .tfr-modal-content-flex {
     height: calc(100vh - 76px);
+    overflow: auto;
   }
 }
 

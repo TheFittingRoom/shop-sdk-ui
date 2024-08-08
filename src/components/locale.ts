@@ -25,7 +25,7 @@ var L = {
   ReturnToProductPage: 'Return to Product Page',
   ReturnToSite: 'Return to site',
   ReturnToTfr: 'Please return to The Fitting Room app to create your avatar.',
-  ScanQrToDownload: 'Scan the QR code to download the app',
+  ScanQrToDownload: 'Scan to download the app',
   Send: 'Send',
   SignBackIn: 'Sign back in',
   SignIn: 'Sign in',

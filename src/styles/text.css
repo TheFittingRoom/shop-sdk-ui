@@ -41,3 +41,8 @@
 .tfr-16-default {
   font-size: 16px;
 }
+
+.tfr-24-bold {
+  font-size: 24px;
+  font-weight: 700;
+}
