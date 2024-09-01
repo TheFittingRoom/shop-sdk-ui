@@ -32,7 +32,7 @@ export class SizeRecComponent {
   private tfrSizeRecTitleToggle: HTMLDivElement
   private tfrSizeRecSelectContainer: HTMLDivElement
 
-  private isCollapsed: boolean = true
+  private isCollapsed: boolean = false
   private redraw: (index: number) => void = null
 
   constructor(
@@ -54,12 +54,13 @@ export class SizeRecComponent {
   public setIsLoggedIn(isLoggedIn: boolean) {
     this.isLoggedIn = isLoggedIn
 
+    this.tfrSizeRecSelectContainer.style.display = 'flex'
+
     if (isLoggedIn) {
       this.tfrSizeRecActionLogin.style.display = 'none'
       this.tfrSizeRecActionLogout.style.display = 'block'
       this.tfrSizeRecTitle.style.display = 'flex'
       this.tfrSizeRecSubtitle.style.display = 'block'
-      this.tfrSizeRecSelectContainer.style.display = 'flex'
       this.isCollapsed = false
       this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')
       this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-down')
@@ -247,7 +248,7 @@ export class SizeRecComponent {
                       </div>
                     </div>
                     <div id="tfr-size-recommendations-container">
-                      <div id="tfr-size-rec-title-toggle" class="tfr-chevron-down">v</div>
+                      <div id="tfr-size-rec-title-toggle" class="tfr-chevron-up">v</div>
 
                       <div id="tfr-size-rec-title">
                         Recommended Size:
@@ -270,7 +271,7 @@ export class SizeRecComponent {
                       
                       <div id="tfr-size-rec-action">
                         <div id="tfr-size-rec-action-login">Sign up or login</div>
-                        <div id="tfr-size-rec-action-logout">Sign out of the Fitting Room</div>
+                        <div id="tfr-size-rec-action-logout">Log out</div>
                       </div>
 
                       <div class="tfr-powered-by">

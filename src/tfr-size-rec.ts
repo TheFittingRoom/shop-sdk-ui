@@ -141,13 +141,16 @@ export class TfrSizeRec {
       sizes: sizeRec.fits.map((fit) => {
         return {
           size: sizeRec.available_sizes.find((size) => size.id === fit.size_id).label,
-          locations: fit.measurement_location_fits.map((locationFit) => {
-            return {
-              fit: ShopTypes.FitNames[locationFit.fit],
-              isPerfect: this.perfectFits.includes(locationFit.fit),
-              location: this.tfrShop.getMeasurementLocationName(locationFit.measurement_location),
-            }
-          }),
+          locations: fit.measurement_location_fits
+            .map((locationFit) => {
+              return {
+                fit: ShopTypes.FitNames[locationFit.fit],
+                isPerfect: this.perfectFits.includes(locationFit.fit),
+                location: this.tfrShop.getMeasurementLocationName(locationFit.measurement_location),
+                sortOrder: this.tfrShop.getMeasurementLocationSortOrder(locationFit.measurement_location),
+              }
+            })
+            .sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : 1)),
         }
       }),
     }

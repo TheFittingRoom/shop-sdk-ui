@@ -26,7 +26,7 @@ const InitModalManager = (elementID: string): ModalManager => {
                 </div>
 
                 <div class="tfr-modal-content-flex">
-                  <div class="tfr-modal-content tfr-pt-20 tfr-pb-50">
+                  <div class="tfr-modal-content">
                       <div class="tfr-modal-title-logo-container">
                           <div tfr-element="true" class="trf-logo-title tfr-title-font tfr-light-24-300 tfr-c-black tfr-mr-10">${L.ModalTagline}</div>
                           <div tfr-element="true" class="tfr-logo-container">

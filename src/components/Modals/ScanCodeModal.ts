@@ -17,6 +17,13 @@ const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
   }
 
   const onHook = () => {
+    if (!isMobile) document.getElementById('tfr-sign-in-nav').style.marginBottom = '0'
+    if (isMobile) {
+      const videoElement = document.getElementById('tfr-video') as HTMLVideoElement
+
+      videoElement.classList.add('tfr-video-responsive')
+    }
+
     document.getElementById('tfr-sign-in-nav')?.addEventListener('click', onSignInNav)
     document.getElementById('tfr-app-store')?.addEventListener('click', onCtaClickApple)
     document.getElementById('tfr-google-play')?.addEventListener('click', onCtaClickGoogle)
@@ -36,8 +43,8 @@ const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
       : `<div tfr-element="true" class="tfr-title-font tfr-light-16-300 tfr-mt-10 tfr-max-w-600">${L.ClickHereToDownload}</div>
 
     <div tfr-element="true" class="tfr-flex tfr-space-above">
-      <img src="${imageBaseUrl}apple.png" id="tfr-app-store" />
-      <img src="${imageBaseUrl}google.png" id="tfr-google-play" />
+      <img class="tfr-mobile-logo" src="${imageBaseUrl}apple.png" id="tfr-app-store" />
+      <img class="tfr-mobile-logo" src="${imageBaseUrl}google.png" id="tfr-google-play" />
     </div>
     
     <div id="tfr-sign-in-nav" tfr-element="true" class="tfr-body-font tfr-mt-20 tfr-16-default tfr-c-black-o5 tfr-underline tfr-cursor">${L.HaveAcc}</div>
@@ -61,7 +68,7 @@ const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
           
         </div>
         <div tfr-element="true" class="tfr-logo-box">
-          <video id="tfr-video" controls loop>
+          <video id="tfr-video" controls loop autoplay playsinline>
             <source src="https://assets.dev.thefittingroom.xyz/videos/the-fitting-room.mp4" />
           </video>
 

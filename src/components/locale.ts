@@ -38,7 +38,7 @@ var L = {
   // Modal
   ModalTagline: 'End size uncertainty with',
   ModalText:
-    'Our technology captures your precise measurements, and considers things like fabric stretch and your individual physique for the perfect fit every time.',
+    'Our technology captures your precise measurements, and considers things like fabric stretch and your individual physique to find your perfect fit every time.',
 }
 
 function findMissingLocales(defaultLocale: any, newLocale: any): { default: any; new: any } {
