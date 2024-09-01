@@ -181,7 +181,6 @@ export class SizeRecComponent {
   private renderSizeRecTable(sizes: RecommendedSize['sizes'], index: number) {
     const { locations } = sizes[index]
     const html = locations
-      .sort(({ location: a }, { location: b }) => (a < b ? -1 : 1))
       .map(({ location, fit, isPerfect }) => this.renderSizeRecTableRow(location, fit, isPerfect))
       .join('')
 
@@ -214,10 +213,7 @@ export class SizeRecComponent {
   }
 
   private renderGarmentLocations(locations: string[]) {
-    const html = locations
-      .sort()
-      .map((location) => this.renderSizeRecTableRow(location, this.renderLoginCta()))
-      .join('')
+    const html = locations.map((location) => this.renderSizeRecTableRow(location, this.renderLoginCta())).join('')
 
     this.tfrSizeRecTable.innerHTML = html
     this.tfrSizeRecSize.innerHTML = this.renderLoginCta()
