@@ -143,8 +143,13 @@ export class TfrSizeRec {
           size: sizeRec.available_sizes.find((size) => size.id === fit.size_id).label,
           locations: fit.measurement_location_fits
             .map((locationFit) => {
+              const fitLabel =
+                typeof locationFit.fit_label === 'string' && locationFit.fit_label
+                  ? locationFit.fit_label
+                  : ShopTypes.FitNames[locationFit.fit]
+
               return {
-                fit: ShopTypes.FitNames[locationFit.fit],
+                fit: fitLabel,
                 isPerfect: this.perfectFits.includes(locationFit.fit),
                 location: this.tfrShop.getMeasurementLocationName(locationFit.measurement_location),
                 sortOrder: this.tfrShop.getMeasurementLocationSortOrder(locationFit.measurement_location),
