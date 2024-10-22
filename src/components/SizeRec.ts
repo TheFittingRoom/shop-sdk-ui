@@ -1,5 +1,4 @@
-const loginIconSrc = 'https://assets.dev.thefittingroom.xyz/shop-sdk/assets/login-icon.svg'
-const doorLogoSrc = 'https://assets.dev.thefittingroom.xyz/shop-sdk/assets/tfr-door-brand.svg'
+import { tfrDoor, userIcon } from './svgs'
 
 export type RecommendedSize = {
   recommended: string
@@ -209,7 +208,7 @@ export class SizeRecComponent {
   }
 
   private renderLoginCta() {
-    return `<div class="tfr-size-rec-login-cta"><img src="${loginIconSrc}" /> Sign up or login to view</div>`
+    return `<div class="tfr-size-rec-login-cta">${userIcon} Sign up to view</div>`
   }
 
   private renderGarmentLocations(locations: string[]) {
@@ -250,7 +249,7 @@ export class SizeRecComponent {
                         Recommended Size:
                         <div id="tfr-size-rec-size">
                           <div class="tfr-size-rec-login-cta">
-                            <img  src="${loginIconSrc}" /> Sign up or login to view
+                            ${userIcon} Sign up to view
                           </div>
                         </div>
                       </div>
@@ -272,7 +271,7 @@ export class SizeRecComponent {
 
                       <div class="tfr-powered-by">
                         <div>Powered by</div>
-                        <div class="tfr-powered-by-logo"><img src="${doorLogoSrc}" /></div>
+                        <div class="tfr-powered-by-logo">${tfrDoor}</div>
                         <div class="tfr-powered-by-text-bold">The Fitting Room</div>
                       </div>
                     </div>

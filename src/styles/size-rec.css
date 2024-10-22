@@ -105,6 +105,7 @@
 .tfr-size-rec-table-cell-right {
   margin-left: 16px;
   padding-right: 8px;
+  text-align: left;
 }
 
 .tfr-size-rec-table-cell-right.perfect {
@@ -208,8 +209,10 @@
 }
 
 .tfr-powered-by-logo,
-.tfr-powered-by-logo img {
+.tfr-powered-by-logo img,
+.tfr-powered-by-logo svg {
   height: 24px;
+  width: 24px;
 }
 
 .tfr-powered-by-text-bold {
