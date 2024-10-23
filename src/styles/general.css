@@ -56,6 +56,10 @@
 }
 
 /* Close button */
+#tfr-close-container {
+  padding-right: 10px;
+}
+
 .tfr-close-container {
   text-align: end;
 }
@@ -239,4 +243,45 @@
 .tfr-door-icon,
 .tfr-user-icon {
   color: #209da7;
+}
+
+.tfr-logged-in,
+.tfr-toggle-closed {
+  display: none;
+}
+
+.tfr-flex {
+  display: flex;
+}
+
+.tfr-gap-2 {
+  gap: 8px;
+}
+
+.tfr-items-center {
+  align-items: center;
+}
+
+.tfr-mb-2 {
+  margin-bottom: 8px;
+}
+
+#tfr-logged-out-overlay-container {
+  position: relative;
+}
+
+#tfr-logged-out-overlay {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.8);
+  bottom: 0;
+  display: flex;
+  font-size: 16px;
+  font-weight: 700;
+  justify-content: center;
+  left: 0;
+  line-height: 16px;
+  position: absolute;
+  right: 0;
+  text-align: center;
+  top: 0;
 }

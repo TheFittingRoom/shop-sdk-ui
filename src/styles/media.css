@@ -52,12 +52,6 @@
   }
 }
 
-@media screen and (max-width: 380) {
-  #tfr-size-rec-subtitle {
-    min-width: none;
-  }
-}
-
 @media screen and (max-height: 800px) {
   .tfr-video-responsive {
     height: 280px !important;

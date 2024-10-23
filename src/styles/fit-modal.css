@@ -1,0 +1,364 @@
+/* Fit model */
+
+#fit-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #209da7;
+  margin-bottom: 20px;
+  margin-top: -30px;
+}
+
+#fit-subtitle {
+  position: absolute;
+  top: 100px;
+  right: 17px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #209da7;
+}
+
+#fit-subtitle-mobile {
+  font-size: 24px;
+  font-weight: 700;
+  color: #7d7d7d;
+  margin-top: 20px;
+}
+
+#fit-outline-container {
+  display: flex;
+  justify-content: center;
+}
+
+#fit-outline-inner {
+  position: relative;
+}
+
+#fit-outline-inner,
+#tfr-fit-outline-img {
+  width: 184px;
+}
+
+#fit-outline-inner,
+#tfr-fit-outline-img,
+#fit-outline-inner-left,
+#fit-outline-inner-right {
+  height: 701px;
+}
+
+#fit-outline-inner-left,
+#fit-outline-inner-right {
+  position: relative;
+  width: 260px;
+}
+
+#fit-outline-container .fit-outline-line {
+  display: block;
+}
+
+.fit-outline-line {
+  position: absolute;
+  background: #000000;
+  height: 1px;
+}
+
+.fit-outline-line-text {
+  border-bottom: 1px solid #000000;
+  font-size: 24px;
+  position: absolute;
+}
+
+.fit-outline-line-chest-text {
+  top: 163px;
+  left: -11px;
+  width: 254px;
+  text-align: right;
+}
+.fit-outline-line-n-waist-text {
+  top: 208px;
+  left: -11px;
+  width: 254px;
+  text-align: right;
+}
+.fit-outline-line-p-waist-text {
+  top: 233px;
+  right: -10px;
+  width: 253px;
+  text-align: left;
+}
+.fit-outline-line-h-hip-text {
+  top: 255px;
+  left: -3px;
+  width: 246px;
+  text-align: right;
+}
+.fit-outline-line-l-hip-text {
+  top: 302px;
+  left: -3px;
+  width: 246px;
+  text-align: right;
+}
+.fit-outline-line-thigh-text {
+  top: 341px;
+  right: 3px;
+  width: 240px;
+  text-align: left;
+}
+
+.fit-outline-line-chest {
+  top: 194px;
+  left: 42px;
+  width: 99px;
+}
+.fit-outline-line-n-waist {
+  top: 239px;
+  left: 50px;
+  width: 83px;
+}
+.fit-outline-line-p-waist {
+  top: 264px;
+  left: 45px;
+  width: 93px;
+}
+.fit-outline-line-h-hip {
+  top: 286px;
+  left: 30px;
+  width: 122px;
+}
+.fit-outline-line-l-hip {
+  top: 333px;
+  left: 21px;
+  width: 141px;
+}
+.fit-outline-line-thigh-l {
+  top: 372px;
+  left: 27px;
+  width: 60px;
+}
+.fit-outline-line-thigh-r {
+  top: 372px;
+  left: 95px;
+  width: 61px;
+}
+
+/* Fit Line */
+#fit-line-container {
+  width: 100%;
+  position: relative;
+}
+
+#fit-line-text-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fit-line-item {
+  font-weight: 700;
+  width: 110px;
+}
+.fit-line-item .light-text {
+  font-weight: 500;
+}
+.fit-line-item-green {
+  color: #209da7;
+}
+
+#fit-line {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 30px;
+  margin-bottom: 4px;
+}
+
+#fit-line-1,
+#fit-line-2,
+#fit-line-3,
+#fit-line-4,
+#fit-line-5,
+#fit-line-6,
+#fit-line-7 {
+  background: #000000;
+  height: 2px;
+  width: 110px;
+  position: relative;
+}
+#fit-line-3,
+#fit-line-4,
+#fit-line-5 {
+  background: #209da7;
+}
+
+#fit-line-1:before,
+#fit-line-2:before,
+#fit-line-3:before,
+#fit-line-5:before,
+#fit-line-6:before,
+#fit-line-7:before {
+  background: #000000;
+  border-radius: 50%;
+  content: '';
+  height: 12px;
+  position: absolute;
+  top: -5px;
+  width: 12px;
+}
+
+#fit-line-1:before,
+#fit-line-2:before,
+#fit-line-3:before {
+  left: 0;
+}
+
+#fit-line-5:before,
+#fit-line-6:before,
+#fit-line-7:before {
+  right: 0;
+}
+
+#fit-line-1:before,
+#fit-line-2:before,
+#fit-line-6:before,
+#fit-line-7:before {
+  background: #000000;
+}
+
+#fit-line-3:before,
+#fit-line-5:before {
+  background: #209da7;
+}
+
+#fit-line-2:before,
+#fit-line-6:before {
+  display: none;
+}
+
+#fit-line-1:after,
+#fit-line-2:after,
+#fit-line-3:after,
+#fit-line-4:after,
+#fit-line-5:after,
+#fit-line-6:after,
+#fit-line-7:after {
+  border-left: 2px dashed #000000;
+  content: '';
+  display: block;
+  height: 20px;
+  left: 50%;
+  position: absolute;
+  top: -20px;
+}
+
+#fit-line-3:after,
+#fit-line-4:after,
+#fit-line-5:after {
+  border-left: 2px dashed #209da7;
+}
+
+#fit-line-texts {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 70px;
+}
+
+#fit-line-texts div:nth-of-type(2) {
+  color: #209da7;
+}
+
+.margin-top-10 {
+  margin-top: 10px;
+}
+
+.desktop-hidden {
+  display: none;
+}
+
+#cta-link {
+  font-size: 20px;
+  text-decoration: underline;
+  cursor: pointer;
+  margin: auto;
+  width: 150px;
+}
+
+.powered-by {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+/* Mobile */
+@media screen and (max-width: 599px) {
+  #fit-title {
+    margin-top: 0;
+  }
+
+  #fit-outline-container {
+    margin-top: -50px;
+    transform: scale(0.85);
+  }
+
+  .fit-line-item {
+    font-size: 11px;
+  }
+
+  .fit-outline-line-text {
+    font-size: 16px;
+    line-height: 31px;
+  }
+
+  .fit-outline-line-chest-text {
+    left: -11px;
+    width: auto;
+  }
+  .fit-outline-line-n-waist-text {
+    left: -11px;
+    width: auto;
+  }
+  .fit-outline-line-p-waist-text {
+    right: -10px;
+    width: auto;
+  }
+  .fit-outline-line-h-hip-text {
+    left: -3px;
+    width: auto;
+  }
+  .fit-outline-line-l-hip-text {
+    left: -3px;
+    width: auto;
+  }
+  .fit-outline-line-thigh-text {
+    right: 3px;
+    width: auto;
+  }
+
+  #fit-line {
+    margin-top: 10px;
+  }
+
+  #fit-line-texts {
+    padding: 0 15px;
+    font-size: 12px;
+  }
+
+  .desktop-hidden,
+  #fit-line-2:before,
+  #fit-line-6:before {
+    display: block;
+  }
+
+  #fit-line-1:after,
+  #fit-line-2:after,
+  #fit-line-3:after,
+  #fit-line-4:after,
+  #fit-line-5:after,
+  #fit-line-6:after,
+  #fit-line-7:after,
+  .mobile-hidden {
+    display: none;
+  }
+
+  #cta-section {
+    margin-top: -40px;
+  }
+}

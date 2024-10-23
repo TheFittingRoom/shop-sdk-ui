@@ -34,6 +34,7 @@ const LoggedOutModal = (props: LoggedOutModalProps): ModalContent => {
     Hook,
     Unhook,
     Body,
+    useFullModalContent: true,
   }
 }
 

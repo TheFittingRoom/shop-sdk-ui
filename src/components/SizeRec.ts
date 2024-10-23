@@ -1,4 +1,4 @@
-import { tfrDoor, userIcon } from './svgs'
+import { infoIcon, tfrDoor, userIcon } from './svgs'
 
 export type RecommendedSize = {
   recommended: string
@@ -17,9 +17,9 @@ export class SizeRecComponent {
 
   private isLoggedIn: boolean = false
 
+  private tfrInfoIcon: HTMLDivElement
   private tfrSizeHowItFits: HTMLDivElement
   private tfrSizeRecTitle: HTMLDivElement
-  private tfrSizeRecSubtitle: HTMLDivElement
   private tfrSizeRecActionLogin: HTMLDivElement
   private tfrSizeRecActionLogout: HTMLDivElement
   private tfrSizeRecLoading: HTMLDivElement
@@ -31,6 +31,12 @@ export class SizeRecComponent {
   private tfrSizeRecTitleToggle: HTMLDivElement
   private tfrSizeRecSelectContainer: HTMLDivElement
 
+  private tfrLoggedInElements: NodeList = [] as any as NodeList
+  private tfrLoggedOutElements: NodeList = [] as any as NodeList
+
+  private tfrToggleOpenElements: NodeList = [] as any as NodeList
+  private tfrToggleClosedElements: NodeList = [] as any as NodeList
+
   private isCollapsed: boolean = false
   private redraw: (index: number) => void = null
 
@@ -38,6 +44,7 @@ export class SizeRecComponent {
     sizeRecMainDivId: string,
     private readonly onSignInClick: () => void,
     private readonly onSignOutClick: () => void,
+    private readonly onFitInfoClick: () => void,
   ) {
     this.init(sizeRecMainDivId)
   }
@@ -54,25 +61,31 @@ export class SizeRecComponent {
     this.isLoggedIn = isLoggedIn
 
     this.tfrSizeRecSelectContainer.style.display = 'flex'
+    this.tfrSizeRecSelect.style.display = 'flex'
+    this.tfrSizeHowItFits.style.display = 'block'
 
     if (isLoggedIn) {
+      this.tfrLoggedInElements.forEach((element) => ((element as HTMLElement).style.display = 'block'))
+      this.tfrLoggedOutElements.forEach((element) => ((element as HTMLElement).style.display = 'none'))
+
       this.tfrSizeRecActionLogin.style.display = 'none'
       this.tfrSizeRecActionLogout.style.display = 'block'
       this.tfrSizeRecTitle.style.display = 'flex'
-      this.tfrSizeRecSubtitle.style.display = 'block'
       this.isCollapsed = false
       this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')
       this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-down')
-      this.tfrSizeHowItFits.style.display = 'block'
     } else {
+      this.tfrLoggedInElements.forEach((element) => ((element as HTMLElement).style.display = 'none'))
+      this.tfrLoggedOutElements.forEach((element) => ((element as HTMLElement).style.display = 'block'))
+
       this.tfrSizeRecActionLogin.style.display = 'block'
       this.tfrSizeRecActionLogout.style.display = 'none'
 
       this.tfrSizeRecTitle.style.display = 'flex'
-      this.tfrSizeRecSubtitle.style.display = 'block'
       this.tfrSizeRecommendationError.style.display = 'none'
       this.tfrSizeRecommendationError.innerHTML = ''
-      this.tfrSizeHowItFits.style.display = 'none'
+
+      this.renderSizeRecSelectLoggedOut()
     }
   }
 
@@ -89,23 +102,19 @@ export class SizeRecComponent {
   public setGarmentLocations(locations: string[]) {
     if (!locations || !locations.length) {
       this.tfrSizeRecTitle.style.display = 'none'
-      this.tfrSizeRecSubtitle.style.display = 'none'
 
       return
     }
 
     this.renderGarmentLocations(locations)
-    this.tfrSizeRecSelect.style.display = 'none'
   }
 
   public setRecommendedSize({ recommended, sizes }: RecommendedSize) {
     this.renderSizeRec(recommended, sizes)
-    this.tfrSizeRecSelect.style.display = 'flex'
   }
 
   public setError() {
     this.tfrSizeRecTitle.style.display = 'none'
-    this.tfrSizeRecSubtitle.style.display = 'none'
 
     if (!this.isLoggedIn) return
 
@@ -126,8 +135,8 @@ export class SizeRecComponent {
   private setElements() {
     this.tfrSizeHowItFits = document.getElementById('tfr-size-how-it-fits') as HTMLDivElement
     this.tfrSizeRecTitle = document.getElementById('tfr-size-rec-title') as HTMLDivElement
-    this.tfrSizeRecSubtitle = document.getElementById('tfr-size-rec-subtitle') as HTMLDivElement
 
+    this.tfrInfoIcon = document.getElementById('tfr-info-icon') as HTMLDivElement
     this.tfrSizeRecActionLogin = document.getElementById('tfr-size-rec-action-login') as HTMLDivElement
     this.tfrSizeRecActionLogout = document.getElementById('tfr-size-rec-action-logout') as HTMLDivElement
     this.tfrSizeRecTable = document.getElementById('tfr-size-rec-table') as HTMLDivElement
@@ -140,6 +149,11 @@ export class SizeRecComponent {
     this.tfrSizeRecommendationsContainer = document.getElementById(
       'tfr-size-recommendations-container',
     ) as HTMLDivElement
+
+    this.tfrLoggedInElements = document.querySelectorAll('.tfr-logged-in')
+    this.tfrLoggedOutElements = document.querySelectorAll('.tfr-logged-out')
+    this.tfrToggleOpenElements = document.querySelectorAll('.tfr-toggle-open')
+    this.tfrToggleClosedElements = document.querySelectorAll('.tfr-toggle-closed')
   }
 
   private bindEvents() {
@@ -147,11 +161,12 @@ export class SizeRecComponent {
     this.tfrSizeRecActionLogout.addEventListener('click', this.onSignOutClick)
     this.tfrSizeRecSelect.addEventListener('click', this.onSizeRecSelectClick.bind(this))
     this.tfrSizeRecTitleToggle.addEventListener('click', this.toggletSizeRecSelectContainer.bind(this))
+    this.tfrInfoIcon.addEventListener('click', this.onFitInfoClick)
   }
 
   private onSizeRecSelectClick(e: MouseEvent) {
     const target = e.target as HTMLDivElement
-    if (!target.classList.contains('tfr-size-rec-select-button')) return
+    if (!target.classList.contains('tfr-size-rec-select-button') || target.classList.contains('tfr-disabled')) return
 
     e.preventDefault()
 
@@ -198,6 +213,16 @@ export class SizeRecComponent {
     this.tfrSizeRecSelect.innerHTML = html
   }
 
+  private renderSizeRecSelectLoggedOut() {
+    const html = [
+      `<div class="tfr-size-rec-select-button tfr-disabled">M</div>`,
+      `<div class="tfr-size-rec-select-button tfr-disabled active">L</div>`,
+      `<div class="tfr-size-rec-select-button tfr-disabled">XL</div>`,
+    ].join('')
+
+    this.tfrSizeRecSelect.innerHTML = html
+  }
+
   private renderSizeRecTableRow(location: string, fit: string, isPerfect: boolean = false) {
     return `<div class="tfr-size-rec-table-row">
               <div class="tfr-size-rec-table-cell-left">${location}</div>
@@ -207,15 +232,23 @@ export class SizeRecComponent {
             </div>`
   }
 
-  private renderLoginCta() {
-    return `<div class="tfr-size-rec-login-cta">${userIcon} Sign up to view</div>`
-  }
-
   private renderGarmentLocations(locations: string[]) {
-    const html = locations.map((location) => this.renderSizeRecTableRow(location, this.renderLoginCta())).join('')
+    const innerHtml = locations.map((location) => this.renderSizeRecTableRow(location, this.randomFit(), true)).join('')
+    const html = `<div id="tfr-logged-out-overlay-container">
+                    <div id="tfr-logged-out-overlay">
+                      Login to reveal how this item will fit specifically at each area of your body in different sizes
+                    </div>
+                    <div>
+                      ${innerHtml}
+                    </div>
+                  </div>`
 
     this.tfrSizeRecTable.innerHTML = html
-    this.tfrSizeRecSize.innerHTML = this.renderLoginCta()
+  }
+
+  private randomFit() {
+    const fits = ['Perfect', 'Slightly tight', 'Fitted', 'Less fitted', 'Slightly loose']
+    return fits[Math.floor(Math.random() * fits.length)]
   }
 
   private toggletSizeRecSelectContainer() {
@@ -223,12 +256,14 @@ export class SizeRecComponent {
       this.isCollapsed = false
       this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')
       this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-down')
-      this.tfrSizeRecSelectContainer.style.display = 'flex'
+      this.tfrToggleOpenElements.forEach((element) => ((element as HTMLElement).style.display = 'block'))
+      this.tfrToggleClosedElements.forEach((element) => ((element as HTMLElement).style.display = 'none'))
     } else {
       this.isCollapsed = true
       this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-up')
       this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-down')
-      this.tfrSizeRecSelectContainer.style.display = 'none'
+      this.tfrToggleOpenElements.forEach((element) => ((element as HTMLElement).style.display = 'none'))
+      this.tfrToggleClosedElements.forEach((element) => ((element as HTMLElement).style.display = 'block'))
     }
   }
 
@@ -245,34 +280,63 @@ export class SizeRecComponent {
                     <div id="tfr-size-recommendations-container">
                       <div id="tfr-size-rec-title-toggle" class="tfr-chevron-up">v</div>
 
-                      <div id="tfr-size-rec-title">
-                        Recommended Size:
-                        <div id="tfr-size-rec-size">
-                          <div class="tfr-size-rec-login-cta">
-                            ${userIcon} Sign up to view
+                      <div class="tfr-logged-out">
+                        <div class="tfr-flex tfr-gap-2 tfr-mb-2">
+                          <div>Uncertain of your size?</div>
+                          
+                          <div class="tfr-toggle-closed">
+                            <div class="tfr-flex tfr-items-center">
+                              <div>Try</div>
+                              <div class="tfr-powered-by-logo">${tfrDoor}</div>
+                              <div class="tfr-powered-by-text-bold">The Fitting Room</div>
+                            </div>
+                          </div>
+
+                          <div class="tfr-toggle-open">
+                            <div class="tfr-flex tfr-items-center">
+                              ${userIcon} Login to view
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      <div id="tfr-size-rec-select-container">
-                        <div id="tfr-size-how-it-fits">Select size to see how it fits:</div>
-
-                        <div id="tfr-size-rec-select"></div>
-                        
-                        <div id="tfr-size-rec-subtitle">How it fits</div>
-                        
-                        <div id="tfr-size-rec-table"></div>
+                      <div class="tfr-logged-in">
+                        <div id="tfr-size-rec-title">
+                          Recommended Size:
+                          <div id="tfr-size-rec-size">
+                            <div class="tfr-size-rec-login-cta">
+                              ${userIcon} Sign up to view
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      
+
+                      <div class="tfr-toggle-open" style="width: 100%">
+                        <div id="tfr-size-rec-select-container">
+                          <div id="tfr-size-how-it-fits">Select size to see how it fits:</div>
+
+                          <div id="tfr-size-rec-select"></div>
+
+                          <div id="tfr-size-rec-subtitle">
+                            How it fits
+                            <span id="tfr-info-icon">${infoIcon}</span>
+                          </div>
+
+                          <div id="tfr-size-rec-table"></div>
+                        </div>
+                      </div>
+
                       <div id="tfr-size-rec-action">
                         <div id="tfr-size-rec-action-login">Sign up or login</div>
                         <div id="tfr-size-rec-action-logout">Log out</div>
                       </div>
 
-                      <div class="tfr-powered-by">
-                        <div>Powered by</div>
-                        <div class="tfr-powered-by-logo">${tfrDoor}</div>
-                        <div class="tfr-powered-by-text-bold">The Fitting Room</div>
+                      <div class="tfr-toggle-open">
+                        <div class="tfr-powered-by">
+                          <div>Powered by</div>
+                          <div class="tfr-powered-by-logo">${tfrDoor}</div>
+                          <div class="tfr-powered-by-text-bold">The Fitting Room</div>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -48,6 +48,7 @@ const ErrorModal = (props: ErrorModalProps) => {
     Hook,
     Unhook,
     Body,
+    useFullModalContent: true,
   }
 }
 

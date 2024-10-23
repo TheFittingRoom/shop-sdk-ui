@@ -109,6 +109,7 @@ const SignInModal = (props: SignInModalProps): ModalContent => {
     Hook: onHook,
     Unhook: onUnhook,
     Body: body,
+    useFullModalContent: true,
   }
 }
 export default SignInModal

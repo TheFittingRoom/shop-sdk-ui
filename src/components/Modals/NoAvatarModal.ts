@@ -15,6 +15,7 @@ const NoAvatarModal = (): ModalContent => {
     Body,
     Hook,
     Unhook,
+    useFullModalContent: true,
   }
 }
 

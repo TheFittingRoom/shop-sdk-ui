@@ -59,6 +59,7 @@ const TryOnModal = (props: TryOnModalProps): ModalContent => {
     Hook,
     Unhook,
     Body,
+    useFullModalContent: true,
   }
 }
 

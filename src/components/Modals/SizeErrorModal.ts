@@ -44,6 +44,7 @@ const SizeErrorModal = (props: SizeErrorModalProps): ModalContent => {
     Hook,
     Unhook,
     Body,
+    useFullModalContent: true,
   }
 }
 

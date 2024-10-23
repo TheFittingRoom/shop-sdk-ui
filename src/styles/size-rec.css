@@ -54,19 +54,19 @@
   transform: rotate(0deg) scaleY(0.6);
 }
 
-#tfr-size-rec-subtitle {
-  background-color: var(--tfr-grey);
-  color: var(--tfr-white);
-  font-family: var(--tfr-subtitle-font);
-  border-radius: 4px;
-  padding: 8px;
-  text-align: center;
-  width: 100%;
-  min-width: 318px;
+#tfr-info-icon {
+  cursor: pointer;
 }
 
-#tfr-size-rec-title,
 #tfr-size-rec-subtitle {
+  border-bottom: 2px solid #000000;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+}
+
+#tfr-size-rec-title {
   font-size: 14px;
 }
 

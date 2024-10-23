@@ -53,6 +53,7 @@ export class FittingRoom {
       this.tfrShop,
       this.onSignInClick.bind(this),
       this.signOut.bind(this),
+      this.onFitInfoClick.bind(this),
     )
   }
 
@@ -160,6 +161,10 @@ export class FittingRoom {
 
   public onSignInClick() {
     this.tfrModal.toScan()
+  }
+
+  public onFitInfoClick() {
+    this.tfrModal.toFitInfo()
   }
 
   private onUserProfileChange(userProfile: ShopTypes.FirestoreUser) {

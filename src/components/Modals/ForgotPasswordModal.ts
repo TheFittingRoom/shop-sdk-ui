@@ -41,6 +41,7 @@ const ForgotPasswordModal = (props: ForgotPasswordModalProps): ModalContent => {
     Hook,
     Unhook,
     Body,
+    useFullModalContent: true,
   }
 }
 

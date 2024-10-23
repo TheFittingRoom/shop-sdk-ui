@@ -1,5 +1,6 @@
 import '../styles'
 import ErrorModal from './Modals/ErrorModal'
+import FitModal from './Modals/FitModal'
 import ForgotPasswordModal from './Modals/ForgotPasswordModal'
 import LoadingAvatarModal from './Modals/LoadingAvatarModal'
 import LoggedOutModal from './Modals/LoggedOutModal'
@@ -14,6 +15,7 @@ import { InitImageSlider } from './slider'
 
 export {
   ErrorModal,
+  FitModal,
   ForgotPasswordModal,
   InitImageSlider,
   InitModalManager,

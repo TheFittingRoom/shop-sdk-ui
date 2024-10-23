@@ -98,6 +98,15 @@ export class TfrModal {
     )
   }
 
+  public toFitInfo() {
+    this.manager.open(
+      modals.FitModal({
+        onSignInNav: () => this.toScan(),
+        onClose: () => this.close(),
+      }),
+    )
+  }
+
   public navBack() {
     window.history.back()
   }

@@ -49,9 +49,15 @@ export class TfrSizeRec {
     private readonly tfrShop: TfrShop,
     private readonly onSignInClick: () => void,
     private readonly onSignOutClick: () => void,
+    private readonly onFitInfoClick: () => void,
   ) {
     this.setCssVariables(cssVariables)
-    this.sizeRecComponent = new SizeRecComponent(sizeRecMainDivId, this.onSignInClick, this.onSignOutClick)
+    this.sizeRecComponent = new SizeRecComponent(
+      sizeRecMainDivId,
+      this.onSignInClick,
+      this.onSignOutClick,
+      this.onFitInfoClick,
+    )
   }
 
   public get sku() {

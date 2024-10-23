@@ -36,6 +36,7 @@ const LoadingAvatarModal = (props: LoadingAvatarModalProps): ModalContent => {
     Hook,
     Unhook,
     Body,
+    useFullModalContent: true,
   }
 }
 

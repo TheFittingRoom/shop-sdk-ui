@@ -1,4 +1,5 @@
 import './colors.css'
+import './fit-modal.css'
 import './general.css'
 import './input.css'
 import './loader.css'

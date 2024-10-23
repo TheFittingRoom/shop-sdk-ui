@@ -56,6 +56,7 @@ export interface ModalContent {
   Body: () => string
   Hook(): void
   Unhook(): void
+  useFullModalContent: boolean
 }
 
 export interface ModalProps {}
@@ -112,6 +113,11 @@ export interface ScanCodeModalProps {
 export interface LoggedOutModalProps {
   onClose: () => void
   onNavSignIn: (email: string) => void
+}
+
+export interface FitModalProps {
+  onSignInNav: () => void
+  onClose: () => void
 }
 
 export type TryOnFrames = string[]

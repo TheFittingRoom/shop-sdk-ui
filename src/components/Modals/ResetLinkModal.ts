@@ -29,6 +29,7 @@ const ResetLinkModal = (props: ResetLinkModalProps): ModalContent => {
     Hook,
     Unhook,
     Body,
+    useFullModalContent: true,
   }
 }
 export default ResetLinkModal

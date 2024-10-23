@@ -83,6 +83,7 @@ const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
     Hook: onHook,
     Unhook: onUnhook,
     Body: body,
+    useFullModalContent: true,
   }
 }
 
