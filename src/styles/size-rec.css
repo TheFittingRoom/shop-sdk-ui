@@ -172,7 +172,7 @@
   width: 80px;
 }
 
-.tfr-size-rec-select-button:hover:not(.active) {
+.tfr-size-rec-select-button:hover:not(.active):not(.tfr-disabled) {
   opacity: 0.7;
   background-color: var(--tfr-size-selector-bg-color-hover);
 }
@@ -212,7 +212,7 @@
 .tfr-powered-by-logo img,
 .tfr-powered-by-logo svg {
   height: 24px;
-  width: 24px;
+  width: 12px;
 }
 
 .tfr-powered-by-text-bold {
@@ -226,4 +226,12 @@
 
 #tfr-sign-in-nav {
   margin-bottom: 80px;
+}
+
+.tfr-disabled {
+  cursor: default;
+}
+
+#tfr-login-to-view {
+  cursor: pointer;
 }

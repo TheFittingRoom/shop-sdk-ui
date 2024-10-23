@@ -53,7 +53,7 @@ const FitModal = (props: FitModalProps): ModalContent => {
 
           <div id="fit-line-texts">
             <div>Poor Fit</div>
-            <div>Acceptable Fit Fit</div>
+            <div>Acceptable Fit</div>
             <div>Poor Fit</div>
           </div>
         </div>
@@ -62,7 +62,7 @@ const FitModal = (props: FitModalProps): ModalContent => {
 
         <div id="fit-outline-container">
           <div id="fit-outline-inner-left">
-            <div class="fit-outline-line-text fit-outline-line-p-waist-text">Pant Waist</div>
+            <div class="fit-outline-line-text fit-outline-line-p-waist-text">Pant&nbsp;Waist</div>
             <div class="fit-outline-line-text fit-outline-line-thigh-text">Thigh</div>
           </div>
 
@@ -82,9 +82,9 @@ const FitModal = (props: FitModalProps): ModalContent => {
             <div id="fit-subtitle" class="mobile-hidden">Measurement&nbsp;Points</div>
 
             <div class="fit-outline-line-text fit-outline-line-chest-text">Chest/Bust</div>
-            <div class="fit-outline-line-text fit-outline-line-n-waist-text">Natural Waist</div>
-            <div class="fit-outline-line-text fit-outline-line-h-hip-text">High Hip</div>
-            <div class="fit-outline-line-text fit-outline-line-l-hip-text">Low Hip</div>
+            <div class="fit-outline-line-text fit-outline-line-n-waist-text">Natural&nbsp;Waist</div>
+            <div class="fit-outline-line-text fit-outline-line-h-hip-text">High&nbsp;Hip</div>
+            <div class="fit-outline-line-text fit-outline-line-l-hip-text">Low&nbsp;Hip</div>
           </div>
         </div>
       </div>

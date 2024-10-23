@@ -23,6 +23,10 @@
     display: none;
   }
 
+  .tfr-modal-content {
+    overflow: hidden;
+  }
+
   .tfr-modal-content-container {
     min-height: 100vh;
     max-height: none;

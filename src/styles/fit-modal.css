@@ -289,6 +289,17 @@
 
 /* Mobile */
 @media screen and (max-width: 599px) {
+  #fit-outline-inner-left,
+  #fit-outline-inner,
+  #fit-outline-inner-right {
+    height: 586px;
+  }
+
+  #fit-outline-inner {
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
   #fit-title {
     margin-top: 0;
   }
@@ -356,9 +367,5 @@
   #fit-line-7:after,
   .mobile-hidden {
     display: none;
-  }
-
-  #cta-section {
-    margin-top: -40px;
   }
 }

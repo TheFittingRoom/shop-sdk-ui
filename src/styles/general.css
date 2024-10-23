@@ -254,8 +254,8 @@
   display: flex;
 }
 
-.tfr-gap-2 {
-  gap: 8px;
+.tfr-gap {
+  gap: 4px;
 }
 
 .tfr-items-center {

@@ -18,18 +18,19 @@ export class SizeRecComponent {
   private isLoggedIn: boolean = false
 
   private tfrInfoIcon: HTMLDivElement
+  private tfrLoginToView: HTMLDivElement
   private tfrSizeHowItFits: HTMLDivElement
-  private tfrSizeRecTitle: HTMLDivElement
   private tfrSizeRecActionLogin: HTMLDivElement
   private tfrSizeRecActionLogout: HTMLDivElement
   private tfrSizeRecLoading: HTMLDivElement
   private tfrSizeRecommendationError: HTMLDivElement
   private tfrSizeRecommendationsContainer: HTMLDivElement
   private tfrSizeRecSelect: HTMLDivElement
+  private tfrSizeRecSelectContainer: HTMLDivElement
   private tfrSizeRecSize: HTMLDivElement
   private tfrSizeRecTable: HTMLDivElement
+  private tfrSizeRecTitle: HTMLDivElement
   private tfrSizeRecTitleToggle: HTMLDivElement
-  private tfrSizeRecSelectContainer: HTMLDivElement
 
   private tfrLoggedInElements: NodeList = [] as any as NodeList
   private tfrLoggedOutElements: NodeList = [] as any as NodeList
@@ -65,6 +66,7 @@ export class SizeRecComponent {
     this.tfrSizeHowItFits.style.display = 'block'
 
     if (isLoggedIn) {
+      this.tfrSizeRecSelect.style.opacity = '1'
       this.tfrLoggedInElements.forEach((element) => ((element as HTMLElement).style.display = 'block'))
       this.tfrLoggedOutElements.forEach((element) => ((element as HTMLElement).style.display = 'none'))
 
@@ -75,6 +77,7 @@ export class SizeRecComponent {
       this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')
       this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-down')
     } else {
+      this.tfrSizeRecSelect.style.opacity = '0.4'
       this.tfrLoggedInElements.forEach((element) => ((element as HTMLElement).style.display = 'none'))
       this.tfrLoggedOutElements.forEach((element) => ((element as HTMLElement).style.display = 'block'))
 
@@ -137,6 +140,7 @@ export class SizeRecComponent {
     this.tfrSizeRecTitle = document.getElementById('tfr-size-rec-title') as HTMLDivElement
 
     this.tfrInfoIcon = document.getElementById('tfr-info-icon') as HTMLDivElement
+    this.tfrLoginToView = document.getElementById('tfr-login-to-view') as HTMLDivElement
     this.tfrSizeRecActionLogin = document.getElementById('tfr-size-rec-action-login') as HTMLDivElement
     this.tfrSizeRecActionLogout = document.getElementById('tfr-size-rec-action-logout') as HTMLDivElement
     this.tfrSizeRecTable = document.getElementById('tfr-size-rec-table') as HTMLDivElement
@@ -162,6 +166,7 @@ export class SizeRecComponent {
     this.tfrSizeRecSelect.addEventListener('click', this.onSizeRecSelectClick.bind(this))
     this.tfrSizeRecTitleToggle.addEventListener('click', this.toggletSizeRecSelectContainer.bind(this))
     this.tfrInfoIcon.addEventListener('click', this.onFitInfoClick)
+    this.tfrLoginToView.addEventListener('click', this.onSignInClick)
   }
 
   private onSizeRecSelectClick(e: MouseEvent) {
@@ -233,7 +238,9 @@ export class SizeRecComponent {
   }
 
   private renderGarmentLocations(locations: string[]) {
-    const innerHtml = locations.map((location) => this.renderSizeRecTableRow(location, this.randomFit(), true)).join('')
+    const innerHtml = locations
+      .map((location, index) => this.renderSizeRecTableRow(location, this.randomFit(index), true))
+      .join('')
     const html = `<div id="tfr-logged-out-overlay-container">
                     <div id="tfr-logged-out-overlay">
                       Login to reveal how this item will fit specifically at each area of your body in different sizes
@@ -246,9 +253,10 @@ export class SizeRecComponent {
     this.tfrSizeRecTable.innerHTML = html
   }
 
-  private randomFit() {
-    const fits = ['Perfect', 'Slightly tight', 'Fitted', 'Less fitted', 'Slightly loose']
-    return fits[Math.floor(Math.random() * fits.length)]
+  private randomFit(index: number) {
+    const choices = ['Slightly Tight', 'Perfect Fit', 'Perfect Fit', 'Slightly Loose', 'Perfect Fit']
+
+    return choices[index % choices.length]
   }
 
   private toggletSizeRecSelectContainer() {
@@ -281,7 +289,7 @@ export class SizeRecComponent {
                       <div id="tfr-size-rec-title-toggle" class="tfr-chevron-up">v</div>
 
                       <div class="tfr-logged-out">
-                        <div class="tfr-flex tfr-gap-2 tfr-mb-2">
+                        <div class="tfr-flex tfr-gap tfr-mb-2">
                           <div>Uncertain of your size?</div>
                           
                           <div class="tfr-toggle-closed">
@@ -293,7 +301,7 @@ export class SizeRecComponent {
                           </div>
 
                           <div class="tfr-toggle-open">
-                            <div class="tfr-flex tfr-items-center">
+                            <div id="tfr-login-to-view" class="tfr-flex tfr-items-center">
                               ${userIcon} Login to view
                             </div>
                           </div>
