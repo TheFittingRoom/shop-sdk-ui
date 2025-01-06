@@ -19,6 +19,10 @@
     width: calc(100vw - 30px) !important;
   }
 
+  .tfr-mobile-small-text {
+    font-size: 12px;
+  }
+
   .tfr-mobile-hidden {
     display: none;
   }

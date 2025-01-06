@@ -66,6 +66,7 @@ export class SizeRecComponent {
     this.tfrSizeHowItFits.style.display = 'block'
 
     if (isLoggedIn) {
+      this.tfrSizeHowItFits.style.opacity = '1'
       this.tfrSizeRecSelect.style.opacity = '1'
       this.tfrLoggedInElements.forEach((element) => ((element as HTMLElement).style.display = 'block'))
       this.tfrLoggedOutElements.forEach((element) => ((element as HTMLElement).style.display = 'none'))
@@ -77,6 +78,7 @@ export class SizeRecComponent {
       this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')
       this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-down')
     } else {
+      this.tfrSizeHowItFits.style.opacity = '0.4'
       this.tfrSizeRecSelect.style.opacity = '0.4'
       this.tfrLoggedInElements.forEach((element) => ((element as HTMLElement).style.display = 'none'))
       this.tfrLoggedOutElements.forEach((element) => ((element as HTMLElement).style.display = 'block'))
@@ -289,14 +291,14 @@ export class SizeRecComponent {
                       <div id="tfr-size-rec-title-toggle" class="tfr-chevron-up">v</div>
 
                       <div class="tfr-logged-out">
-                        <div class="tfr-flex tfr-gap tfr-mb-2">
-                          <div>Uncertain of your size?</div>
+                        <div class="tfr-flex tfr-gap tfr-mb-2 tfr-mobile-small-text">
+                          <div>Uncertain&nbsp;of&nbsp;your&nbsp;size?</div>
                           
                           <div class="tfr-toggle-closed">
                             <div class="tfr-flex tfr-items-center">
                               <div>Try</div>
                               <div class="tfr-powered-by-logo">${tfrDoor}</div>
-                              <div class="tfr-powered-by-text-bold">The Fitting Room</div>
+                              <div class="tfr-powered-by-text-bold">The&nbsp;Fitting&nbsp;Room</div>
                             </div>
                           </div>
 
