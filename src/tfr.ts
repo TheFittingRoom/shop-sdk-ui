@@ -54,6 +54,7 @@ export class FittingRoom {
       this.onSignInClick.bind(this),
       this.signOut.bind(this),
       this.onFitInfoClick.bind(this),
+      this.onTryOnClick.bind(this),
     )
   }
 
@@ -165,6 +166,12 @@ export class FittingRoom {
 
   public onFitInfoClick() {
     this.tfrModal.toFitInfo()
+  }
+
+  public async onTryOnClick(styleId: number, sizeId: number) {
+    const frames = await this.shop.tryOn(styleId, sizeId)
+
+    this.tfrModal.onTryOn(frames)
   }
 
   private onUserProfileChange(userProfile: ShopTypes.FirestoreUser) {

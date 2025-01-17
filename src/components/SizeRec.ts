@@ -4,6 +4,7 @@ export type RecommendedSize = {
   recommended: string
   sizes: {
     size: string
+    size_id: number
     locations: {
       fit: string
       isPerfect: boolean
@@ -14,6 +15,7 @@ export type RecommendedSize = {
 
 export class SizeRecComponent {
   private _sku: string = ''
+  private _styleId: number = null
 
   private isLoggedIn: boolean = false
 
@@ -46,6 +48,7 @@ export class SizeRecComponent {
     private readonly onSignInClick: () => void,
     private readonly onSignOutClick: () => void,
     private readonly onFitInfoClick: () => void,
+    private readonly onTryOnClick: (styleId: number, sizeId: number) => void,
   ) {
     this.init(sizeRecMainDivId)
   }
@@ -56,6 +59,14 @@ export class SizeRecComponent {
 
   public setSku(sku: string) {
     this._sku = sku
+  }
+
+  public get styleId() {
+    return this._styleId
+  }
+
+  public setStyleId(styleId: number) {
+    this._styleId = styleId
   }
 
   public setIsLoggedIn(isLoggedIn: boolean) {
@@ -186,6 +197,11 @@ export class SizeRecComponent {
     allButtons.item(selectedIndex).classList.add('active')
 
     this.redraw(selectedIndex)
+
+    const selectedSizeId = Number(target.getAttribute('data-size-id'))
+    if (Number.isNaN(selectedSizeId)) return
+
+    this.onTryOnClick(this.styleId, selectedSizeId)
   }
 
   private renderSizeRec(recommended: string, sizes: RecommendedSize['sizes']) {
@@ -197,6 +213,9 @@ export class SizeRecComponent {
 
     this.redraw(selectedSizeIndex)
     this.renderSizeRecSelect(sizes, selectedSizeIndex)
+
+    const selectedSizeId = sizes[selectedSizeIndex].size_id
+    this.onTryOnClick(this.styleId, selectedSizeId)
   }
 
   private renderSizeRecTable(sizes: RecommendedSize['sizes'], index: number) {
@@ -213,7 +232,9 @@ export class SizeRecComponent {
     const html = sizeNames
       .map(
         (name, i) =>
-          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}">${name}</div>`,
+          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}" data-size-id="${
+            sizes[i].size_id
+          }">${name}</div>`,
       )
       .join('')
 

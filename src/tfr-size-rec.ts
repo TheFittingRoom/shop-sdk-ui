@@ -50,6 +50,7 @@ export class TfrSizeRec {
     private readonly onSignInClick: () => void,
     private readonly onSignOutClick: () => void,
     private readonly onFitInfoClick: () => void,
+    private readonly onTryOnClick: (styleId: number, sizeId: number) => void,
   ) {
     this.setCssVariables(cssVariables)
     this.sizeRecComponent = new SizeRecComponent(
@@ -57,6 +58,7 @@ export class TfrSizeRec {
       this.onSignInClick,
       this.onSignOutClick,
       this.onFitInfoClick,
+      this.onTryOnClick,
     )
   }
 
@@ -66,6 +68,14 @@ export class TfrSizeRec {
 
   public setSku(sku: string) {
     this.sizeRecComponent.setSku(sku)
+  }
+
+  public get styleId() {
+    return this.sizeRecComponent.styleId
+  }
+
+  public setStyleId(styleId: number) {
+    this.sizeRecComponent.setStyleId(styleId)
   }
 
   public setIsLoggedIn(isLoggedIn: boolean) {
@@ -86,6 +96,7 @@ export class TfrSizeRec {
   public async setRecommendedSize() {
     this.sizeRecComponent.setLoading(true)
     const sizes = await this.getRecommenedSize()
+
     if (!sizes) {
       console.error('No sizes found for sku')
       this.sizeRecComponent.setLoading(false)
@@ -121,12 +132,14 @@ export class TfrSizeRec {
     try {
       const colorwaySizeAsset = await this.tfrShop.getColorwaySizeAssetFromSku(this.sku)
       const sizes = await this.getRecommendedSizes(String(colorwaySizeAsset.style_id))
+      this.setStyleId(colorwaySizeAsset.style_id)
 
       return sizes
     } catch (error) {
       try {
         const style = await this.tfrShop.getStyleByBrandStyleId(this.sku)
         const sizes = await this.getRecommendedSizes(String(style.id))
+        this.setStyleId(style.id)
 
         return sizes
       } catch (error) {
@@ -147,6 +160,7 @@ export class TfrSizeRec {
       sizes: sizeRec.fits.map((fit) => {
         return {
           size: sizeRec.available_sizes.find((size) => size.id === fit.size_id).label,
+          size_id: fit.size_id,
           locations: fit.measurement_location_fits
             .map((locationFit) => {
               const fitLabel =
