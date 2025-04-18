@@ -48,7 +48,7 @@ export class SizeRecComponent {
     private readonly onSignInClick: () => void,
     private readonly onSignOutClick: () => void,
     private readonly onFitInfoClick: () => void,
-    private readonly onTryOnClick: (styleId: number, sizeId: number) => void,
+    private readonly onTryOnClick: (styleId: number, sizeId: number, shouldDisplay: boolean) => Promise<void>,
   ) {
     this.init(sizeRecMainDivId)
   }
@@ -88,6 +88,10 @@ export class SizeRecComponent {
       this.isCollapsed = false
       this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')
       this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-down')
+
+      // Ensure the container is visible
+      this.tfrSizeRecSelectContainer.style.display = 'flex'
+      this.tfrSizeRecSelectContainer.style.opacity = '1'
     } else {
       this.tfrSizeHowItFits.style.opacity = '0.4'
       this.tfrSizeRecSelect.style.opacity = '0.4'
@@ -180,6 +184,50 @@ export class SizeRecComponent {
     this.tfrSizeRecTitleToggle.addEventListener('click', this.toggletSizeRecSelectContainer.bind(this))
     this.tfrInfoIcon.addEventListener('click', this.onFitInfoClick)
     this.tfrLoginToView.addEventListener('click', this.onSignInClick)
+
+    const tryOnButton = document.getElementById('tfr-try-on-button')
+    if (!tryOnButton) return
+
+    tryOnButton.addEventListener('click', async () => {
+      // Prevent multiple clicks while loading
+      if (tryOnButton.classList.contains('loading')) {
+        return
+      }
+
+      const activeButton = document.querySelector('.tfr-size-rec-select-button.active')
+      if (!activeButton) return
+
+      const selectedSizeId = Number(activeButton.getAttribute('data-size-id'))
+      if (Number.isNaN(selectedSizeId)) return
+
+      // Set loading state
+      tryOnButton.classList.add('loading')
+      const originalText = tryOnButton.textContent
+      tryOnButton.textContent = ' '
+      tryOnButton.setAttribute('disabled', 'true')
+
+      try {
+        // Get all size buttons
+        const allSizeButtons = Array.from(document.querySelectorAll('.tfr-size-rec-select-button'))
+
+        // Request frames for all sizes
+        for (const button of allSizeButtons) {
+          const sizeId = Number(button.getAttribute('data-size-id'))
+          if (Number.isNaN(sizeId)) continue
+
+          // Only display the active size, others are just requested
+          const shouldDisplay = button === activeButton
+          await this.onTryOnClick(this.styleId, sizeId, shouldDisplay)
+        }
+      } catch (error) {
+        console.error('Error during try-on:', error)
+      } finally {
+        // Reset loading state
+        tryOnButton.classList.remove('loading')
+        tryOnButton.textContent = originalText
+        tryOnButton.removeAttribute('disabled')
+      }
+    })
   }
 
   private onSizeRecSelectClick(e: MouseEvent) {
@@ -201,7 +249,7 @@ export class SizeRecComponent {
     const selectedSizeId = Number(target.getAttribute('data-size-id'))
     if (Number.isNaN(selectedSizeId)) return
 
-    this.onTryOnClick(this.styleId, selectedSizeId)
+    this.onTryOnClick(this.styleId, selectedSizeId, true)
   }
 
   private renderSizeRec(recommended: string, sizes: RecommendedSize['sizes']) {
@@ -213,9 +261,6 @@ export class SizeRecComponent {
 
     this.redraw(selectedSizeIndex)
     this.renderSizeRecSelect(sizes, selectedSizeIndex)
-
-    const selectedSizeId = sizes[selectedSizeIndex].size_id
-    this.onTryOnClick(this.styleId, selectedSizeId)
   }
 
   private renderSizeRecTable(sizes: RecommendedSize['sizes'], index: number) {
@@ -354,6 +399,8 @@ export class SizeRecComponent {
                           </div>
 
                           <div id="tfr-size-rec-table"></div>
+
+                          <div id="tfr-try-on-button" class="tfr-try-on-button">Try On</div>
                         </div>
                       </div>
 

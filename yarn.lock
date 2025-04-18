@@ -677,10 +677,10 @@
     estree-walker "^2.0.2"
     picomatch "^2.3.1"
 
-"@thefittingroom/sdk@2.0.0-alpha-0":
-  version "2.0.0-alpha-0"
-  resolved "https://registry.yarnpkg.com/@thefittingroom/sdk/-/sdk-2.0.0-alpha-0.tgz#db005761a202131cb8822147eedcbb4b79ee1a31"
-  integrity sha512-HfKepX60yGU16hTz5qP+m58zjFo38/+UU1qh/VJScMWXVHjwLn3BJ3N1/8glFHAsNegYdh6+rMtHj/GcHN/83A==
+"@thefittingroom/sdk@2.0.0-alpha-1":
+  version "2.0.0-alpha-1"
+  resolved "https://registry.yarnpkg.com/@thefittingroom/sdk/-/sdk-2.0.0-alpha-1.tgz#c6d68b7ce8a3b68ce24cd82b06657bc1d906aeff"
+  integrity sha512-qwAm/mz+1fJ3x25cihH3TNe9TNXZiLJIi2XJAjpBhh9Lc1cYMknmbQ+uwfQ2h42K9WFPUq02wpwlg3eQa6mhkw==
   dependencies:
     dayjs "^1.11.11"
     dotenv "^16.3.1"

@@ -28,7 +28,7 @@ export const InitImageSlider = (sliderID: string, onChange: (slider: HTMLInputEl
         return new Error('slider has no images to load')
       }
       loadImages(imageURLs)
-      const defaultScrollValue = imageURLs?.length - 2
+      const defaultScrollValue = 0
       slider.value = defaultScrollValue.toString()
       slider.max = (imageURLs.length - 1).toString()
 

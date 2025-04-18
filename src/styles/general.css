@@ -285,3 +285,13 @@
   text-align: center;
   top: 0;
 }
+
+.tfr-slider-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#tfr-slider {
+  accent-color: var(--tfr-brand-color);
+}

@@ -100,12 +100,14 @@
   text-align: right;
   flex-grow: 1;
   padding-left: 8px;
+  padding-right: 8px;
 }
 
 .tfr-size-rec-table-cell-right {
-  margin-left: 16px;
-  padding-right: 8px;
   text-align: left;
+  flex-grow: 1;
+  padding-right: 8px;
+  padding-left: 8px;
 }
 
 .tfr-size-rec-table-cell-right.perfect {
@@ -234,4 +236,51 @@
 
 #tfr-login-to-view {
   cursor: pointer;
+}
+
+.tfr-try-on-button {
+  background-color: var(--tfr-size-selector-bg-color-active);
+  color: var(--tfr-size-selector-text-color);
+  border-radius: var(--tfr-size-selector-button-radius);
+  border-color: var(--tfr-size-selector-border-color);
+  border-style: solid;
+  border-width: var(--tfr-size-selector-border-width);
+  box-shadow: var(--tfr-size-selector-button-shadow);
+  height: var(--tfr-size-selector-button-height);
+  font-size: var(--tfr-size-selector-font-size);
+  font-weight: var(--tfr-size-selector-font-weight);
+  cursor: pointer;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  width: 100%;
+  max-width: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 150ms ease-in;
+  position: relative;
+}
+
+.tfr-try-on-button:disabled,
+.tfr-try-on-button.loading {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.tfr-try-on-button.loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--tfr-size-selector-text-color);
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+  margin-left: 8px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

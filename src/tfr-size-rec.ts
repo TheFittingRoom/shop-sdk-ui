@@ -50,7 +50,7 @@ export class TfrSizeRec {
     private readonly onSignInClick: () => void,
     private readonly onSignOutClick: () => void,
     private readonly onFitInfoClick: () => void,
-    private readonly onTryOnClick: (styleId: number, sizeId: number) => void,
+    private readonly onTryOnClick: (styleId: number, sizeId: number, shouldDisplay: boolean) => Promise<void>,
   ) {
     this.setCssVariables(cssVariables)
     this.sizeRecComponent = new SizeRecComponent(
@@ -156,10 +156,10 @@ export class TfrSizeRec {
     if (!sizeRec) return null
 
     return {
-      recommended: sizeRec.recommended_size.label,
+      recommended: sizeRec.recommended_size.size_value.size,
       sizes: sizeRec.fits.map((fit) => {
         return {
-          size: sizeRec.available_sizes.find((size) => size.id === fit.size_id).label,
+          size: sizeRec.available_sizes.find((size) => size.id === fit.size_id).size_value.size,
           size_id: fit.size_id,
           locations: fit.measurement_location_fits
             .map((locationFit) => {

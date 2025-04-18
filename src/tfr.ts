@@ -1,5 +1,6 @@
 import { types as ShopTypes, TfrShop, initShop } from '@thefittingroom/sdk'
 
+import { VtoComponent } from './components/Vto'
 import { L } from './components/locale'
 import { validateEmail, validatePassword } from './helpers/validations'
 import { TfrModal } from './tfr-modal'
@@ -20,6 +21,7 @@ export class FittingRoom {
 
   public readonly tfrModal: TfrModal
   public readonly tfrSizeRec: TfrSizeRec
+  private readonly vtoComponent: VtoComponent
   private readonly tfrShop: TfrShop
   private unsub: () => void = null
 
@@ -27,6 +29,7 @@ export class FittingRoom {
     private readonly shopId: string | number,
     modalDivId: string,
     sizeRecMainDivId: string,
+    vtoMainDivId: string,
     private readonly hooks: TfrHooks = {},
     cssVariables: TfrCssVariables,
     _env?: string,
@@ -56,6 +59,8 @@ export class FittingRoom {
       this.onFitInfoClick.bind(this),
       this.onTryOnClick.bind(this),
     )
+
+    if (vtoMainDivId) this.vtoComponent = new VtoComponent(vtoMainDivId)
   }
 
   get shop() {
@@ -168,10 +173,19 @@ export class FittingRoom {
     this.tfrModal.toFitInfo()
   }
 
-  public async onTryOnClick(styleId: number, sizeId: number) {
+  public async onTryOnClick(styleId: number, sizeId: number, shouldDisplay: boolean = true) {
+    if (!this.vtoComponent) return console.error('VtoComponent is not initialized')
+
     const frames = await this.shop.tryOn(styleId, sizeId)
 
-    this.tfrModal.onTryOn(frames)
+    if (shouldDisplay) {
+      try {
+        this.vtoComponent.init()
+        this.vtoComponent.onNewFramesReady(frames)
+      } catch (e) {
+        console.error(e)
+      }
+    }
   }
 
   private onUserProfileChange(userProfile: ShopTypes.FirestoreUser) {
