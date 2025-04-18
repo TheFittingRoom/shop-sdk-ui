@@ -40,7 +40,7 @@
   "CreateAvatarSc": "Scan the QR code/click link to download our app and create an avatar:",
   "SomethingWentWrong": "Something went wrong. Try again!",
   "SignOutErrorText": "Something went wrong while logging out. Try again!",
-  "GetVirtualTryOnFramesErrorText": "Something went wrong while fetching style id. Try again!",
+  "GetVirtualTryOnFramesErrorText": "The try-on request timed out. Please try again!",
   "GetRecommendedSizesErrorText": "Something went wrong while fetching sizes. Try again!",
   "SendPasswordResetEmailErrorText": "Something went wrong while sending password reset email. Try again!",
   "ReturnToCatalogPage": "Return to Catalog Page",

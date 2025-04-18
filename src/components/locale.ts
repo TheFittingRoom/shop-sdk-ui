@@ -13,6 +13,7 @@ var L = {
   EnterPhoneNumber: 'Enter your number for download link',
   FailedToLoadLocale: 'Something went wrong when fetching another language.',
   ForgotPasswordWithSymbol: 'Forgot password?',
+  GetVirtualTryOnFramesErrorText: 'The try-on request timed out. Please try again!',
   HaveAcc: 'Have an account? Sign in',
   Loading: 'Loading...',
   LoadingAvatar: 'Your avatar is loading...',
