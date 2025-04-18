@@ -210,15 +210,17 @@ export class SizeRecComponent {
         // Get all size buttons
         const allSizeButtons = Array.from(document.querySelectorAll('.tfr-size-rec-select-button'))
 
-        // Request frames for all sizes
-        for (const button of allSizeButtons) {
-          const sizeId = Number(button.getAttribute('data-size-id'))
-          if (Number.isNaN(sizeId)) continue
+        // Request frames for all sizes concurrently
+        await Promise.all(
+          allSizeButtons.map(async (button) => {
+            const sizeId = Number(button.getAttribute('data-size-id'))
+            if (Number.isNaN(sizeId)) return
 
-          // Only display the active size, others are just requested
-          const shouldDisplay = button === activeButton
-          await this.onTryOnClick(this.styleId, sizeId, shouldDisplay)
-        }
+            // Only display the active size, others are just requested
+            const shouldDisplay = button === activeButton
+            await this.onTryOnClick(this.styleId, sizeId, shouldDisplay)
+          }),
+        )
       } catch (error) {
         console.error('Error during try-on:', error)
       } finally {

@@ -2,6 +2,8 @@ import { InitImageSlider } from './slider'
 
 export class VtoComponent {
   private isInit = false
+  private currentSliderValue: number = 0
+  private slider: ReturnType<typeof InitImageSlider> = null
 
   constructor(private readonly vtoMainDivId: string) {}
 
@@ -19,24 +21,37 @@ export class VtoComponent {
         </div>
     `
 
+    const tryOnImage = <HTMLImageElement>document.getElementById('tfr-tryon-image')
+    const onChange = (slider, imageUrl) => {
+      console.debug('slider change', slider, imageUrl)
+      tryOnImage.src = imageUrl
+      this.currentSliderValue = parseInt(slider.value)
+    }
+
+    this.slider = InitImageSlider('tfr-slider', onChange)
     this.isInit = true
   }
 
   public onNewFramesReady(frames: string[]) {
-    const tryOnImage = <HTMLImageElement>document.getElementById('tfr-tryon-image')
-
-    const onChange = (slider, imageUrl) => {
-      console.debug('slider change', slider, imageUrl)
-      tryOnImage.src = imageUrl
+    if (!this.isInit) {
+      this.init()
     }
 
-    const slider = InitImageSlider('tfr-slider', onChange)
-
     if (Array.isArray(frames) && frames.length > 0) {
-      const e = slider.Load(frames)
+      // Ensure the current slider value is within bounds of the new frames array
+      const boundedValue = Math.min(this.currentSliderValue, frames.length - 1)
+      const e = this.slider.Load(frames, boundedValue)
       if (e instanceof Error) {
         console.error(e)
         return
+      }
+
+      // Restore previous slider position if it's within bounds
+      const sliderElement = document.getElementById('tfr-slider') as HTMLInputElement
+      if (sliderElement && this.currentSliderValue < frames.length) {
+        sliderElement.value = this.currentSliderValue.toString()
+        const tryOnImage = <HTMLImageElement>document.getElementById('tfr-tryon-image')
+        tryOnImage.src = frames[this.currentSliderValue]
       }
     }
   }
