@@ -174,25 +174,17 @@ export class FittingRoom {
   }
 
   public async onTryOnClick(styleId: number, sizeId: number, shouldDisplay: boolean = true) {
-    if (!this.vtoComponent) return console.error('VtoComponent is not initialized')
+    if (!this.vtoComponent)
+      return console.error('VtoComponent is not initialized. Please check if the vtoMainDivId is correct.')
 
-    try {
-      const frames = await this.shop.tryOn(styleId, sizeId)
+    const frames = await this.shop.tryOn(styleId, sizeId)
 
-      if (shouldDisplay) {
-        try {
-          this.vtoComponent.init()
-          this.vtoComponent.onNewFramesReady(frames)
-        } catch (e) {
-          console.error('Error initializing VTO:', e)
-          this.tfrModal.onError(L.SomethingWentWrong)
-        }
-      }
-    } catch (error) {
-      console.error('Error during try-on:', error)
-      if (error instanceof Error && error.name === 'TimeoutError') {
-        this.tfrModal.onError(L.GetVirtualTryOnFramesErrorText)
-      } else {
+    if (shouldDisplay) {
+      try {
+        this.vtoComponent.init()
+        this.vtoComponent.onNewFramesReady(frames)
+      } catch (e) {
+        console.error('Error initializing VTO:', e)
         this.tfrModal.onError(L.SomethingWentWrong)
       }
     }
