@@ -222,29 +222,15 @@ export class SizeRecComponent {
 
           // 2. Fetch VTO for the size to the left (if it exists)
           if (activeIndex > 0) {
-          const leftButton = allSizeButtons[activeIndex - 1];
-          const leftSizeId = Number(leftButton.getAttribute('data-size-id'));
-          if (!Number.isNaN(leftSizeId)) {
-            try {
-              await this.onTryOnClick(this.styleId, leftSizeId, false);
-            } catch (e) {
-              console.error(`Error pre-loading try-on for left size ${leftSizeId}:`, e);
-            }
-          }
+            const leftButton = allSizeButtons[activeIndex - 1];
+            await this._preloadNeighborVTO(leftButton);
           }
 
           // 3. Fetch VTO for the size to the right (if it exists)
           if (activeIndex >= 0 && activeIndex < allSizeButtons.length - 1) {
-          const rightButton = allSizeButtons[activeIndex + 1];
-          const rightSizeId = Number(rightButton.getAttribute('data-size-id'));
-          if (!Number.isNaN(rightSizeId)) {
-            try {
-              await this.onTryOnClick(this.styleId, rightSizeId, false);
-            } catch (e) {
-              console.error(`Error pre-loading try-on for right size ${rightSizeId}:`, e);
-            }
+            const rightButton = allSizeButtons[activeIndex + 1];
+            await this._preloadNeighborVTO(rightButton);
           }
-        }
         }
       } catch (error) {
         console.error('Error during sequential try-on process:', error);
@@ -255,6 +241,20 @@ export class SizeRecComponent {
         tryOnButton.removeAttribute('disabled')
       }
     })
+  }
+
+  private async _preloadNeighborVTO(buttonElement: HTMLElement): Promise<void> {
+    // this.styleId is assumed to be non-null here because the calling context (bindEvents)
+    // is wrapped in 'if (this.styleId !== null)'
+    const sizeId = Number(buttonElement.getAttribute('data-size-id'));
+    if (!Number.isNaN(sizeId)) {
+      try {
+        await this.onTryOnClick(this.styleId!, sizeId, false);
+      } catch (e) {
+        const buttonText = buttonElement.textContent?.trim() || 'N/A';
+        console.error(`Error pre-loading try-on for size ${sizeId} (button: ${buttonText}):`, e);
+      }
+    }
   }
 
   private onSizeRecSelectClick(e: MouseEvent) {
