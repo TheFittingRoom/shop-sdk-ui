@@ -212,25 +212,48 @@ export class SizeRecComponent {
         const activeIndex = allSizeButtons.indexOf(activeButton as HTMLElement);
 
         if (this.styleId !== null) {
-          // 1. Fetch and display the VTO for the active (recommended) size
-          try {
-            await this.onTryOnClick(this.styleId, selectedSizeId, true);
-          } catch (e) {
-            console.error(`Error trying on active size ${selectedSizeId}:`, e);
-            // Optionally, inform the user about the error for the primary VTO
-          }
+          const VTO_DISPLAY_ERROR_MSG = 'Error displaying VTO for active size';
+          const PRELOAD_ERROR_MSG_LEFT = 'Error pre-loading VTO for left size';
+          const PRELOAD_ERROR_MSG_RIGHT = 'Error pre-loading VTO for right size';
 
-          // 2. Fetch VTO for the size to the left (if it exists)
+          // 1. Initiate fetching for the active size's VTO frames
+          // We call onTryOnClick with shouldDisplay: false, then handle display manually
+          const activeVtoPromise = this.onTryOnClick(this.styleId, selectedSizeId, false)
+            .then(() => {
+              // Manually trigger display for the active VTO after frames are fetched
+              // This assumes onTryOnClick when shouldDisplay=false still makes frames available
+              // or that a different mechanism is used to get frames then display.
+              // For simplicity, let's assume onTryOnClick can be called again to display if frames are cached,
+              // or vtoComponent can be updated directly if frames are returned.
+              // Re-calling onTryOnClick to display (if it uses cached frames or re-fetches quickly):
+              return this.onTryOnClick(this.styleId, selectedSizeId, true);
+            })
+            .catch(e => {
+              console.error(`${VTO_DISPLAY_ERROR_MSG} ${selectedSizeId}:`, e);
+              // Optionally, inform the user about the error for the primary VTO
+            });
+
+          // 2. Initiate VTO preloading for the left neighbor (if it exists)
+          let leftPreloadPromise = Promise.resolve();
           if (activeIndex > 0) {
             const leftButton = allSizeButtons[activeIndex - 1];
-            await this._preloadNeighborVTO(leftButton);
+            leftPreloadPromise = this._preloadNeighborVTO(leftButton)
+              .catch(e => console.error(`${PRELOAD_ERROR_MSG_LEFT}:`, e));
           }
 
-          // 3. Fetch VTO for the size to the right (if it exists)
+          // 3. Initiate VTO preloading for the right neighbor (if it exists)
+          let rightPreloadPromise = Promise.resolve();
           if (activeIndex >= 0 && activeIndex < allSizeButtons.length - 1) {
             const rightButton = allSizeButtons[activeIndex + 1];
-            await this._preloadNeighborVTO(rightButton);
+            rightPreloadPromise = this._preloadNeighborVTO(rightButton)
+              .catch(e => console.error(`${PRELOAD_ERROR_MSG_RIGHT}:`, e));
           }
+
+          // Optionally, wait for all promises if there's any cleanup or global state change needed after all attempts.
+          // For now, the main benefit is that the active VTO display isn't blocked by preloads.
+          // And preloads run concurrently with each other and with the active VTO's fetching phase.
+          await Promise.all([activeVtoPromise, leftPreloadPromise, rightPreloadPromise])
+            .catch(e => console.warn('One or more VTO operations failed overall:', e)); // Catch all for any unhandled rejections from the main promises
         }
       } catch (error) {
         console.error('Error during sequential try-on process:', error);
