@@ -213,13 +213,11 @@ export class SizeRecComponent {
 
         if (this.styleId !== null) {
           // 1. Fetch and display the VTO for the active (recommended) size
-          if (!Number.isNaN(selectedSizeId)) {
           try {
             await this.onTryOnClick(this.styleId, selectedSizeId, true);
           } catch (e) {
             console.error(`Error trying on active size ${selectedSizeId}:`, e);
             // Optionally, inform the user about the error for the primary VTO
-          }
           }
 
           // 2. Fetch VTO for the size to the left (if it exists)
