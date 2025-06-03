@@ -211,18 +211,19 @@ export class SizeRecComponent {
         const allSizeButtons = Array.from(document.querySelectorAll('.tfr-size-rec-select-button')) as HTMLElement[];
         const activeIndex = allSizeButtons.indexOf(activeButton as HTMLElement);
 
-        // 1. Fetch and display the VTO for the active (recommended) size
-        if (this.styleId !== null && !Number.isNaN(selectedSizeId)) {
+        if (this.styleId !== null) {
+          // 1. Fetch and display the VTO for the active (recommended) size
+          if (!Number.isNaN(selectedSizeId)) {
           try {
             await this.onTryOnClick(this.styleId, selectedSizeId, true);
           } catch (e) {
             console.error(`Error trying on active size ${selectedSizeId}:`, e);
             // Optionally, inform the user about the error for the primary VTO
           }
-        }
+          }
 
-        // 2. Fetch VTO for the size to the left (if it exists)
-        if (this.styleId !== null && activeIndex > 0) {
+          // 2. Fetch VTO for the size to the left (if it exists)
+          if (activeIndex > 0) {
           const leftButton = allSizeButtons[activeIndex - 1];
           const leftSizeId = Number(leftButton.getAttribute('data-size-id'));
           if (!Number.isNaN(leftSizeId)) {
@@ -232,10 +233,10 @@ export class SizeRecComponent {
               console.error(`Error pre-loading try-on for left size ${leftSizeId}:`, e);
             }
           }
-        }
+          }
 
-        // 3. Fetch VTO for the size to the right (if it exists)
-        if (this.styleId !== null && activeIndex >= 0 && activeIndex < allSizeButtons.length - 1) {
+          // 3. Fetch VTO for the size to the right (if it exists)
+          if (activeIndex >= 0 && activeIndex < allSizeButtons.length - 1) {
           const rightButton = allSizeButtons[activeIndex + 1];
           const rightSizeId = Number(rightButton.getAttribute('data-size-id'));
           if (!Number.isNaN(rightSizeId)) {
@@ -245,6 +246,7 @@ export class SizeRecComponent {
               console.error(`Error pre-loading try-on for right size ${rightSizeId}:`, e);
             }
           }
+        }
         }
       } catch (error) {
         console.error('Error during sequential try-on process:', error);
