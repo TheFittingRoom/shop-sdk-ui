@@ -235,7 +235,7 @@ export class SizeRecComponent {
         }
 
         // 3. Fetch VTO for the size to the right (if it exists)
-        if (this.styleId !== null && activeIndex < allSizeButtons.length - 1) {
+        if (this.styleId !== null && activeIndex >= 0 && activeIndex < allSizeButtons.length - 1) {
           const rightButton = allSizeButtons[activeIndex + 1];
           const rightSizeId = Number(rightButton.getAttribute('data-size-id'));
           if (!Number.isNaN(rightSizeId)) {
