@@ -156,10 +156,10 @@ export class TfrSizeRec {
     if (!sizeRec) return null
 
     return {
-      recommended: sizeRec.recommended_size.size_value.size,
+      recommended: sizeRec.recommended_size.size_value.name,
       sizes: sizeRec.fits.map((fit) => {
         return {
-          size: sizeRec.available_sizes.find((size) => size.id === fit.size_id).size_value.size,
+          size: sizeRec.available_sizes.find((size) => size.id === fit.size_id).size_value.name,
           size_id: fit.size_id,
           locations: fit.measurement_location_fits
             .map((locationFit) => {
