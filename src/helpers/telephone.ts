@@ -12416,26 +12416,26 @@ function dialCodePrefixesValidator(prefixes, validator) {
     ? PrefixesValidator(prefixes, validator[5])
       ? 4
       : PrefixesValidator(prefixes, validator[4])
-      ? 3
-      : PrefixesValidator(prefixes, validator[6])
-      ? 5
-      : PrefixesValidator(prefixes, validator[8])
-      ? 6
-      : PrefixesValidator(prefixes, validator[7])
-      ? 7
-      : PrefixesValidator(prefixes, validator[21])
-      ? 8
-      : PrefixesValidator(prefixes, validator[25])
-      ? 9
-      : PrefixesValidator(prefixes, validator[28])
-      ? 10
-      : PrefixesValidator(prefixes, validator[2])
-      ? validator[18] || PrefixesValidator(prefixes, validator[3])
-        ? 2
-        : 0
-      : !validator[18] && PrefixesValidator(prefixes, validator[3])
-      ? 1
-      : -1
+        ? 3
+        : PrefixesValidator(prefixes, validator[6])
+          ? 5
+          : PrefixesValidator(prefixes, validator[8])
+            ? 6
+            : PrefixesValidator(prefixes, validator[7])
+              ? 7
+              : PrefixesValidator(prefixes, validator[21])
+                ? 8
+                : PrefixesValidator(prefixes, validator[25])
+                  ? 9
+                  : PrefixesValidator(prefixes, validator[28])
+                    ? 10
+                    : PrefixesValidator(prefixes, validator[2])
+                      ? validator[18] || PrefixesValidator(prefixes, validator[3])
+                        ? 2
+                        : 0
+                      : !validator[18] && PrefixesValidator(prefixes, validator[3])
+                        ? 1
+                        : -1
     : -1
 }
 

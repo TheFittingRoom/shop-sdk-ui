@@ -24,6 +24,7 @@ export default {
     {
       file: `dist/esm/index.min.js`,
       format: 'esm',
+      sourcemap: true,
       banner,
       plugins: [terser()],
     },

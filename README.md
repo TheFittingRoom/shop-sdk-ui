@@ -2,6 +2,10 @@
 
 Modal UI for The Fitting Room. Provides UI hooks to integrate into the parent UI.
 
+## Requirements
+
+- Node.js >= 18
+
 ## Installation
 
 ```bash
@@ -11,7 +15,7 @@ npm i @thefittingroom/shop-ui
 or
 
 ```bash
-yarn @thefittingroom/shop-ui
+yarn add @thefittingroom/shop-ui
 ```
 
 ## Usage

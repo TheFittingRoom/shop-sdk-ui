@@ -1,14 +1,14 @@
 import { FittingRoom, TfrHooks } from './tfr'
 import { TfrCssVariables } from './tfr-size-rec'
 
-export type TrfConfig = {
+export interface TrfConfig {
   shopId: string | number
   modalDivId: string
   sizeRecMainDivId: string
   vtoMainDivId: string
   hooks?: TfrHooks
   cssVariables?: TfrCssVariables
-  env?: string
+  env?: 'dev' | 'prod'
 }
 
 export const initFittingRoom = async ({

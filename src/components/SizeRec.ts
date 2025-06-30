@@ -208,32 +208,32 @@ export class SizeRecComponent {
 
       try {
         // Get all size buttons
-        const allSizeButtons = Array.from(document.querySelectorAll('.tfr-size-rec-select-button')) as HTMLElement[];
-        const activeIndex = allSizeButtons.indexOf(activeButton as HTMLElement);
+        const allSizeButtons = Array.from(document.querySelectorAll('.tfr-size-rec-select-button')) as HTMLElement[]
+        const activeIndex = allSizeButtons.indexOf(activeButton as HTMLElement)
 
         if (this.styleId !== null) {
           // 1. Fetch and display the VTO for the active (recommended) size
           try {
-            await this.onTryOnClick(this.styleId, selectedSizeId, true);
+            await this.onTryOnClick(this.styleId, selectedSizeId, true)
           } catch (e) {
-            console.error(`Error trying on active size ${selectedSizeId}:`, e);
+            console.error(`Error trying on active size ${selectedSizeId}:`, e)
             // Optionally, inform the user about the error for the primary VTO
           }
 
           // 2. Fetch VTO for the size to the left (if it exists)
           if (activeIndex > 0) {
-            const leftButton = allSizeButtons[activeIndex - 1];
-            await this._preloadNeighborVTO(leftButton);
+            const leftButton = allSizeButtons[activeIndex - 1]
+            await this._preloadNeighborVTO(leftButton)
           }
 
           // 3. Fetch VTO for the size to the right (if it exists)
           if (activeIndex >= 0 && activeIndex < allSizeButtons.length - 1) {
-            const rightButton = allSizeButtons[activeIndex + 1];
-            await this._preloadNeighborVTO(rightButton);
+            const rightButton = allSizeButtons[activeIndex + 1]
+            await this._preloadNeighborVTO(rightButton)
           }
         }
       } catch (error) {
-        console.error('Error during sequential try-on process:', error);
+        console.error('Error during sequential try-on process:', error)
       } finally {
         // Reset loading state
         tryOnButton.classList.remove('loading')
@@ -246,13 +246,13 @@ export class SizeRecComponent {
   private async _preloadNeighborVTO(buttonElement: HTMLElement): Promise<void> {
     // this.styleId is assumed to be non-null here because the calling context (bindEvents)
     // is wrapped in 'if (this.styleId !== null)'
-    const sizeId = Number(buttonElement.getAttribute('data-size-id'));
+    const sizeId = Number(buttonElement.getAttribute('data-size-id'))
     if (!Number.isNaN(sizeId)) {
       try {
-        await this.onTryOnClick(this.styleId!, sizeId, false);
+        await this.onTryOnClick(this.styleId!, sizeId, false)
       } catch (e) {
-        const buttonText = buttonElement.textContent?.trim() || 'N/A';
-        console.error(`Error pre-loading try-on for size ${sizeId} (button: ${buttonText}):`, e);
+        const buttonText = buttonElement.textContent?.trim() || 'N/A'
+        console.error(`Error pre-loading try-on for size ${sizeId} (button: ${buttonText}):`, e)
       }
     }
   }
