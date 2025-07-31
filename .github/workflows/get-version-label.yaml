@@ -68,3 +68,4 @@ jobs:
           git add package.json package-lock.json
           git commit -m "ci: bump version to $NEW_VERSION"
           git push origin HEAD:${{ github.event.pull_request.head.ref }} --follow-tags
+          git push --follow-tags
