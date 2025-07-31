@@ -3,14 +3,17 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import postcss from 'rollup-plugin-postcss';
-import replace from '@rollup/plugin-replace';
 
-import pkg from './package.json' with { type: 'json' };
+import { defineConfig } from 'rollup'
+import dotenv from 'rollup-plugin-dotenv'
+import postcss from 'rollup-plugin-postcss'
+
+import pkg from './package.json' with { type: 'json' }
 
 const banner = `/*!
 * thefittingroom v${pkg.version} (${new Date().toISOString()})
 * Copyright 2022-present, TheFittingRoom, Inc. All rights reserved.
-*/`;
+*/`
 
 export default defineConfig({
   input: 'src/index.ts',
@@ -30,10 +33,7 @@ export default defineConfig({
     },
   ],
   plugins: [
-    replace({
-      preventAssignment: true,
-      'process.env.NODE_ENV': JSON.stringify('production'),
-    }),
+    dotenv(),
     postcss({
       minimize: true,
       extract: false,
@@ -47,4 +47,4 @@ export default defineConfig({
       declaration: false,
     }),
   ],
-});
+})
