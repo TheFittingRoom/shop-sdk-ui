@@ -1,6 +1,6 @@
 {
   "name": "@thefittingroom/shop-ui",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "the fitting room UI library",
   "type": "module",
   "main": "./dist/esm/index.js",
@@ -18,18 +18,19 @@
     "node": ">=20"
   },
   "devDependencies": {
-    "@rollup/plugin-node-resolve": "^14.1.0",
-    "@rollup/plugin-typescript": "^8.5.0",
-    "@trivago/prettier-plugin-sort-imports": "^4.1.1",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-replace": "^6.0.2",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^12.1.4",
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "live-server": "^1.2.0",
-    "prettier": "^2.8.8",
-    "rollup": "^2.79.2",
-    "rollup-plugin-dotenv": "^0.4.0",
-    "rollup-plugin-styles": "^4.0.0",
-    "rollup-plugin-terser": "^7.0.2",
-    "ts-node": "^9.0.0",
-    "tslib": "^2.4.0",
-    "typescript": "^4.0.2"
+    "postcss": "^8.5.6",
+    "prettier": "^3.6.2",
+    "rollup": "^4.18.1",
+    "rollup-plugin-postcss": "^4.0.2",
+    "ts-node": "^10.9.2",
+    "tslib": "^2.6.3",
+    "typescript": "^5.5.4"
   },
   "dependencies": {
     "@thefittingroom/sdk": "^2.0.0"
