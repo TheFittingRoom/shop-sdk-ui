@@ -1,17 +1,22 @@
 name: Deploy To Dev
 
 on:
-  push:
-    branches:
-      - main
+  pull_request_target:
+    types:
+      - closed
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
 
 jobs:
+  get_version_label:
+    if: github.event.pull_request.merged == true
+    uses: ./.github/workflows/get-version-label.yaml
   build:
+    if: github.event.pull_request.merged == true && needs.get_version_label.outputs.version_label != 'chore'
     runs-on: ubuntu-latest
+    needs: get_version_label
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,6 +30,13 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Bump Version
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          npm version "${{ needs.get_version_label.outputs.version_label }}"
+          git push origin ${{ github.event.pull_request.head.ref }} --follow-tags
 
       - name: Build
         run: |
