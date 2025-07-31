@@ -11,7 +11,7 @@ npm i @thefittingroom/shop-ui
 or
 
 ```bash
-yarn @thefittingroom/shop-ui
+npm @thefittingroom/shop-ui
 ```
 
 ## Usage

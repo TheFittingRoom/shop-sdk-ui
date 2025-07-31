@@ -1,12 +1,12 @@
 {
   "name": "@thefittingroom/shop-ui",
-  "version": "3.0.0-alpha-15",
+  "version": "3.0.0",
   "description": "the fitting room UI library",
   "type": "module",
   "main": "./dist/esm/index.js",
   "scripts": {
     "clean": "rm -rf dist",
-    "clean:all": "rm -rf dist && rm -rf build && rm -rf .rollup.cache",
+    "clean:all": "rm -rf dist build .rollup.cache",
     "build:prod": "npm run clean && NODE_ENV=prod rollup --config",
     "build:dev": "npm run clean && NODE_ENV=dev rollup --config",
     "watch:prod": "npm run clean && NODE_ENV=prod rollup --config -w",
@@ -15,15 +15,15 @@
     "pub": "npm run build:prod && npm publish --access public"
   },
   "engines": {
-    "node": ">=10"
+    "node": ">=20"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^14.1.0",
     "@rollup/plugin-typescript": "^8.5.0",
     "@trivago/prettier-plugin-sort-imports": "^4.1.1",
-    "live-server": "1.2.1",
+    "live-server": "^1.2.0",
     "prettier": "^2.8.8",
-    "rollup": "^2.79.1",
+    "rollup": "^2.79.2",
     "rollup-plugin-dotenv": "^0.4.0",
     "rollup-plugin-styles": "^4.0.0",
     "rollup-plugin-terser": "^7.0.2",
@@ -32,6 +32,6 @@
     "typescript": "^4.0.2"
   },
   "dependencies": {
-    "@thefittingroom/sdk": "3.0.0-alpha-13"
+    "@thefittingroom/sdk": "^2.0.0"
   }
 }
