@@ -30,7 +30,7 @@ jobs:
         run: |
           mv .env.dev .env.tmp
           envsubst < .env.tmp > .env
-          NODE_ENV=dev npm run build
+          npm run build:dev
 
       - name: Publish to npm (next)
         env:
