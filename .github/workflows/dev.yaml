@@ -58,5 +58,7 @@ jobs:
 
       - name: Commit and Push Version
         run: |
+          git add package.json package-lock.json
+          NEW_VERSION=$(npm pkg get version | tr -d '"')
           git commit -m "${{ needs.get_version_label.outputs.version_label }}(next): ${NEW_VERSION}"
           git push origin main --follow-tags
