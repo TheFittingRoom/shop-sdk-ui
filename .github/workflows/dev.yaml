@@ -43,11 +43,10 @@ jobs:
 
       - name: Build
         run: |
-          mv .env.dev .env.tmp
-          envsubst < .env.tmp > .env
+          envsubst < .env.dev > .env
           npm run build:dev
 
-      - name: Publish to npm (next)
+      - name: Publish to NPM (next)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
