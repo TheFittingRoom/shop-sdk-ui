@@ -51,3 +51,8 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           npm publish --access public --tag next --verbose
+
+      - name: Commit and Push Version
+        run: |
+          git commit -m "${{ needs.get_version_label.outputs.version_label }}(next): ${NEW_VERSION}"
+          git push origin main --follow-tags
