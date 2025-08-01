@@ -37,7 +37,7 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-      - name: Bump Version
+      - name: Commit New Version
         run: |
           npm version "${{ needs.get_version_label.outputs.version_label }}"
 
@@ -50,9 +50,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.SDK_PUSH_PAT}}
         run: |
-          git add package.json package-lock.json
-          NEW_VERSION=$(npm pkg get version | tr -d '"')
-          git commit -m "${{ needs.get_version_label.outputs.version_label }}(next): ${NEW_VERSION}"
           git push origin main --follow-tags
 
       - name: Publish to NPM (next)
