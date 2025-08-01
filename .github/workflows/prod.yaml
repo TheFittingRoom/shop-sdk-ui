@@ -22,16 +22,15 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: npm ci
 
-      - name: Buldi
+      - name: Build
         run: |
-          mv .env.prod .env.tmp
-          envsubst < .env.tmp > .env
+          envsubst < .env.prod > .env
           npm run build:prod
 
-      - name: Publish to npm (latest)
+      - name: Publish to NPM (latest)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
