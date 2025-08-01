@@ -33,6 +33,6 @@
     "typescript": "^5.5.4"
   },
   "dependencies": {
-    "@thefittingroom/sdk": "^2.0.0"
+    "@thefittingroom/sdk": "^2.0.3"
   }
 }
