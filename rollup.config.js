@@ -3,10 +3,7 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import postcss from 'rollup-plugin-postcss';
-
-import { defineConfig } from 'rollup'
 import dotenv from 'rollup-plugin-dotenv'
-import postcss from 'rollup-plugin-postcss'
 
 import pkg from './package.json' with { type: 'json' }
 
