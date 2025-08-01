@@ -38,11 +38,7 @@ jobs:
           git config user.email "actions@github.com"
 
       - name: Bump Version
-        env:
-          GITHUB_TOKEN: ${{ secrets.SDK_PUSH_PAT}}
         run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
           npm version "${{ needs.get_version_label.outputs.version_label }}"
 
       - name: Build
@@ -51,6 +47,8 @@ jobs:
           npm run build:dev
 
       - name: Commit and Push Version
+        env:
+          GITHUB_TOKEN: ${{ secrets.SDK_PUSH_PAT}}
         run: |
           git add package.json package-lock.json
           NEW_VERSION=$(npm pkg get version | tr -d '"')
