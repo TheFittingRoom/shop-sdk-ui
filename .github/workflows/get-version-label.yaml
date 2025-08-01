@@ -4,11 +4,7 @@ on:
     branches:
       - main
     types: [opened, edited, labeled, unlabeled, synchronize]
-  workflow_call:
-    outputs:
-      version_label:
-        description: the major, minor or patch version label
-        value: ${{ jobs.get_version_label.outputs.version_label }}
+
 permissions:
   contents: write
 
@@ -34,7 +30,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const allowed = ['patch', 'minor', 'major', 'chore'];
+            const allowed = ['patch', 'minor', 'major'];
             const versionLabels = context.payload.pull_request.labels.map(l => l.name.toLowerCase()).filter(label => allowed.includes(label));
 
             if (versionLabels.length === 0) {
@@ -45,3 +41,27 @@ jobs:
             core.setOutput('version_label', versionLabels[0]);
             core.info(`version_label: ${versionLabels[0]}`);
 
+      - name: Check Version
+        id: check_feature_tags
+        run: |
+          VERSION_LABEL="${{ steps.get_version_label.outputs.version_label }}"
+
+          if git describe --tags --exact-match --contains "$VERSION_LABEL" $(git rev-list origin/main..HEAD) &>/dev/null; then
+            echo "version_bump_exists=true" >> $GITHUB_OUTPUT
+            echo "Version bump tag '$VERSION_LABEL' already exists on feature branch"
+          else
+            echo "version_bump_exists=false" >> $GITHUB_OUTPUT
+            echo "No '$VERSION_LABEL' tag found on feature branch"
+          fi
+
+      - name: Bump Version
+        if: ${{ steps.check_feature_tags.outputs.version_bump_exists == 'false' }}
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          VERSION_LABEL="${{ steps.get_version_label.outputs.version_label }}"
+          npm version "$VERSION_LABEL"
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          git add package.json package-lock.json
+          git push origin HEAD:${{ github.event.pull_request.head.ref }} --follow-tags
