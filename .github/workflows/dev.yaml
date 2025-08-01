@@ -21,6 +21,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: main
 
       - uses: actions/setup-node@v4
         with:
@@ -36,7 +37,7 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           npm version "${{ needs.get_version_label.outputs.version_label }}"
-          git push origin ${{ github.event.pull_request.head.ref }} --follow-tags
+          git push origin main --follow-tags
 
       - name: Build
         run: |
