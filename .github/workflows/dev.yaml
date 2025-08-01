@@ -37,7 +37,7 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-      - name: Commit New Version
+      - name: NPM Version
         run: |
           npm version "${{ needs.get_version_label.outputs.version_label }}"
 
@@ -46,7 +46,7 @@ jobs:
           envsubst < .env.dev > .env
           npm run build:dev
 
-      - name: Commit and Push Version
+      - name: Push Version
         env:
           GITHUB_TOKEN: ${{ secrets.SDK_PUSH_PAT}}
         run: |
