@@ -33,6 +33,8 @@ jobs:
         run: npm ci
 
       - name: Bump Version
+        env:
+          GITHUB_TOKEN: ${{ secrets.SDK_PUSH_PAT}}
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
