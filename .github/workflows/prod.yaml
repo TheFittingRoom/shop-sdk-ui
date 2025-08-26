@@ -22,16 +22,10 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           cache: 'npm'
 
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Build
-        run: |
-          envsubst < .env.prod > .env
-          npm run build:prod
-
       - name: Publish to NPM (latest)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          npm publish --access public --tag latest --verbose
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          npm dist-tag add $PACKAGE_NAME@$VERSION latest
