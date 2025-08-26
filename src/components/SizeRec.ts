@@ -92,6 +92,7 @@ export class SizeRecComponent {
       // Ensure the container is visible
       this.tfrSizeRecSelectContainer.style.display = 'flex'
       this.tfrSizeRecSelectContainer.style.opacity = '1'
+
     } else {
       this.tfrSizeHowItFits.style.opacity = '0.4'
       this.tfrSizeRecSelect.style.opacity = '0.4'
@@ -304,8 +305,7 @@ export class SizeRecComponent {
     const html = sizeNames
       .map(
         (name, i) =>
-          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}" data-size-id="${
-            sizes[i].size_id
+          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}" data-size-id="${sizes[i].size_id
           }">${name}</div>`,
       )
       .join('')

@@ -84,7 +84,8 @@ export class TfrSizeRec {
 
   public async setGarmentLocations(filledLocations: string[] = []) {
     this.sizeRecComponent.setLoading(true)
-    const locations = await this.getGarmentLocations(filledLocations)
+    // If we already have filledLocations, use them directly instead of making API calls
+    const locations = filledLocations.length > 0 ? filledLocations : await this.getGarmentLocations(filledLocations)
 
     console.debug('locations', locations)
     console.debug('filledLocations', filledLocations)
@@ -93,9 +94,9 @@ export class TfrSizeRec {
     this.sizeRecComponent.setLoading(false)
   }
 
-  public async setRecommendedSize() {
+  public async recommendSize() {
     this.sizeRecComponent.setLoading(true)
-    const sizes = await this.getRecommenedSize()
+    const sizes = await this.getRecommendedSize()
 
     if (!sizes) {
       console.error('No sizes found for sku')
@@ -128,7 +129,7 @@ export class TfrSizeRec {
     }
   }
 
-  private async getRecommenedSize() {
+  private async getRecommendedSize() {
     try {
       const colorwaySizeAsset = await this.tfrShop.getColorwaySizeAssetFromSku(this.sku)
       const sizes = await this.getRecommendedSizes(String(colorwaySizeAsset.style_id))
