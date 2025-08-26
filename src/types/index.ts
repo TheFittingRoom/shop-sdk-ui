@@ -59,7 +59,7 @@ export interface ModalContent {
   useFullModalContent: boolean
 }
 
-export interface ModalProps {}
+export interface ModalProps { }
 
 export interface SignInParams {
   email: string
@@ -169,4 +169,5 @@ export type FirestoreStyle = {
   sale_type: string
   colorways: { [key: number]: FirestoreColorway }
   sizes: { [key: number]: FirestoreSize }
+  is_vto: boolean
 }

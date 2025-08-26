@@ -6,6 +6,7 @@ import { validateEmail, validatePassword } from './helpers/validations'
 import { TfrModal } from './tfr-modal'
 import { TfrCssVariables, TfrSizeRec } from './tfr-size-rec'
 import * as types from './types'
+import { FirestoreStyleCategory } from '@thefittingroom/sdk/dist/esm/types'
 
 export interface TfrHooks {
   onLoading?: () => void
@@ -18,6 +19,8 @@ export interface TfrHooks {
 
 export class FittingRoom {
   private isLoggedIn: boolean = false
+
+  public style: FirestoreStyleCategory
 
   public readonly tfrModal: TfrModal
   public readonly tfrSizeRec: TfrSizeRec
@@ -38,8 +41,8 @@ export class FittingRoom {
     const env = _env
       ? _env
       : typeof process !== 'undefined'
-      ? process.env.NODE_ENV
-      : 'dev'
+        ? process.env.NODE_ENV
+        : 'dev'
 
     console.log('tfr-env', env)
 
@@ -71,17 +74,30 @@ export class FittingRoom {
     return this.tfrSizeRec.sku
   }
 
-  public async checkIfPublished(brandStyleIdOrSku: string) {
-    const style = await this.getStyle(brandStyleIdOrSku)
-
-    return Boolean(style?.is_published)
-  }
-
-  public setSku(sku: string) {
+  public async setSku(sku: string) {
     this.tfrSizeRec.setSku(sku)
 
-    if (this.isLoggedIn) this.tfrSizeRec.setRecommendedSize()
-    else this.setGarmentLocations()
+    const style = await this.getStyle(this.sku)
+
+    this.style = style
+
+    if (!style.is_published) {
+      document.getElementById('tfr-size-recommendations').style.display = 'none';
+      console.log(`style ${style.id} is not published`)
+    } else {
+      console.log(`style ${style.id} is published`)
+    }
+
+    console.log(`style ${style.id} virtual try on is disabled`)
+
+    if (style.is_vto) {
+      document.getElementById('tfr-try-on-button')?.classList.remove("hide")
+    } else {
+      document.getElementById('tfr-try-on-button')?.classList.add("hide")
+    }
+
+    if (this.isLoggedIn) this.tfrSizeRec.recommendSize()
+    else this.setGarmentLocations(style)
   }
 
   public async onInit() {
@@ -112,7 +128,7 @@ export class FittingRoom {
 
     this.isLoggedIn = false
     this.tfrSizeRec.setIsLoggedIn(false)
-    this.setGarmentLocations()
+    this.setGarmentLocations(this.style)
     this.unsubscribeFromProfileChanges()
   }
 
@@ -129,7 +145,8 @@ export class FittingRoom {
 
       this.isLoggedIn = true
       this.tfrSizeRec.setIsLoggedIn(true)
-      this.tfrSizeRec.setRecommendedSize()
+
+      this.tfrSizeRec.recommendSize()
       this.subscribeToProfileChanges()
     } catch (e) {
       return validationError(L.UsernameOrPasswordIncorrect)
@@ -225,8 +242,7 @@ export class FittingRoom {
     this.unsub = null
   }
 
-  private async setGarmentLocations() {
-    const style = await this.getStyle(this.sku)
+  private async setGarmentLocations(style: FirestoreStyleCategory) {
 
     const filledLocations =
       style?.sizes?.[0]?.garment_measurements.map((measurement) => measurement.measurement_location) || ([] as string[])
@@ -240,12 +256,12 @@ export class FittingRoom {
       const style = await this.tfrShop.getStyle(colorwaySizeAsset.style_id)
 
       return style
-    } catch {
+    } catch (e) {
       try {
         const style = await this.tfrShop.getStyleByBrandStyleId(brandStyleIdOrSku)
 
         return style
-      } catch {
+      } catch (e2) {
         return null
       }
     }

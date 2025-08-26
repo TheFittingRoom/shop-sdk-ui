@@ -118,7 +118,7 @@
   display: inline-block;
 }
 
-#tfr-size-rec-size > .tfr-size-rec-login-cta {
+#tfr-size-rec-size>.tfr-size-rec-login-cta {
   font-weight: 500;
   margin-left: 10px;
 }
@@ -265,6 +265,10 @@
 .tfr-try-on-button.loading {
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+.tfr-try-on-button.hide {
+  display: none;
 }
 
 .tfr-try-on-button.loading::after {

@@ -5,7 +5,7 @@ export class VtoComponent {
   private currentSliderValue: number = 0
   private slider: ReturnType<typeof InitImageSlider> = null
 
-  constructor(private readonly vtoMainDivId: string) {}
+  constructor(private readonly vtoMainDivId: string) { }
 
   public init() {
     if (this.isInit) return
