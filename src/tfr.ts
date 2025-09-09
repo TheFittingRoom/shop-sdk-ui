@@ -1,4 +1,5 @@
 import { types as ShopTypes, TfrShop, initShop } from '@thefittingroom/sdk'
+import { FirestoreStyleCategory } from '@thefittingroom/sdk/dist/esm/types'
 
 import { VtoComponent } from './components/Vto'
 import { L } from './components/locale'
@@ -6,7 +7,6 @@ import { validateEmail, validatePassword } from './helpers/validations'
 import { TfrModal } from './tfr-modal'
 import { TfrCssVariables, TfrSizeRec } from './tfr-size-rec'
 import * as types from './types'
-import { FirestoreStyleCategory } from '@thefittingroom/sdk/dist/esm/types'
 
 export interface TfrHooks {
   onLoading?: () => void
@@ -79,10 +79,16 @@ export class FittingRoom {
 
     const style = await this.getStyle(this.sku)
 
+    if (!style) {
+      document.getElementById('tfr-size-recommendations').style.display = 'none'
+
+      return
+    }
+
     this.style = style
 
     if (!style.is_published) {
-      document.getElementById('tfr-size-recommendations').style.display = 'none';
+      document.getElementById('tfr-size-recommendations').style.display = 'none'
       console.log(`style ${style.id} is not published`)
     } else {
       console.log(`style ${style.id} is published`)
@@ -91,9 +97,9 @@ export class FittingRoom {
     console.log(`style ${style.id} virtual try on is disabled`)
 
     if (style.is_vto) {
-      document.getElementById('tfr-try-on-button')?.classList.remove("hide")
+      document.getElementById('tfr-try-on-button')?.classList.remove('hide')
     } else {
-      document.getElementById('tfr-try-on-button')?.classList.add("hide")
+      document.getElementById('tfr-try-on-button')?.classList.add('hide')
     }
 
     if (this.isLoggedIn) this.tfrSizeRec.recommendSize()
@@ -243,7 +249,6 @@ export class FittingRoom {
   }
 
   private async setGarmentLocations(style: FirestoreStyleCategory) {
-
     const filledLocations =
       style?.sizes?.[0]?.garment_measurements.map((measurement) => measurement.measurement_location) || ([] as string[])
 
