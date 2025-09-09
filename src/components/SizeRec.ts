@@ -17,7 +17,6 @@ export class SizeRecComponent {
   private _sku: string = ''
   private _styleId: number = null
 
-  private isLoggedIn: boolean = false
   private sizeRecMainDiv: HTMLDivElement
 
   private tfrInfoIcon: HTMLDivElement
@@ -71,7 +70,6 @@ export class SizeRecComponent {
   }
 
   public setIsLoggedIn(isLoggedIn: boolean) {
-    this.isLoggedIn = isLoggedIn
 
     this.tfrSizeRecSelectContainer.style.display = 'flex'
     this.tfrSizeRecSelect.style.display = 'flex'
@@ -132,15 +130,6 @@ export class SizeRecComponent {
 
   public setRecommendedSize({ recommended, sizes }: RecommendedSize) {
     this.renderSizeRec(recommended, sizes)
-  }
-
-  public setError() {
-    this.tfrSizeRecTitle.style.display = 'none'
-
-    if (!this.isLoggedIn) return
-
-    this.tfrSizeRecommendationError.style.display = 'block'
-    this.tfrSizeRecommendationError.innerHTML = 'No recommended size found.'
   }
 
   public hide() {
@@ -318,8 +307,7 @@ export class SizeRecComponent {
     const html = sizeNames
       .map(
         (name, i) =>
-          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}" data-size-id="${
-            sizes[i].size_id
+          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}" data-size-id="${sizes[i].size_id
           }">${name}</div>`,
       )
       .join('')
