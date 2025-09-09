@@ -90,7 +90,10 @@ export class TfrSizeRec {
     console.debug('locations', locations)
     console.debug('filledLocations', filledLocations)
 
-    this.sizeRecComponent.setGarmentLocations(locations || [])
+    if (locations && locations.length > 0) {
+      this.sizeRecComponent.show()
+      this.sizeRecComponent.setGarmentLocations(locations)
+    }
     this.sizeRecComponent.setLoading(false)
   }
 
@@ -101,11 +104,10 @@ export class TfrSizeRec {
     if (!sizes) {
       console.error('No sizes found for sku')
       this.sizeRecComponent.setLoading(false)
-      this.sizeRecComponent.setError()
-
       return
     }
 
+    this.sizeRecComponent.show()
     this.sizeRecComponent.setRecommendedSize(sizes)
     this.sizeRecComponent.setLoading(false)
   }
@@ -118,12 +120,17 @@ export class TfrSizeRec {
     } catch (error) {
       try {
         const style = await this.tfrShop.getStyleByBrandStyleId(this.sku)
+        if (!style) {
+          console.error('Style not found for brand style ID:', this.sku)
+          this.sizeRecComponent.hide()
+          return null
+        }
         const locations = await this.tfrShop.getMeasurementLocationsFromBrandStyleId(style.id, filledLocations)
 
         return locations
       } catch (error) {
         console.error(error)
-        this.sizeRecComponent.setError()
+        this.sizeRecComponent.hide()
         return null
       }
     }
@@ -139,13 +146,18 @@ export class TfrSizeRec {
     } catch (error) {
       try {
         const style = await this.tfrShop.getStyleByBrandStyleId(this.sku)
+        if (!style) {
+          console.error('Style not found for brand style ID:', this.sku)
+          this.sizeRecComponent.hide()
+          return null
+        }
         const sizes = await this.getRecommendedSizes(String(style.id))
         this.setStyleId(style.id)
 
         return sizes
       } catch (error) {
         console.error(error)
-        this.sizeRecComponent.setError()
+        this.sizeRecComponent.hide()
         return null
       }
     }
