@@ -17,7 +17,6 @@ export class SizeRecComponent {
   private _sku: string = ''
   private _styleId: number = null
 
-  private isLoggedIn: boolean = false
   private sizeRecMainDiv: HTMLDivElement
 
   private tfrInfoIcon: HTMLDivElement
@@ -71,7 +70,6 @@ export class SizeRecComponent {
   }
 
   public setIsLoggedIn(isLoggedIn: boolean) {
-    this.isLoggedIn = isLoggedIn
 
     this.tfrSizeRecSelectContainer.style.display = 'flex'
     this.tfrSizeRecSelect.style.display = 'flex'
