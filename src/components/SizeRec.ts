@@ -134,15 +134,6 @@ export class SizeRecComponent {
     this.renderSizeRec(recommended, sizes)
   }
 
-  public setError() {
-    this.tfrSizeRecTitle.style.display = 'none'
-
-    if (!this.isLoggedIn) return
-
-    this.tfrSizeRecommendationError.style.display = 'block'
-    this.tfrSizeRecommendationError.innerHTML = 'No recommended size found.'
-  }
-
   public hide() {
     if (this.sizeRecMainDiv) {
       this.sizeRecMainDiv.style.display = 'none'
@@ -318,8 +309,7 @@ export class SizeRecComponent {
     const html = sizeNames
       .map(
         (name, i) =>
-          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}" data-size-id="${
-            sizes[i].size_id
+          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}" data-size-id="${sizes[i].size_id
           }">${name}</div>`,
       )
       .join('')
