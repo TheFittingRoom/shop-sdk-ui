@@ -1,119 +1,82 @@
-import { createUIError } from './uiError'
-
-var L = {
-  AssociatedEmail: 'If there is an account associated with that email, We have sent a link to reset your password.',
+export const L = {
+  // Authentication & Account
+  SignIn: 'Sign in',
+  SignOut: 'Sign Out',
+  SignBackIn: 'Sign back in',
   BackToSignIn: 'Back to sign in',
-  BrandUserIdNotSet: 'User not logged in to brand site.',
-  ClickHereToDownload: 'Click here to download the app',
-  DontHaveAcc: "Don't have an account?",
-  DontHaveAvatar: "Whoops! Looks like you don't have an avatar yet.",
+  Email: 'Email',
   EmailAddress: 'Email address',
-  EmailError: 'Please enter a valid email address.',
   EnterEmailAddress: 'Enter your email address, we will send you a link to reset your password.',
-  EnterPhoneNumber: 'Enter your number for download link',
-  FailedToLoadLocale: 'Something went wrong when fetching another language.',
+  Password: 'Password',
+  ForgotPassword: 'Forgot Password?',
   ForgotPasswordWithSymbol: 'Forgot password?',
-  GetVirtualTryOnFramesErrorText: 'The try-on request timed out. Please try again!',
+  ResetPassword: 'Reset Password',
+  SendResetLink: 'Send Reset Link',
+  Send: 'Send',
+  Submit: 'Submit',
+  DontHaveAcc: "Don't have an account?",
   HaveAcc: 'Have an account? Sign in',
-  Loading: 'Loading...',
+
+  // User Messages
+  AssociatedEmail: 'If there is an account associated with that email, We have sent a link to reset your password.',
+  SuccessfullyLoggedOut: 'You have successfully logged out!',
+  SessionExpired: 'Your session has expired',
+  BrandUserIdNotSet: 'User not logged in to brand site.',
+
+  // Avatar
+  CreateAvatar: 'Create Avatar',
+  DontHaveAvatar: "Whoops! Looks like you don't have an avatar yet.",
   LoadingAvatar: 'Your avatar is loading...',
+  ReturnToTfr: 'Please return to The Fitting Room app to create your avatar.',
+
+  // Try On & Sizing
+  TryOn: 'Try On',
+  GetVirtualTryOnFramesErrorText: 'The try-on request timed out. Please try again!',
+  RecommendedSize: 'Recommended Size',
+  SelectSize: 'Select size to see how it fits',
+  HowItFits: 'How it fits',
+  NoSizeFound: 'No recommended size found',
   NoSizeAvailable: 'Unfortunately, that size is not available for try on.',
   OrSize: 'or',
-  Password: 'Password',
-  PasswordError: 'Please enter a valid password (at least 7 characters).',
+
+  // App Download
+  ScanCode: 'Scan Code',
   PhoneNumber: 'Phone number',
+  EnterPhoneNumber: 'Enter your number for download link',
+  ClickHereToDownload: 'Click here to download the app',
+  ScanQrToDownload: 'Scan to download the app',
+
+  // Navigation
   ReturnToCatalogPage: 'Return to Catalog Page',
   ReturnToProductPage: 'Return to Product Page',
   ReturnToSite: 'Return to site',
-  ReturnToTfr: 'Please return to The Fitting Room app to create your avatar.',
-  ScanQrToDownload: 'Scan to download the app',
-  Send: 'Send',
-  SignBackIn: 'Sign back in',
-  SignIn: 'Sign in',
+  Close: 'Close',
+  Cancel: 'Cancel',
+  NotNow: 'Not Now',
+  Retry: 'Try Again',
+
+  // Errors & Validation
+  Error: 'Error',
   SomethingWentWrong: 'Something went wrong. Try again!',
-  SuccessfullyLoggedOut: 'You have successfully logged out!',
-  TheFittingRoom: 'The Fitting Room',
+  InvalidCredentials: 'Invalid email or password',
   UsernameOrPasswordEmpty: 'Username or password is empty.',
   UsernameOrPasswordIncorrect: 'Username or password is incorrect.',
+  EmailRequired: 'Email is required',
+  EmailError: 'Please enter a valid email address.',
+  InvalidEmail: 'Please enter a valid email address',
+  PasswordRequired: 'Password is required',
+  PasswordError: 'Please enter a valid password (at least 7 characters).',
+  FailedToLoadLocale: 'Something went wrong when fetching another language.',
 
-  // Modal
+  // Loading States
+  Loading: 'Loading...',
+
+  // Branding
+  PoweredBy: 'Powered by',
+  TheFittingRoom: 'The Fitting Room',
+
+  // Modal specific
   ModalTagline: 'End size uncertainty with',
   ModalText:
     'Our technology captures your precise measurements, and considers things like fabric stretch and your individual physique to find your perfect fit every time.',
 }
-
-function findMissingLocales(defaultLocale: any, newLocale: any): { default: any; new: any } {
-  const missingLocales = { default: {}, new: {} }
-  for (const key in defaultLocale) {
-    if (newLocale[key] === undefined) {
-      missingLocales.default[key] = defaultLocale[key]
-    }
-  }
-  for (const key in newLocale) {
-    if (defaultLocale[key] === undefined) {
-      missingLocales.new[key] = newLocale[key]
-    }
-  }
-  return missingLocales
-}
-
-async function SetLocale(locale: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    fetch(`${process.env.LANGUAGE_URL}/${locale}.json`)
-      .then((response) => {
-        if (response.ok) {
-          response
-            .json()
-            .then((data) => {
-              const missingLocales = findMissingLocales(L, data)
-              if (Object.keys(missingLocales.default).length > 0) {
-                console.warn(
-                  `The following locales are missing from the new locale: ${JSON.stringify(missingLocales.default)}`,
-                )
-              }
-              if (Object.keys(missingLocales.new).length > 0) {
-                console.warn(
-                  `The following locales are missing from the default locale: ${JSON.stringify(missingLocales.new)}`,
-                )
-              }
-              L = data
-              resolve()
-            })
-            .catch((error) => {
-              reject(createUIError(L.FailedToLoadLocale, error))
-            })
-        } else {
-          response
-            .text()
-            .then((bodyText) => {
-              reject(createUIError(L.FailedToLoadLocale, new Error(bodyText)))
-            })
-            .catch((error) => {
-              reject(createUIError(L.FailedToLoadLocale, error))
-            })
-        }
-      })
-      .catch((error) => {
-        reject(createUIError(L.FailedToLoadLocale, error))
-      })
-  })
-}
-
-const InitLocale = (): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const searchParams = new URL(window.location.href).searchParams
-    const language = searchParams.get('language') || 'en'
-
-    SetLocale(language)
-      .then(() => {
-        resolve(language)
-      })
-      .catch((error) => {
-        reject(error)
-      })
-  })
-}
-
-//TODO: add OverrideLocale function that rewrites all non-empty keys in the new locale over the old locale
-
-export { InitLocale, L, SetLocale }

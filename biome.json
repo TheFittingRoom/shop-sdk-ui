@@ -1,0 +1,81 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.2.6/schema.json",
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "lineWidth": 120
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "a11y": {
+        "useSemanticElements": "off",
+        "noStaticElementInteractions": "off",
+        "noSvgWithoutTitle": "off",
+        "useKeyWithClickEvents": "off"
+      },
+      "correctness": {
+        "noUnusedImports": "error",
+        "useUniqueElementIds": "off",
+        "noInnerDeclarations": "off",
+        "noNestedComponentDefinitions": "off"
+      },
+      "suspicious": {
+        "noArrayIndexKey": "off",
+        "noAssignInExpressions": "off",
+        "noImplicitAnyLet": "off",
+        "noDoubleEquals": "off",
+        "noExplicitAny": "off"
+      },
+      "style": {
+        "noNonNullAssertion": "off"
+      },
+      "complexity": {
+        "noCommaOperator": "off"
+      }
+    }
+  },
+  "assist": {
+    "enabled": true
+  },
+  "javascript": {
+    "formatter": {
+      "enabled": true,
+      "quoteStyle": "single",
+      "semicolons": "asNeeded"
+    }
+  },
+  "css": {
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "lineWidth": 120
+    }
+  },
+  "html": {
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "lineWidth": 120
+    }
+  },
+  "json": {
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "lineWidth": 120,
+      "bracketSpacing": true,
+      "expand": "always",
+      "trailingCommas": "none"
+    }
+  },
+  "files": {
+    "includes": [
+      "**/*.ts",
+      "**/*.tsx",
+      "!**/bindings.ts",
+      "!**/routeTree.gen.ts"
+    ]
+  }
+}

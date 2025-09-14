@@ -1,13 +1,7 @@
-import { FirebaseUser, TfrShop } from '@thefittingroom/sdk'
-
-import { ModalManager } from '../components'
-import { UIError } from '../components/uiError'
-import * as types from '../types'
-
-export const TfrLogo = process.env.ASSETS_URL + '/tfr-logo.svg'
-export const AposeLogo = process.env.ASSETS_URL + '/apose-logo.svg'
-export const AppStoreLogo = process.env.ASSETS_URL + '/app-store-logo.svg'
-export const QrCodeLogo = process.env.ASSETS_URL + '/qr-code-logo.svg'
+export const TfrLogo = `${process.env.ASSETS_URL}/tfr-logo.svg`
+export const AposeLogo = `${process.env.ASSETS_URL}/apose-logo.svg`
+export const AppStoreLogo = `${process.env.ASSETS_URL}/app-store-logo.svg`
+export const QrCodeLogo = `${process.env.ASSETS_URL}/qr-code-logo.svg`
 
 export const NotLoggedIn = new Error('user not logged in')
 export const NoFramesFound = new Error('No frames found for this colorway')
@@ -20,38 +14,6 @@ export interface RecommendedAvailableSizes {
   available_sizes: string[]
 }
 
-export interface FittingRoom {
-  shop: TfrShop
-  manager: ModalManager
-  onSignout(colorwaySizeAssetSKU: string): () => Promise<void>
-  onClose(): void
-  onNavBack(): void
-  onTryOn(colorwaySizeAssetSKU: string): void
-  whenAvatarNotCreated(colorwaySizeAssetSKU: string): void
-  whenAvatarPending(colorwaySizeAssetSKU: string): void
-  whenAvatarCreated(colorwaySizeAssetSKU: string): void
-  whenNotSignedIn(colorwaySizeAssetSKU: string): void
-
-  whenTryOnReady(colorwaySizeAssetSKU: string, frames: types.TryOnFrames): void
-
-  whenTryOnLoading(colorwaySizeAssetSKU: string): void
-
-  whenTryOnFailed(colorwaySizeAssetSKU: string, error: Error): void
-
-  whenError(colorwaySizeAssetSKU: string, error: UIError): void
-  whenSignedIn(user: FirebaseUser, colorwaySizeAssetSKU: string): void
-  whenSignedOut(colorwaySizeAssetSKU: string): void
-
-  onSignIn(
-    colorwaySizeAssetSKU: string,
-  ): (username: string, password: string, validation: (message: string) => void) => void
-  onNavSignIn(colorwaySizeAssetSKU: string): (email: string) => void
-  onPasswordReset(colorwaySizeAssetSKU: string): (email: string) => void
-  onNavForgotPassword(colorwaySizeAssetSKU: string): (email: string) => void
-  onNavScanCode(colorwaySizeAssetSKU: string): void
-  TryOn(colorwaySizeAssetSKU: string): void
-}
-
 export interface ModalContent {
   Body: () => string
   Hook(): void
@@ -59,7 +21,11 @@ export interface ModalContent {
   useFullModalContent: boolean
 }
 
-export interface ModalProps { }
+export interface ModalProps {
+  isOpen?: boolean
+  onClose: () => void
+  onNavBack?: () => void
+}
 
 export interface SignInParams {
   email: string
@@ -93,7 +59,7 @@ export interface ErrorModalProps extends ModalProps {
   onClose: () => void
 }
 
-export interface SizeErrorModalProps {
+export interface SizeErrorModalProps extends ModalProps {
   onNavBack: () => void
   onClose: () => void
   sizes?: {
@@ -102,22 +68,20 @@ export interface SizeErrorModalProps {
   }
 }
 
-export interface ResetLinkModalProps {
+export interface ResetLinkModalProps extends ModalProps {
   email: string
   onNavSignIn: (email: string) => void
 }
-export interface ScanCodeModalProps {
+export interface ScanCodeModalProps extends ModalProps {
   onSignInNav: () => void
-  onTelSubmit: (tel: string) => void
+  onTelSubmit?: (tel: string) => void
 }
-export interface LoggedOutModalProps {
-  onClose: () => void
+export interface LoggedOutModalProps extends ModalProps {
   onNavSignIn: (email: string) => void
 }
 
-export interface FitModalProps {
+export interface FitModalProps extends ModalProps {
   onSignInNav: () => void
-  onClose: () => void
 }
 
 export type TryOnFrames = string[]

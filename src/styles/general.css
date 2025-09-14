@@ -136,9 +136,6 @@
   height: 150px;
 }
 
-.tfr-d-none {
-  display: none;
-}
 
 .tfr-d-block {
   display: block;
@@ -243,11 +240,6 @@
 .tfr-door-icon,
 .tfr-user-icon {
   color: #209da7;
-}
-
-.tfr-logged-in,
-.tfr-toggle-closed {
-  display: none;
 }
 
 .tfr-flex {

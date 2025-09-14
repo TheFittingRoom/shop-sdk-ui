@@ -1,0 +1,88 @@
+import type { JSX } from 'preact/jsx-runtime'
+
+export type IconName = 'tfrDoor' | 'user' | 'info'
+
+interface IconProps {
+  name: IconName
+  width?: number | string
+  height?: number | string
+  className?: string
+}
+
+export const Icon = ({ name, className = '', width, height }: IconProps) => {
+  const icons: Record<IconName, JSX.Element> = {
+    tfrDoor: (
+      <svg
+        className={`tfr-door-icon ${className}`}
+        width={width || '68'}
+        height={height || '124'}
+        viewBox="0 0 68 124"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path d="M0.911938 0L67.4819 17.09V106.49L0.911938 123.51V0Z" fill="currentColor" />
+        <path
+          d="M52.8019 64.44C54.7791 64.44 56.3819 62.4387 56.3819 59.97C56.3819 57.5013 54.7791 55.5 52.8019 55.5C50.8248 55.5 49.2219 57.5013 49.2219 59.97C49.2219 62.4387 50.8248 64.44 52.8019 64.44Z"
+          fill="white"
+        />
+      </svg>
+    ),
+    user: (
+      <svg
+        className={`tfr-user-icon ${className}`}
+        width={width || '16'}
+        height={height || '16'}
+        viewBox="0 0 16 16"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <g clipPath="url(#clip0_82_11365)">
+          <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M4.3125 4.78125C4.3125 3.02084 5.73959 1.59375 7.5 1.59375C9.26041 1.59375 10.6875 3.02084 10.6875 4.78125C10.6875 6.54166 9.26041 7.96875 7.5 7.96875C5.73959 7.96875 4.3125 6.54166 4.3125 4.78125ZM9.625 4.78125C9.625 3.60764 8.6736 2.65625 7.5 2.65625C6.32639 2.65625 5.375 3.60764 5.375 4.78125C5.375 5.95485 6.32639 6.90625 7.5 6.90625C8.6736 6.90625 9.625 5.95485 9.625 4.78125Z"
+            fill="currentColor"
+            fillOpacity="0.7"
+          />
+          <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M2.1875 13.1634C2.1875 10.5693 4.58181 8.5 7.5 8.5C10.4182 8.5 12.8125 10.5693 12.8125 13.1634C12.8125 16.1539 2.1875 16.1539 2.1875 13.1634ZM11.75 13.1634C11.75 11.1933 9.86303 9.5625 7.5 9.5625C5.13697 9.5625 3.25 11.1933 3.25 13.1634C3.25 13.7564 4.45689 14.126 5.96113 14.2721L6.31312 14.3019C7.08543 14.3577 7.91457 14.3577 8.68688 14.3019L9.03887 14.2721C10.5431 14.126 11.75 13.7564 11.75 13.1634Z"
+            fill="currentColor"
+            fillOpacity="0.7"
+          />
+        </g>
+        <defs>
+          <clipPath id="clip0_82_11365">
+            <rect width="16" height="16" fill="white" />
+          </clipPath>
+        </defs>
+      </svg>
+    ),
+    info: (
+      <svg
+        className={className}
+        width={width || '13'}
+        height={height || '13'}
+        viewBox="0 0 13 13"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect width="13" height="13" fill="url(#pattern0_641_1375)" />
+        <defs>
+          <pattern id="pattern0_641_1375" patternContentUnits="objectBoundingBox" width="1" height="1">
+            <use xlinkHref="#image0_641_1375" transform="scale(0.00793651)" />
+          </pattern>
+          <image
+            id="image0_641_1375"
+            width="126"
+            height="126"
+            xlinkHref="data:image/png;base64,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"
+          />
+        </defs>
+      </svg>
+    ),
+  }
+
+  return icons[name] || <span />
+}

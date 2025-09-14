@@ -1,3 +1,5 @@
-export { InitImageSlider } from './components/slider'
-export { initFittingRoom } from './init'
-export type { FittingRoom } from './tfr'
+import './styles'
+
+export type { FittingRoomConfig, TfrCssVariables, TrfConfig } from './init'
+export { initFittingRoom, mountFittingRoomApp } from './init'
+export type { FittingRoomHandle } from './state'
