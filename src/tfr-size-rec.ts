@@ -136,12 +136,19 @@ export class TfrSizeRec {
 
     if (!sizeRec) return null
 
+    // Fetch all colorway size assets for this style to get SKUs
+    const colorwaySizeAssets = await this.tfrShop.getColorwaySizeAssetsFromStyleId(styleId)
+
     return {
       recommended: sizeRec.recommended_size.size_value.name,
       sizes: sizeRec.fits.map((fit) => {
+        // Find the corresponding colorway size asset for this size_id
+        const colorwayAsset = colorwaySizeAssets.find((asset) => asset.size_id === fit.size_id)
+
         return {
           size: sizeRec.available_sizes.find((size) => size.id === fit.size_id).size_value.name,
           size_id: fit.size_id,
+          sku: colorwayAsset?.sku || '',
           locations: fit.measurement_location_fits
             .map((locationFit) => {
               const fitLabel =

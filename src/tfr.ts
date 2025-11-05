@@ -19,6 +19,8 @@ export interface TfrHooks {
 
 export class FittingRoom {
   private isLoggedIn: boolean = false
+  private isMiddleVtoActive: boolean = false
+  private manualListeningOverride: boolean = false
 
   public style: FirestoreStyleCategory
   public colorwaySizeAsset: types.FirestoreColorwaySizeAsset
@@ -76,7 +78,7 @@ export class FittingRoom {
   }
 
   public async setSku(sku: string) {
-    console.debug("setting sku", sku)
+    console.debug('setting sku', sku)
     this.tfrSizeRec.setSku(sku)
 
     if (!this.style) {
@@ -84,7 +86,7 @@ export class FittingRoom {
     }
 
     if (!this.style) {
-      console.error("failed to retrieve style from sku", sku)
+      console.error('failed to retrieve style from sku', sku)
       document.getElementById('tfr-size-recommendations').style.display = 'none'
       return
     }
@@ -118,7 +120,8 @@ export class FittingRoom {
     if (this.isLoggedIn) {
       if (this.hooks?.onLogin) this.hooks.onLogin()
 
-      this.subscribeToProfileChanges()
+      // Don't auto-subscribe - wait for middle VTO to be displayed
+      this.updateFirestoreSubscription()
     } else {
       if (this.hooks?.onLogout) this.hooks.onLogout()
 
@@ -138,6 +141,8 @@ export class FittingRoom {
     if (this.hooks?.onLogout) this.hooks.onLogout()
 
     this.isLoggedIn = false
+    this.isMiddleVtoActive = false
+    this.manualListeningOverride = false
     this.tfrSizeRec.setIsLoggedIn(false)
     this.setStyleMeasurementLocations(this.styleToGarmentMeasurementLocations(this.style))
     this.unsubscribeFromProfileChanges()
@@ -161,7 +166,8 @@ export class FittingRoom {
       if (this.style) {
         this.tfrSizeRec.startSizeRecommendation()
       }
-      this.subscribeToProfileChanges()
+      // Don't auto-subscribe - wait for middle VTO to be displayed
+      this.updateFirestoreSubscription()
     } catch (e) {
       return validationError(L.UsernameOrPasswordIncorrect)
     }
@@ -204,13 +210,15 @@ export class FittingRoom {
     this.tfrModal.toFitInfo()
   }
 
-  public async onTryOnClick(styleId: string, shouldDisplay: boolean = true) {
+  public async onTryOnClick(sku: string, shouldDisplay: boolean = true) {
     if (!this.vtoComponent)
       return console.error('VtoComponent is not initialized. Please check if the vtoMainDivId is correct.')
 
-    const frames = await this.shop.tryOn(styleId)
+    const frames = await this.shop.tryOn(sku)
 
     if (shouldDisplay) {
+      this.isMiddleVtoActive = true
+      this.updateFirestoreSubscription()
       try {
         this.vtoComponent.init()
         this.vtoComponent.onNewFramesReady(frames)
@@ -219,6 +227,11 @@ export class FittingRoom {
         this.tfrModal.onError(L.SomethingWentWrong)
       }
     }
+  }
+
+  public setManualListeningOverride(enabled: boolean) {
+    this.manualListeningOverride = enabled
+    this.updateFirestoreSubscription()
   }
 
   private onUserProfileChange(userProfile: ShopTypes.FirestoreUser) {
@@ -254,6 +267,18 @@ export class FittingRoom {
 
     this.unsub()
     this.unsub = null
+  }
+
+  private updateFirestoreSubscription() {
+    if (!this.isLoggedIn) return
+
+    const shouldSubscribe = this.isMiddleVtoActive || this.manualListeningOverride
+
+    if (shouldSubscribe && !this.unsub) {
+      this.subscribeToProfileChanges()
+    } else if (!shouldSubscribe && this.unsub) {
+      this.unsubscribeFromProfileChanges()
+    }
   }
 
   public async cacheMeasurementLocations(filledLocations: string[]) {

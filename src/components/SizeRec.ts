@@ -5,6 +5,7 @@ export type RecommendedSize = {
   sizes: {
     size: string
     size_id: number
+    sku: string
     locations: {
       fit: string
       isPerfect: boolean
@@ -199,8 +200,11 @@ export class SizeRecComponent {
       const activeButton = document.querySelector('.tfr-size-rec-select-button.active')
       if (!activeButton) return
 
-      const selectedSizeId = Number(activeButton.getAttribute('data-size-id'))
-      if (Number.isNaN(selectedSizeId)) return
+      const selectedSku = activeButton.getAttribute('data-sku')
+      if (!selectedSku) {
+        console.error('No SKU found on selected button')
+        return
+      }
 
       // Set loading state
       tryOnButton.classList.add('loading')
@@ -214,24 +218,35 @@ export class SizeRecComponent {
         const activeIndex = allSizeButtons.indexOf(activeButton as HTMLElement)
 
         if (this.styleId !== null) {
-          // 1. Fetch and display the VTO for the active (recommended) size
-          try {
-            await this.onTryOnClick(this.sku, true)
-          } catch (e) {
-            console.error(`Error trying on active size ${selectedSizeId}:`, e)
-            // Optionally, inform the user about the error for the primary VTO
-          }
+          // Create array of all VTO promises to fetch them simultaneously
+          const vtoPromises: Promise<void>[] = []
 
-          // 2. Fetch VTO for the size to the left (if it exists)
+          // 1. Add VTO for the size to the left (preload, don't display)
           if (activeIndex > 0) {
             const leftButton = allSizeButtons[activeIndex - 1]
-            await this._preloadNeighborVTO(leftButton)
+            const leftSku = leftButton.getAttribute('data-sku')
+            if (leftSku) {
+              vtoPromises.push(this.onTryOnClick(leftSku, false))
+            }
           }
 
-          // 3. Fetch VTO for the size to the right (if it exists)
+          // 2. Add VTO for the size to the right (preload, don't display)
           if (activeIndex >= 0 && activeIndex < allSizeButtons.length - 1) {
             const rightButton = allSizeButtons[activeIndex + 1]
-            await this._preloadNeighborVTO(rightButton)
+            const rightSku = rightButton.getAttribute('data-sku')
+            if (rightSku) {
+              vtoPromises.push(this.onTryOnClick(rightSku, false))
+            }
+          }
+
+          // 3. Add the active size VTO (display this one) - do this last to ensure it's the active one
+          vtoPromises.push(this.onTryOnClick(selectedSku, true))
+
+          // Fetch all VTOs simultaneously
+          try {
+            await Promise.all(vtoPromises)
+          } catch (e) {
+            console.error('Error during simultaneous VTO fetching:', e)
           }
         }
       } catch (error) {
@@ -243,20 +258,6 @@ export class SizeRecComponent {
         tryOnButton.removeAttribute('disabled')
       }
     })
-  }
-
-  private async _preloadNeighborVTO(buttonElement: HTMLElement): Promise<void> {
-    // this.styleId is assumed to be non-null here because the calling context (bindEvents)
-    // is wrapped in 'if (this.styleId !== null)'
-    const sizeId = Number(buttonElement.getAttribute('data-size-id'))
-    if (!Number.isNaN(sizeId)) {
-      try {
-        await this.onTryOnClick(this.sku, false)
-      } catch (e) {
-        const buttonText = buttonElement.textContent?.trim() || 'N/A'
-        console.error(`Error pre-loading try-on for size ${sizeId} (button: ${buttonText}):`, e)
-      }
-    }
   }
 
   private onSizeRecSelectClick(e: MouseEvent) {
@@ -275,10 +276,11 @@ export class SizeRecComponent {
 
     this.redraw(selectedIndex)
 
-    const selectedSizeId = Number(target.getAttribute('data-size-id'))
-    if (Number.isNaN(selectedSizeId)) return
+    const selectedSku = target.getAttribute('data-sku')
+    if (!selectedSku) return
 
-    this.onTryOnClick(this.sku, true)
+    // Trigger VTO immediately when size is selected
+    this.onTryOnClick(selectedSku, true)
   }
 
   private renderSizeRec(recommended: string, sizes: RecommendedSize['sizes']) {
@@ -306,8 +308,8 @@ export class SizeRecComponent {
     const html = sizeNames
       .map(
         (name, i) =>
-          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}" data-size-id="${
-            sizes[i].size_id
+          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}" data-sku="${
+            sizes[i].sku
           }">${name}</div>`,
       )
       .join('')
