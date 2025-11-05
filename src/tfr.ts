@@ -79,31 +79,33 @@ export class FittingRoom {
     console.debug("setting sku", sku)
     this.tfrSizeRec.setSku(sku)
 
-    const style = await this.getStyleFromColorwaySizeAssetSku(this.sku)
+    if (!this.style) {
+      this.style = await this.getStyleFromColorwaySizeAssetSku(this.sku)
+    }
 
-    if (!style) {
+    if (!this.style) {
+      console.error("failed to retrieve style from sku", sku)
       document.getElementById('tfr-size-recommendations').style.display = 'none'
-
       return
     }
 
-    this.style = style
-
-    if (!style.is_published) {
+    if (!this.style.is_published) {
       document.getElementById('tfr-size-recommendations').style.display = 'none'
-      console.log(`style ${style.id} is not published`)
+      console.log(`style ${this.style.id} is not published`)
     } else {
-      console.log(`style ${style.id} is published`)
+      console.log(`style ${this.style.id} is published`)
     }
 
     // Check if style supports VTO (assuming all styles support it for now)
-    document.getElementById('tfr-try-on-button')?.classList.remove('hide')
-    console.log(`style ${style.id} virtual try on is enabled`)
+    if (this.style.is_vto) {
+      document.getElementById('tfr-try-on-button')?.classList.remove('hide')
+      console.log(`style ${this.style.id} virtual try on is enabled`)
+    }
 
     if (this.isLoggedIn) {
       this.tfrSizeRec.startSizeRecommendation()
     } else {
-      this.getStyleMeasurementLocationsFromSku(sku)
+      const style = await this.getStyleFromColorwaySizeAssetSku(sku)
       const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(style)
       this.setStyleMeasurementLocations(styleMeasurementLocations)
     }
