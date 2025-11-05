@@ -48,7 +48,7 @@ export class SizeRecComponent {
     private readonly onSignInClick: () => void,
     private readonly onSignOutClick: () => void,
     private readonly onFitInfoClick: () => void,
-    private readonly onTryOnClick: (styleId: number, sizeId: number, shouldDisplay: boolean) => Promise<void>,
+    private readonly onTryOnClick: (sku: string, shouldDisplay: boolean) => Promise<void>,
   ) {
     this.init(sizeRecMainDivId)
   }
@@ -70,7 +70,6 @@ export class SizeRecComponent {
   }
 
   public setIsLoggedIn(isLoggedIn: boolean) {
-
     this.tfrSizeRecSelectContainer.style.display = 'flex'
     this.tfrSizeRecSelect.style.display = 'flex'
     this.tfrSizeHowItFits.style.display = 'block'
@@ -118,7 +117,7 @@ export class SizeRecComponent {
     }
   }
 
-  public setGarmentLocations(locations: string[]) {
+  public setStyleMeasurementLocations(locations: string[]) {
     if (!locations || !locations.length) {
       this.tfrSizeRecTitle.style.display = 'none'
 
@@ -217,7 +216,7 @@ export class SizeRecComponent {
         if (this.styleId !== null) {
           // 1. Fetch and display the VTO for the active (recommended) size
           try {
-            await this.onTryOnClick(this.styleId, selectedSizeId, true)
+            await this.onTryOnClick(this.sku, true)
           } catch (e) {
             console.error(`Error trying on active size ${selectedSizeId}:`, e)
             // Optionally, inform the user about the error for the primary VTO
@@ -252,7 +251,7 @@ export class SizeRecComponent {
     const sizeId = Number(buttonElement.getAttribute('data-size-id'))
     if (!Number.isNaN(sizeId)) {
       try {
-        await this.onTryOnClick(this.styleId!, sizeId, false)
+        await this.onTryOnClick(this.sku, false)
       } catch (e) {
         const buttonText = buttonElement.textContent?.trim() || 'N/A'
         console.error(`Error pre-loading try-on for size ${sizeId} (button: ${buttonText}):`, e)
@@ -279,7 +278,7 @@ export class SizeRecComponent {
     const selectedSizeId = Number(target.getAttribute('data-size-id'))
     if (Number.isNaN(selectedSizeId)) return
 
-    this.onTryOnClick(this.styleId, selectedSizeId, true)
+    this.onTryOnClick(this.sku, true)
   }
 
   private renderSizeRec(recommended: string, sizes: RecommendedSize['sizes']) {
@@ -307,7 +306,8 @@ export class SizeRecComponent {
     const html = sizeNames
       .map(
         (name, i) =>
-          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}" data-size-id="${sizes[i].size_id
+          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}" data-size-id="${
+            sizes[i].size_id
           }">${name}</div>`,
       )
       .join('')

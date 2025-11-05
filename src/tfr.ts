@@ -21,6 +21,7 @@ export class FittingRoom {
   private isLoggedIn: boolean = false
 
   public style: FirestoreStyleCategory
+  public colorwaySizeAsset: types.FirestoreColorwaySizeAsset
 
   public readonly tfrModal: TfrModal
   public readonly tfrSizeRec: TfrSizeRec
@@ -75,9 +76,10 @@ export class FittingRoom {
   }
 
   public async setSku(sku: string) {
+    console.debug("setting sku", sku)
     this.tfrSizeRec.setSku(sku)
 
-    const style = await this.getStyle(this.sku)
+    const style = await this.getStyleFromColorwaySizeAssetSku(this.sku)
 
     if (!style) {
       document.getElementById('tfr-size-recommendations').style.display = 'none'
@@ -94,16 +96,17 @@ export class FittingRoom {
       console.log(`style ${style.id} is published`)
     }
 
-    console.log(`style ${style.id} virtual try on is disabled`)
+    // Check if style supports VTO (assuming all styles support it for now)
+    document.getElementById('tfr-try-on-button')?.classList.remove('hide')
+    console.log(`style ${style.id} virtual try on is enabled`)
 
-    if (style.is_vto) {
-      document.getElementById('tfr-try-on-button')?.classList.remove('hide')
+    if (this.isLoggedIn) {
+      this.tfrSizeRec.startSizeRecommendation()
     } else {
-      document.getElementById('tfr-try-on-button')?.classList.add('hide')
+      this.getStyleMeasurementLocationsFromSku(sku)
+      const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(style)
+      this.setStyleMeasurementLocations(styleMeasurementLocations)
     }
-
-    if (this.isLoggedIn) this.tfrSizeRec.recommendSize()
-    else this.setGarmentLocations(style)
   }
 
   public async onInit() {
@@ -134,7 +137,7 @@ export class FittingRoom {
 
     this.isLoggedIn = false
     this.tfrSizeRec.setIsLoggedIn(false)
-    this.setGarmentLocations(this.style)
+    this.setStyleMeasurementLocations(this.styleToGarmentMeasurementLocations(this.style))
     this.unsubscribeFromProfileChanges()
   }
 
@@ -152,7 +155,10 @@ export class FittingRoom {
       this.isLoggedIn = true
       this.tfrSizeRec.setIsLoggedIn(true)
 
-      this.tfrSizeRec.recommendSize()
+      // Only start size recommendation if we have a valid style
+      if (this.style) {
+        this.tfrSizeRec.startSizeRecommendation()
+      }
       this.subscribeToProfileChanges()
     } catch (e) {
       return validationError(L.UsernameOrPasswordIncorrect)
@@ -184,8 +190,8 @@ export class FittingRoom {
     this.tfrModal.toPasswordReset()
   }
 
-  public async getMeasurementLocationsFromSku(sku: string) {
-    return this.tfrShop.getMeasurementLocationsFromSku(sku)
+  public async getStyleMeasurementLocationsFromSku(sku: string) {
+    return this.tfrShop.getStyleMeasurementLocationsFromSku(sku)
   }
 
   public onSignInClick() {
@@ -196,11 +202,11 @@ export class FittingRoom {
     this.tfrModal.toFitInfo()
   }
 
-  public async onTryOnClick(styleId: number, sizeId: number, shouldDisplay: boolean = true) {
+  public async onTryOnClick(styleId: string, shouldDisplay: boolean = true) {
     if (!this.vtoComponent)
       return console.error('VtoComponent is not initialized. Please check if the vtoMainDivId is correct.')
 
-    const frames = await this.shop.tryOn(styleId, sizeId)
+    const frames = await this.shop.tryOn(styleId)
 
     if (shouldDisplay) {
       try {
@@ -248,22 +254,28 @@ export class FittingRoom {
     this.unsub = null
   }
 
-  private async setGarmentLocations(style: FirestoreStyleCategory) {
-    const filledLocations =
-      style?.sizes?.[0]?.garment_measurements.map((measurement) => measurement.measurement_location) || ([] as string[])
-
-    this.tfrSizeRec.setGarmentLocations(filledLocations)
+  public async cacheMeasurementLocations(filledLocations: string[]) {
+    const garmentLocations = await this.tfrShop.getStyleMeasurementLocationsFromSku(this.sku, filledLocations)
+    this.tfrSizeRec.setStyleMeasurementLocations(garmentLocations)
   }
 
-  private async getStyle(brandStyleIdOrSku: string) {
+  public styleToGarmentMeasurementLocations(style: FirestoreStyleCategory) {
+    return style.sizes[0].garment_measurements.map((measurement) => measurement.measurement_location)
+  }
+
+  public async setStyleMeasurementLocations(measurementLocations: string[]) {
+    this.tfrSizeRec.setStyleMeasurementLocations(measurementLocations)
+  }
+
+  private async getStyleFromColorwaySizeAssetSku(sku: string) {
     try {
-      const colorwaySizeAsset = await this.tfrShop.getColorwaySizeAssetFromSku(brandStyleIdOrSku)
+      const colorwaySizeAsset = await this.tfrShop.getColorwaySizeAssetFromSku(sku)
       const style = await this.tfrShop.getStyle(colorwaySizeAsset.style_id)
 
       return style
     } catch (e) {
       try {
-        const style = await this.tfrShop.getStyleByBrandStyleId(brandStyleIdOrSku)
+        const style = await this.tfrShop.getStyleByBrandStyleId(sku)
 
         return style
       } catch (e2) {

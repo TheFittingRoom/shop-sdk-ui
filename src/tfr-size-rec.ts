@@ -50,7 +50,7 @@ export class TfrSizeRec {
     private readonly onSignInClick: () => void,
     private readonly onSignOutClick: () => void,
     private readonly onFitInfoClick: () => void,
-    private readonly onTryOnClick: (styleId: number, sizeId: number, shouldDisplay: boolean) => Promise<void>,
+    private readonly onTryOnClick: (sku: string, shouldDisplay: boolean) => Promise<void>,
   ) {
     this.setCssVariables(cssVariables)
     this.sizeRecComponent = new SizeRecComponent(
@@ -82,88 +82,56 @@ export class TfrSizeRec {
     this.sizeRecComponent.setIsLoggedIn(isLoggedIn)
   }
 
-  public async setGarmentLocations(filledLocations: string[] = []) {
+  public async setStyleMeasurementLocations(locations: string[] = []) {
     this.sizeRecComponent.setLoading(true)
-    // If we already have filledLocations, use them directly instead of making API calls
-    const locations = filledLocations.length > 0 ? filledLocations : await this.getGarmentLocations(filledLocations)
-
-    console.debug('locations', locations)
-    console.debug('filledLocations', filledLocations)
-
-    if (locations && locations.length > 0) {
-      this.sizeRecComponent.show()
-      this.sizeRecComponent.setGarmentLocations(locations)
+    if (locations.length == 0) {
+      throw new Error('filteredLocations passed to setGarmentLocations is 0')
     }
+    console.debug('filledLocations', locations)
+
+    this.sizeRecComponent.setStyleMeasurementLocations(locations)
     this.sizeRecComponent.setLoading(false)
-  }
-
-  public async recommendSize() {
-    this.sizeRecComponent.setLoading(true)
-    const sizes = await this.getRecommendedSize()
-
-    if (!sizes) {
-      console.error('No sizes found for sku')
-      this.sizeRecComponent.setLoading(false)
-      return
-    }
-
     this.sizeRecComponent.show()
-    this.sizeRecComponent.setRecommendedSize(sizes)
-    this.sizeRecComponent.setLoading(false)
   }
 
-  private async getGarmentLocations(filledLocations: string[]): Promise<string[]> {
+  public async startSizeRecommendation() {
     try {
-      const locations = await this.tfrShop.getMeasurementLocationsFromSku(this.sku, filledLocations)
+      const colorwaySizeAsset = await this.tfrShop.getColorwaySizeAssetFromSku(this.sku)
+      this.setStyleId(colorwaySizeAsset.style_id)
+      if (!this.styleId) {
+        throw new Error('this.styleId')
+      }
+      this.sizeRecComponent.setLoading(true)
+      const sizes = await this.getRecommendedSizes(this.styleId)
+      if (!sizes) {
+        console.error('No sizes found for sku')
+        this.sizeRecComponent.setLoading(false)
+        return
+      }
+
+      this.sizeRecComponent.show()
+      this.sizeRecComponent.setRecommendedSize(sizes)
+      this.sizeRecComponent.setLoading(false)
+    } catch (e) {
+      console.error(e)
+      this.sizeRecComponent.hide()
+      this.sizeRecComponent.setLoading(false)
+    }
+  }
+
+  public async getStyleMeasurementLocations(filledLocations: string[]): Promise<string[]> {
+    try {
+      const locations = await this.tfrShop.getStyleMeasurementLocationsFromSku(this.sku, filledLocations)
 
       return locations
     } catch (error) {
-      try {
-        const style = await this.tfrShop.getStyleByBrandStyleId(this.sku)
-        if (!style) {
-          console.error('Style not found for brand style ID:', this.sku)
-          this.sizeRecComponent.hide()
-          return null
-        }
-        const locations = await this.tfrShop.getMeasurementLocationsFromBrandStyleId(style.id, filledLocations)
-
-        return locations
-      } catch (error) {
-        console.error(error)
-        this.sizeRecComponent.hide()
-        return null
-      }
+      console.error(error)
+      this.sizeRecComponent.hide()
+      return null
     }
   }
 
-  private async getRecommendedSize() {
-    try {
-      const colorwaySizeAsset = await this.tfrShop.getColorwaySizeAssetFromSku(this.sku)
-      const sizes = await this.getRecommendedSizes(String(colorwaySizeAsset.style_id))
-      this.setStyleId(colorwaySizeAsset.style_id)
-
-      return sizes
-    } catch (error) {
-      try {
-        const style = await this.tfrShop.getStyleByBrandStyleId(this.sku)
-        if (!style) {
-          console.error('Style not found for brand style ID:', this.sku)
-          this.sizeRecComponent.hide()
-          return null
-        }
-        const sizes = await this.getRecommendedSizes(String(style.id))
-        this.setStyleId(style.id)
-
-        return sizes
-      } catch (error) {
-        console.error(error)
-        this.sizeRecComponent.hide()
-        return null
-      }
-    }
-  }
-
-  private async getRecommendedSizes(styleId: string): Promise<RecommendedSize> {
+  private async getRecommendedSizes(styleId: number): Promise<RecommendedSize> {
     const sizeRec = await this.tfrShop.getRecommendedSizes(styleId)
 
     if (!sizeRec) return null
