@@ -1,18 +1,21 @@
-function loadImageRecursive(imageURL, imageURLs) {
-  let next = function () {
-    if (imageURLs.length === 0) {
-      return
-    }
-    loadImageRecursive(imageURLs.slice(-1), imageURLs.slice(0, -1))
+function loadImages(imageURLs: string[], initialIndex: number) {
+  // Force load the initial visible frame
+  if (imageURLs[initialIndex]) {
+    const initialImg = new Image()
+    initialImg.src = imageURLs[initialIndex]
   }
-  var img = new Image()
-  img.onload = next
-  img.onerror = next
-  img.src = imageURL
-}
 
-function loadImages(imageURLs) {
-  loadImageRecursive(imageURLs.slice(-1), imageURLs.slice(0, -1))
+  // Eager load others via hidden DOM elements
+  const container = document.createElement('div')
+  container.style.display = 'none'
+  document.body.appendChild(container)
+  imageURLs.forEach((url, index) => {
+    if (index !== initialIndex) {
+      const img = document.createElement('img')
+      img.src = url
+      container.appendChild(img)
+    }
+  })
 }
 
 export const InitImageSlider = (sliderID: string, onChange: (slider: HTMLInputElement, imageUrl: string) => void) => {
@@ -27,8 +30,8 @@ export const InitImageSlider = (sliderID: string, onChange: (slider: HTMLInputEl
         console.debug('slider has no images to load')
         return new Error('slider has no images to load')
       }
-      loadImages(imageURLs)
       const defaultScrollValue = initialValue !== undefined ? initialValue : 0
+      loadImages(imageURLs, defaultScrollValue)
       slider.value = defaultScrollValue.toString()
       slider.max = (imageURLs.length - 1).toString()
 
