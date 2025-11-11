@@ -8,7 +8,7 @@ const banner = `/*!
  * Copyright 2022-present, TheFittingRoom, Inc. All rights reserved.
  */`
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
@@ -16,11 +16,15 @@ export default defineConfig({
       formats: ['es'],
       fileName: 'index',
     },
-    sourcemap: true,
+    sourcemap: mode !== 'production',
+    minify: mode === 'production' ? 'esbuild' : false,
     rollupOptions: {
       output: {
         banner,
       },
     },
   },
-})
+  css: {
+    devSourcemap: true,
+  },
+}))
