@@ -55,27 +55,36 @@ export class TFRShop {
   }
 
   public async getColorwaySizeAssetFromSku(colorwaySizeAssetSku: string): Promise<types.FirestoreColorwaySizeAsset> {
+    console.log('getting colorway size asset from sku:', colorwaySizeAssetSku, 'brand_id:', this.brandId)
     const constraints: QueryFieldFilterConstraint[] = [
       where('brand_id', '==', this.brandId),
       where('sku', '==', colorwaySizeAssetSku),
     ]
 
     try {
+      console.log('querying firestore for colorway_size_assets with constraints:', constraints)
       const querySnapshot = await this.firebase.getDocs('colorway_size_assets', constraints)
+      console.log('query snapshot size:', querySnapshot.size)
 
       if (querySnapshot.empty) {
+        console.log('no colorway size assets found for sku:', colorwaySizeAssetSku)
         throw new Errors.NoColorwaySizeAssetsFoundError()
       }
 
       if (querySnapshot.size > 1) {
+        console.log('multiple colorway size assets found for sku:', colorwaySizeAssetSku, 'count:', querySnapshot.size)
         throw new Error(
           `Multiple colorway size assets found for SKU: ${colorwaySizeAssetSku}. Expected exactly 1, found ${querySnapshot.size}.`,
         )
       }
 
-      return querySnapshot.docs[0].data() as types.FirestoreColorwaySizeAsset
+      const doc = querySnapshot.docs[0]
+      const data = doc.data() as types.FirestoreColorwaySizeAsset
+      console.log('returning colorway size asset:', data)
+      return data
     } catch (error) {
-      return getFirebaseError(error)
+      console.log('error getting colorway size asset:', error)
+      throw error
     }
   }
 
@@ -125,23 +134,33 @@ export class TFRShop {
       .map((location) => location.name)
   }
 
-  public async getStyleByBrandStyleId(brandStyleId: string) {
+  // BrandStyleID is the SKU of the style
+  public async getStyleByBrandStyleID(styleSKU: string) {
+    console.log('getting style by brand style id:', styleSKU, 'brand_id:', this.brandId)
     try {
       const constraints: QueryFieldFilterConstraint[] = [where('brand_id', '==', this.brandId)]
-      constraints.push(where('brand_style_id', '==', brandStyleId))
+      constraints.push(where('brand_style_id', '==', styleSKU))
+      console.log('querying styles with constraints:', constraints)
       const querySnapshot = await this.firebase.getDocs('styles', constraints)
-
-      return querySnapshot.docs?.[0]?.data() as types.FirestoreStyle
+      console.log('query snapshot size:', querySnapshot.size)
+      const style = querySnapshot.docs?.[0]?.data() as types.FirestoreStyle
+      console.log('returning style:', style)
+      return style
     } catch (error) {
+      console.log('error getting style by brand style id:', error)
       return getFirebaseError(error)
     }
   }
 
   public async GetStyle(styleId: number) {
+    console.log('getting style by id:', styleId)
     try {
+      console.log('fetching doc from styles collection, id:', styleId)
       const doc = await this.firebase.getDoc('styles', String(styleId))
+      console.log('got style doc:', doc)
       return doc as types.FirestoreStyle
     } catch (error) {
+      console.log('error getting style:', error)
       return getFirebaseError(error)
     }
   }

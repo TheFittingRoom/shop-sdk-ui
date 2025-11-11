@@ -78,15 +78,18 @@ export class FittingRoom {
   }
 
   public async setSku(sku: string) {
-    console.debug('setting sku', sku)
+    console.log('setting sku:', sku)
     this.tfrSizeRec.setSku(sku)
 
     if (!this.style) {
+      console.log('no style cached, fetching for sku:', this.sku)
       this.style = await this.getStyleFromColorwaySizeAssetSku(this.sku)
+    } else {
+      console.log('style already cached:', this.style)
     }
 
     if (!this.style) {
-      console.error('failed to retrieve style from sku', sku)
+      console.error('failed to retrieve style from sku:', sku)
       document.getElementById('tfr-size-recommendations').style.display = 'none'
       return
     }
@@ -295,19 +298,19 @@ export class FittingRoom {
   }
 
   private async getStyleFromColorwaySizeAssetSku(sku: string): Promise<FirestoreStyle | null> {
+    console.log('getting style for sku:', sku)
     try {
+      console.log('trying to get colorway size asset for sku:', sku)
       const colorwaySizeAsset = await this.tfrShop.getColorwaySizeAssetFromSku(sku)
-      const style = await this.tfrShop.getStyle(colorwaySizeAsset.style_id)
+      console.log('got colorway size asset:', colorwaySizeAsset)
+      console.log('getting style for style_id:', colorwaySizeAsset.style_id)
+      const style = await this.tfrShop.GetStyle(colorwaySizeAsset.style_id)
+      console.log('got style:', style)
 
       return style
     } catch (e) {
-      try {
-        const style = await this.tfrShop.getStyleByBrandStyleId(sku)
-
-        return style
-      } catch (e2) {
-        return null
-      }
+      console.log('failed to get colorway size asset or style, error:', e)
+      return null
     }
   }
 }

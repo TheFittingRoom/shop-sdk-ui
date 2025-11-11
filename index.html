@@ -1,353 +1,349 @@
 <html lang="en">
-  <head>
-    <title>TheFittingRoom Widget Demo</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <link href="https://fonts.googleapis.com" rel="preconnect" />
-    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&family=Roboto&display=swap"
-      rel="stylesheet"
-    />
-    <link href="/dist/index.css" rel="stylesheet" />
+<head>
+  <title>TheFittingRoom Widget Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <style>
-      body {
-        font-family: 'Roboto', sans-serif;
-        margin: 0;
-        padding: 20px;
-        background-color: #f5f5f5;
-      }
+  <link href="https://fonts.googleapis.com" rel="preconnect" />
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&family=Roboto&display=swap"
+    rel="stylesheet" />
+  <link href="/dist/index.css" rel="stylesheet" />
 
-      .demo-container {
-        max-width: 800px;
-        margin: 0 auto;
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      }
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
 
-      .product-selector {
-        margin-bottom: 20px;
-        padding: 15px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-      }
+    .demo-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
 
-      .product-selector h3 {
-        margin-top: 0;
-        color: #333;
-      }
+    .product-selector {
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
 
-      select {
-        width: 100%;
-        padding: 8px;
-        margin: 10px 0;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-      }
+    .product-selector h3 {
+      margin-top: 0;
+      color: #333;
+    }
 
-      .tfr-widget-container {
-        margin-top: 20px;
-      }
+    select {
+      width: 100%;
+      padding: 8px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
 
-      .tfr-home-button-container {
-        margin-top: 20px;
-        text-align: center;
-      }
+    .tfr-widget-container {
+      margin-top: 20px;
+    }
 
-      .tfr-home-button-container button {
-        margin: 5px;
-        padding: 10px 15px;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-      }
+    .tfr-home-button-container {
+      margin-top: 20px;
+      text-align: center;
+    }
 
-      .tfr-home-button-container button:hover {
-        background-color: #0056b3;
-      }
+    .tfr-home-button-container button {
+      margin: 5px;
+      padding: 10px 15px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
 
-      #tfr-tryon-image {
-        max-width: 100%;
-        height: auto;
-        margin: 20px 0;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-      }
+    .tfr-home-button-container button:hover {
+      background-color: #0056b3;
+    }
 
-      #tfr-slider {
-        width: 100%;
-        margin: 10px 0;
-      }
-    </style>
+    #tfr-tryon-image {
+      max-width: 100%;
+      height: auto;
+      margin: 20px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
 
-    <script type="module">
-      import { comps, initFittingRoom } from '/dist/index.js'
+    #tfr-slider {
+      width: 100%;
+      margin: 10px 0;
+    }
+  </style>
 
-      const ENV = 'development'
+  <script type="module">
+    import { comps, initFittingRoom } from '/dist/index.js'
 
-      // Initialize modal manager and make components globally available
-      window.mm = comps.InitModalManager('tfr-manual-modal')
-      window.comps = comps
+    const ENV = 'development'
 
-      // Callback functions for modals
-      window.onSignout = (colorwaySizeAssetSKU) => {
-        console.log('signout', colorwaySizeAssetSKU)
+    // Initialize modal manager and make components globally available
+    window.mm = comps.InitModalManager('tfr-manual-modal')
+    window.comps = comps
+
+    // Callback functions for modals
+    window.onSignout = (colorwaySizeAssetSKU) => {
+      console.log('signout', colorwaySizeAssetSKU)
+    }
+    window.onClose = () => {
+      console.log('close')
+    }
+    window.onNavBack = () => {
+      console.log('back')
+    }
+    window.onTryOn = (colorwaySizeAssetSKU) => {
+      console.log('try on', colorwaySizeAssetSKU)
+    }
+    window.whenSignedIn = (user, colorwaySizeAssetSKU) => {
+      console.log('after sign in', user, colorwaySizeAssetSKU)
+    }
+    window.onSignIn = (colorwaySizeAssetSKU) => (username, password, validationError) => {
+      if (username.length == 0 || password.length == 0) {
+        validationError('Username or password is empty')
       }
-      window.onClose = () => {
-        console.log('close')
-      }
-      window.onNavBack = () => {
-        console.log('back')
-      }
-      window.onTryOn = (colorwaySizeAssetSKU) => {
-        console.log('try on', colorwaySizeAssetSKU)
-      }
-      window.whenSignedIn = (user, colorwaySizeAssetSKU) => {
-        console.log('after sign in', user, colorwaySizeAssetSKU)
-      }
-      window.onSignIn = (colorwaySizeAssetSKU) => (username, password, validationError) => {
-        if (username.length == 0 || password.length == 0) {
-          validationError('Username or password is empty')
+    }
+    window.onNavSignIn = (colorwaySizeAssetSKU) => (email) => {
+      console.log('nav sign in', colorwaySizeAssetSKU, email)
+    }
+    window.onPasswordReset = (colorwaySizeAssetSKU) => (email) => {
+      console.log('password reset', colorwaySizeAssetSKU, email)
+    }
+    window.onNavForgotPassword = (colorwaySizeAssetSKU) => (email) => {
+      console.log('nav forgot password', colorwaySizeAssetSKU, email)
+    }
+    window.onNavScanCode = () => {
+      console.log('nav scan code')
+    }
+
+    const brandID = 1
+    const availableSKUs = [
+      'TFR_Fitted-Dress_178_BlackBandana_2',
+      'TFR_Fitted-Dress_178_BlackBandana_4',
+      'TFR_Fitted-Dress_178_BlackBandana_6',
+      'TFR_Fitted-Dress_178_BlackBandana_8',
+      'TFR_Fitted-Dress_178_BlackBandana_10',
+    ]
+
+    // Mock product variants for demonstration
+    const productVariants = [
+      { option1: '2', option2: 'BlackBandana', sku: 'TFR_Fitted-Dress_178_BlackBandana_2' },
+      { option1: '4', option2: 'BlackBandana', sku: 'TFR_Fitted-Dress_178_BlackBandana_4' },
+      { option1: '6', option2: 'BlackBandana', sku: 'TFR_Fitted-Dress_178_BlackBandana_6' },
+      { option1: '8', option2: 'BlackBandana', sku: 'TFR_Fitted-Dress_178_BlackBandana_8' },
+      { option1: '10', option2: 'BlackBandana', sku: 'TFR_Fitted-Dress_178_BlackBandana_10' },
+    ]
+
+    const getSku = () => {
+      try {
+        const colorInput = document.getElementsByName(`options[Color]`)?.[0]
+        const sizeInput = document.getElementsByName(`options[Size]`)?.[0]
+
+        const color = colorInput ? colorInput.value : undefined
+        const size = sizeInput ? sizeInput.value : undefined
+
+        if (!colorInput) {
+          console.error('Error in getSku: Color input element (options[Color]) not found on the page.')
         }
-      }
-      window.onNavSignIn = (colorwaySizeAssetSKU) => (email) => {
-        console.log('nav sign in', colorwaySizeAssetSKU, email)
-      }
-      window.onPasswordReset = (colorwaySizeAssetSKU) => (email) => {
-        console.log('password reset', colorwaySizeAssetSKU, email)
-      }
-      window.onNavForgotPassword = (colorwaySizeAssetSKU) => (email) => {
-        console.log('nav forgot password', colorwaySizeAssetSKU, email)
-      }
-      window.onNavScanCode = () => {
-        console.log('nav scan code')
-      }
-
-      const brandID = 1
-      const availableSKUs = [
-        'TFR_Fitted-Dress_178_BlackBandana_2',
-        'TFR_Fitted-Dress_178_BlackBandana_4',
-        'TFR_Fitted-Dress_178_BlackBandana_6',
-        'TFR_Fitted-Dress_178_BlackBandana_8',
-        'TFR_Fitted-Dress_178_BlackBandana_10',
-      ]
-
-      // Mock product variants for demonstration
-      const productVariants = [
-        { option1: '2', option2: 'BlackBandana', sku: 'TFR_Fitted-Dress_178_BlackBandana_2' },
-        { option1: '4', option2: 'BlackBandana', sku: 'TFR_Fitted-Dress_178_BlackBandana_4' },
-        { option1: '6', option2: 'BlackBandana', sku: 'TFR_Fitted-Dress_178_BlackBandana_6' },
-        { option1: '8', option2: 'BlackBandana', sku: 'TFR_Fitted-Dress_178_BlackBandana_8' },
-        { option1: '10', option2: 'BlackBandana', sku: 'TFR_Fitted-Dress_178_BlackBandana_10' },
-      ]
-
-      const getSku = () => {
-        try {
-          const colorInput = document.getElementsByName(`options[Color]`)?.[0]
-          const sizeInput = document.getElementsByName(`options[Size]`)?.[0]
-
-          const color = colorInput ? colorInput.value : undefined
-          const size = sizeInput ? sizeInput.value : undefined
-
-          if (!colorInput) {
-            console.error('Error in getSku: Color input element (options[Color]) not found on the page.')
-          }
-          if (!sizeInput) {
-            console.error('Error in getSku: Size input element (options[Size]) not found on the page.')
-          }
-
-          console.log('variants', productVariants)
-
-          if (typeof productVariants === 'undefined' || !Array.isArray(productVariants)) {
-            throw new Error(
-              'productVariants is not defined or is not an array. The Fitting Room cannot determine product SKUs without this data.',
-            )
-          }
-
-          const variant = productVariants.find((item) => {
-            console.log('searching item', item)
-            const hasSizeMatch = !size || item.option1 === size || item.option2 === size
-            const hasColorMatch = !color || item.option1 === color || item.option2 === color
-            return hasSizeMatch && hasColorMatch
-          })
-
-          if (!variant) {
-            throw new Error(
-              'No product variant found for the selected color and size combination. Please check product data.',
-            )
-          }
-
-          console.log({ color, size, variant })
-          console.log('sku', variant?.sku)
-          return variant?.sku
-        } catch (error) {
-          console.error(`Error in getSku: ${error.message}. SKU retrieval failed.`)
-          return null
+        if (!sizeInput) {
+          console.error('Error in getSku: Size input element (options[Size]) not found on the page.')
         }
-      }
 
-      window.addEventListener('load', async (e) => {
-        let disableFittingRoom = false
+        console.log('variants', productVariants)
 
-        try {
-          const modalDiv = document.getElementById('thefittingroom-modal')
-          const sizeRecMainDiv = document.getElementById('tfr-size-recommendation-main')
-          const vtoMainDiv = document.getElementById('tfr-vto')
-
-          if (!modalDiv) {
-            console.error(
-              "Critical Error: 'thefittingroom-modal' element not found. The Fitting Room cannot initialize without its main modal container.",
-            )
-            disableFittingRoom = true
-          }
-          if (!sizeRecMainDiv) {
-            console.error(
-              "Critical Error: 'tfr-size-recommendation-main' element not found. The Fitting Room cannot display size recommendations.",
-            )
-            disableFittingRoom = true
-          }
-          if (!vtoMainDiv) {
-            console.error(
-              "Critical Error: 'tfr-vto' element not found. The Fitting Room cannot display virtual try-on functionality.",
-            )
-            disableFittingRoom = true
-          }
-          if (typeof initFittingRoom !== 'function') {
-            console.error(
-              'Critical Error: initFittingRoom function is not defined. Ensure the The Fitting Room script is loaded correctly.',
-            )
-            disableFittingRoom = true
-          }
-
-          if (disableFittingRoom) {
-            console.error(
-              'The Fitting Room functionality has been disabled due to missing critical elements or functions. Please resolve the errors above.',
-            )
-            return
-          }
-
-          const config = {
-            shopId: brandID,
-            modalDivId: 'thefittingroom-modal',
-            sizeRecMainDivId: 'tfr-size-recommendation-main',
-            vtoMainDivId: 'tfr-vto',
-            env: typeof ENV !== 'undefined' ? ENV : 'development',
-          }
-
-          const sku = getSku()
-          if (!sku) {
-            console.warn(
-              'SKU not retrieved. The Fitting Room will initialize but may not function optimally without a specific SKU.',
-            )
-          }
-          console.log('getSku', sku)
-
-          const tfr = await initFittingRoom(config)
-          if (sku) {
-            tfr.setSku(sku)
-          }
-
-          // Add event listeners for product selection changes
-          const sizeSelect = document.querySelector('select[name="options[Size]"]')
-          const colorSelect = document.querySelector('select[name="options[Color]"]')
-
-          if (sizeSelect) {
-            sizeSelect.addEventListener('change', () => {
-              const newSku = getSku()
-              if (newSku && tfr) {
-                tfr.setSku(newSku)
-                console.log('SKU updated to:', newSku)
-              }
-            })
-          }
-
-          if (colorSelect) {
-            colorSelect.addEventListener('change', () => {
-              const newSku = getSku()
-              if (newSku && tfr) {
-                tfr.setSku(newSku)
-                console.log('SKU updated to:', newSku)
-              }
-            })
-          }
-        } catch (error) {
-          console.error(
-            `Error during window load event for The Fitting Room: ${error.message}. The functionality might be impacted or disabled.`,
+        if (typeof productVariants === 'undefined' || !Array.isArray(productVariants)) {
+          throw new Error(
+            'productVariants is not defined or is not an array. The Fitting Room cannot determine product SKUs without this data.',
           )
         }
-      })
-    </script>
-  </head>
 
-  <body>
-    <div class="demo-container">
-      <h1>TheFittingRoom Widget Demo</h1>
-      <p>This demo showcases a fully functioning widget with brand_id 1 and hardcoded SKUs.</p>
+        const variant = productVariants.find((item) => {
+          console.log('searching item', item)
+          const hasSizeMatch = !size || item.option1 === size || item.option2 === size
+          const hasColorMatch = !color || item.option1 === color || item.option2 === color
+          return hasSizeMatch && hasColorMatch
+        })
 
-      <div class="product-selector">
-        <h3>Product Options</h3>
-        <label for="size-select">Size:</label>
-        <select name="options[Size]" id="size-select">
-          <option value="">Select Size</option>
-          <option value="2">Size 2</option>
-          <option value="4">Size 4</option>
-          <option value="6">Size 6</option>
-          <option value="8">Size 8</option>
-          <option value="10">Size 10</option>
-        </select>
+        if (!variant) {
+          throw new Error(
+            'No product variant found for the selected color and size combination. Please check product data.',
+          )
+        }
 
-        <label for="color-select">Color:</label>
-        <select name="options[Color]" id="color-select">
-          <option value="">Select Color</option>
-          <option value="BlackBandana">Black Bandana</option>
-        </select>
-      </div>
+        console.log({ color, size, variant })
+        console.log('sku', variant?.sku)
+        return variant?.sku
+      } catch (error) {
+        console.error(`Error in getSku: ${error.message}. SKU retrieval failed.`)
+        return null
+      }
+    }
 
-      <div class="tfr-widget-container">
-        <h3>TheFittingRoom Widget</h3>
-        <div id="thefittingroom-modal"></div>
-        <div id="tfr-size-recommendation-main"></div>
-        <div id="tfr-vto"></div>
-      </div>
+    window.addEventListener('load', async (e) => {
+      let disableFittingRoom = false
 
-      <!-- Hidden modal container for manual modal triggers -->
-      <div id="tfr-manual-modal" style="display: none"></div>
+      try {
+        const modalDiv = document.getElementById('thefittingroom-modal')
+        const sizeRecMainDiv = document.getElementById('tfr-size-recommendation-main')
+        const vtoMainDiv = document.getElementById('tfr-vto')
 
-      <div class="tfr-home-button-container">
-        <button
-          onclick="window.mm.open(window.comps.ErrorModal({error: 'custom error message', onNavBack: window.onNavBack, onClose: window.onClose}))"
-        >
-          Error Modal
-        </button>
-        <button onclick="window.mm.open(window.comps.ScanCodeModal())">Scan Code Modal</button>
-        <button
-          onclick="window.mm.open(window.comps.SignInModal({email:'email@mail.com', onSignIn: window.onSignIn('abc'), onNavForgotPassword: window.onNavForgotPassword('123'), onNavScanCode: window.onNavScanCode}))"
-        >
-          Sign In Modal
-        </button>
-        <button
-          onclick="window.mm.open(window.comps.ForgotPasswordModal({email: 'email@mail.com', onNavSignIn: window.onNavSignIn('123'), onPasswordReset: window.onPasswordReset('123')}))"
-        >
-          Forgot Password Modal
-        </button>
-        <button onclick="window.mm.open(window.comps.NoAvatarModal({}))">No Avatar Modal</button>
-        <button onclick="window.mm.open(window.comps.LoadingAvatarModal({timeoutMS: 12000}))">
-          Loading Avatar Modal
-        </button>
-        <button
-          onclick="window.mm.open(window.comps.SizeErrorModal({onNavBack: window.onNavBack, onClose: window.onClose, sizes: {recommended: 'large', avaliable: ['small', 'medium', 'large']}}))"
-        >
-          Size Error Modal
-        </button>
-        <button onclick="window.mm.open(window.comps.ResetLinkModal({onNavSignIn: window.onNavSignIn('abc')}))">
-          Reset Link Modal
-        </button>
-      </div>
+        if (!modalDiv) {
+          console.error(
+            "Critical Error: 'thefittingroom-modal' element not found. The Fitting Room cannot initialize without its main modal container.",
+          )
+          disableFittingRoom = true
+        }
+        if (!sizeRecMainDiv) {
+          console.error(
+            "Critical Error: 'tfr-size-recommendation-main' element not found. The Fitting Room cannot display size recommendations.",
+          )
+          disableFittingRoom = true
+        }
+        if (!vtoMainDiv) {
+          console.error(
+            "Critical Error: 'tfr-vto' element not found. The Fitting Room cannot display virtual try-on functionality.",
+          )
+          disableFittingRoom = true
+        }
+        if (typeof initFittingRoom !== 'function') {
+          console.error(
+            'Critical Error: initFittingRoom function is not defined. Ensure the The Fitting Room script is loaded correctly.',
+          )
+          disableFittingRoom = true
+        }
+
+        if (disableFittingRoom) {
+          console.error(
+            'The Fitting Room functionality has been disabled due to missing critical elements or functions. Please resolve the errors above.',
+          )
+          return
+        }
+
+        const config = {
+          shopId: brandID,
+          modalDivId: 'thefittingroom-modal',
+          sizeRecMainDivId: 'tfr-size-recommendation-main',
+          vtoMainDivId: 'tfr-vto',
+          env: typeof ENV !== 'undefined' ? ENV : 'development',
+        }
+
+        const sku = getSku()
+        if (!sku) {
+          console.warn(
+            'SKU not retrieved. The Fitting Room will initialize but may not function optimally without a specific SKU.',
+          )
+        }
+        console.log('getSku', sku)
+
+        const tfr = await initFittingRoom(config)
+        if (sku) {
+          tfr.setSku(sku)
+        }
+
+        // Add event listeners for product selection changes
+        const sizeSelect = document.querySelector('select[name="options[Size]"]')
+        const colorSelect = document.querySelector('select[name="options[Color]"]')
+
+        if (sizeSelect) {
+          sizeSelect.addEventListener('change', () => {
+            const newSku = getSku()
+            if (newSku && tfr) {
+              tfr.setSku(newSku)
+              console.log('SKU updated to:', newSku)
+            }
+          })
+        }
+
+        if (colorSelect) {
+          colorSelect.addEventListener('change', () => {
+            const newSku = getSku()
+            if (newSku && tfr) {
+              tfr.setSku(newSku)
+              console.log('SKU updated to:', newSku)
+            }
+          })
+        }
+      } catch (error) {
+        console.error(
+          `Error during window load event for The Fitting Room: ${error.message}. The functionality might be impacted or disabled.`,
+        )
+      }
+    })
+  </script>
+</head>
+
+<body>
+  <div class="demo-container">
+    <h1>TheFittingRoom Widget Demo</h1>
+    <p>This demo showcases a fully functioning widget with brand_id 1 and hardcoded SKUs.</p>
+
+    <div class="product-selector">
+      <h3>Product Options</h3>
+      <label for="size-select">Size:</label>
+      <select name="options[Size]" id="size-select">
+        <option value="">Select Size</option>
+        <option value="2">Size 2</option>
+        <option value="4">Size 4</option>
+        <option value="6">Size 6</option>
+        <option value="8">Size 8</option>
+        <option value="10">Size 10</option>
+      </select>
+
+      <label for="color-select">Color:</label>
+      <select name="options[Color]" id="color-select">
+        <option value="">Select Color</option>
+        <option value="BlackBandana">Black Bandana</option>
+      </select>
     </div>
-  </body>
+
+    <div class="tfr-widget-container">
+      <h3>TheFittingRoom Widget</h3>
+      <div id="thefittingroom-modal"></div>
+      <div id="tfr-size-recommendation-main"></div>
+      <div id="tfr-vto"></div>
+    </div>
+
+    <!-- Hidden modal container for manual modal triggers -->
+    <div id="tfr-manual-modal" style="display: none"></div>
+
+    <div class="tfr-home-button-container">
+      <button
+        onclick="window.mm.open(window.comps.ErrorModal({error: 'custom error message', onNavBack: window.onNavBack, onClose: window.onClose}))">
+        Error Modal
+      </button>
+      <button onclick="window.mm.open(window.comps.ScanCodeModal())">Scan Code Modal</button>
+      <button
+        onclick="window.mm.open(window.comps.SignInModal({email:'email@mail.com', onSignIn: window.onSignIn('abc'), onNavForgotPassword: window.onNavForgotPassword('123'), onNavScanCode: window.onNavScanCode}))">
+        Sign In Modal
+      </button>
+      <button
+        onclick="window.mm.open(window.comps.ForgotPasswordModal({email: 'email@mail.com', onNavSignIn: window.onNavSignIn('123'), onPasswordReset: window.onPasswordReset('123')}))">
+        Forgot Password Modal
+      </button>
+      <button onclick="window.mm.open(window.comps.NoAvatarModal({}))">No Avatar Modal</button>
+      <button onclick="window.mm.open(window.comps.LoadingAvatarModal({timeoutMS: 12000}))">
+        Loading Avatar Modal
+      </button>
+      <button
+        onclick="window.mm.open(window.comps.SizeErrorModal({onNavBack: window.onNavBack, onClose: window.onClose, sizes: {recommended: 'large', avaliable: ['small', 'medium', 'large']}}))">
+        Size Error Modal
+      </button>
+      <button onclick="window.mm.open(window.comps.ResetLinkModal({onNavSignIn: window.onNavSignIn('abc')}))">
+        Reset Link Modal
+      </button>
+    </div>
+  </div>
+</body>
+
 </html>
