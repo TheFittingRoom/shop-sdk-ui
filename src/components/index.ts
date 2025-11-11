@@ -4,7 +4,8 @@ import FitModal from './Modals/FitModal'
 import ForgotPasswordModal from './Modals/ForgotPasswordModal'
 import LoadingAvatarModal from './Modals/LoadingAvatarModal'
 import LoggedOutModal from './Modals/LoggedOutModal'
-import { InitModalManager, ModalManager } from './Modals/ModalManager'
+import { InitModalManager } from './Modals/ModalManager'
+import type { ModalManager } from './Modals/ModalManager'
 import NoAvatarModal from './Modals/NoAvatarModal'
 import ResetLinkModal from './Modals/ResetLinkModal'
 import ScanCodeModal from './Modals/ScanCodeModal'
@@ -21,7 +22,6 @@ export {
   InitModalManager,
   LoadingAvatarModal,
   LoggedOutModal,
-  ModalManager,
   NoAvatarModal,
   ResetLinkModal,
   ScanCodeModal,
@@ -29,3 +29,5 @@ export {
   SizeErrorModal,
   TryOnModal,
 }
+
+export type { ModalManager }

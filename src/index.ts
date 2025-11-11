@@ -7,7 +7,6 @@ import {
   InitModalManager,
   LoadingAvatarModal,
   LoggedOutModal,
-  ModalManager,
   NoAvatarModal,
   ResetLinkModal,
   ScanCodeModal,
@@ -15,6 +14,7 @@ import {
   SizeErrorModal,
   TryOnModal,
 } from './components'
+import type { ModalManager } from './components'
 
 export { initFittingRoom } from './init'
 export type { FittingRoom } from './tfr'
