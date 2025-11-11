@@ -1,12 +1,13 @@
+/// <reference types="vite/client" />
 import { TryOnFrames } from '../api'
 import { ModalManager } from '../components'
 import { UIError } from '../components/uiError'
 import type { FirestoreUser } from '../generated/api/responses'
 
-export const TFRLogo = process.env.ASSETS_URL + '/tfr-logo.svg'
-export const AposeLogo = process.env.ASSETS_URL + '/apose-logo.svg'
-export const AppStoreLogo = process.env.ASSETS_URL + '/app-store-logo.svg'
-export const QrCodeLogo = process.env.ASSETS_URL + '/qr-code-logo.svg'
+export const TFRLogo = import.meta.env.VITE_ASSETS_URL + '/tfr-logo.svg'
+export const AposeLogo = import.meta.env.VITE_ASSETS_URL + '/apose-logo.svg'
+export const AppStoreLogo = import.meta.env.VITE_ASSETS_URL + '/app-store-logo.svg'
+export const QrCodeLogo = import.meta.env.VITE_ASSETS_URL + '/qr-code-logo.svg'
 
 export const NotLoggedIn = new Error('user not logged in')
 export const NoFramesFound = new Error('No frames found for this colorway')
@@ -76,7 +77,7 @@ export interface ModalContent {
   Unhook(): void
   useFullModalContent: boolean
 }
-export interface ModalProps { }
+export interface ModalProps {}
 export interface SignInParams {
   email: string
   password: string

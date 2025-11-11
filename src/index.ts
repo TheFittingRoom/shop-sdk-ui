@@ -1,3 +1,4 @@
+// Import styles
 // Import all components
 import {
   ErrorModal,
@@ -15,6 +16,7 @@ import {
   TryOnModal,
 } from './components'
 import type { ModalManager } from './components'
+import './styles'
 
 export { initFittingRoom } from './init'
 export type { FittingRoom } from './tfr'

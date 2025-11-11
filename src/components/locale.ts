@@ -1,5 +1,7 @@
 import { createUIError } from './uiError'
 
+/// <reference types="vite/client" />
+
 var L = {
   AssociatedEmail: 'If there is an account associated with that email, We have sent a link to reset your password.',
   BackToSignIn: 'Back to sign in',
@@ -59,7 +61,7 @@ function findMissingLocales(defaultLocale: any, newLocale: any): { default: any;
 
 async function SetLocale(locale: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    fetch(`${process.env.LANGUAGE_URL}/${locale}.json`)
+    fetch(`${import.meta.env.VITE_LANGUAGE_URL}/${locale}.json`)
       .then((response) => {
         if (response.ok) {
           response

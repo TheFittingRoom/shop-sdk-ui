@@ -9,6 +9,7 @@
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&family=Roboto&display=swap"
       rel="stylesheet"
     />
+    <link href="/dist/index.css" rel="stylesheet" />
 
     <style>
       body {
@@ -17,6 +18,7 @@
         padding: 20px;
         background-color: #f5f5f5;
       }
+
       .demo-container {
         max-width: 800px;
         margin: 0 auto;
@@ -25,16 +27,19 @@
         border-radius: 8px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       }
+
       .product-selector {
         margin-bottom: 20px;
         padding: 15px;
         border: 1px solid #ddd;
         border-radius: 5px;
       }
+
       .product-selector h3 {
         margin-top: 0;
         color: #333;
       }
+
       select {
         width: 100%;
         padding: 8px;
@@ -42,13 +47,16 @@
         border: 1px solid #ccc;
         border-radius: 4px;
       }
+
       .tfr-widget-container {
         margin-top: 20px;
       }
+
       .tfr-home-button-container {
         margin-top: 20px;
         text-align: center;
       }
+
       .tfr-home-button-container button {
         margin: 5px;
         padding: 10px 15px;
@@ -58,9 +66,11 @@
         border-radius: 4px;
         cursor: pointer;
       }
+
       .tfr-home-button-container button:hover {
         background-color: #0056b3;
       }
+
       #tfr-tryon-image {
         max-width: 100%;
         height: auto;
@@ -68,6 +78,7 @@
         border: 1px solid #ddd;
         border-radius: 4px;
       }
+
       #tfr-slider {
         width: 100%;
         margin: 10px 0;
@@ -75,7 +86,7 @@
     </style>
 
     <script type="module">
-      import { comps, initFittingRoom } from 'http://localhost:3030/dist/esm/index.js'
+      import { comps, initFittingRoom } from '/dist/index.js'
 
       const ENV = 'development'
 
@@ -116,8 +127,6 @@
       window.onNavScanCode = () => {
         console.log('nav scan code')
       }
-
-      // import { initFittingRoom } from 'https://unpkg.com/@thefittingroom/shop-ui@3'
 
       const brandID = 1
       const availableSKUs = [

@@ -1,4 +1,6 @@
-import { initShop, FirestoreStyle } from './api'
+import { FirestoreStyle, initShop } from './api'
+/// <reference types="vite/client" />
+
 import { VtoComponent } from './components/VTO'
 import { L } from './components/locale'
 import { validateEmail, validatePassword } from './helpers/validations'
@@ -41,8 +43,8 @@ export class FittingRoom {
     // prettier-ignore
     const env = _env
       ? _env
-      : typeof process !== 'undefined'
-        ? process.env.NODE_ENV
+      : import.meta.env.MODE === 'production'
+        ? 'prod'
         : 'dev'
 
     console.log('tfr-env', env)
