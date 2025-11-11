@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => ({
       formats: ['es'],
       fileName: 'index',
     },
-    sourcemap: false,
+    sourcemap: mode !== 'production',
     minify: mode === 'production' ? 'esbuild' : false,
     rollupOptions: {
       output: {
