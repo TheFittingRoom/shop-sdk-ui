@@ -17,6 +17,7 @@ export type RecommendedSize = {
 export class SizeRecComponent {
   private _sku: string = ''
   private _styleId: number = null
+  private isLoggedIn: boolean
 
   private sizeRecMainDiv: HTMLDivElement
 
@@ -49,10 +50,12 @@ export class SizeRecComponent {
     private readonly onSignInClick: () => void,
     private readonly onSignOutClick: () => void,
     private readonly onFitInfoClick: () => void,
-    private readonly onTryOnClick: (sku: string, shouldDisplay: boolean) => Promise<void>,
-    private readonly isLoggedIn: boolean,
+    private readonly onTryOnClick: (sku: string, shouldDisplay: boolean, isFromTryOnButton?: boolean) => Promise<void>,
+    initialIsLoggedIn: boolean,
   ) {
+    this.isLoggedIn = initialIsLoggedIn
     this.init(sizeRecMainDivId)
+    this.setIsLoggedIn(this.isLoggedIn)
   }
 
   public get sku() {
@@ -72,6 +75,8 @@ export class SizeRecComponent {
   }
 
   public setIsLoggedIn(isLoggedIn: boolean) {
+    console.debug('setIsLoggedIn:', isLoggedIn)
+    this.isLoggedIn = isLoggedIn
     this.tfrSizeRecSelectContainer.style.display = 'flex'
     this.tfrSizeRecSelect.style.display = 'flex'
     this.tfrSizeHowItFits.style.display = 'block'
@@ -192,11 +197,12 @@ export class SizeRecComponent {
     const tryOnButton = document.getElementById('tfr-try-on-button')
     if (!tryOnButton) return
 
-    if (!this.isLoggedIn) {
-      ;(tryOnButton as HTMLButtonElement).disabled = true
-    }
-
     tryOnButton.addEventListener('click', async () => {
+      if (!this.isLoggedIn) {
+        this.onSignInClick()
+        return
+      }
+
       const activeButton = document.querySelector('.tfr-size-rec-select-button.active')
       if (!activeButton) return
 
@@ -226,7 +232,7 @@ export class SizeRecComponent {
             const leftButton = allSizeButtons[activeIndex - 1]
             const leftSku = leftButton.getAttribute('data-sku')
             if (leftSku) {
-              vtoPromises.push(this.onTryOnClick(leftSku, false))
+              vtoPromises.push(this.onTryOnClick(leftSku, false, true))
             }
           }
 
@@ -235,12 +241,12 @@ export class SizeRecComponent {
             const rightButton = allSizeButtons[activeIndex + 1]
             const rightSku = rightButton.getAttribute('data-sku')
             if (rightSku) {
-              vtoPromises.push(this.onTryOnClick(rightSku, false))
+              vtoPromises.push(this.onTryOnClick(rightSku, false, true))
             }
           }
 
           // 3. Add the active size VTO (display this one) - do this last to ensure it's the active one
-          vtoPromises.push(this.onTryOnClick(selectedSku, true))
+          vtoPromises.push(this.onTryOnClick(selectedSku, true, true))
 
           // Fetch all VTOs simultaneously
           // try {
@@ -280,7 +286,7 @@ export class SizeRecComponent {
     if (!selectedSku) return
 
     // Trigger VTO immediately when size is selected
-    this.onTryOnClick(selectedSku, true)
+    this.onTryOnClick(selectedSku, true, false)
   }
 
   private renderSizeRec(recommended: string, sizes: RecommendedSize['sizes']) {

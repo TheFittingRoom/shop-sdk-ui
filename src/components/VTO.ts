@@ -23,7 +23,7 @@ export class VtoComponent {
 
     const tryOnImage = <HTMLImageElement>document.getElementById('tfr-tryon-image')
     const onChange = (slider, imageUrl) => {
-      console.debug('slider change', slider, imageUrl)
+      console.debug('slider change', imageUrl)
       tryOnImage.src = imageUrl
       this.currentSliderValue = parseInt(slider.value)
     }

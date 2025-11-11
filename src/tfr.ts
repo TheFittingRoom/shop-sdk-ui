@@ -19,6 +19,7 @@ export interface TFRHooks {
 
 export class FittingRoom {
   private isLoggedIn: boolean = false
+  private hasInitializedTryOn: boolean = false
   private isMiddleVtoActive: boolean = false
   private manualListeningOverride: boolean = false
 
@@ -216,7 +217,14 @@ export class FittingRoom {
     this.tfrModal.toFitInfo()
   }
 
-  public async onTryOnClick(sku: string, shouldDisplay: boolean = true) {
+  public async onTryOnClick(sku: string, shouldDisplay: boolean = true, isFromTryOnButton = false) {
+    console.debug('onTryOnClick:', sku, shouldDisplay, isFromTryOnButton, 'hasInitialized:', this.hasInitializedTryOn)
+    if (isFromTryOnButton) this.hasInitializedTryOn = true
+    if (!this.hasInitializedTryOn) {
+      console.debug('skipping try on, not initialized')
+      return
+    }
+
     if (!this.vtoComponent)
       return console.error('VtoComponent is not initialized. Please check if the vtoMainDivId is correct.')
 

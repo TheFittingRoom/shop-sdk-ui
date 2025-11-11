@@ -49,7 +49,7 @@ export class TFRSizeRec {
     private readonly onSignInClick: () => void,
     private readonly onSignOutClick: () => void,
     private readonly onFitInfoClick: () => void,
-    private readonly onTryOnClick: (sku: string, shouldDisplay: boolean) => Promise<void>,
+    private readonly onTryOnClick: (sku: string, shouldDisplay: boolean, isFromTryOnButton?: boolean) => Promise<void>,
   ) {
     this.setCssVariables(cssVariables)
     this.sizeRecComponent = new SizeRecComponent(
