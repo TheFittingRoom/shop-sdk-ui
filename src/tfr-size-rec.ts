@@ -58,6 +58,7 @@ export class TFRSizeRec {
       this.onSignOutClick,
       this.onFitInfoClick,
       this.onTryOnClick,
+      this.tfrShop.isLoggedIn,
     )
   }
 

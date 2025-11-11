@@ -50,6 +50,7 @@ export class SizeRecComponent {
     private readonly onSignOutClick: () => void,
     private readonly onFitInfoClick: () => void,
     private readonly onTryOnClick: (sku: string, shouldDisplay: boolean) => Promise<void>,
+    private readonly isLoggedIn: boolean,
   ) {
     this.init(sizeRecMainDivId)
   }
@@ -190,6 +191,10 @@ export class SizeRecComponent {
 
     const tryOnButton = document.getElementById('tfr-try-on-button')
     if (!tryOnButton) return
+
+    if (!this.isLoggedIn) {
+      tryOnButton.setAttribute('disabled', 'true')
+    }
 
     tryOnButton.addEventListener('click', async () => {
       // Prevent multiple clicks while loading
