@@ -169,7 +169,6 @@
         }
 
         const activeVariant = productVariants.find((item) => {
-          console.debug('searching item', item)
           const hasSizeMatch = !size || item.option1 === size || item.option2 === size
           const hasColorMatch = !color || item.option1 === color || item.option2 === color
           return hasSizeMatch && hasColorMatch
@@ -181,10 +180,7 @@
           )
         }
 
-        console.debug("color", activeVariant.color)
-        console.debug("size", activeVariant.size)
-        console.debug("variant", activeVariant.variant)
-        console.debug('sku', activeVariant?.sku)
+        console.debug('variant', activeVariant)
         return activeVariant?.sku
       } catch (error) {
         console.error(`Error in getSku: ${error.message}. SKU retrieval failed.`)
@@ -192,40 +188,33 @@
       }
     }
 
-    window.addEventListener('load', async (e) => {
+    function requireElement(id) {
+      const element = document.getElementById(id)
+      if (!element) {
+        console.error(`critical error: mandatory element '${id}' not found in the page.`)
+        return null
+      }
+      return element
+    }
+
+    function requireFunction(name) {
+      if (typeof window[name] !== 'function') {
+        console.error(`critical error: mandatory function '${name}' not defined in the page.`)
+        return false
+      }
+      return true
+    }
+
+    window.addEventListener('DOMContentLoaded', async (e) => {
       let disableFittingRoom = false
 
       try {
-        const modalDiv = document.getElementById('thefittingroom-modal')
-        const sizeRecMainDiv = document.getElementById('tfr-size-recommendation-main')
-        const vtoMainDiv = document.getElementById('tfr-vto')
+        const modalDiv = requireElement('thefittingroom-modal')
+        const sizeRecMainDiv = requireElement('tfr-size-recommendation-main')
+        const vtoMainDiv = requireElement('tfr-vto')
 
-        if (!modalDiv) {
-          console.error(
-            "Critical Error: 'thefittingroom-modal' element not found. The Fitting Room cannot initialize without its main modal container.",
-          )
+        if (!modalDiv || !sizeRecMainDiv || !vtoMainDiv || typeof initFittingRoom !== 'function') {
           disableFittingRoom = true
-        }
-        if (!sizeRecMainDiv) {
-          console.error(
-            "Critical Error: 'tfr-size-recommendation-main' element not found. The Fitting Room cannot display size recommendations.",
-          )
-          disableFittingRoom = true
-        }
-        if (!vtoMainDiv) {
-          console.error(
-            "Critical Error: 'tfr-vto' element not found. The Fitting Room cannot display virtual try-on functionality.",
-          )
-          disableFittingRoom = true
-        }
-        if (typeof initFittingRoom !== 'function') {
-          console.error(
-            'Critical Error: initFittingRoom function is not defined. Ensure the The Fitting Room script is loaded correctly.',
-          )
-          disableFittingRoom = true
-        }
-
-        if (disableFittingRoom) {
           console.error(
             'The Fitting Room functionality has been disabled due to missing critical elements or functions. Please resolve the errors above.',
           )
