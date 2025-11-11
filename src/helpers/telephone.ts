@@ -12246,7 +12246,7 @@ function intlTelInputInit(element) {
           })
           window.addEventListener('testPassive', null, opts)
           window.removeEventListener('testPassive', null, opts)
-        } catch (e) {}
+        } catch (e) { }
 
         // call this to Disable
         function disableScroll(element) {
@@ -12362,16 +12362,16 @@ function _getDialCode(inputVal) {
       if (
         !isNaN(parseFloat(inputVal.charAt(i))) &&
         ((prefixesDialCode += inputVal.charAt(i)),
-        countryCodes[prefixesDialCode] && (PrefixesCountryDialCode = inputVal.substr(0, i + 1)),
-        dialCode.length == 4)
+          countryCodes[prefixesDialCode] && (PrefixesCountryDialCode = inputVal.substr(0, i + 1)),
+          dialCode.length == 4)
       )
         break
 
       if (
         !isNaN(parseFloat(inputVal.charAt(i))) &&
         ((dialCode += inputVal.charAt(i)),
-        countryCodes[dialCode] && (countryDialCode = inputVal.substr(0, i + 1)),
-        dialCode.length == 4)
+          countryCodes[dialCode] && (countryDialCode = inputVal.substr(0, i + 1)),
+          dialCode.length == 4)
       )
         break
     }
@@ -12416,26 +12416,26 @@ function dialCodePrefixesValidator(prefixes, validator) {
     ? PrefixesValidator(prefixes, validator[5])
       ? 4
       : PrefixesValidator(prefixes, validator[4])
-      ? 3
-      : PrefixesValidator(prefixes, validator[6])
-      ? 5
-      : PrefixesValidator(prefixes, validator[8])
-      ? 6
-      : PrefixesValidator(prefixes, validator[7])
-      ? 7
-      : PrefixesValidator(prefixes, validator[21])
-      ? 8
-      : PrefixesValidator(prefixes, validator[25])
-      ? 9
-      : PrefixesValidator(prefixes, validator[28])
-      ? 10
-      : PrefixesValidator(prefixes, validator[2])
-      ? validator[18] || PrefixesValidator(prefixes, validator[3])
-        ? 2
-        : 0
-      : !validator[18] && PrefixesValidator(prefixes, validator[3])
-      ? 1
-      : -1
+        ? 3
+        : PrefixesValidator(prefixes, validator[6])
+          ? 5
+          : PrefixesValidator(prefixes, validator[8])
+            ? 6
+            : PrefixesValidator(prefixes, validator[7])
+              ? 7
+              : PrefixesValidator(prefixes, validator[21])
+                ? 8
+                : PrefixesValidator(prefixes, validator[25])
+                  ? 9
+                  : PrefixesValidator(prefixes, validator[28])
+                    ? 10
+                    : PrefixesValidator(prefixes, validator[2])
+                      ? validator[18] || PrefixesValidator(prefixes, validator[3])
+                        ? 2
+                        : 0
+                      : !validator[18] && PrefixesValidator(prefixes, validator[3])
+                        ? 1
+                        : -1
     : -1
 }
 

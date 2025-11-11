@@ -66,7 +66,7 @@ export class TfrModal {
     )
   }
 
-  public toPasswordReset() {}
+  public toPasswordReset() { }
 
   public onTryOn(frames: types.TryOnFrames) {
     this.manager.open(

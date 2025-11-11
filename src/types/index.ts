@@ -1,8 +1,8 @@
 import { FirebaseUser, TfrShop } from '@thefittingroom/sdk'
 
+import { TryOnFrames } from '../api'
 import { ModalManager } from '../components'
 import { UIError } from '../components/uiError'
-import * as types from '../types'
 
 export const TfrLogo = process.env.ASSETS_URL + '/tfr-logo.svg'
 export const AposeLogo = process.env.ASSETS_URL + '/apose-logo.svg'
@@ -19,7 +19,6 @@ export interface RecommendedAvailableSizes {
   recommended_size: string
   available_sizes: string[]
 }
-
 export interface FittingRoom {
   shop: TfrShop
   manager: ModalManager
@@ -31,36 +30,26 @@ export interface FittingRoom {
   whenAvatarPending(colorwaySizeAssetSKU: string): void
   whenAvatarCreated(colorwaySizeAssetSKU: string): void
   whenNotSignedIn(colorwaySizeAssetSKU: string): void
-
-  whenTryOnReady(colorwaySizeAssetSKU: string, frames: types.TryOnFrames): void
-
+  whenTryOnReady(colorwaySizeAssetSKU: string, frames: TryOnFrames): void
   whenTryOnLoading(colorwaySizeAssetSKU: string): void
-
   whenTryOnFailed(colorwaySizeAssetSKU: string, error: Error): void
-
   whenError(colorwaySizeAssetSKU: string, error: UIError): void
   whenSignedIn(user: FirebaseUser, colorwaySizeAssetSKU: string): void
   whenSignedOut(colorwaySizeAssetSKU: string): void
-
-  onSignIn(
-    colorwaySizeAssetSKU: string,
-  ): (username: string, password: string, validation: (message: string) => void) => void
+  onSignIn(colorwaySizeAssetSKU: string): (username: string, password: string, validation: (message: string) => void) => void
   onNavSignIn(colorwaySizeAssetSKU: string): (email: string) => void
   onPasswordReset(colorwaySizeAssetSKU: string): (email: string) => void
   onNavForgotPassword(colorwaySizeAssetSKU: string): (email: string) => void
   onNavScanCode(colorwaySizeAssetSKU: string): void
   TryOn(colorwaySizeAssetSKU: string): void
 }
-
 export interface ModalContent {
   Body: () => string
   Hook(): void
   Unhook(): void
   useFullModalContent: boolean
 }
-
 export interface ModalProps { }
-
 export interface SignInParams {
   email: string
   password: string
@@ -106,6 +95,7 @@ export interface ResetLinkModalProps {
   email: string
   onNavSignIn: (email: string) => void
 }
+
 export interface ScanCodeModalProps {
   onSignInNav: () => void
   onTelSubmit: (tel: string) => void
@@ -120,54 +110,10 @@ export interface FitModalProps {
   onClose: () => void
 }
 
-export type TryOnFrames = string[]
-
-export enum AvatarState {
-  NOT_CREATED = 'NOT_CREATED',
-  CREATED = 'CREATED',
-  PENDING = 'PENDING',
-}
-
-export type FirestoreColorwaySizeAsset = {
-  id: number
-  size_id: number
-  style_id: number
-  colorway_id: number
-  colorway_name: string
-  sku: string
-}
-
-export type FirestoreGarmentMeasurement = {
-  id: number
-  measurement_location: string
-  tolerance: number
-  value: number
-}
-
-export type FirestoreSize = {
-  id: number
-  size: string
-  label: string
-  size_system: string
-  size_value_id: string
-  garment_measurements: Map<string, FirestoreGarmentMeasurement>
-}
-
-export type FirestoreColorway = {
-  id: number
-  name: string
-}
-
-export type FirestoreStyle = {
-  id: number
-  brand_id: number
-  brand_style_id: string
-  name: string
-  description: string
-  garment_category: string
-  is_published: boolean
-  sale_type: string
-  colorways: { [key: number]: FirestoreColorway }
-  sizes: { [key: number]: FirestoreSize }
-  is_vto: boolean
-}
+export type {
+  FirestoreColorway,
+  FirestoreColorwaySizeAsset,
+  FirestoreGarmentMeasurement,
+  FirestoreSize,
+  FirestoreStyle,
+} from '../generated/api/responses'
