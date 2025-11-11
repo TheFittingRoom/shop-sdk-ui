@@ -1,7 +1,7 @@
 import { DocumentData, QueryFieldFilterConstraint, QuerySnapshot, where } from 'firebase/firestore'
 
 import * as types from '.'
-import { SizeFitRecommendation } from '../generated/api/responses'
+import { SizeFitRecommendation } from './gen/responses'
 import { Fetcher } from './fetcher'
 import { Firebase } from './firebase/firebase'
 import { getFirebaseError } from './firebase/firebase-error'

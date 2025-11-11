@@ -1,4 +1,4 @@
-import { AvatarStatusCreated, AvatarStatusNotCreated, AvatarStatusPending } from '../generated/api/enums'
+import { AvatarStatusCreated, AvatarStatusNotCreated, AvatarStatusPending } from './gen/enums'
 
 export { TFRShop, initShop } from './shop'
 export * from './measurement'
@@ -23,4 +23,4 @@ export type {
   FirestoreStyleGarmentCategory,
   FirestoreStyleCategory,
   FirestoreMeasurementLocation as FirestoreGarmentMeasurementLocation,
-} from '../generated/api/responses'
+} from './gen/responses'

@@ -2,7 +2,7 @@
 import { TryOnFrames } from '../api'
 import { ModalManager } from '../components'
 import { UIError } from '../components/uiError'
-import type { FirestoreUser } from '../generated/api/responses'
+import type { FirestoreUser } from '../api/gen/responses'
 
 export const TFRLogo = import.meta.env.VITE_ASSETS_URL + '/tfr-logo.svg'
 export const AposeLogo = import.meta.env.VITE_ASSETS_URL + '/apose-logo.svg'
@@ -77,7 +77,7 @@ export interface ModalContent {
   Unhook(): void
   useFullModalContent: boolean
 }
-export interface ModalProps {}
+export interface ModalProps { }
 export interface SignInParams {
   email: string
   password: string
@@ -145,6 +145,6 @@ export type {
   FirestoreSize,
   FirestoreStyle,
   FirestoreUser,
-} from '../generated/api/responses'
+} from '../api/gen/responses'
 
 export { AvatarState, TryOnFrames } from '../api'
