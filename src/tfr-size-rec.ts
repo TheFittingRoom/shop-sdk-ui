@@ -1,8 +1,7 @@
-import { types as ShopTypes, TfrShop } from '@thefittingroom/sdk'
-
+import { Fit, FitNames, TFRShop } from './api'
 import { RecommendedSize, SizeRecComponent } from './components/SizeRec'
 
-export type TfrCssVariables = {
+export type TFRCssVariables = {
   brandColor?: string
   black?: string
   red?: string
@@ -39,14 +38,14 @@ export type TfrCssVariables = {
   sizeSelectorButtonShadow?: string
 }
 
-export class TfrSizeRec {
+export class TFRSizeRec {
   private readonly sizeRecComponent: SizeRecComponent
-  private readonly perfectFits = [ShopTypes.Fit.PERFECT_FIT, ShopTypes.Fit.SLIGHTLY_LOOSE, ShopTypes.Fit.SLIGHTLY_TIGHT]
+  private readonly perfectFits = [Fit.PERFECT_FIT, Fit.SLIGHTLY_LOOSE, Fit.SLIGHTLY_TIGHT]
 
   constructor(
     sizeRecMainDivId: string,
-    cssVariables: TfrCssVariables,
-    private readonly tfrShop: TfrShop,
+    cssVariables: TFRCssVariables,
+    private readonly tfrShop: TFRShop,
     private readonly onSignInClick: () => void,
     private readonly onSignOutClick: () => void,
     private readonly onFitInfoClick: () => void,
@@ -121,7 +120,7 @@ export class TfrSizeRec {
 
   public async getStyleMeasurementLocations(filledLocations: string[]): Promise<string[]> {
     try {
-      const locations = await this.tfrShop.getStyleMeasurementLocationsFromSku(this.sku, filledLocations)
+      const locations = await this.tfrShop.getMeasurementLocationsFromSku(this.sku, filledLocations)
 
       return locations
     } catch (error) {
@@ -154,7 +153,7 @@ export class TfrSizeRec {
               const fitLabel =
                 typeof locationFit.fit_label === 'string' && locationFit.fit_label
                   ? locationFit.fit_label
-                  : ShopTypes.FitNames[locationFit.fit]
+                  : FitNames[locationFit.fit]
 
               return {
                 fit: fitLabel,
@@ -169,7 +168,7 @@ export class TfrSizeRec {
     }
   }
 
-  private setCssVariables(cssVariables: TfrCssVariables) {
+  private setCssVariables(cssVariables: TFRCssVariables) {
     const r = document.querySelector<HTMLElement>(':root')
 
     if (cssVariables.brandColor) r.style.setProperty('--tfr-brand-color', cssVariables.brandColor)

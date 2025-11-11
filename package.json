@@ -32,7 +32,8 @@
     "tslib": "^2.6.3",
     "typescript": "^5.5.4"
   },
-     "dependencies": {
-       "@thefittingroom/sdk": "file:../shop-sdk"
-     }
+  "dependencies": {
+    "firebase": "^10.12.2",
+    "dayjs": "^1.11.11"
   }
+}

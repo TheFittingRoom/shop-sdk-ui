@@ -25,7 +25,7 @@ var L = {
   ReturnToCatalogPage: 'Return to Catalog Page',
   ReturnToProductPage: 'Return to Product Page',
   ReturnToSite: 'Return to site',
-  ReturnToTfr: 'Please return to The Fitting Room app to create your avatar.',
+  ReturnToTFR: 'Please return to The Fitting Room app to create your avatar.',
   ScanQrToDownload: 'Scan to download the app',
   Send: 'Send',
   SignBackIn: 'Sign back in',

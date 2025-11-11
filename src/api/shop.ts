@@ -1,12 +1,12 @@
 import { DocumentData, QueryFieldFilterConstraint, QuerySnapshot, where } from 'firebase/firestore'
 
+import * as types from '.'
+import { SizeFitRecommendation } from '../generated/api/responses'
+import { Fetcher } from './fetcher'
 import { Firebase } from './firebase/firebase'
 import { getFirebaseError } from './firebase/firebase-error'
 import { Config } from './helpers/config'
 import * as Errors from './helpers/errors'
-import * as types from '.'
-import { Fetcher } from './fetcher'
-import { SizeFitRecommendation } from '../generated/api/responses'
 import { testImage } from './utils'
 
 export class TFRShop {
@@ -94,19 +94,25 @@ export class TFRShop {
     }
   }
 
-  public async getStyleMeasurementLocationsFromSku(sku: string, filledLocations: string[] = []): Promise<string[]> {
+  public async getMeasurementLocationsFromSku(sku: string, filledLocations: string[] = []): Promise<string[]> {
     const colorwaySizeAsset = await this.getColorwaySizeAssetFromSku(sku)
     if (!colorwaySizeAsset) throw new Error('No colorway size asset found for sku')
 
-    const style = await this.getStyle(colorwaySizeAsset.style_id)
+    const style = await this.GetStyle(colorwaySizeAsset.style_id)
     if (!style) throw new Error('Style category not found for style id')
 
-    const taxonomy = await this.getGetTaxonomy(style.style_cate)
-    if (!taxonomy) throw new Error('Taxonomy not found for style garment category id')
+    const styleGarmentCategory = await this.GetStyleGarmentCategory(style.id)
+    if (!styleGarmentCategory) throw new Error('Taxonomy not found for style garment category id')
+
+    const userProfile = this.isLoggedIn ? await this.user.getUserProfile() : null
+    const gender = userProfile?.gender || 'female'
+    const measurementLocations = styleGarmentCategory[
+      `measurement_locations_${gender}` as keyof typeof styleGarmentCategory
+    ] as string[]
 
     const filteredLocations = !filledLocations.length
-      ? taxonomy.measurement_locations.female
-      : taxonomy.measurement_locations.female.filter((location) => filledLocations.includes(location))
+      ? measurementLocations
+      : measurementLocations.filter((location) => filledLocations.includes(location))
 
     const locationsWithSortOrder = filteredLocations.map((location) => {
       return this.measurementLocations.has(location)
@@ -125,17 +131,16 @@ export class TFRShop {
       constraints.push(where('brand_style_id', '==', brandStyleId))
       const querySnapshot = await this.firebase.getDocs('styles', constraints)
 
-      return querySnapshot.docs?.[0]?.data() as types.FirestoreStyleCategory
+      return querySnapshot.docs?.[0]?.data() as types.FirestoreStyle
     } catch (error) {
       return getFirebaseError(error)
     }
   }
 
-  public async getStyle(styleId: number) {
+  public async GetStyle(styleId: number) {
     try {
       const doc = await this.firebase.getDoc('styles', String(styleId))
-
-      return doc as types.FirestoreStyleCategory
+      return doc as types.FirestoreStyle
     } catch (error) {
       return getFirebaseError(error)
     }
@@ -177,11 +182,31 @@ export class TFRShop {
     }
   }
 
-  private async getGetTaxonomy(styleId: number) {
+  public async GetStyleGarmentCategory(styleId: number) {
     try {
       const doc = await this.firebase.getDoc('style_garment_categories', String(styleId))
 
-      return doc as types.FirestoreStyleGarmentCategory
+      return doc as types.FirestoreStyle
+    } catch (error) {
+      return getFirebaseError(error)
+    }
+  }
+
+  public async GetStyleCategory(id: number) {
+    try {
+      const doc = await this.firebase.getDoc('style_categories', String(id))
+
+      return doc as types.FirestoreStyle
+    } catch (error) {
+      return getFirebaseError(error)
+    }
+  }
+
+  public async GetGarmentCategory(id: number) {
+    try {
+      const doc = await this.firebase.getDoc('garment_categories', String(id))
+
+      return doc as any
     } catch (error) {
       return getFirebaseError(error)
     }
@@ -250,7 +275,7 @@ export class TFRShop {
 }
 
 export const initShop = (brandId: number, env: string = 'dev') => {
-  if (env === 'dev' || env === 'development') console.warn('TfrShop is in development mode')
+  if (env === 'dev' || env === 'development') console.warn('TFRShop is in development mode')
 
   Config.getInstance().setEnv(env)
 

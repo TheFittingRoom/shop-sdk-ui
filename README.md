@@ -24,7 +24,7 @@ const shopId: number = 9001
 
 // CSS Variable
 
-export type TfrCssVariables = {
+export type TFRCssVariables = {
   // Colors
   brandColor?: string
   black?: string
@@ -69,7 +69,7 @@ export type TfrCssVariables = {
 
 // UI Hooks
 // These are used to hook into the lifecycle methods within the shop UI
-const hooks: TfrHooks = {
+const hooks: TFRHooks = {
   onLoading: () => {},
   onLoadingComplete: () => {},
   onError: (error: string) => {},

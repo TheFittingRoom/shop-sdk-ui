@@ -1,10 +1,9 @@
-import { FirebaseUser, TfrShop } from '@thefittingroom/sdk'
-
 import { TryOnFrames } from '../api'
 import { ModalManager } from '../components'
 import { UIError } from '../components/uiError'
+import type { FirestoreUser } from '../generated/api/responses'
 
-export const TfrLogo = process.env.ASSETS_URL + '/tfr-logo.svg'
+export const TFRLogo = process.env.ASSETS_URL + '/tfr-logo.svg'
 export const AposeLogo = process.env.ASSETS_URL + '/apose-logo.svg'
 export const AppStoreLogo = process.env.ASSETS_URL + '/app-store-logo.svg'
 export const QrCodeLogo = process.env.ASSETS_URL + '/qr-code-logo.svg'
@@ -20,7 +19,7 @@ export interface RecommendedAvailableSizes {
   available_sizes: string[]
 }
 export interface FittingRoom {
-  shop: TfrShop
+  shop: any
   manager: ModalManager
   onSignout(colorwaySizeAssetSKU: string): () => Promise<void>
   onClose(): void
@@ -34,9 +33,37 @@ export interface FittingRoom {
   whenTryOnLoading(colorwaySizeAssetSKU: string): void
   whenTryOnFailed(colorwaySizeAssetSKU: string, error: Error): void
   whenError(colorwaySizeAssetSKU: string, error: UIError): void
-  whenSignedIn(user: FirebaseUser, colorwaySizeAssetSKU: string): void
+  whenSignedIn(user: FirestoreUser, colorwaySizeAssetSKU: string): void
   whenSignedOut(colorwaySizeAssetSKU: string): void
-  onSignIn(colorwaySizeAssetSKU: string): (username: string, password: string, validation: (message: string) => void) => void
+  onSignIn(
+    colorwaySizeAssetSKU: string,
+  ): (username: string, password: string, validation: (message: string) => void) => void
+  onNavSignIn(colorwaySizeAssetSKU: string): (email: string) => void
+  onPasswordReset(colorwaySizeAssetSKU: string): (email: string) => void
+  onNavForgotPassword(colorwaySizeAssetSKU: string): (email: string) => void
+  onNavScanCode(colorwaySizeAssetSKU: string): void
+  TryOn(colorwaySizeAssetSKU: string): void
+}
+export interface FittingRoom {
+  shop: any
+  manager: ModalManager
+  onSignout(colorwaySizeAssetSKU: string): () => Promise<void>
+  onClose(): void
+  onNavBack(): void
+  onTryOn(colorwaySizeAssetSKU: string): void
+  whenAvatarNotCreated(colorwaySizeAssetSKU: string): void
+  whenAvatarPending(colorwaySizeAssetSKU: string): void
+  whenAvatarCreated(colorwaySizeAssetSKU: string): void
+  whenNotSignedIn(colorwaySizeAssetSKU: string): void
+  whenTryOnReady(colorwaySizeAssetSKU: string, frames: TryOnFrames): void
+  whenTryOnLoading(colorwaySizeAssetSKU: string): void
+  whenTryOnFailed(colorwaySizeAssetSKU: string, error: Error): void
+  whenError(colorwaySizeAssetSKU: string, error: UIError): void
+  whenSignedIn(user: FirestoreUser, colorwaySizeAssetSKU: string): void
+  whenSignedOut(colorwaySizeAssetSKU: string): void
+  onSignIn(
+    colorwaySizeAssetSKU: string,
+  ): (username: string, password: string, validation: (message: string) => void) => void
   onNavSignIn(colorwaySizeAssetSKU: string): (email: string) => void
   onPasswordReset(colorwaySizeAssetSKU: string): (email: string) => void
   onNavForgotPassword(colorwaySizeAssetSKU: string): (email: string) => void
@@ -116,4 +143,7 @@ export type {
   FirestoreGarmentMeasurement,
   FirestoreSize,
   FirestoreStyle,
+  FirestoreUser,
 } from '../generated/api/responses'
+
+export { AvatarState, TryOnFrames } from '../api'

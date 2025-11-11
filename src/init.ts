@@ -1,13 +1,13 @@
-import { FittingRoom, TfrHooks } from './tfr'
-import { TfrCssVariables } from './tfr-size-rec'
+import { FittingRoom, TFRHooks } from './tfr'
+import { TFRCssVariables } from './tfr-size-rec'
 
 export type TrfConfig = {
   shopId: string | number
   modalDivId: string
   sizeRecMainDivId: string
   vtoMainDivId: string
-  hooks?: TfrHooks
-  cssVariables?: TfrCssVariables
+  hooks?: TFRHooks
+  cssVariables?: TFRCssVariables
   env?: string
 }
 

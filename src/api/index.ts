@@ -1,5 +1,6 @@
 import { AvatarStatusCreated, AvatarStatusNotCreated, AvatarStatusPending } from '../generated/api/enums'
 
+export { TFRShop, initShop } from './shop'
 export * from './measurement'
 
 export type TryOnFrames = string[]

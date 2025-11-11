@@ -1,7 +1,7 @@
 import * as modals from './components'
 import * as types from './types'
 
-export class TfrModal {
+export class TFRModal {
   private readonly manager: modals.ModalManager
 
   constructor(

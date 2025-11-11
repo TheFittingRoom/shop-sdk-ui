@@ -1,14 +1,12 @@
-import { types as ShopTypes, TfrShop, initShop } from '@thefittingroom/sdk'
-import { FirestoreStyleCategory } from '@thefittingroom/sdk/dist/esm/types'
-
-import { VtoComponent } from './components/Vto'
+import { initShop, FirestoreStyle } from './api'
+import { VtoComponent } from './components/VTO'
 import { L } from './components/locale'
 import { validateEmail, validatePassword } from './helpers/validations'
-import { TfrModal } from './tfr-modal'
-import { TfrCssVariables, TfrSizeRec } from './tfr-size-rec'
+import { TFRModal } from './tfr-modal'
+import { TFRCssVariables, TFRSizeRec } from './tfr-size-rec'
 import * as types from './types'
 
-export interface TfrHooks {
+export interface TFRHooks {
   onLoading?: () => void
   onLoadingComplete?: () => void
   onError?: (error: string) => void
@@ -22,13 +20,13 @@ export class FittingRoom {
   private isMiddleVtoActive: boolean = false
   private manualListeningOverride: boolean = false
 
-  public style: FirestoreStyleCategory
+  public style: FirestoreStyle
   public colorwaySizeAsset: types.FirestoreColorwaySizeAsset
 
-  public readonly tfrModal: TfrModal
-  public readonly tfrSizeRec: TfrSizeRec
+  public readonly tfrModal: TFRModal
+  public readonly tfrSizeRec: TFRSizeRec
   private readonly vtoComponent: VtoComponent
-  private readonly tfrShop: TfrShop
+  private readonly tfrShop: any
   private unsub: () => void = null
 
   constructor(
@@ -36,8 +34,8 @@ export class FittingRoom {
     modalDivId: string,
     sizeRecMainDivId: string,
     vtoMainDivId: string,
-    private readonly hooks: TfrHooks = {},
-    cssVariables: TfrCssVariables,
+    private readonly hooks: TFRHooks = {},
+    cssVariables: TFRCssVariables,
     _env?: string,
   ) {
     // prettier-ignore
@@ -49,14 +47,14 @@ export class FittingRoom {
 
     console.log('tfr-env', env)
 
-    this.tfrModal = new TfrModal(
+    this.tfrModal = new TFRModal(
       modalDivId,
       this.signIn.bind(this),
       this.forgotPassword.bind(this),
       this.submitTel.bind(this),
     )
     this.tfrShop = initShop(Number(this.shopId), env)
-    this.tfrSizeRec = new TfrSizeRec(
+    this.tfrSizeRec = new TFRSizeRec(
       sizeRecMainDivId,
       cssVariables,
       this.tfrShop,
@@ -198,8 +196,8 @@ export class FittingRoom {
     this.tfrModal.toPasswordReset()
   }
 
-  public async getStyleMeasurementLocationsFromSku(sku: string) {
-    return this.tfrShop.getStyleMeasurementLocationsFromSku(sku)
+  public async getMeasurementLocationsFromSku(sku: string) {
+    return this.tfrShop.getMeasurementLocationsFromSku(sku, [])
   }
 
   public onSignInClick() {
@@ -234,7 +232,7 @@ export class FittingRoom {
     this.updateFirestoreSubscription()
   }
 
-  private onUserProfileChange(userProfile: ShopTypes.FirestoreUser) {
+  private onUserProfileChange(userProfile: types.FirestoreUser) {
     switch (userProfile.avatar_status as types.AvatarState) {
       case types.AvatarState.NOT_CREATED:
         if (this.hooks?.onError) this.hooks.onError(L.DontHaveAvatar)
@@ -282,11 +280,11 @@ export class FittingRoom {
   }
 
   public async cacheMeasurementLocations(filledLocations: string[]) {
-    const garmentLocations = await this.tfrShop.getStyleMeasurementLocationsFromSku(this.sku, filledLocations)
+    const garmentLocations = await this.tfrShop.getMeasurementLocationsFromSku(this.sku, filledLocations)
     this.tfrSizeRec.setStyleMeasurementLocations(garmentLocations)
   }
 
-  public styleToGarmentMeasurementLocations(style: FirestoreStyleCategory) {
+  public styleToGarmentMeasurementLocations(style: FirestoreStyle) {
     return style.sizes[0].garment_measurements.map((measurement) => measurement.measurement_location)
   }
 
@@ -294,7 +292,7 @@ export class FittingRoom {
     this.tfrSizeRec.setStyleMeasurementLocations(measurementLocations)
   }
 
-  private async getStyleFromColorwaySizeAssetSku(sku: string) {
+  private async getStyleFromColorwaySizeAssetSku(sku: string): Promise<FirestoreStyle | null> {
     try {
       const colorwaySizeAsset = await this.tfrShop.getColorwaySizeAssetFromSku(sku)
       const style = await this.tfrShop.getStyle(colorwaySizeAsset.style_id)
