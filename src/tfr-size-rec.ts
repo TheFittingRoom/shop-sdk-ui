@@ -94,13 +94,9 @@ export class TFRSizeRec {
     this.sizeRecComponent.show()
   }
 
-  public async startSizeRecommendation() {
+  public async startSizeRecommendation(styleId: number) {
     try {
-      const colorwaySizeAsset = await this.tfrShop.getColorwaySizeAssetFromSku(this.sku)
-      this.setStyleId(colorwaySizeAsset.style_id)
-      if (!this.styleId) {
-        throw new Error('this.styleId')
-      }
+      this.setStyleId(styleId)
       this.sizeRecComponent.setLoading(true)
       const sizes = await this.getRecommendedSizes(this.styleId)
       if (!sizes) {

@@ -5,7 +5,7 @@ import { VtoComponent } from './components/VTO'
 import { L } from './components/locale'
 import { validateEmail, validatePassword } from './helpers/validations'
 import { TFRModal } from './tfr-modal'
-import { TFRCssVariables, TFRSizeRec } from './tfr-size-rec'
+import { TFRCssVariables, TFRSizeRec as TFRSizeRecommendation } from './tfr-size-rec'
 import * as types from './types'
 
 export interface TFRHooks {
@@ -27,7 +27,7 @@ export class FittingRoom {
   public colorwaySizeAsset: types.FirestoreColorwaySizeAsset
 
   public readonly tfrModal: TFRModal
-  public readonly tfrSizeRec: TFRSizeRec
+  public readonly tfrSizeRec: TFRSizeRecommendation
   private readonly vtoComponent: VtoComponent
   private readonly tfrShop: any
   private unsub: () => void = null
@@ -57,7 +57,7 @@ export class FittingRoom {
       this.submitTel.bind(this),
     )
     this.tfrShop = initShop(Number(this.shopId), env)
-    this.tfrSizeRec = new TFRSizeRec(
+    this.tfrSizeRec = new TFRSizeRecommendation(
       sizeRecMainDivId,
       cssVariables,
       this.tfrShop,
@@ -105,17 +105,15 @@ export class FittingRoom {
       console.debug('style published:', this.style.id)
     }
 
-    // Check if style supports VTO (assuming all styles support it for now)
     if (this.style.is_vto) {
       document.getElementById('tfr-try-on-button')?.classList.remove('hide')
       console.debug('vto enabled:', this.style.id)
     }
 
     if (this.isLoggedIn) {
-      this.tfrSizeRec.startSizeRecommendation()
+      this.tfrSizeRec.startSizeRecommendation(this.style.id)
     } else {
-      const style = await this.getStyleFromColorwaySizeAssetSku(sku)
-      const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(style)
+      const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
       this.setStyleMeasurementLocations(styleMeasurementLocations)
     }
   }
@@ -171,7 +169,7 @@ export class FittingRoom {
 
       // Only start size recommendation if we have a valid style
       if (this.style) {
-        this.tfrSizeRec.startSizeRecommendation()
+        this.tfrSizeRec.startSizeRecommendation(this.style.id)
       }
       // Don't auto-subscribe - wait for middle VTO to be displayed
       this.updateFirestoreSubscription()
