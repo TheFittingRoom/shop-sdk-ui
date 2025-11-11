@@ -18,7 +18,7 @@ const InitModalManager = (elementID: string): ModalManager => {
   let previousContent: ModalContent
 
   const renderBody = (modalBody: string, useFullModalContent: boolean) => {
-    console.log({ useFullModalContent })
+    console.debug({ useFullModalContent })
     return `
         <div class="tfr-modal" id="tfr-modal-background">
             <div class="tfr-modal-content-container tfr-p-20">

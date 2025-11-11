@@ -175,7 +175,7 @@
 }
 
 .tfr-size-rec-select-button:hover:not(.active):not(.tfr-disabled) {
-  opacity: 0.7;
+  opacity: 0.8;
   background-color: var(--tfr-size-selector-bg-color-hover);
 }
 
@@ -264,7 +264,7 @@
 .tfr-try-on-button:disabled,
 .tfr-try-on-button.loading {
   cursor: not-allowed;
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 .tfr-try-on-button.hide {

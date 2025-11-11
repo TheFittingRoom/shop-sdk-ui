@@ -47,7 +47,7 @@ export class FittingRoom {
         ? 'prod'
         : 'dev'
 
-    console.log('tfr-env', env)
+    console.debug('env:', env)
 
     this.tfrModal = new TFRModal(
       modalDivId,
@@ -78,14 +78,17 @@ export class FittingRoom {
   }
 
   public async setSku(sku: string) {
-    console.log('setting sku:', sku)
+    const userInfo = this.tfrShop.isLoggedIn
+      ? `user:${this.tfrShop.user?.id} ${this.tfrShop.user?.first_name}`
+      : 'not logged in'
+    console.debug('setSku:', sku, userInfo)
     this.tfrSizeRec.setSku(sku)
 
     if (!this.style) {
-      console.log('no style cached, fetching for sku:', this.sku)
+      console.debug('fetching style for sku:', this.sku)
       this.style = await this.getStyleFromColorwaySizeAssetSku(this.sku)
     } else {
-      console.log('style already cached:', this.style)
+      console.debug('style cached')
     }
 
     if (!this.style) {
@@ -96,15 +99,15 @@ export class FittingRoom {
 
     if (!this.style.is_published) {
       document.getElementById('tfr-size-recommendations').style.display = 'none'
-      console.log(`style ${this.style.id} is not published`)
+      console.debug(`style ${this.style.id} is not published`)
     } else {
-      console.log(`style ${this.style.id} is published`)
+      console.debug('style published:', this.style.id)
     }
 
     // Check if style supports VTO (assuming all styles support it for now)
     if (this.style.is_vto) {
       document.getElementById('tfr-try-on-button')?.classList.remove('hide')
-      console.log(`style ${this.style.id} virtual try on is enabled`)
+      console.debug('vto enabled:', this.style.id)
     }
 
     if (this.isLoggedIn) {
@@ -298,18 +301,14 @@ export class FittingRoom {
   }
 
   private async getStyleFromColorwaySizeAssetSku(sku: string): Promise<FirestoreStyle | null> {
-    console.log('getting style for sku:', sku)
+    console.debug('getStyleFromColorwaySizeAssetSku', sku)
     try {
-      console.log('trying to get colorway size asset for sku:', sku)
       const colorwaySizeAsset = await this.tfrShop.getColorwaySizeAssetFromSku(sku)
-      console.log('got colorway size asset:', colorwaySizeAsset)
-      console.log('getting style for style_id:', colorwaySizeAsset.style_id)
       const style = await this.tfrShop.GetStyle(colorwaySizeAsset.style_id)
-      console.log('got style:', style)
-
+      console.debug('style:', style.id)
       return style
     } catch (e) {
-      console.log('failed to get colorway size asset or style, error:', e)
+      console.debug('get style failed:', sku, e.message)
       return null
     }
   }

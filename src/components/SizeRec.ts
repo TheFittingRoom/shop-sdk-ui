@@ -193,15 +193,10 @@ export class SizeRecComponent {
     if (!tryOnButton) return
 
     if (!this.isLoggedIn) {
-      tryOnButton.setAttribute('disabled', 'true')
+      ;(tryOnButton as HTMLButtonElement).disabled = true
     }
 
     tryOnButton.addEventListener('click', async () => {
-      // Prevent multiple clicks while loading
-      if (tryOnButton.classList.contains('loading')) {
-        return
-      }
-
       const activeButton = document.querySelector('.tfr-size-rec-select-button.active')
       if (!activeButton) return
 
@@ -215,7 +210,7 @@ export class SizeRecComponent {
       tryOnButton.classList.add('loading')
       const originalText = tryOnButton.textContent
       tryOnButton.textContent = ' '
-      tryOnButton.setAttribute('disabled', 'true')
+      ;(tryOnButton as HTMLButtonElement).disabled = true
 
       try {
         // Get all size buttons
@@ -248,11 +243,11 @@ export class SizeRecComponent {
           vtoPromises.push(this.onTryOnClick(selectedSku, true))
 
           // Fetch all VTOs simultaneously
-          try {
-            await Promise.all(vtoPromises)
-          } catch (e) {
-            console.error('Error during simultaneous VTO fetching:', e)
-          }
+          // try {
+          //   await Promise.all(vtoPromises)
+          // } catch (e) {
+          //   console.error('Error during simultaneous VTO fetching:', e)
+          // }
         }
       } catch (error) {
         console.error('Error during sequential try-on process:', error)
@@ -260,7 +255,7 @@ export class SizeRecComponent {
         // Reset loading state
         tryOnButton.classList.remove('loading')
         tryOnButton.textContent = originalText
-        tryOnButton.removeAttribute('disabled')
+        ;(tryOnButton as HTMLButtonElement).disabled = false
       }
     })
   }
@@ -436,7 +431,7 @@ export class SizeRecComponent {
 
                           <div id="tfr-size-rec-table"></div>
 
-                          <div id="tfr-try-on-button" class="tfr-try-on-button">Try On</div>
+                          <button id="tfr-try-on-button" class="tfr-try-on-button">Try On</button>
                         </div>
                       </div>
 

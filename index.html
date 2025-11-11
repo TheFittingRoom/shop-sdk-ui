@@ -95,19 +95,19 @@
 
     // Callback functions for modals
     window.onSignout = (colorwaySizeAssetSKU) => {
-      console.log('signout', colorwaySizeAssetSKU)
+      console.debug('signout', colorwaySizeAssetSKU)
     }
     window.onClose = () => {
-      console.log('close')
+      console.debug('close')
     }
     window.onNavBack = () => {
-      console.log('back')
+      console.debug('back')
     }
     window.onTryOn = (colorwaySizeAssetSKU) => {
-      console.log('try on', colorwaySizeAssetSKU)
+      console.debug('try on', colorwaySizeAssetSKU)
     }
     window.whenSignedIn = (user, colorwaySizeAssetSKU) => {
-      console.log('after sign in', user, colorwaySizeAssetSKU)
+      console.debug('after sign in', user, colorwaySizeAssetSKU)
     }
     window.onSignIn = (colorwaySizeAssetSKU) => (username, password, validationError) => {
       if (username.length == 0 || password.length == 0) {
@@ -115,16 +115,16 @@
       }
     }
     window.onNavSignIn = (colorwaySizeAssetSKU) => (email) => {
-      console.log('nav sign in', colorwaySizeAssetSKU, email)
+      console.debug('nav sign in', colorwaySizeAssetSKU, email)
     }
     window.onPasswordReset = (colorwaySizeAssetSKU) => (email) => {
-      console.log('password reset', colorwaySizeAssetSKU, email)
+      console.debug('password reset', colorwaySizeAssetSKU, email)
     }
     window.onNavForgotPassword = (colorwaySizeAssetSKU) => (email) => {
-      console.log('nav forgot password', colorwaySizeAssetSKU, email)
+      console.debug('nav forgot password', colorwaySizeAssetSKU, email)
     }
     window.onNavScanCode = () => {
-      console.log('nav scan code')
+      console.debug('nav scan code')
     }
 
     const brandID = 1
@@ -160,7 +160,7 @@
           console.error('Error in getSku: Size input element (options[Size]) not found on the page.')
         }
 
-        console.log('variants', productVariants)
+        console.debug('variants', productVariants)
 
         if (typeof productVariants === 'undefined' || !Array.isArray(productVariants)) {
           throw new Error(
@@ -168,22 +168,24 @@
           )
         }
 
-        const variant = productVariants.find((item) => {
-          console.log('searching item', item)
+        const activeVariant = productVariants.find((item) => {
+          console.debug('searching item', item)
           const hasSizeMatch = !size || item.option1 === size || item.option2 === size
           const hasColorMatch = !color || item.option1 === color || item.option2 === color
           return hasSizeMatch && hasColorMatch
         })
 
-        if (!variant) {
+        if (!activeVariant) {
           throw new Error(
             'No product variant found for the selected color and size combination. Please check product data.',
           )
         }
 
-        console.log({ color, size, variant })
-        console.log('sku', variant?.sku)
-        return variant?.sku
+        console.debug("color", activeVariant.color)
+        console.debug("size", activeVariant.size)
+        console.debug("variant", activeVariant.variant)
+        console.debug('sku', activeVariant?.sku)
+        return activeVariant?.sku
       } catch (error) {
         console.error(`Error in getSku: ${error.message}. SKU retrieval failed.`)
         return null
@@ -244,7 +246,6 @@
             'SKU not retrieved. The Fitting Room will initialize but may not function optimally without a specific SKU.',
           )
         }
-        console.log('getSku', sku)
 
         const tfr = await initFittingRoom(config)
         if (sku) {
@@ -260,7 +261,7 @@
             const newSku = getSku()
             if (newSku && tfr) {
               tfr.setSku(newSku)
-              console.log('SKU updated to:', newSku)
+              console.debug('SKU updated to:', newSku)
             }
           })
         }
@@ -270,7 +271,7 @@
             const newSku = getSku()
             if (newSku && tfr) {
               tfr.setSku(newSku)
-              console.log('SKU updated to:', newSku)
+              console.debug('SKU updated to:', newSku)
             }
           })
         }
