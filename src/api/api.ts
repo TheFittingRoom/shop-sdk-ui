@@ -15,7 +15,7 @@ import { FirebaseUser } from './helpers/firebase/user'
 import { getFirebaseError } from './helpers/firebase/error'
 import { Config } from './helpers/config'
 import * as Errors from './helpers/errors'
-import { testImage } from './utils'
+import { testImage } from './helpers/utils'
 
 export class TFRAPI {
   private measurementLocations: Map<string, { name: string; sort_order: number }> = new Map()
