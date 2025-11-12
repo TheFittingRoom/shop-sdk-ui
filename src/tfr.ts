@@ -5,7 +5,7 @@ import { VtoComponent } from './components/virtualTryOn'
 import { L } from './components/locale'
 import { validateEmail, validatePassword } from './helpers/validations'
 import { TFRModal } from './components/ModalController'
-import { TFRSizeRec as TFRSizeRecommendation, TFRCssVariables } from './components/SizeRecommendationController'
+import { TFRSizeRec as TFRSizeRecommendationController, TFRCssVariables } from './components/SizeRecommendationController'
 
 export interface TFRHooks {
   onLoading?: () => void
@@ -25,7 +25,7 @@ export class FittingRoom {
   public colorwaySizeAsset: FirestoreColorwaySizeAsset
 
   public readonly tfrModal: TFRModal
-  public readonly tfrSizeRec: TFRSizeRecommendation
+  public readonly tfrSizeRec: TFRSizeRecommendationController
   private readonly vtoComponent: VtoComponent
   private readonly tfrAPI: any
   private unsub: () => void = null
@@ -58,7 +58,7 @@ export class FittingRoom {
 
     if (vtoMainDivId) this.vtoComponent = new VtoComponent(vtoMainDivId)
 
-    this.tfrSizeRec = new TFRSizeRecommendation(
+    this.tfrSizeRec = new TFRSizeRecommendationController(
       sizeRecMainDivId,
       cssVariables,
       this.tfrAPI,

@@ -1,5 +1,5 @@
 import { FittingRoom, TFRHooks } from './tfr'
-import { TFRCssVariables } from './tfr-size-rec'
+import { TFRCssVariables } from './components/SizeRecommendationController'
 
 export type TrfConfig = {
   shopId: string | number
