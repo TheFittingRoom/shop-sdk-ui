@@ -1,4 +1,4 @@
-import { ModalContent } from '../../types'
+import { ModalContent } from '../types'
 import { L } from '../locale'
 
 const NoAvatarModal = (): ModalContent => {

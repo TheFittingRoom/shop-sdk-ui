@@ -1,4 +1,4 @@
-import { FirestoreStyle, initShop } from './api'
+import { FirestoreStyle, initShop, TryOnFrames, FirestoreColorwaySizeAsset, FirestoreUser, AvatarState } from './api'
 /// <reference types="vite/client" />
 
 import { VtoComponent } from './components/VTO'
@@ -6,13 +6,12 @@ import { L } from './components/locale'
 import { validateEmail, validatePassword } from './helpers/validations'
 import { TFRModal } from './tfr-modal'
 import { TFRCssVariables, TFRSizeRec as TFRSizeRecommendation } from './tfr-size-rec'
-import * as types from './types'
 
 export interface TFRHooks {
   onLoading?: () => void
   onLoadingComplete?: () => void
   onError?: (error: string) => void
-  onVtoReady?: (frames: types.TryOnFrames) => void
+  onVtoReady?: (frames: TryOnFrames) => void
   onLogin?: () => void
   onLogout?: () => void
 }
@@ -24,7 +23,7 @@ export class FittingRoom {
   private manualListeningOverride: boolean = false
 
   public style: FirestoreStyle
-  public colorwaySizeAsset: types.FirestoreColorwaySizeAsset
+  public colorwaySizeAsset: FirestoreColorwaySizeAsset
 
   public readonly tfrModal: TFRModal
   public readonly tfrSizeRec: TFRSizeRecommendation
@@ -248,18 +247,18 @@ export class FittingRoom {
     this.updateFirestoreSubscription()
   }
 
-  private onUserProfileChange(userProfile: types.FirestoreUser) {
-    switch (userProfile.avatar_status as types.AvatarState) {
-      case types.AvatarState.NOT_CREATED:
+  private onUserProfileChange(userProfile: FirestoreUser) {
+    switch (userProfile.avatar_status as AvatarState) {
+      case AvatarState.NOT_CREATED:
         if (this.hooks?.onError) this.hooks.onError(L.DontHaveAvatar)
         this.tfrModal.onNotCreated()
         break
 
-      case types.AvatarState.PENDING:
+      case AvatarState.PENDING:
         if (this.hooks?.onLoading) this.hooks.onLoading()
         break
 
-      case types.AvatarState.CREATED:
+      case AvatarState.CREATED:
         if (this.hooks?.onLoadingComplete) this.hooks.onLoadingComplete()
         break
 

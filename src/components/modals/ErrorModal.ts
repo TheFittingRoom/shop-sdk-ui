@@ -1,4 +1,4 @@
-import { ErrorModalProps } from '../../types'
+import { ErrorModalProps } from '../types'
 import { L } from '../locale'
 
 const ErrorModal = (props: ErrorModalProps) => {
@@ -28,18 +28,15 @@ const ErrorModal = (props: ErrorModalProps) => {
     }
     return `
         <div class="tfr-mt-15-p tfr-mb-13-p">
-            <div tfr-element="true" class="tfr-title-font tfr-light-22-300 tfr-c-black">${
-              error || L.SomethingWentWrong
-            }</div>
+            <div tfr-element="true" class="tfr-title-font tfr-light-22-300 tfr-c-black">${error || L.SomethingWentWrong
+      }</div>
         </div>
 
         <div class="tfr-t-a-center">
-            <span id="tfr-back" tfr-element="true" class="tfr-body-font tfr-16-default tfr-c-black-o5 tfr-underline tfr-cursor tfr-mr-20">${
-              L.ReturnToCatalogPage || 'Return to Catalog Page'
-            }</span>
-            <span id="tfr-close" tfr-element="true" class="tfr-body-font tfr-16-default tfr-c-black-o5 tfr-underline tfr-cursor" id="returnToSite">${
-              L.ReturnToProductPage || 'Return to Product Page'
-            }</span>
+            <span id="tfr-back" tfr-element="true" class="tfr-body-font tfr-16-default tfr-c-black-o5 tfr-underline tfr-cursor tfr-mr-20">${L.ReturnToCatalogPage || 'Return to Catalog Page'
+      }</span>
+            <span id="tfr-close" tfr-element="true" class="tfr-body-font tfr-16-default tfr-c-black-o5 tfr-underline tfr-cursor" id="returnToSite">${L.ReturnToProductPage || 'Return to Product Page'
+      }</span>
         </div>
         `
   }

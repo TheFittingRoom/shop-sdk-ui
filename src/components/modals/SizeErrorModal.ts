@@ -1,4 +1,4 @@
-import { ModalContent, SizeErrorModalProps } from '../../types'
+import { ModalContent, SizeErrorModalProps } from '../types'
 import { L } from '../locale'
 
 const SizeErrorModal = (props: SizeErrorModalProps): ModalContent => {
@@ -30,12 +30,10 @@ const SizeErrorModal = (props: SizeErrorModalProps): ModalContent => {
         </div>
 
         <div class="tfr-t-a-center">
-            <span id="tfr-back" tfr-element="true" class="tfr-body-font tfr-16-default tfr-c-black-o5 tfr-underline tfr-cursor tfr-mr-20">${
-              L.ReturnToCatalogPage || 'Return to Catalog Page'
-            }</span>
-            <span id="tfr-close" tfr-element="true" class="tfr-body-font tfr-16-default tfr-c-black-o5 tfr-underline tfr-cursor">${
-              L.ReturnToProductPage || 'Return to Product Page'
-            }</span>
+            <span id="tfr-back" tfr-element="true" class="tfr-body-font tfr-16-default tfr-c-black-o5 tfr-underline tfr-cursor tfr-mr-20">${L.ReturnToCatalogPage || 'Return to Catalog Page'
+      }</span>
+            <span id="tfr-close" tfr-element="true" class="tfr-body-font tfr-16-default tfr-c-black-o5 tfr-underline tfr-cursor">${L.ReturnToProductPage || 'Return to Product Page'
+      }</span>
         </div>
         `
   }

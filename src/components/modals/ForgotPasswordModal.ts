@@ -1,4 +1,4 @@
-import { ForgotPasswordModalProps, ModalContent } from '../../types'
+import { ForgotPasswordModalProps, ModalContent } from '../types'
 import { L } from '../locale'
 
 const ForgotPasswordModal = (props: ForgotPasswordModalProps): ModalContent => {

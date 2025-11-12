@@ -1,4 +1,4 @@
-import { FitModalProps, ModalContent } from '../../types'
+import { FitModalProps, ModalContent } from '../types'
 import { tfrDoor } from '../svgs'
 
 const FitModal = (props: FitModalProps): ModalContent => {

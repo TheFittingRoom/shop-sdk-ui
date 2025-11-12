@@ -1,5 +1,5 @@
 import { InitImageSlider } from '../../components/slider'
-import { ModalContent, TryOnModalProps } from '../../types'
+import { ModalContent, TryOnModalProps } from '../types'
 
 const TryOnModal = (props: TryOnModalProps): ModalContent => {
   let close = () => void 0

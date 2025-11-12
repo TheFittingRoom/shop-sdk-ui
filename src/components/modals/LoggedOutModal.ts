@@ -1,4 +1,4 @@
-import { LoggedOutModalProps, ModalContent } from '../../types'
+import { LoggedOutModalProps, ModalContent } from '../types'
 import { L } from '../locale'
 
 const LoggedOutModal = (props: LoggedOutModalProps): ModalContent => {

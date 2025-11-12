@@ -1,4 +1,4 @@
-import { ModalContent, ResetLinkModalProps } from '../../types'
+import { ModalContent, ResetLinkModalProps } from '../types'
 import { L } from '../locale'
 
 const ResetLinkModal = (props: ResetLinkModalProps): ModalContent => {

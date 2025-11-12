@@ -39,6 +39,9 @@ export {
   TryOnModal,
 }
 
+// Export all component types for external use
+export * from './components'
+
 // Export components as a comps object for backward compatibility
 export const comps = {
   ErrorModal,

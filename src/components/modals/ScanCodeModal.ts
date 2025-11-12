@@ -1,4 +1,4 @@
-import { ModalContent, ScanCodeModalProps } from '../../types'
+import { ModalContent, ScanCodeModalProps } from '../types'
 import { L } from '../locale'
 
 const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {

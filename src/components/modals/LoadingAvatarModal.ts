@@ -1,4 +1,4 @@
-import { LoadingAvatarModalProps, ModalContent } from '../../types'
+import { LoadingAvatarModalProps, ModalContent } from '../types'
 import { L } from '../locale'
 
 const LoadingAvatarModal = (props: LoadingAvatarModalProps): ModalContent => {

@@ -31,3 +31,4 @@ export {
 }
 
 export type { ModalManager }
+export * from './types'

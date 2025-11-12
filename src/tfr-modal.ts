@@ -1,5 +1,6 @@
 import * as modals from './components'
-import * as types from './types'
+import { TryOnFrames } from './api'
+import * as types from './components/types'
 
 export class TFRModal {
   private readonly manager: modals.ModalManager
@@ -68,7 +69,7 @@ export class TFRModal {
 
   public toPasswordReset() { }
 
-  public onTryOn(frames: types.TryOnFrames) {
+  public onTryOn(frames: TryOnFrames) {
     this.manager.open(
       modals.TryOnModal({
         frames,
