@@ -24,6 +24,7 @@ export class SizeRecComponent {
   private tfrShop: TFRAPI
   private vtoComponent: any = null
   private hasInitializedTryOn: boolean = false
+  private hasAttemptedTryOn: boolean = false
   private hasSuccessfulVTO: boolean = false
   private vtoFramesCache: Map<string, types.TryOnFrames> = new Map() // Cache for batch-loaded frames
 
@@ -222,7 +223,7 @@ export class SizeRecComponent {
     }
 
     try {
-      const frames = await this.tfrShop.tryOn(sku, this.allowVTORetry)
+      const frames = await this.tfrShop.tryOn(sku, this.hasAttemptedTryOn)
 
       if (shouldDisplay) {
         try {
@@ -266,7 +267,7 @@ export class SizeRecComponent {
 
     // Use optimized batch processing
     try {
-      const vtoResults = await this.tfrShop.tryOnBatch(skusToLoad, selectedSku, this.allowVTORetry)
+      const vtoResults = await this.tfrShop.tryOnBatch(skusToLoad, selectedSku, this.hasAttemptedTryOn)
 
       // Store results in local cache for instant switching
       vtoResults.forEach((frames, sku) => {
@@ -321,15 +322,16 @@ export class SizeRecComponent {
       this.hasInitializedTryOn = true
 
       try {
+        this.hasAttemptedTryOn = true
         await this.loadVTOForAvailableSizes()
         this.hasSuccessfulVTO = true
       } catch (error) {
         console.error('Error during try-on process:', error)
         this.hasSuccessfulVTO = false // Reset on error
       } finally {
-        // Reset loading state and update button text based on success state
+        // Reset loading state
         tryOnButton.classList.remove('loading')
-        tryOnButton.textContent = this.hasSuccessfulVTO ? 'Try On Again' : 'Try On'
+        tryOnButton.textContent = 'Try On'
           ; (tryOnButton as HTMLButtonElement).disabled = false
       }
     })
@@ -393,7 +395,7 @@ export class SizeRecComponent {
   private async updateTryOnButtonText(): Promise<void> {
     const tryOnButton = document.getElementById('tfr-try-on-button') as HTMLButtonElement
     if (tryOnButton && this.hasInitializedTryOn) {
-      tryOnButton.textContent = this.hasSuccessfulVTO ? 'Try On Again' : 'Try On'
+      tryOnButton.textContent = 'Try On'
     }
   }
 

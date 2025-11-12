@@ -269,21 +269,27 @@ export class FittingRoom {
   }
 
   private onUserProfileChange(userProfile: FirestoreUser) {
+    console.debug('onUserProfileChange called with avatar_status:', userProfile.avatar_status)
+
     switch (userProfile.avatar_status as AvatarState) {
       case AvatarState.NOT_CREATED:
+        console.debug('Avatar not created - showing error modal')
         if (this.hooks?.onError) this.hooks.onError(L.DontHaveAvatar)
         this.tfrModal.onNotCreated()
         break
 
       case AvatarState.PENDING:
+        console.debug('Avatar pending - showing loading')
         if (this.hooks?.onLoading) this.hooks.onLoading()
         break
 
       case AvatarState.CREATED:
+        console.debug('Avatar created - loading complete')
         if (this.hooks?.onLoadingComplete) this.hooks.onLoadingComplete()
         break
 
       default:
+        console.debug('Unknown avatar state:', userProfile.avatar_status)
         if (this.hooks?.onError) this.hooks.onError(L.SomethingWentWrong)
         this.tfrModal.onError(L.SomethingWentWrong)
         break
@@ -291,9 +297,20 @@ export class FittingRoom {
   }
 
   private subscribeToProfileChanges() {
-    if (this.unsub) return
+    if (this.unsub) {
+      console.debug('Profile changes subscription already active')
+      return
+    }
 
-    this.unsub = this.tfrAPI.user.watchUserProfileForChanges((userProfile) => this.onUserProfileChange(userProfile))
+    console.debug('Starting continuous user profile monitoring')
+
+    // Use the continuous monitoring method for ongoing updates
+    this.unsub = this.tfrAPI.user.watchUserProfileForChangesContinuous(
+      (userProfile) => this.onUserProfileChange(userProfile),
+      // Optional predicate to filter specific changes if needed
+      // For now, we'll get all changes since we want to monitor avatar_status changes
+      undefined
+    )
   }
 
   private unsubscribeFromProfileChanges() {

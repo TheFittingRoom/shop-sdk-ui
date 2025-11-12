@@ -204,28 +204,93 @@ export class FirebaseUser {
     return user.data()
   }
 
-  public watchUserProfileForChanges(callback: (data: FirestoreUser) => void): () => void {
+  public watchUserProfileForChanges(predicate: (data: QuerySnapshot<DocumentData>) => Promise<boolean>): Promise<DocumentData> {
     let unsub: Unsubscribe
 
-    const q = query(collection(this.firestore, 'users'), where(documentId(), '==', this.id))
+    const docRef = doc(this.firestore, 'users', this.id)
 
-    unsub = onSnapshot(q, (snapshot) => callback(snapshot.docs[0].data() as FirestoreUser))
+    return new Promise<DocumentData>((resolve, reject) => {
+      unsub = onSnapshot(docRef, async (docSnapshot) => {
+        console.debug('watchUserProfileForChanges onSnapshot fired at:', new Date().toISOString())
+        console.debug('Document exists:', docSnapshot.exists(), 'Document ID:', docSnapshot.id)
 
-    return () => unsub()
-  }
+        if (!docSnapshot.exists()) {
+          console.warn('User document does not exist for ID:', this.id)
+          return
+        }
 
-  public watchUserProfileForFrames(predicate: (data: QuerySnapshot<DocumentData>) => Promise<boolean>): Promise<DocumentData> {
-    let unsub: Unsubscribe
+        const snapshot = { docs: [docSnapshot] } as QuerySnapshot<DocumentData>
 
-    const q = query(collection(this.firestore, 'users'), where(documentId(), '==', this.id))
+        try {
+          const result = await predicate(snapshot)
+          console.debug('watchUserProfileForChanges predicate result:', result)
 
-    return new Promise<DocumentData>((resolve) => {
-      unsub = onSnapshot(q, async (snapshot) => {
-        if (!(await predicate(snapshot))) return
-        unsub()
-        resolve(snapshot.docs[0].data())
+          if (result) {
+            console.debug('Predicate matched, unsubscribing and resolving')
+            unsub()
+            resolve(snapshot.docs[0].data())
+          } else {
+            console.debug('Predicate did not match, continuing to listen')
+          }
+        } catch (error) {
+          console.error('watchUserProfileForChanges predicate error:', error)
+          // Continue listening even if predicate fails, don't reject immediately
+        }
+      }, (error) => {
+        console.error('watchUserProfileForChanges onSnapshot error:', error)
+        reject(error)
       })
     })
+  }
+
+  /**
+   * Continuous listener for user profile changes.
+   * Returns unsubscribe function that can be called to stop listening.
+   * This is the correct approach for ongoing monitoring of user changes.
+   */
+  public watchUserProfileForChangesContinuous(
+    callback: (userProfile: DocumentData) => void,
+    predicate?: (data: QuerySnapshot<DocumentData>) => Promise<boolean>
+  ): () => void {
+    const docRef = doc(this.firestore, 'users', this.id)
+
+    console.debug('Starting continuous user profile monitoring for user ID:', this.id)
+
+    const unsub = onSnapshot(docRef, async (docSnapshot) => {
+      console.debug('Continuous watch: onSnapshot fired at:', new Date().toISOString())
+
+      if (!docSnapshot.exists()) {
+        console.warn('Continuous watch: User document does not exist for ID:', this.id)
+        return
+      }
+
+      const snapshot = { docs: [docSnapshot] } as QuerySnapshot<DocumentData>
+
+      try {
+        // If predicate is provided, check it first
+        if (predicate) {
+          const result = await predicate(snapshot)
+          if (!result) {
+            console.debug('Continuous watch: Predicate did not match, skipping callback')
+            return
+          }
+        }
+
+        const userProfile = snapshot.docs[0].data()
+        console.debug('Continuous watch: Calling callback with user profile, avatar_status:', userProfile.avatar_status)
+        callback(userProfile)
+      } catch (error) {
+        console.error('Continuous watch: Error in callback or predicate:', error)
+      }
+    }, (error) => {
+      console.error('Continuous watch: onSnapshot error:', error)
+    })
+
+    // Return unsubscribe function
+    return () => {
+      console.debug('Unsubscribing from continuous user profile monitoring')
+      unsub()
+    }
   }
 
   public async login(username: string, password: string): Promise<void> {

@@ -358,7 +358,7 @@ export class TFRAPI {
         .filter(result => result.success)
         .map(async (result) => {
           try {
-            const frames = await this.awaitColorwaySizeAssetFrames(result.asset!.sku)
+            const frames = await this.watchForTryOnFrames(result.asset!.sku)
             return { sku: result.sku, frames: frames as types.TryOnFrames, success: true, retryable: false }
           } catch (error) {
             console.error(`Frame retrieval failed for SKU ${result.sku}:`, error)
@@ -373,13 +373,23 @@ export class TFRAPI {
         })
 
       const requestResults = await Promise.all(framePromises)
+      console.debug('framePromises length:', framePromises.length, 'uncachedSkus length:', uncachedSkus.length)
 
-      const uncachedSkusWithResults = uncachedSkus.map((sku, index) => ({
+      // Map successful results back to SKUs
+      const successfulResultsMap = new Map<string, any>()
+      const successfulApiResults = apiResults.filter(result => result.success)
+      requestResults.forEach((result, index) => {
+        const sku = successfulApiResults[index].sku
+        successfulResultsMap.set(sku, result)
+      })
+
+      const uncachedSkusWithResults = uncachedSkus.map(sku => ({
         sku,
-        result: requestResults[index]
+        result: successfulResultsMap.get(sku)
       }))
 
-      const successfulResults = uncachedSkusWithResults.filter(({ result }) => result.success && result.frames)
+      console.debug('uncachedSkusWithResults:', uncachedSkusWithResults.map(r => ({ sku: r.sku, hasResult: !!r.result, success: r.result?.success, frames: !!r.result?.frames })))
+      const successfulResults = uncachedSkusWithResults.filter(({ result }) => result && result.success && result.frames)
       const retryableResults = uncachedSkusWithResults.filter(({ result }) => !result.success && result.retryable)
 
       successfulResults.forEach(({ sku, result }) => {
@@ -398,7 +408,7 @@ export class TFRAPI {
 
           try {
             await this.requestColorwaySizeAssetFramesByID(asset.id)
-            const frames = await this.awaitColorwaySizeAssetFrames(asset.sku)
+            const frames = await this.watchForTryOnFrames(asset.sku)
             return { sku, frames: frames as types.TryOnFrames, success: true, retryable: false }
           } catch (retryError) {
             console.error(`Retry failed for SKU ${sku}:`, retryError)
@@ -408,12 +418,14 @@ export class TFRAPI {
 
         const retryResults = await Promise.all(retryPromises)
 
-        const retrySkusWithResults = retryableResults.map(({ sku }, index) => ({
-          sku,
-          result: retryResults[index]
-        }))
+        // Map retry results back to SKUs
+        const retryResultsMap = new Map<string, any>()
+        retryableResults.forEach(({ sku }, index) => {
+          retryResultsMap.set(sku, retryResults[index])
+        })
 
-        retrySkusWithResults.forEach(({ sku, result }) => {
+        retryableResults.forEach(({ sku }) => {
+          const result = retryResultsMap.get(sku)
           if (result.success && result.frames) {
             results.set(sku, result.frames)
           }
@@ -427,7 +439,7 @@ export class TFRAPI {
         if (priorityAsset) {
           // Request priority SKU frames
           await this.requestColorwaySizeAssetFramesByID(priorityAsset.id)
-          const priorityFrames = await this.awaitColorwaySizeAssetFrames(priorityAsset.sku)
+          const priorityFrames = await this.watchForTryOnFrames(priorityAsset.sku)
           results.set(prioritySku, priorityFrames)
         }
       } catch (error) {
@@ -601,18 +613,21 @@ export class TFRAPI {
     }
   }
 
-  private async awaitColorwaySizeAssetFrames(colorwaySizeAssetSKU: string): Promise<types.TryOnFrames> {
+  private async watchForTryOnFrames(colorwaySizeAssetSKU: string): Promise<types.TryOnFrames> {
     console.debug('awaitColorwaySizeAssetFrames')
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
 
     const callback = async (data: QuerySnapshot<DocumentData>) => {
       const frames = data.docs[0].data()?.vto?.[this.brandId]?.[colorwaySizeAssetSKU]?.frames
+      console.debug('awaitColorwaySizeAssetFrames callback, frames length:', frames?.length)
       if (!frames?.length) return false
 
-      return testImage(frames[0])
+      const tested = await testImage(frames[0])
+      console.debug('awaitColorwaySizeAssetFrames testImage result:', tested)
+      return tested
     }
 
-    const userProfile = (await this.user.watchUserProfileForFrames(callback)) as types.FirestoreUser
+    const userProfile = (await this.user.watchUserProfileForChanges(callback)) as types.FirestoreUser
 
     if (!userProfile?.vto?.[this.brandId]?.[colorwaySizeAssetSKU]?.frames?.length) throw new Errors.NoFramesFoundError()
 
@@ -624,6 +639,7 @@ export class TFRAPI {
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
     if (!this.user.brandUserId) throw new Errors.BrandUserIdNotSetError()
 
+    console.debug('Requesting frames for assetId:', colorwaySizeAssetId, 'brandUserId:', this.user.brandUserId)
     await Fetcher.Post(this.user, `/colorway-size-assets/${colorwaySizeAssetId}/frames`, {
       brand_user_id: String(this.user.brandUserId),
     })
