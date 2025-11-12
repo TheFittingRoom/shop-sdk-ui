@@ -242,11 +242,7 @@
 
         const initResult = await tfr.onInitParallel(availableSKUs, true)
         if (sku) {
-          if (initResult.preloadedAssets) {
-            await tfr.setSkuWithParallel(sku, initResult.preloadedAssets)
-          } else {
-            await tfr.setSku(sku)
-          }
+          await tfr.setSku(sku)
         }
         await initResult.initPromise
 

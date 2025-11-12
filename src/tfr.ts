@@ -47,8 +47,6 @@ export class FittingRoom {
         ? 'prod'
         : 'dev'
 
-    console.debug('env:', env)
-
     this.tfrModal = new TFRModal(
       modalDivId,
       this.signIn.bind(this),
@@ -80,18 +78,12 @@ export class FittingRoom {
     return this.tfrSizeRec.sku
   }
 
-  public async setSku(sku: string) {
-    const userInfo = this.tfrAPI.isLoggedIn
-      ? `user:${this.tfrAPI.user?.id} ${this.tfrAPI.user?.first_name}`
-      : 'not logged in'
-    console.debug('setSku:', sku, userInfo)
+  private async setSkuInternal(sku: string) {
     this.tfrSizeRec.setSku(sku)
 
     if (!this.style) {
       console.debug('fetching style for sku:', this.sku)
       this.style = await this.getStyleFromColorwaySizeAssetSku(this.sku)
-    } else {
-      console.debug('style cached')
     }
 
     if (!this.style) {
@@ -102,14 +94,10 @@ export class FittingRoom {
 
     if (!this.style.is_published) {
       document.getElementById('tfr-size-recommendations').style.display = 'none'
-      console.debug(`style ${this.style.id} is not published`)
-    } else {
-      console.debug('style published:', this.style.id)
     }
 
     if (this.style.is_vto) {
       document.getElementById('tfr-try-on-button')?.classList.remove('hide')
-      console.debug('vto enabled:', this.style.id)
     }
 
     if (this.isLoggedIn) {
@@ -120,32 +108,17 @@ export class FittingRoom {
     }
   }
 
-  public async onInit() {
-    this.isLoggedIn = await this.tfrAPI.onInit()
-    this.tfrSizeRec.setIsLoggedIn(this.isLoggedIn)
-
-    if (this.isLoggedIn) {
-      if (this.hooks?.onLogin) this.hooks.onLogin()
-
-      // Don't auto-subscribe - wait for middle VTO to be displayed
-      this.updateFirestoreSubscription()
-    } else {
-      if (this.hooks?.onLogout) this.hooks.onLogout()
-
-      this.unsubscribeFromProfileChanges()
-    }
-
-    return this.isLoggedIn
-  }
-
-  /**
-   * Enhanced initialization that supports parallel operations
-   * Can optionally preload SKUs while user authentication happens
-   */
   public async onInitParallel(skusToPreload?: string[], forceRefresh: boolean = false): Promise<ParallelInitResult> {
     const initResult = await this.tfrAPI.onInitParallel(skusToPreload, forceRefresh)
     this.isLoggedIn = initResult.isLoggedIn
     this.tfrSizeRec.setIsLoggedIn(this.isLoggedIn)
+
+    // Preload the style since all SKUs share the same style_id
+    if (initResult.preloadedAssets && initResult.preloadedAssets.size > 0) {
+      const firstSku = Array.from(initResult.preloadedAssets.keys())[0]
+      const firstAsset = initResult.preloadedAssets.get(firstSku)!
+      this.style = await this.tfrAPI.GetStyle(firstAsset.style_id)
+    }
 
     if (this.isLoggedIn) {
       if (this.hooks?.onLogin) this.hooks.onLogin()
@@ -164,17 +137,13 @@ export class FittingRoom {
   /**
    * Enhanced setSku that can handle preloaded assets or start parallel loading
    */
-  public async setSkuWithParallel(sku: string, preloadedAssets?: Map<string, any>) {
+  public async setSku(sku: string, preloadedAssets?: Map<string, any>) {
     const asset = await this.tfrAPI.setSkuWithParallel(sku, preloadedAssets)
 
-    // Update the internal style reference if needed
-    if (!this.style || this.style.id !== asset.style_id) {
-      console.debug('fetching style for sku:', sku)
-      this.style = await this.getStyleFromColorwaySizeAssetSku(sku)
-    }
+    // Style is already preloaded in onInitParallel, no need to fetch
 
     // Continue with normal setSku logic
-    await this.setSku(sku)
+    await this.setSkuInternal(sku)
 
     return asset
   }
@@ -348,14 +317,11 @@ export class FittingRoom {
   }
 
   private async getStyleFromColorwaySizeAssetSku(sku: string): Promise<FirestoreStyle | null> {
-    console.debug('getStyleFromColorwaySizeAssetSku', sku)
     try {
       const colorwaySizeAsset = await this.tfrAPI.getColorwaySizeAssetFromSku(sku)
       const style = await this.tfrAPI.GetStyle(colorwaySizeAsset.style_id)
-      console.debug('style:', style.id)
       return style
     } catch (e) {
-      console.debug('get style failed:', sku, e.message)
       return null
     }
   }

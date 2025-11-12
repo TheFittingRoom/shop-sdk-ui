@@ -46,6 +46,7 @@ export class TFRAPI {
   }
 
   public async onInit(): Promise<boolean> {
+    console.debug('onInit')
     await this.getMeasurementLocations()
 
     const initResult = this.user.onInit(this.brandId)
@@ -53,6 +54,7 @@ export class TFRAPI {
   }
 
   public async onInitParallel(skusToPreload?: string[], forceRefresh: boolean = false): Promise<ParallelInitResult> {
+    console.debug('onInitParallel')
     // Start measurement locations loading (non-blocking)
     const measurementLocationsPromise = this.getMeasurementLocations()
 
@@ -84,6 +86,7 @@ export class TFRAPI {
   }
 
   private async preloadColorwaySizeAssets(skus: string[], forceRefresh: boolean = false): Promise<Map<string, types.FirestoreColorwaySizeAsset>> {
+    console.debug('preloadColorwaySizeAssets')
     const results = new Map<string, types.FirestoreColorwaySizeAsset>()
     const uniqueSkus = [...new Set(skus)]
 
@@ -113,6 +116,7 @@ export class TFRAPI {
   }
 
   public async setSkuWithParallel(sku: string, preloadedAssets?: Map<string, types.FirestoreColorwaySizeAsset>): Promise<types.FirestoreColorwaySizeAsset> {
+    console.debug('setSkuWithParallel')
     // Check if we have preloaded asset for this SKU
     if (preloadedAssets && preloadedAssets.has(sku)) {
       const asset = preloadedAssets.get(sku)!
@@ -132,13 +136,13 @@ export class TFRAPI {
 
   public async getRecommendedSizes(styleId: number): Promise<SizeFitRecommendation | null> {
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
-
+    console.debug('fetching size_recommendation', styleId)
     try {
       const res = await Fetcher.Get(this.user, `/styles/${String(styleId)}/recommendation`)
       const data = (await res.json()) as SizeFitRecommendation
 
       if (!data?.fits?.length || !data?.recommended_size?.id) return null
-
+      console.debug('getRecommendedSizes', data.available_sizes)
       return data
     } catch (error) {
       if (error?.error === Errors.AvatarNotCreated) throw new Errors.AvatarNotCreatedError()
@@ -155,6 +159,14 @@ export class TFRAPI {
 
   public async getColorwaySizeAssetFromSku(colorwaySizeAssetSku: string): Promise<types.FirestoreColorwaySizeAsset> {
     console.debug('getColorwaySizeAssetFromSku', colorwaySizeAssetSku)
+
+    // Check cache first
+    const cachedAsset = this.colorwaySizeAssetsCache.get(colorwaySizeAssetSku)
+    if (cachedAsset) {
+      console.debug('using cached colorwaySizeAsset for sku:', colorwaySizeAssetSku)
+      return cachedAsset
+    }
+
     const constraints: QueryFieldFilterConstraint[] = [
       where('brand_id', '==', this.brandId),
       where('sku', '==', colorwaySizeAssetSku),
@@ -170,7 +182,8 @@ export class TFRAPI {
         throw new Error(`Multiple assets for SKU: ${colorwaySizeAssetSku}, found ${querySnapshot.size}`)
       }
       const data = querySnapshot.docs[0].data() as types.FirestoreColorwaySizeAsset
-      console.debug('colorwaySizeAsset:', data)
+      // Cache the fetched asset
+      this.colorwaySizeAssetsCache.set(colorwaySizeAssetSku, data)
       return data
     } catch (error) {
       console.debug('getColorwayAsset error:', colorwaySizeAssetSku, error.message)
@@ -179,6 +192,7 @@ export class TFRAPI {
   }
 
   public async getColorwaySizeAssetsFromStyleId(styleId: number): Promise<types.FirestoreColorwaySizeAsset[]> {
+    console.debug('getColorwaySizeAssetsFromStyleId')
     const constraints: QueryFieldFilterConstraint[] = [
       where('brand_id', '==', this.brandId),
       where('style_id', '==', styleId),
@@ -194,6 +208,7 @@ export class TFRAPI {
   }
 
   public async getMeasurementLocationsFromSku(sku: string, filledLocations: string[] = []): Promise<string[]> {
+    console.debug('getMeasurementLocationsFromSku')
     const colorwaySizeAsset = await this.getColorwaySizeAssetFromSku(sku)
     if (!colorwaySizeAsset) throw new Error('No colorway size asset found for sku')
 
@@ -243,13 +258,10 @@ export class TFRAPI {
   }
 
   public async GetStyle(styleId: number): Promise<FirestoreStyle | null> {
-    console.debug('GetStyle:', styleId)
     try {
       const doc = await this.firebase.getDoc('styles', String(styleId))
-      console.debug('style fetched:', styleId)
       return doc as FirestoreStyle
     } catch (error) {
-      console.debug('GetStyle error:', styleId, error)
       return getFirebaseError(error)
     }
   }
@@ -263,12 +275,13 @@ export class TFRAPI {
   }
 
   public async tryOnBatch(skus: string[], prioritySku?: string, forceRefresh: boolean = false): Promise<Map<string, types.TryOnFrames>> {
+    console.debug('tryOnBatch')
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
 
     const results = new Map<string, types.TryOnFrames>()
     const uniqueSkus = [...new Set(skus)]
 
-    const colorwayAssets = await this.batchGetColorwaySizeAssetsFromSkus(uniqueSkus, forceRefresh)
+    const colorwayAssets = await this.batchGetColorwaySizeAssetsFromSKUs(uniqueSkus, forceRefresh)
 
     const cachePromises = uniqueSkus.map(async (sku) => {
       const asset = colorwayAssets.get(sku)
@@ -279,7 +292,7 @@ export class TFRAPI {
       }
 
       try {
-        const frames = await this.fetchCachedColorwaySizeAssetFrames(asset.sku)
+        const frames = await this.fetchColorwaySizeAssetFrames(asset.sku)
         return { sku, frames, fromCache: true }
       } catch {
         return { sku, frames: null, fromCache: false }
@@ -402,12 +415,14 @@ export class TFRAPI {
   }
 
   public async tryOn(colorwaySizeAssetSKU: string, forceRefresh: boolean = false): Promise<types.TryOnFrames> {
+    console.debug('tryOn')
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
 
     return await this.performSingleTryOn(colorwaySizeAssetSKU, forceRefresh)
   }
 
   private async performSingleTryOn(sku: string, forceRefresh: boolean = false): Promise<types.TryOnFrames> {
+    console.debug('performSingleTryOn')
     // Use the existing batch system for consistent caching and optimization
     const batchResult = await this.tryOnBatch([sku], sku, forceRefresh)
 
@@ -439,7 +454,8 @@ export class TFRAPI {
   }
 
   // Batch method to fetch multiple colorway assets efficiently
-  private async batchGetColorwaySizeAssetsFromSkus(skus: string[], forceRefresh: boolean = false): Promise<Map<string, types.FirestoreColorwaySizeAsset>> {
+  private async batchGetColorwaySizeAssetsFromSKUs(skus: string[], forceRefresh: boolean = false): Promise<Map<string, types.FirestoreColorwaySizeAsset>> {
+    console.debug('batchGetColorwaySizeAssetsFromSKUs')
     const results = new Map<string, types.FirestoreColorwaySizeAsset>()
 
     if (!forceRefresh) {
@@ -470,6 +486,7 @@ export class TFRAPI {
     results: Map<string, types.FirestoreColorwaySizeAsset>,
     updateCache: boolean = true
   ): Promise<void> {
+    console.debug('fetchAssetsFromFirestore')
     const constraints: QueryFieldFilterConstraint[] = [
       where('brand_id', '==', this.brandId),
       where('sku', 'in', skus),
@@ -502,6 +519,7 @@ export class TFRAPI {
   }
 
   public async GetStyleGarmentCategory(styleId: number): Promise<FirestoreStyleGarmentCategory | null> {
+    console.debug('GetStyleGarmentCategory')
     try {
       const doc = await this.firebase.getDoc('style_garment_categories', String(styleId))
 
@@ -512,6 +530,7 @@ export class TFRAPI {
   }
 
   public async GetStyleCategory(id: number): Promise<FirestoreStyleCategory | null> {
+    console.debug('GetStyleCategory')
     try {
       const doc = await this.firebase.getDoc('style_categories', String(id))
 
@@ -522,6 +541,7 @@ export class TFRAPI {
   }
 
   public async GetGarmentCategory(id: number): Promise<FirestoreGarmentCategory | null> {
+    console.debug('GetGarmentCategory')
     try {
       const doc = await this.firebase.getDoc('garment_categories', String(id))
 
@@ -532,6 +552,7 @@ export class TFRAPI {
   }
 
   private async getMeasurementLocations(): Promise<void> {
+    console.debug('getMeasurementLocations')
     try {
       const locations = await this.fetchMeasurementLocations()
 
@@ -545,6 +566,7 @@ export class TFRAPI {
   }
 
   private async fetchMeasurementLocations(): Promise<FirestoreMeasurementLocation[]> {
+    console.debug('fetchMeasurementLocations')
     try {
       const docs = await this.firebase.getDocs('measurement_locations', [])
 
@@ -555,6 +577,7 @@ export class TFRAPI {
   }
 
   private async awaitColorwaySizeAssetFrames(colorwaySizeAssetSKU: string): Promise<types.TryOnFrames> {
+    console.debug('awaitColorwaySizeAssetFrames')
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
 
     const callback = async (data: QuerySnapshot<DocumentData>) => {
@@ -572,6 +595,7 @@ export class TFRAPI {
   }
 
   private async requestColorwaySizeAssetFramesByID(colorwaySizeAssetId: number): Promise<void> {
+    console.debug('requestColorwaySizeAssetFramesByID')
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
     if (!this.user.brandUserId) throw new Errors.BrandUserIdNotSetError()
 
@@ -580,7 +604,8 @@ export class TFRAPI {
     })
   }
 
-  private async fetchCachedColorwaySizeAssetFrames(colorwaySizeAssetSKU: string): Promise<types.TryOnFrames> {
+  private async fetchColorwaySizeAssetFrames(colorwaySizeAssetSKU: string): Promise<types.TryOnFrames> {
+    console.debug('fetchColorwaySizeAssetFrames')
     const userProfile = await this.user.getUser()
 
     const frames = userProfile?.vto?.[this.brandId]?.[colorwaySizeAssetSKU]?.frames || []
