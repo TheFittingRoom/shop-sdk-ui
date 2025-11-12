@@ -16,9 +16,19 @@ import {
   where,
 } from 'firebase/firestore'
 
-import { fromFirebaseDate } from '../date'
+
 import * as Errors from '../errors'
 import { FirestoreUser } from '../..'
+
+
+export type FirebaseDate = {
+  nanoseconds: number
+  seconds: number
+}
+export const fromFirebaseDate = (date: FirebaseDate) => {
+  return dayjs(date.seconds * 1000)
+}
+
 
 export type BrandUserId = string | number
 

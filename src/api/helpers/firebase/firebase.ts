@@ -16,7 +16,7 @@ import {
 } from 'firebase/firestore'
 
 import { Config } from '../config'
-import { FirebaseUser } from './firebase-user'
+import { FirebaseUser } from './user'
 
 export class Firebase {
   public user: FirebaseUser

@@ -1,4 +1,4 @@
-import { FirebaseUser } from './helpers/firebase/firebase-user'
+import { FirebaseUser } from './helpers/firebase/user'
 import { Config } from './helpers/config'
 
 interface FetchParams {
