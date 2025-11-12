@@ -1,7 +1,7 @@
 import { FirestoreStyle, initShop, TryOnFrames, FirestoreColorwaySizeAsset, FirestoreUser, AvatarState } from './api'
 /// <reference types="vite/client" />
 
-import { VtoComponent } from './components/VTO'
+import { VtoComponent } from './components/virtualTryOn'
 import { L } from './components/locale'
 import { validateEmail, validatePassword } from './helpers/validations'
 import { TFRModal } from './tfr-modal'
@@ -19,7 +19,6 @@ export interface TFRHooks {
 export class FittingRoom {
   private isLoggedIn: boolean = false
   private hasInitializedTryOn: boolean = false
-  private isMiddleVtoActive: boolean = false
   private manualListeningOverride: boolean = false
 
   public style: FirestoreStyle
@@ -147,7 +146,6 @@ export class FittingRoom {
     if (this.hooks?.onLogout) this.hooks.onLogout()
 
     this.isLoggedIn = false
-    this.isMiddleVtoActive = false
     this.manualListeningOverride = false
     this.tfrSizeRec.setIsLoggedIn(false)
     this.setStyleMeasurementLocations(this.styleToGarmentMeasurementLocations(this.style))
@@ -230,7 +228,6 @@ export class FittingRoom {
     const frames = await this.api.tryOn(sku)
 
     if (shouldDisplay) {
-      this.isMiddleVtoActive = true
       this.updateFirestoreSubscription()
       try {
         this.vtoComponent.init()
@@ -285,7 +282,7 @@ export class FittingRoom {
   private updateFirestoreSubscription() {
     if (!this.isLoggedIn) return
 
-    const shouldSubscribe = this.isMiddleVtoActive || this.manualListeningOverride
+    const shouldSubscribe = this.manualListeningOverride
 
     if (shouldSubscribe && !this.unsub) {
       this.subscribeToProfileChanges()

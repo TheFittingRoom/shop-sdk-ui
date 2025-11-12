@@ -12,7 +12,7 @@ import ScanCodeModal from './modals/ScanCodeModal'
 import SignInModal from './modals/SignInModal'
 import SizeErrorModal from './modals/SizeErrorModal'
 import TryOnModal from './modals/TryOnModal'
-import { InitImageSlider } from './slider'
+import { InitImageSlider } from './virtualTryOnSlider'
 
 export {
   ErrorModal,

@@ -1,4 +1,4 @@
-import { InitImageSlider } from '../../components/slider'
+import { InitImageSlider } from '../virtualTryOnSlider'
 import { ModalContent, TryOnModalProps } from '../types'
 
 const TryOnModal = (props: TryOnModalProps): ModalContent => {

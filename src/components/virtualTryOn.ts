@@ -1,4 +1,4 @@
-import { InitImageSlider } from './slider'
+import { InitImageSlider } from './virtualTryOnSlider'
 
 export class VtoComponent {
   private isInit = false
