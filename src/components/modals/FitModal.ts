@@ -1,5 +1,5 @@
 import { FitModalProps, ModalContent } from '../types'
-import { tfrDoor } from '../svgs'
+import { tfrDoor } from '../../assets/svgs'
 
 const FitModal = (props: FitModalProps): ModalContent => {
   const imageBaseUrl = 'https://assets.dev.thefittingroom.xyz/images/'

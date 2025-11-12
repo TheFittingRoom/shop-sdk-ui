@@ -1,8 +1,5 @@
 /// <reference types="vite/client" />
-import { ModalManager } from './modals/ModalManager'
-import { UIError } from './uiError'
 import { TryOnFrames } from '../api'
-import type { FirestoreUser } from '../api/gen/responses'
 
 export interface ModalContent {
     Body: () => string

@@ -28,7 +28,7 @@ export class FittingRoom {
   public readonly tfrModal: TFRModal
   public readonly tfrSizeRec: TFRSizeRecommendation
   private readonly vtoComponent: VtoComponent
-  private readonly tfrShop: any
+  private readonly tfrAPI: any
   private unsub: () => void = null
 
   constructor(
@@ -55,14 +55,14 @@ export class FittingRoom {
       this.forgotPassword.bind(this),
       this.submitTel.bind(this),
     )
-    this.tfrShop = initShop(Number(this.shopId), env)
+    this.tfrAPI = initShop(Number(this.shopId), env)
 
     if (vtoMainDivId) this.vtoComponent = new VtoComponent(vtoMainDivId)
 
     this.tfrSizeRec = new TFRSizeRecommendation(
       sizeRecMainDivId,
       cssVariables,
-      this.tfrShop,
+      this.tfrAPI,
       this.onSignInClick.bind(this),
       this.signOut.bind(this),
       this.onFitInfoClick.bind(this),
@@ -71,8 +71,8 @@ export class FittingRoom {
     )
   }
 
-  get shop() {
-    return this.tfrShop
+  get api() {
+    return this.tfrAPI
   }
 
   get sku() {
@@ -80,8 +80,8 @@ export class FittingRoom {
   }
 
   public async setSku(sku: string) {
-    const userInfo = this.tfrShop.isLoggedIn
-      ? `user:${this.tfrShop.user?.id} ${this.tfrShop.user?.first_name}`
+    const userInfo = this.tfrAPI.isLoggedIn
+      ? `user:${this.tfrAPI.user?.id} ${this.tfrAPI.user?.first_name}`
       : 'not logged in'
     console.debug('setSku:', sku, userInfo)
     this.tfrSizeRec.setSku(sku)
@@ -120,7 +120,7 @@ export class FittingRoom {
   }
 
   public async onInit() {
-    this.isLoggedIn = await this.tfrShop.onInit()
+    this.isLoggedIn = await this.tfrAPI.onInit()
     this.tfrSizeRec.setIsLoggedIn(this.isLoggedIn)
 
     if (this.isLoggedIn) {
@@ -142,7 +142,7 @@ export class FittingRoom {
   }
 
   public async signOut() {
-    await this.tfrShop.user.logout()
+    await this.tfrAPI.user.logout()
 
     if (this.hooks?.onLogout) this.hooks.onLogout()
 
@@ -160,7 +160,7 @@ export class FittingRoom {
     if (!validatePassword(password)) return validationError(L.PasswordError)
 
     try {
-      await this.tfrShop.user.login(username, password)
+      await this.tfrAPI.user.login(username, password)
 
       if (this.hooks?.onLogin) this.hooks.onLogin()
       this.tfrModal.close()
@@ -180,12 +180,12 @@ export class FittingRoom {
   }
 
   public setBrandUserId(brandUserId: string | number) {
-    this.tfrShop.user.setBrandUserId(brandUserId)
+    this.tfrAPI.user.setBrandUserId(brandUserId)
   }
 
   public async submitTel(tel: string) {
     try {
-      await this.tfrShop.submitTelephoneNumber(tel)
+      await this.tfrAPI.submitTelephoneNumber(tel)
       this.tfrModal.toSignIn()
     } catch {
       this.tfrModal.onError(L.SomethingWentWrong)
@@ -193,19 +193,19 @@ export class FittingRoom {
   }
 
   public async forgotPassword(email: string) {
-    await this.tfrShop.user.sendPasswordResetEmail(email)
+    await this.tfrAPI.user.sendPasswordResetEmail(email)
 
     this.tfrModal.toSignIn()
   }
 
   public async passwordReset(code: string, newPassword: string) {
-    await this.tfrShop.user.confirmPasswordReset(code, newPassword)
+    await this.tfrAPI.user.confirmPasswordReset(code, newPassword)
 
     this.tfrModal.toPasswordReset()
   }
 
   public async getMeasurementLocationsFromSku(sku: string) {
-    return this.tfrShop.getMeasurementLocationsFromSku(sku, [])
+    return this.tfrAPI.getMeasurementLocationsFromSku(sku, [])
   }
 
   public onSignInClick() {
@@ -227,7 +227,7 @@ export class FittingRoom {
     if (!this.vtoComponent)
       return console.error('VtoComponent is not initialized. Please check if the vtoMainDivId is correct.')
 
-    const frames = await this.shop.tryOn(sku)
+    const frames = await this.api.tryOn(sku)
 
     if (shouldDisplay) {
       this.isMiddleVtoActive = true
@@ -272,7 +272,7 @@ export class FittingRoom {
   private subscribeToProfileChanges() {
     if (this.unsub) return
 
-    this.unsub = this.tfrShop.user.watchUserProfileForChanges((userProfile) => this.onUserProfileChange(userProfile))
+    this.unsub = this.tfrAPI.user.watchUserProfileForChanges((userProfile) => this.onUserProfileChange(userProfile))
   }
 
   private unsubscribeFromProfileChanges() {
@@ -295,7 +295,7 @@ export class FittingRoom {
   }
 
   public async cacheMeasurementLocations(filledLocations: string[]) {
-    const garmentLocations = await this.tfrShop.getMeasurementLocationsFromSku(this.sku, filledLocations)
+    const garmentLocations = await this.tfrAPI.getMeasurementLocationsFromSku(this.sku, filledLocations)
     this.tfrSizeRec.setStyleMeasurementLocations(garmentLocations)
   }
 
@@ -310,8 +310,8 @@ export class FittingRoom {
   private async getStyleFromColorwaySizeAssetSku(sku: string): Promise<FirestoreStyle | null> {
     console.debug('getStyleFromColorwaySizeAssetSku', sku)
     try {
-      const colorwaySizeAsset = await this.tfrShop.getColorwaySizeAssetFromSku(sku)
-      const style = await this.tfrShop.GetStyle(colorwaySizeAsset.style_id)
+      const colorwaySizeAsset = await this.tfrAPI.getColorwaySizeAssetFromSku(sku)
+      const style = await this.tfrAPI.GetStyle(colorwaySizeAsset.style_id)
       console.debug('style:', style.id)
       return style
     } catch (e) {

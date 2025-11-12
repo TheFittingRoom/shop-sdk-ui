@@ -1,4 +1,4 @@
-import { infoIcon, tfrDoor, userIcon } from './svgs'
+import { infoIcon, tfrDoor, userIcon } from '../assets/svgs'
 import { TFRAPI } from '../api/api'
 import * as types from '../api'
 
