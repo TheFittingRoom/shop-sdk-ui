@@ -31,7 +31,7 @@ export class Firebase {
     this.user = new FirebaseUser(this.firestore, firebaseApp)
   }
 
-  public onInit(brandId: number) {
+  public onInit(brandId: number): Promise<boolean> {
     return this.user.onInit(brandId)
   }
 
@@ -41,13 +41,13 @@ export class Firebase {
     return this.promisefyOnSnapshot(q, unsubscribeWhenData)
   }
 
-  public getDocs(collectionName: string, constraints: QueryFieldFilterConstraint[]) {
+  public getDocs(collectionName: string, constraints: QueryFieldFilterConstraint[]): Promise<QuerySnapshot<DocumentData>> {
     const q = query(collection(this.firestore, collectionName), ...constraints)
 
     return getDocs(q)
   }
 
-  public async getDoc(collectionName: string, id: string) {
+  public async getDoc(collectionName: string, id: string): Promise<DocumentData | null> {
     const docRef = doc(this.firestore, collectionName, id)
     const docSnap = await getDoc(docRef)
 

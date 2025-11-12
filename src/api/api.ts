@@ -1,9 +1,17 @@
 import { DocumentData, QueryFieldFilterConstraint, QuerySnapshot, where } from 'firebase/firestore'
 
 import * as types from '.'
-import { SizeFitRecommendation } from './gen/responses'
+import {
+  SizeFitRecommendation,
+  FirestoreStyle,
+  FirestoreStyleGarmentCategory,
+  FirestoreStyleCategory,
+  FirestoreGarmentCategory,
+  FirestoreMeasurementLocation
+} from './gen/responses'
 import { Fetcher } from './fetcher'
 import { Firebase } from './helpers/firebase/firebase'
+import { FirebaseUser } from './helpers/firebase/firebase-user'
 import { getFirebaseError } from './helpers/firebase/firebase-error'
 import { Config } from './helpers/config'
 import * as Errors from './helpers/errors'
@@ -18,7 +26,7 @@ export class TFRAPI {
     private readonly firebase: Firebase,
   ) { }
 
-  public get user() {
+  public get user(): FirebaseUser {
     return this.firebase.user
   }
 
@@ -30,13 +38,13 @@ export class TFRAPI {
     return !this.firebase || Boolean(this.user.id)
   }
 
-  public async onInit() {
+  public async onInit(): Promise<boolean> {
     await this.getMeasurementLocations()
 
     return this.firebase.onInit(this.brandId)
   }
 
-  public async getRecommendedSizes(styleId: number) {
+  public async getRecommendedSizes(styleId: number): Promise<SizeFitRecommendation | null> {
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
 
     try {
@@ -53,7 +61,7 @@ export class TFRAPI {
     }
   }
 
-  public async submitTelephoneNumber(tel: string) {
+  public async submitTelephoneNumber(tel: string): Promise<void> {
     const sanitizedTel = tel.replace(/[^+0-9]/g, '')
     const res = await Fetcher.Post(this.user, '/ios-app-link', { phone_number: sanitizedTel }, false)
     console.debug(res)
@@ -111,9 +119,11 @@ export class TFRAPI {
 
     const userProfile = this.isLoggedIn ? await this.user.getUser() : null
     const gender = userProfile?.gender || 'female'
-    const measurementLocations = styleGarmentCategory[
-      `measurement_locations_${gender}` as keyof typeof styleGarmentCategory
-    ] as string[]
+
+    // Use proper typing for the measurement locations based on gender
+    const measurementLocationsKey = `measurement_locations_${gender}` as const
+    const measurementLocationsMap = styleGarmentCategory.measurement_locations
+    const measurementLocations = (measurementLocationsMap?.[measurementLocationsKey] || []) as string[]
 
     const filteredLocations = !filledLocations.length
       ? measurementLocations
@@ -131,13 +141,13 @@ export class TFRAPI {
   }
 
   // BrandStyleID is the SKU of the style
-  public async getStyleByBrandStyleID(styleSKU: string) {
+  public async getStyleByBrandStyleID(styleSKU: string): Promise<FirestoreStyle | null> {
     console.debug('getStyleByBrandStyleID:', styleSKU)
     try {
       const constraints: QueryFieldFilterConstraint[] = [where('brand_id', '==', this.brandId)]
       constraints.push(where('brand_style_id', '==', styleSKU))
       const querySnapshot = await this.firebase.getDocs('styles', constraints)
-      const style = querySnapshot.docs?.[0]?.data() as types.FirestoreStyle
+      const style = querySnapshot.docs?.[0]?.data() as FirestoreStyle
       console.debug('style fetched by brand id:', style)
       return style
     } catch (error) {
@@ -146,23 +156,23 @@ export class TFRAPI {
     }
   }
 
-  public async GetStyle(styleId: number) {
+  public async GetStyle(styleId: number): Promise<FirestoreStyle | null> {
     console.debug('GetStyle:', styleId)
     try {
       const doc = await this.firebase.getDoc('styles', String(styleId))
       console.debug('style fetched:', styleId)
-      return doc as types.FirestoreStyle
+      return doc as FirestoreStyle
     } catch (error) {
       console.debug('GetStyle error:', styleId, error)
       return getFirebaseError(error)
     }
   }
 
-  public getMeasurementLocationName(location: string) {
+  public getMeasurementLocationName(location: string): string {
     return this.measurementLocations.has(location) ? this.measurementLocations.get(location).name : location
   }
 
-  public getMeasurementLocationSortOrder(location: string) {
+  public getMeasurementLocationSortOrder(location: string): number {
     return this.measurementLocations.has(location) ? this.measurementLocations.get(location).sort_order : Infinity
   }
 
@@ -296,7 +306,7 @@ export class TFRAPI {
   }
 
   // Optimized single SKU tryOn (uses batch processing internally)
-  public async tryOn(sku: string) {
+  public async tryOn(sku: string): Promise<types.TryOnFrames> {
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
 
     return await this.performSingleTryOn(sku)
@@ -428,31 +438,31 @@ export class TFRAPI {
     }
   }
 
-  public async GetStyleGarmentCategory(styleId: number) {
+  public async GetStyleGarmentCategory(styleId: number): Promise<FirestoreStyleGarmentCategory | null> {
     try {
       const doc = await this.firebase.getDoc('style_garment_categories', String(styleId))
 
-      return doc as types.FirestoreStyle
+      return doc as FirestoreStyleGarmentCategory
     } catch (error) {
       return getFirebaseError(error)
     }
   }
 
-  public async GetStyleCategory(id: number) {
+  public async GetStyleCategory(id: number): Promise<FirestoreStyleCategory | null> {
     try {
       const doc = await this.firebase.getDoc('style_categories', String(id))
 
-      return doc as types.FirestoreStyle
+      return doc as FirestoreStyleCategory
     } catch (error) {
       return getFirebaseError(error)
     }
   }
 
-  public async GetGarmentCategory(id: number) {
+  public async GetGarmentCategory(id: number): Promise<FirestoreGarmentCategory | null> {
     try {
       const doc = await this.firebase.getDoc('garment_categories', String(id))
 
-      return doc as any
+      return doc as FirestoreGarmentCategory
     } catch (error) {
       return getFirebaseError(error)
     }
@@ -471,17 +481,17 @@ export class TFRAPI {
     }
   }
 
-  private async fetchMeasurementLocations(): Promise<types.FirestoreGarmentMeasurementLocation[]> {
+  private async fetchMeasurementLocations(): Promise<FirestoreMeasurementLocation[]> {
     try {
       const docs = await this.firebase.getDocs('measurement_locations', [])
 
-      return docs.docs.map((doc) => doc.data()) as types.FirestoreGarmentMeasurementLocation[]
+      return docs.docs.map((doc) => doc.data()) as FirestoreMeasurementLocation[]
     } catch (error) {
       throw getFirebaseError(error)
     }
   }
 
-  private async awaitColorwaySizeAssetFrames(colorwaySizeAssetSKU: string) {
+  private async awaitColorwaySizeAssetFrames(colorwaySizeAssetSKU: string): Promise<types.TryOnFrames> {
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
 
     const callback = async (data: QuerySnapshot<DocumentData>) => {
@@ -498,7 +508,7 @@ export class TFRAPI {
     return userProfile.vto[this.brandId][colorwaySizeAssetSKU].frames
   }
 
-  private async requestColorwaySizeAssetFramesByID(colorwaySizeAssetId: number) {
+  private async requestColorwaySizeAssetFramesByID(colorwaySizeAssetId: number): Promise<void> {
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
     if (!this.user.brandUserId) throw new Errors.BrandUserIdNotSetError()
 
@@ -507,7 +517,7 @@ export class TFRAPI {
     })
   }
 
-  private async fetchCachedColorwaySizeAssetFrames(colorwaySizeAssetSKU: string) {
+  private async fetchCachedColorwaySizeAssetFrames(colorwaySizeAssetSKU: string): Promise<types.TryOnFrames> {
     const userProfile = await this.user.getUser()
 
     const frames = userProfile?.vto?.[this.brandId]?.[colorwaySizeAssetSKU]?.frames || []
@@ -520,7 +530,7 @@ export class TFRAPI {
   }
 }
 
-export const initShop = (brandId: number, env: string = 'dev') => {
+export const initShop = (brandId: number, env: string = 'dev'): TFRAPI => {
   if (env === 'dev' || env === 'development') console.warn('TFRShop is in development mode')
 
   Config.getInstance().setEnv(env)

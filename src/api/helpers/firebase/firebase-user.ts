@@ -37,7 +37,7 @@ export class FirebaseUser {
     return this.user?.uid
   }
 
-  public async onInit(brandId: number) {
+  public async onInit(brandId: number): Promise<boolean> {
     this.auth.onAuthStateChanged((user) => {
       this.setUser(user)
       if (!user) return
@@ -54,7 +54,7 @@ export class FirebaseUser {
     return Boolean(user)
   }
 
-  public setUser(user: firebaseAuth.User) {
+  public setUser(user: firebaseAuth.User | null): void {
     this.user = user
   }
 
@@ -90,11 +90,11 @@ export class FirebaseUser {
     }
   }
 
-  public setBrandUserId(brandUserId: BrandUserId) {
+  public setBrandUserId(brandUserId: BrandUserId): void {
     this.brandUserId = brandUserId
   }
 
-  public async getToken() {
+  public async getToken(): Promise<string> {
     if (!this.user?.uid) throw new Errors.UserNotLoggedInError()
 
     const token = await this.user.getIdToken()
@@ -102,13 +102,13 @@ export class FirebaseUser {
     return token
   }
 
-  public get userId() {
+  public get userId(): string {
     if (!this.user?.uid) throw new Errors.UserNotLoggedInError()
 
     return this.user.uid
   }
 
-  public async getUser() {
+  public async getUser(): Promise<DocumentData | undefined> {
     if (!this.user?.uid) throw new Errors.UserNotLoggedInError()
 
     const user = await getDoc(doc(this.firestore, 'users', this.id))
@@ -116,7 +116,7 @@ export class FirebaseUser {
     return user.data()
   }
 
-  public watchUserProfileForChanges(callback: (data: FirestoreUser) => void) {
+  public watchUserProfileForChanges(callback: (data: FirestoreUser) => void): () => void {
     let unsub: Unsubscribe
 
     const q = query(collection(this.firestore, 'users'), where(documentId(), '==', this.id))
@@ -126,7 +126,7 @@ export class FirebaseUser {
     return () => unsub()
   }
 
-  public watchUserProfileForFrames(predicate: (data: QuerySnapshot<DocumentData>) => Promise<boolean>) {
+  public watchUserProfileForFrames(predicate: (data: QuerySnapshot<DocumentData>) => Promise<boolean>): Promise<DocumentData> {
     let unsub: Unsubscribe
 
     const q = query(collection(this.firestore, 'users'), where(documentId(), '==', this.id))
@@ -140,23 +140,23 @@ export class FirebaseUser {
     })
   }
 
-  public async login(username: string, password: string) {
+  public async login(username: string, password: string): Promise<void> {
     if (this.auth.currentUser) await this.auth.signOut()
 
     const user = await firebaseAuth.signInWithEmailAndPassword(this.auth, username, password)
     this.setUser(user.user)
   }
 
-  public async logout() {
+  public async logout(): Promise<void> {
     await this.auth.signOut()
     this.setUser(null)
   }
 
-  public async sendPasswordResetEmail(email: string) {
+  public async sendPasswordResetEmail(email: string): Promise<void> {
     await firebaseAuth.sendPasswordResetEmail(this.auth, email)
   }
 
-  public async confirmPasswordReset(code: string, newPassword: string) {
+  public async confirmPasswordReset(code: string, newPassword: string): Promise<void> {
     await firebaseAuth.confirmPasswordReset(this.auth, code, newPassword)
   }
 }
