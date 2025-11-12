@@ -16,7 +16,7 @@ import {
 } from 'firebase/firestore'
 
 import { Config } from '../config'
-import { FirebaseUser } from './user'
+import { FirebaseUser, UserInitResult } from './user'
 
 export class Firebase {
   public user: FirebaseUser
@@ -32,7 +32,8 @@ export class Firebase {
   }
 
   public onInit(brandId: number): Promise<boolean> {
-    return this.user.onInit(brandId)
+    const initResult = this.user.onInit(brandId)
+    return initResult.initPromise
   }
 
   public query(collectionName: string, constraint: QueryFieldFilterConstraint, unsubscribeWhenData: boolean = true) {

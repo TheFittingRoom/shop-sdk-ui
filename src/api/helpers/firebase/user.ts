@@ -4,6 +4,7 @@ import * as firebaseAuth from 'firebase/auth'
 import {
   DocumentData,
   Firestore,
+  QueryFieldFilterConstraint,
   QuerySnapshot,
   Unsubscribe,
   collection,
@@ -16,27 +17,35 @@ import {
   where,
 } from 'firebase/firestore'
 
-
 import * as Errors from '../errors'
 import { FirestoreUser } from '../..'
-
 
 export type FirebaseDate = {
   nanoseconds: number
   seconds: number
 }
+
 export const fromFirebaseDate = (date: FirebaseDate) => {
   return dayjs(date.seconds * 1000)
 }
 
-
 export type BrandUserId = string | number
+
+export interface UserInitResult {
+  isLoggedIn: boolean
+  initPromise: Promise<boolean>
+  isInitialized: boolean
+}
 
 export class FirebaseUser {
   public brandUserId: BrandUserId = null
 
   private user: firebaseAuth.User
   private readonly auth: firebaseAuth.Auth
+  private initPromise: Promise<boolean> | null = null
+  private isInitialized: boolean = false
+  private initResolve: ((value: boolean) => void) | null = null
+  private pendingAuthStateChanges: firebaseAuth.User[] = []
 
   constructor(private readonly firestore: Firestore, app: firebase.FirebaseApp) {
     this.auth = firebaseAuth.getAuth(app)
@@ -47,28 +56,103 @@ export class FirebaseUser {
     return this.user?.uid
   }
 
-  public async onInit(brandId: number): Promise<boolean> {
-    this.auth.onAuthStateChanged((user) => {
-      this.setUser(user)
-      if (!user) return
+  /**
+   * Enhanced onInit that enables parallel initialization
+   * Returns immediately with initialization status and promise
+   */
+  public onInit(brandId: number): UserInitResult {
+    // If already initialized, return cached result
+    if (this.isInitialized && this.initPromise) {
+      return {
+        isLoggedIn: Boolean(this.user),
+        initPromise: this.initPromise,
+        isInitialized: this.isInitialized
+      }
+    }
 
-      this.setBrandUserId(user.uid)
-    })
+    // Create new init promise if not already in progress
+    if (!this.initPromise) {
+      this.initPromise = new Promise<boolean>((resolve) => {
+        this.initResolve = resolve
+      })
 
-    await this.auth.authStateReady()
+      // Set up auth state listener
+      this.auth.onAuthStateChanged((user) => {
+        this.handleAuthStateChange(user, brandId)
+      })
 
-    const user = this.auth.currentUser
-    this.setUser(user)
-    this.setBrandUserId(user?.uid)
+      // Start auth state readiness (non-blocking)
+      this.auth.authStateReady().then(() => {
+        // If we have a current user and no pending changes, resolve
+        const currentUser = this.auth.currentUser
+        if (currentUser) {
+          this.handleAuthStateChange(currentUser, brandId)
+        } else if (!this.pendingAuthStateChanges.length) {
+          // No user and no pending changes, resolve with false
+          this.resolveInitialization(false)
+        }
+      }).catch(() => {
+        // Auth state ready failed, resolve with current state
+        this.resolveInitialization(Boolean(this.user))
+      })
+    }
 
-    return Boolean(user)
+    return {
+      isLoggedIn: Boolean(this.user),
+      initPromise: this.initPromise,
+      isInitialized: this.isInitialized
+    }
+  }
+
+  /**
+   * Handle authentication state changes
+   */
+  private handleAuthStateChange(user: firebaseAuth.User, brandId: number) {
+    this.pendingAuthStateChanges.push(user)
+
+    // Process pending changes
+    const latestUser = this.pendingAuthStateChanges[this.pendingAuthStateChanges.length - 1]
+    this.pendingAuthStateChanges = []
+
+    this.setUser(latestUser)
+    this.setBrandUserId(latestUser?.uid)
+
+    // If this completes our initialization, resolve
+    if (!this.isInitialized) {
+      this.resolveInitialization(Boolean(latestUser))
+    }
+  }
+
+  /**
+   * Resolve the initialization promise
+   */
+  private resolveInitialization(isLoggedIn: boolean) {
+    if (this.initResolve) {
+      this.initResolve(isLoggedIn)
+      this.initResolve = null
+    }
+    this.isInitialized = true
+  }
+
+  /**
+   * Get initialization promise for awaiting
+   */
+  public getInitializationPromise(): Promise<boolean> {
+    return this.initPromise || Promise.resolve(Boolean(this.user))
+  }
+
+  /**
+   * Check if user is ready for operations that require authentication
+   */
+  public isReady(): boolean {
+    return this.isInitialized && Boolean(this.user)
   }
 
   public setUser(user: firebaseAuth.User | null): void {
     this.user = user
   }
 
-  public async logUserLogin(brandId: number, user: firebaseAuth.User) {
+  public async logUserLogin(brandId: number, user: firebaseAuth.User): Promise<void> {
     try {
       const userLoggingDoc = doc(this.firestore, 'user_logging', user.uid)
       const savedDoc = await getDoc(userLoggingDoc)

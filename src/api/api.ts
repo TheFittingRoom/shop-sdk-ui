@@ -11,11 +11,18 @@ import {
 } from './gen/responses'
 import { Fetcher } from './fetcher'
 import { Firebase } from './helpers/firebase/firebase'
-import { FirebaseUser } from './helpers/firebase/user'
+import { FirebaseUser, UserInitResult } from './helpers/firebase/user'
 import { getFirebaseError } from './helpers/firebase/error'
 import { Config } from './helpers/config'
 import * as Errors from './helpers/errors'
 import { testImage } from './helpers/utils'
+
+export interface ParallelInitResult {
+  isLoggedIn: boolean
+  initPromise: Promise<boolean>
+  preloadedAssets?: Map<string, types.FirestoreColorwaySizeAsset>
+  preloadSkus?: string[]
+}
 
 export class TFRAPI {
   private measurementLocations: Map<string, { name: string; sort_order: number }> = new Map()
@@ -41,7 +48,91 @@ export class TFRAPI {
   public async onInit(): Promise<boolean> {
     await this.getMeasurementLocations()
 
-    return this.firebase.onInit(this.brandId)
+    const initResult = this.user.onInit(this.brandId)
+    return initResult.initPromise
+  }
+
+  /**
+   * Enhanced initialization that supports parallel operations
+   * Can optionally preload SKUs while user authentication happens
+   */
+  public async onInitParallel(skusToPreload?: string[]): Promise<ParallelInitResult> {
+    // Start measurement locations loading (non-blocking)
+    const measurementLocationsPromise = this.getMeasurementLocations()
+
+    const userInitResult: UserInitResult = this.user.onInit(this.brandId)
+
+    // If SKUs provided, start preloading in parallel
+    let preloadedAssets: Map<string, types.FirestoreColorwaySizeAsset> | undefined
+    let preloadPromise: Promise<void> | undefined
+
+    if (skusToPreload && skusToPreload.length > 0) {
+      // Start SKU preloading immediately (parallel to user auth)
+      preloadPromise = this.preloadColorwaySizeAssets(skusToPreload).then((assets) => {
+        preloadedAssets = assets
+      })
+    }
+
+    const initPromise = Promise.all([
+      userInitResult.initPromise,
+      measurementLocationsPromise,
+      preloadPromise
+    ]).then(([isLoggedIn]) => isLoggedIn)
+
+    return {
+      isLoggedIn: userInitResult.isLoggedIn,
+      initPromise,
+      preloadedAssets,
+      preloadSkus: skusToPreload
+    }
+  }
+
+  /**
+   * Preload colorway size assets for given SKUs
+   * Can run in parallel with user authentication
+   */
+  private async preloadColorwaySizeAssets(skus: string[]): Promise<Map<string, types.FirestoreColorwaySizeAsset>> {
+    const results = new Map<string, types.FirestoreColorwaySizeAsset>()
+    const uniqueSkus = [...new Set(skus)]
+
+    // Check cache first
+    const uncachedSkus: string[] = []
+    uniqueSkus.forEach(sku => {
+      const cachedAsset = this.colorwaySizeAssetsCache.get(sku)
+      if (cachedAsset) {
+        results.set(sku, cachedAsset)
+      } else {
+        uncachedSkus.push(sku)
+      }
+    })
+
+    // Batch fetch uncached assets
+    if (uncachedSkus.length > 0) {
+      await this.fetchAssetsFromFirestore(uncachedSkus, results, true)
+    }
+
+    return results
+  }
+
+  /**
+   * Enhanced setSku that can handle preloaded assets or start parallel loading
+   */
+  public async setSkuWithParallel(sku: string, preloadedAssets?: Map<string, types.FirestoreColorwaySizeAsset>): Promise<types.FirestoreColorwaySizeAsset> {
+    // Check if we have preloaded asset for this SKU
+    if (preloadedAssets && preloadedAssets.has(sku)) {
+      const asset = preloadedAssets.get(sku)!
+      this.colorwaySizeAssetsCache.set(sku, asset)
+      return asset
+    }
+
+    // Check cache
+    const cachedAsset = this.colorwaySizeAssetsCache.get(sku)
+    if (cachedAsset) {
+      return cachedAsset
+    }
+
+    // Load from Firestore (can run in parallel with user auth)
+    return await this.getColorwaySizeAssetFromSku(sku)
   }
 
   public async getRecommendedSizes(styleId: number): Promise<SizeFitRecommendation | null> {
@@ -377,7 +468,6 @@ export class TFRAPI {
     const results = new Map<string, types.FirestoreColorwaySizeAsset>()
 
     if (!forceRefresh) {
-      // Check cache first (unless forceRefresh is true)
       const uncachedSkus: string[] = []
 
       skus.forEach(sku => {
@@ -389,12 +479,10 @@ export class TFRAPI {
         }
       })
 
-      // Batch fetch uncached assets
       if (uncachedSkus.length > 0) {
         await this.fetchAssetsFromFirestore(uncachedSkus, results)
       }
     } else {
-      // Force refresh - fetch all SKUs from Firestore
       await this.fetchAssetsFromFirestore(skus, results, true)
     }
 
