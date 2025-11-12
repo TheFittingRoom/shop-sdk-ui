@@ -98,9 +98,9 @@ export class SizeRecComponent {
   }
 
   public setIsLoggedIn(isLoggedIn: boolean) {
-    console.log('[DEBUG-UI] SizeRecComponent.setIsLoggedIn called with:', isLoggedIn, 'current isLoggedIn:', this.isLoggedIn)
+    console.debug('SizeRecComponent.setIsLoggedIn called with:', isLoggedIn, 'current isLoggedIn:', this.isLoggedIn)
     this.isLoggedIn = isLoggedIn
-    console.log('[DEBUG-UI] SizeRecComponent.isLoggedIn set to:', this.isLoggedIn)
+    console.debug('SizeRecComponent.isLoggedIn set to:', this.isLoggedIn)
     this.tfrSizeRecSelectContainer.style.display = 'flex'
     this.tfrSizeRecSelect.style.display = 'flex'
     this.tfrSizeHowItFits.style.display = 'block'
@@ -313,9 +313,7 @@ export class SizeRecComponent {
         return
       }
 
-      // Set loading state
       tryOnButton.classList.add('loading')
-      const originalText = tryOnButton.textContent
       tryOnButton.textContent = ' '
         ; (tryOnButton as HTMLButtonElement).disabled = true
 
@@ -324,7 +322,6 @@ export class SizeRecComponent {
 
       try {
         await this.loadVTOForAvailableSizes()
-        // Mark as successful for "Try On Again" functionality
         this.hasSuccessfulVTO = true
       } catch (error) {
         console.error('Error during try-on process:', error)

@@ -43,7 +43,6 @@ export class FirebaseUser {
   private readonly auth: firebaseAuth.Auth
   private initPromise: Promise<boolean> | null = null
   private isInitialized: boolean = false
-  private initResolve: ((value: boolean) => void) | null = null
   private _authStateCallbacks: Array<(isLoggedIn: boolean) => void> = []
   private _initializationPromise: Promise<boolean>
 
@@ -51,42 +50,42 @@ export class FirebaseUser {
     this.auth = firebaseAuth.getAuth(app)
     this.auth.setPersistence(firebaseAuth.browserLocalPersistence)
 
-    console.log('[DEBUG-1] FirebaseUser constructor called at:', new Date().toISOString())
+    console.debug('FirebaseUser constructor called at:', new Date().toISOString())
 
     // Wait for Firebase to determine auth state before making user state available
     this._initializationPromise = this.waitForAuthStateDetermination()
   }
 
   private async waitForAuthStateDetermination(): Promise<boolean> {
-    console.log('[DEBUG-1] Waiting for Firebase to determine auth state...')
+    console.debug('Waiting for Firebase to determine auth state...')
 
     return new Promise((resolve) => {
       const timeoutId = setTimeout(() => {
-        console.log('[DEBUG-1] Auth state timeout, resolving with false')
+        console.debug('Auth state timeout, resolving with false')
         resolve(false)
       }, 5000) // 5 second timeout
 
       this.auth.onAuthStateChanged((user) => {
-        console.log('[DEBUG-1] Initial onAuthStateChanged fired with user:', user?.uid || 'null')
+        console.debug('Initial onAuthStateChanged fired with user:', user?.uid || 'null')
         clearTimeout(timeoutId)
         this.setUser(user)
         this.setBrandUserId(user?.uid)
-        console.log('[DEBUG-1] Initial auth state determined, user:', user?.uid || 'null')
+        console.debug('Initial auth state determined, user:', user?.uid || 'null')
         resolve(Boolean(user))
       })
 
       // Also wait for authStateReady to complete
       this.auth.authStateReady().then(() => {
-        console.log('[DEBUG-1] authStateReady completed, current user:', this.auth.currentUser?.uid || 'null')
+        console.debug('authStateReady completed, current user:', this.auth.currentUser?.uid || 'null')
         if (this.auth.currentUser) {
           clearTimeout(timeoutId)
-          console.log('[DEBUG-1] Setting user from authStateReady')
+          console.debug('Setting user from authStateReady')
           this.setUser(this.auth.currentUser)
           this.setBrandUserId(this.auth.currentUser.uid)
           resolve(true)
         }
       }).catch(() => {
-        console.log('[DEBUG-1] authStateReady failed, keeping current state')
+        console.debug('authStateReady failed, keeping current state')
       })
     })
   }
@@ -99,12 +98,12 @@ export class FirebaseUser {
    * Enhanced onInit that waits for Firebase to determine auth state before proceeding
    */
   public async onInit(brandId: number): Promise<UserInitResult> {
-    console.log('[DEBUG-2] onInit called at:', new Date().toISOString(), 'brandId:', brandId)
+    console.debug('onInit called at:', new Date().toISOString(), 'brandId:', brandId)
 
     // Wait for Firebase to determine authentication state first
-    console.log('[DEBUG-2] Waiting for Firebase auth state determination...')
+    console.debug('Waiting for Firebase auth state determination...')
     const isLoggedIn = await this._initializationPromise
-    console.log('[DEBUG-2] Firebase auth state determined:', isLoggedIn)
+    console.debug('Firebase auth state determined:', isLoggedIn)
 
     // Return the result with correct authentication state
     const result: UserInitResult = {
@@ -113,7 +112,7 @@ export class FirebaseUser {
       isInitialized: true
     }
 
-    console.log('[DEBUG-2] Returning init result - isLoggedIn:', isLoggedIn)
+    console.debug('Returning init result - isLoggedIn:', isLoggedIn)
     return result
   }
 
@@ -142,9 +141,9 @@ export class FirebaseUser {
   }
 
   public setUser(user: firebaseAuth.User | null): void {
-    console.log('[DEBUG-6] setUser called with user uid:', user?.uid || 'null', 'previous user uid:', this.user?.uid || 'null')
+    console.debug('setUser called with user uid:', user?.uid || 'null', 'previous user uid:', this.user?.uid || 'null')
     this.user = user
-    console.log('[DEBUG-6] setUser completed, current user uid:', this.user?.uid || 'null')
+    console.debug('setUser completed, current user uid:', this.user?.uid || 'null')
   }
 
   public async logUserLogin(brandId: number, user: firebaseAuth.User): Promise<void> {

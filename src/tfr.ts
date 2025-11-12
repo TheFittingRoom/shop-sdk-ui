@@ -71,7 +71,7 @@ export class FittingRoom {
 
     // Register for Firebase auth state changes to handle session restoration
     this.tfrAPI.user.onAuthStateChange((isLoggedIn) => {
-      console.log('[DEBUG-F2] Firebase auth state changed to:', isLoggedIn, 'updating UI')
+      console.debug('Firebase auth state changed to:', isLoggedIn, 'updating UI')
       this.isLoggedIn = isLoggedIn
       this.tfrSizeRec.setIsLoggedIn(isLoggedIn)
     })
@@ -116,13 +116,13 @@ export class FittingRoom {
   }
 
   public async onInitParallel(skusToPreload?: string[], forceRefresh: boolean = false): Promise<ParallelInitResult> {
-    console.log('[DEBUG-F1] FittingRoom.onInitParallel called at:', new Date().toISOString())
+    console.debug('FittingRoom.onInitParallel called at:', new Date().toISOString())
     const initResult = await this.tfrAPI.onInitParallel(skusToPreload, forceRefresh)
-    console.log('[DEBUG-F1] initResult received - isLoggedIn:', initResult.isLoggedIn)
-    console.log('[DEBUG-F1] Before setting isLoggedIn - this.isLoggedIn:', this.isLoggedIn)
+    console.debug('initResult received - isLoggedIn:', initResult.isLoggedIn)
+    console.debug('Before setting isLoggedIn - this.isLoggedIn:', this.isLoggedIn)
     this.isLoggedIn = initResult.isLoggedIn
-    console.log('[DEBUG-F1] After setting isLoggedIn - this.isLoggedIn:', this.isLoggedIn)
-    console.log('[DEBUG-F1] Calling tfrSizeRec.setIsLoggedIn with:', this.isLoggedIn)
+    console.debug('After setting isLoggedIn - this.isLoggedIn:', this.isLoggedIn)
+    console.debug('Calling tfrSizeRec.setIsLoggedIn with:', this.isLoggedIn)
     this.tfrSizeRec.setIsLoggedIn(this.isLoggedIn)
 
     // Preload the style since all SKUs share the same style_id

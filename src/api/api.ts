@@ -54,13 +54,13 @@ export class TFRAPI {
   }
 
   public async onInitParallel(skusToPreload?: string[], forceRefresh: boolean = false): Promise<ParallelInitResult> {
-    console.log('[DEBUG-A1] onInitParallel called at:', new Date().toISOString(), 'brandId:', this.brandId, 'skusToPreload:', skusToPreload)
+    console.debug('onInitParallel called at:', new Date().toISOString(), 'brandId:', this.brandId, 'skusToPreload:', skusToPreload)
     // Start measurement locations loading (non-blocking)
     const measurementLocationsPromise = this.getMeasurementLocations()
 
-    console.log('[DEBUG-A1] Calling user.onInit')
+    console.debug('Calling user.onInit')
     const userInitResult: UserInitResult = await this.user.onInit(this.brandId)
-    console.log('[DEBUG-A1] user.onInit returned - isLoggedIn:', userInitResult.isLoggedIn, 'isInitialized:', userInitResult.isInitialized)
+    console.debug('user.onInit returned - isLoggedIn:', userInitResult.isLoggedIn, 'isInitialized:', userInitResult.isInitialized)
 
     // If SKUs provided, start preloading in parallel
     let preloadedAssets: Map<string, types.FirestoreColorwaySizeAsset> | undefined
@@ -78,14 +78,14 @@ export class TFRAPI {
       measurementLocationsPromise,
       preloadPromise
     ]).then(([isLoggedIn]) => {
-      console.log('[DEBUG-A2] initPromise resolved with isLoggedIn:', isLoggedIn)
+      console.debug('initPromise resolved with isLoggedIn:', isLoggedIn)
       return isLoggedIn
     }).catch((error) => {
-      console.log('[DEBUG-A2] initPromise rejected:', error)
+      console.debug('initPromise rejected:', error)
       return false
     })
 
-    console.log('[DEBUG-A1] Returning init result - isLoggedIn:', userInitResult.isLoggedIn, 'initPromise exists:', !!initPromise)
+    console.debug('Returning init result - isLoggedIn:', userInitResult.isLoggedIn, 'initPromise exists:', !!initPromise)
     return {
       isLoggedIn: userInitResult.isLoggedIn,
       initPromise,
