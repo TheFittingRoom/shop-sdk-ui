@@ -49,7 +49,8 @@ export class TFRSizeRec {
     private readonly onSignInClick: () => void,
     private readonly onSignOutClick: () => void,
     private readonly onFitInfoClick: () => void,
-    private readonly onTryOnClick: (sku: string, shouldDisplay: boolean, isFromTryOnButton?: boolean) => Promise<void>,
+    private readonly onTryOnClick?: (sku: string, shouldDisplay: boolean, isFromTryOnButton?: boolean) => Promise<void>,
+    vtoComponent?: any,
   ) {
     this.setCssVariables(cssVariables)
     this.sizeRecComponent = new SizeRecComponent(
@@ -57,8 +58,9 @@ export class TFRSizeRec {
       this.onSignInClick,
       this.onSignOutClick,
       this.onFitInfoClick,
-      this.onTryOnClick,
       this.tfrShop.isLoggedIn,
+      this.tfrShop,
+      vtoComponent,
     )
   }
 

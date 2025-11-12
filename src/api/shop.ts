@@ -3,22 +3,27 @@ import { DocumentData, QueryFieldFilterConstraint, QuerySnapshot, where } from '
 import * as types from '.'
 import { SizeFitRecommendation } from './gen/responses'
 import { Fetcher } from './fetcher'
-import { Firebase } from './firebase/firebase'
-import { getFirebaseError } from './firebase/firebase-error'
+import { Firebase } from './helpers/firebase/firebase'
+import { getFirebaseError } from './helpers/firebase/firebase-error'
 import { Config } from './helpers/config'
 import * as Errors from './helpers/errors'
 import { testImage } from './utils'
 
 export class TFRShop {
   private measurementLocations: Map<string, { name: string; sort_order: number }> = new Map()
+  private colorwaySizeAssetsCache: Map<string, types.FirestoreColorwaySizeAsset> = new Map()
 
   constructor(
-    private readonly brandId: number,
+    private readonly _brandId: number,
     private readonly firebase: Firebase,
   ) { }
 
   public get user() {
     return this.firebase.user
+  }
+
+  public get brandId(): number {
+    return this._brandId
   }
 
   public get isLoggedIn(): boolean {
@@ -104,7 +109,7 @@ export class TFRShop {
     const styleGarmentCategory = await this.GetStyleGarmentCategory(style.id)
     if (!styleGarmentCategory) throw new Error('Taxonomy not found for style garment category id')
 
-    const userProfile = this.isLoggedIn ? await this.user.getUserProfile() : null
+    const userProfile = this.isLoggedIn ? await this.user.getUser() : null
     const gender = userProfile?.gender || 'female'
     const measurementLocations = styleGarmentCategory[
       `measurement_locations_${gender}` as keyof typeof styleGarmentCategory
@@ -161,20 +166,153 @@ export class TFRShop {
     return this.measurementLocations.has(location) ? this.measurementLocations.get(location).sort_order : Infinity
   }
 
+  // Optimized batch processing for multiple SKUs
+  public async tryOnBatch(skus: string[], prioritySku?: string): Promise<Map<string, types.TryOnFrames>> {
+    if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
+
+    const results = new Map<string, types.TryOnFrames>()
+    const uniqueSkus = [...new Set(skus)]
+
+    const colorwayAssets = await this.batchGetColorwaySizeAssetsFromSkus(uniqueSkus)
+
+    const cachePromises = uniqueSkus.map(async (sku) => {
+      const asset = colorwayAssets.get(sku)
+      if (!asset) return { sku, frames: null, fromCache: false }
+
+      try {
+        const frames = await this.fetchCachedColorwaySizeAssetFrames(asset.sku)
+        return { sku, frames, fromCache: true }
+      } catch {
+        return { sku, frames: null, fromCache: false }
+      }
+    })
+
+    const cacheResults = await Promise.all(cachePromises)
+    const cachedFrames = new Map<string, types.TryOnFrames>()
+    const uncachedSkus: string[] = []
+
+    cacheResults.forEach(({ sku, frames, fromCache }) => {
+      if (frames && fromCache) {
+        cachedFrames.set(sku, frames)
+        results.set(sku, frames)
+      } else {
+        uncachedSkus.push(sku)
+      }
+    })
+
+    if (uncachedSkus.length > 0) {
+      const requestPromises = uncachedSkus.map(async (sku) => {
+        const asset = colorwayAssets.get(sku)
+        if (!asset) return { sku, frames: null, success: false, retryable: false }
+
+        try {
+          await this.requestColorwaySizeAssetFramesByID(asset.id)
+          const frames = await this.awaitColorwaySizeAssetFrames(asset.sku)
+          return { sku, frames, success: true, retryable: false }
+        } catch (error) {
+          console.error(`Failed to get frames for SKU ${sku}:`, error)
+
+          // Handle try-on in progress errors in batch processing
+          if (this.isTryOnInProgressError(error)) {
+            return { sku, frames: null, success: false, retryable: true }
+          }
+
+          return { sku, frames: null, success: false, retryable: false }
+        }
+      })
+
+      const requestResults = await Promise.all(requestPromises)
+
+      // Separate successful results from failed ones
+      const successfulResults = requestResults.filter(result => result.success && result.frames)
+      const retryableResults = requestResults.filter(result => !result.success && result.retryable)
+
+      // Add successful results to the final map
+      successfulResults.forEach(({ sku, frames }) => {
+        if (frames) {
+          results.set(sku, frames)
+        }
+      })
+
+      // Retry retryable results once with delay
+      if (retryableResults.length > 0) {
+        console.log(`Retrying ${retryableResults.length} SKUs due to try-on in progress:`, retryableResults.map(r => r.sku))
+        await this.delay(2000) // 2 second delay for batch retry
+
+        const retryPromises = retryableResults.map(async ({ sku }) => {
+          const asset = colorwayAssets.get(sku)
+          if (!asset) return { sku, frames: null, success: false, retryable: false }
+
+          try {
+            await this.requestColorwaySizeAssetFramesByID(asset.id)
+            const frames = await this.awaitColorwaySizeAssetFrames(asset.sku)
+            return { sku, frames, success: true, retryable: false }
+          } catch (retryError) {
+            console.error(`Retry failed for SKU ${sku}:`, retryError)
+            return { sku, frames: null, success: false, retryable: false }
+          }
+        })
+
+        const retryResults = await Promise.all(retryPromises)
+        retryResults.forEach(({ sku, frames, success }) => {
+          if (success && frames) {
+            results.set(sku, frames)
+          }
+        })
+      }
+    }
+
+    // Step 4: If priority SKU exists and not in results, ensure it's processed first
+    if (prioritySku && !results.has(prioritySku) && colorwayAssets.has(prioritySku)) {
+      try {
+        const priorityAsset = colorwayAssets.get(prioritySku)
+        if (priorityAsset) {
+          await this.requestColorwaySizeAssetFramesByID(priorityAsset.id)
+          const priorityFrames = await this.awaitColorwaySizeAssetFrames(priorityAsset.sku)
+          results.set(prioritySku, priorityFrames)
+        }
+      } catch (error) {
+        console.error(`Failed to get priority frames for SKU ${prioritySku}:`, error)
+      }
+    }
+
+    return results
+  }
+
+  // Optimized single SKU tryOn (uses batch processing internally)
   public async tryOn(sku: string) {
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
+
+    return await this.performSingleTryOn(sku)
+  }
+
+  private async performSingleTryOn(sku: string, retryCount: number = 0): Promise<types.TryOnFrames> {
+    const maxRetries = 3
+    const retryDelay = 1000 * Math.pow(2, retryCount) // Exponential backoff: 1s, 2s, 4s
 
     const colorwaySizeAsset = await this.getColorwaySizeAssetFromSku(sku)
 
     try {
-      const frames = await this.getColorwaySizeAssetFrames(colorwaySizeAsset.sku)
+      const frames = await this.fetchCachedColorwaySizeAssetFrames(colorwaySizeAsset.sku)
       return frames
     } catch (error) {
       if (!(error instanceof Errors.NoFramesFoundError)) throw error
     }
+
     try {
-      await this.requestColorwaySizeAssetFrames(colorwaySizeAsset.id)
+      await this.requestColorwaySizeAssetFramesByID(colorwaySizeAsset.id)
     } catch (error) {
+      // Check if this is a "try-on in progress" error from the API
+      if (this.isTryOnInProgressError(error)) {
+        if (retryCount < maxRetries) {
+          console.log(`Try-on already in progress for SKU ${sku}, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/${maxRetries})`)
+          await this.delay(retryDelay)
+          return this.performSingleTryOn(sku, retryCount + 1)
+        } else {
+          throw new Error(`Try-on operation already in progress for SKU ${sku}. Please wait for the current operation to complete.`)
+        }
+      }
+
       throw new Error(
         `Failed to request frames for colorway size asset ${colorwaySizeAsset.id}: ${error.message || error}`,
       )
@@ -186,6 +324,91 @@ export class TFRShop {
       if (error?.error === Errors.AvatarNotCreated) throw new Errors.AvatarNotCreatedError()
 
       throw new Errors.NoStylesFoundError()
+    }
+  }
+
+  private isTryOnInProgressError(error: any): boolean {
+    // Check for various error patterns that indicate a try-on is already in progress
+    const errorMessage = error?.message?.toLowerCase() || ''
+    const errorText = error?.error?.toLowerCase?.() || ''
+
+    return errorMessage.includes('try on in progress') ||
+      errorMessage.includes('try-on in progress') ||
+      errorMessage.includes('already in progress') ||
+      errorMessage.includes('operation in progress') ||
+      errorText.includes('try on in progress') ||
+      errorText.includes('try-on in progress') ||
+      errorText.includes('already in progress') ||
+      errorText.includes('operation in progress')
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms))
+  }
+
+  // Batch method to fetch multiple colorway assets efficiently
+  private async batchGetColorwaySizeAssetsFromSkus(skus: string[], forceRefresh: boolean = false): Promise<Map<string, types.FirestoreColorwaySizeAsset>> {
+    const results = new Map<string, types.FirestoreColorwaySizeAsset>()
+
+    if (!forceRefresh) {
+      // Check cache first (unless forceRefresh is true)
+      const uncachedSkus: string[] = []
+
+      skus.forEach(sku => {
+        const cachedAsset = this.colorwaySizeAssetsCache.get(sku)
+        if (cachedAsset) {
+          results.set(sku, cachedAsset)
+        } else {
+          uncachedSkus.push(sku)
+        }
+      })
+
+      // Batch fetch uncached assets
+      if (uncachedSkus.length > 0) {
+        await this.fetchAssetsFromFirestore(uncachedSkus, results)
+      }
+    } else {
+      // Force refresh - fetch all SKUs from Firestore
+      await this.fetchAssetsFromFirestore(skus, results, true)
+    }
+
+    return results
+  }
+
+  // Helper method to fetch assets from Firestore
+  private async fetchAssetsFromFirestore(
+    skus: string[],
+    results: Map<string, types.FirestoreColorwaySizeAsset>,
+    updateCache: boolean = true
+  ): Promise<void> {
+    const constraints: QueryFieldFilterConstraint[] = [
+      where('brand_id', '==', this.brandId),
+      where('sku', 'in', skus),
+    ]
+
+    try {
+      const querySnapshot = await this.firebase.getDocs('colorway_size_assets', constraints)
+
+      querySnapshot.docs.forEach(doc => {
+        const asset = doc.data() as types.FirestoreColorwaySizeAsset
+        if (asset.sku) {
+          results.set(asset.sku, asset)
+          if (updateCache) {
+            this.colorwaySizeAssetsCache.set(asset.sku, asset) // Cache for future use
+          }
+        }
+      })
+
+      // Handle SKUs that weren't found
+      const foundSkus = new Set(querySnapshot.docs.map(doc => (doc.data() as types.FirestoreColorwaySizeAsset).sku))
+      skus.forEach(sku => {
+        if (!foundSkus.has(sku)) {
+          console.warn(`No colorway asset found for SKU: ${sku}`)
+        }
+      })
+    } catch (error) {
+      console.error('Batch fetch error:', error)
+      throw error
     }
   }
 
@@ -259,7 +482,7 @@ export class TFRShop {
     return userProfile.vto[this.brandId][colorwaySizeAssetSKU].frames
   }
 
-  private async requestColorwaySizeAssetFrames(colorwaySizeAssetId: number) {
+  private async requestColorwaySizeAssetFramesByID(colorwaySizeAssetId: number) {
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
     if (!this.user.brandUserId) throw new Errors.BrandUserIdNotSetError()
 
@@ -268,8 +491,8 @@ export class TFRShop {
     })
   }
 
-  private async getColorwaySizeAssetFrames(colorwaySizeAssetSKU: string) {
-    const userProfile = await this.user.getUserProfile()
+  private async fetchCachedColorwaySizeAssetFrames(colorwaySizeAssetSKU: string) {
+    const userProfile = await this.user.getUser()
 
     const frames = userProfile?.vto?.[this.brandId]?.[colorwaySizeAssetSKU]?.frames || []
     if (!frames.length) throw new Errors.NoFramesFoundError()

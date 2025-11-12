@@ -15,7 +15,7 @@ import {
   query,
 } from 'firebase/firestore'
 
-import { Config } from '../helpers/config'
+import { Config } from '../config'
 import { FirebaseUser } from './firebase-user'
 
 export class Firebase {

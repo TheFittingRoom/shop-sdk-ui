@@ -13,7 +13,8 @@
     "watch:prod": "vite build --mode production --watch",
     "watch:dev": "vite build --mode development --watch",
     "serve": "vite preview --host localhost --port 3030",
-    "pub": "npm run build:prod && npm publish --access public"
+    "pub": "npm run build:prod && npm publish --access public",
+    "prune": "ts-prune"
   },
   "engines": {
     "node": ">=20"
@@ -22,6 +23,7 @@
     "@biomejs/biome": "2.3.5",
     "@trivago/prettier-plugin-sort-imports": "^6.0.0",
     "prettier": "^3.6.2",
+    "ts-prune": "^0.10.3",
     "typescript": "^5.9.3",
     "vite": "^7.2.2"
   },

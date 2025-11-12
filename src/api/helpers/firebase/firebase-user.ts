@@ -16,9 +16,9 @@ import {
   where,
 } from 'firebase/firestore'
 
-import { fromFirebaseDate } from '../helpers/date'
-import * as Errors from '../helpers/errors'
-import { FirestoreUser } from '..'
+import { fromFirebaseDate } from '../date'
+import * as Errors from '../errors'
+import { FirestoreUser } from '../..'
 
 export type BrandUserId = string | number
 
@@ -108,12 +108,12 @@ export class FirebaseUser {
     return this.user.uid
   }
 
-  public async getUserProfile() {
+  public async getUser() {
     if (!this.user?.uid) throw new Errors.UserNotLoggedInError()
 
-    const userProfile = await getDoc(doc(this.firestore, 'users', this.id))
+    const user = await getDoc(doc(this.firestore, 'users', this.id))
 
-    return userProfile.data()
+    return user.data()
   }
 
   public watchUserProfileForChanges(callback: (data: FirestoreUser) => void) {

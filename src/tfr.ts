@@ -65,6 +65,7 @@ export class FittingRoom {
       this.signOut.bind(this),
       this.onFitInfoClick.bind(this),
       this.onTryOnClick.bind(this),
+      this.vtoComponent,
     )
 
     if (vtoMainDivId) this.vtoComponent = new VtoComponent(vtoMainDivId)

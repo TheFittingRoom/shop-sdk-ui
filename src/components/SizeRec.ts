@@ -1,4 +1,6 @@
 import { infoIcon, tfrDoor, userIcon } from './svgs'
+import { TFRShop } from '../api'
+import * as types from '../api'
 
 export type RecommendedSize = {
   recommended: string
@@ -18,6 +20,11 @@ export class SizeRecComponent {
   private _sku: string = ''
   private _styleId: number = null
   private isLoggedIn: boolean
+  private availableSizes: RecommendedSize['sizes'] = []
+  private tfrShop: TFRShop
+  private vtoComponent: any = null
+  private hasInitializedTryOn: boolean = false
+  private isMiddleVtoActive: boolean = false
 
   private sizeRecMainDiv: HTMLDivElement
 
@@ -50,10 +57,13 @@ export class SizeRecComponent {
     private readonly onSignInClick: () => void,
     private readonly onSignOutClick: () => void,
     private readonly onFitInfoClick: () => void,
-    private readonly onTryOnClick: (sku: string, shouldDisplay: boolean, isFromTryOnButton?: boolean) => Promise<void>,
     initialIsLoggedIn: boolean,
+    tfrShop: TFRShop,
+    vtoComponent?: any,
   ) {
     this.isLoggedIn = initialIsLoggedIn
+    this.tfrShop = tfrShop
+    this.vtoComponent = vtoComponent
     this.init(sizeRecMainDivId)
     this.setIsLoggedIn(this.isLoggedIn)
   }
@@ -64,6 +74,10 @@ export class SizeRecComponent {
 
   public setSku(sku: string) {
     this._sku = sku
+  }
+
+  public setVtoComponent(vtoComponent: any) {
+    this.vtoComponent = vtoComponent
   }
 
   public get styleId() {
@@ -186,6 +200,86 @@ export class SizeRecComponent {
     this.tfrToggleClosedElements = document.querySelectorAll('.tfr-toggle-closed')
   }
 
+  private async makeTryOnApiCall(sku: string, shouldDisplay: boolean = false): Promise<void> {
+    if (!this.hasInitializedTryOn) {
+      console.debug('skipping try on, not initialized')
+      return
+    }
+
+    if (!this.vtoComponent) {
+      console.error('VtoComponent is not initialized')
+      return
+    }
+
+    try {
+      const frames = await this.tfrShop.tryOn(sku)
+
+      if (shouldDisplay) {
+        this.isMiddleVtoActive = true
+        try {
+          this.vtoComponent.init()
+          this.vtoComponent.onNewFramesReady(frames)
+        } catch (e) {
+          console.error('Error initializing VTO:', e)
+        }
+      }
+    } catch (error) {
+      console.error('Error during try-on API call:', error)
+    }
+  }
+
+  private async loadVTOForSelectedSizeAndNeighbors(): Promise<void> {
+    const activeButton = document.querySelector('.tfr-size-rec-select-button.active')
+    if (!activeButton) {
+      throw new Error("no active button found")
+    }
+
+    const selectedIndex = Number(activeButton.getAttribute('data-index'))
+    if (Number.isNaN(selectedIndex) || !this.availableSizes[selectedIndex]) {
+      throw new Error("no selectedIndex found")
+    }
+
+    const selectedSku = this.availableSizes[selectedIndex].sku
+    if (!selectedSku) {
+      throw new Error("no selectedSku found")
+    }
+
+    // Optimized: Use batch processing for multiple SKUs
+    const skusToLoad: string[] = [selectedSku] // Priority: selected size first
+
+    // Add neighboring sizes for preloading
+    if (selectedIndex > 0 && this.availableSizes[selectedIndex - 1]?.sku) {
+      skusToLoad.push(this.availableSizes[selectedIndex - 1].sku)
+    }
+    if (selectedIndex < this.availableSizes.length - 1 && this.availableSizes[selectedIndex + 1]?.sku) {
+      skusToLoad.push(this.availableSizes[selectedIndex + 1].sku)
+    }
+
+    // Use optimized batch processing
+    try {
+      const vtoResults = await this.tfrShop.tryOnBatch(skusToLoad, selectedSku)
+
+      // Display the priority SKU first
+      if (this.vtoComponent && vtoResults.has(selectedSku)) {
+        this.isMiddleVtoActive = true
+        try {
+          this.vtoComponent.init()
+          this.vtoComponent.onNewFramesReady(vtoResults.get(selectedSku)!)
+        } catch (e) {
+          console.error('Error initializing VTO:', e)
+        }
+      }
+
+      // Note: Preloaded sizes are cached and will be available instantly when user switches
+      console.log(`Successfully loaded VTO for ${vtoResults.size} sizes:`, Array.from(vtoResults.keys()))
+
+    } catch (error) {
+      console.error('Error during batch VTO loading:', error)
+      // Fallback to single SKU loading for the selected size
+      await this.makeTryOnApiCall(selectedSku, true)
+    }
+  }
+
   private bindEvents() {
     this.tfrSizeRecActionLogin.addEventListener('click', this.onSignInClick)
     this.tfrSizeRecActionLogout.addEventListener('click', this.onSignOutClick)
@@ -203,65 +297,24 @@ export class SizeRecComponent {
         return
       }
 
-      const activeButton = document.querySelector('.tfr-size-rec-select-button.active')
-      if (!activeButton) return
-
-      const selectedSku = activeButton.getAttribute('data-sku')
-      if (!selectedSku) {
-        console.error('No SKU found on selected button')
-        return
-      }
-
       // Set loading state
       tryOnButton.classList.add('loading')
       const originalText = tryOnButton.textContent
       tryOnButton.textContent = ' '
-      ;(tryOnButton as HTMLButtonElement).disabled = true
+        ; (tryOnButton as HTMLButtonElement).disabled = true
+
+      // Mark as initialized when TryOn is clicked
+      this.hasInitializedTryOn = true
 
       try {
-        // Get all size buttons
-        const allSizeButtons = Array.from(document.querySelectorAll('.tfr-size-rec-select-button')) as HTMLElement[]
-        const activeIndex = allSizeButtons.indexOf(activeButton as HTMLElement)
-
-        if (this.styleId !== null) {
-          // Create array of all VTO promises to fetch them simultaneously
-          const vtoPromises: Promise<void>[] = []
-
-          // 1. Add VTO for the size to the left (preload, don't display)
-          if (activeIndex > 0) {
-            const leftButton = allSizeButtons[activeIndex - 1]
-            const leftSku = leftButton.getAttribute('data-sku')
-            if (leftSku) {
-              vtoPromises.push(this.onTryOnClick(leftSku, false, true))
-            }
-          }
-
-          // 2. Add VTO for the size to the right (preload, don't display)
-          if (activeIndex >= 0 && activeIndex < allSizeButtons.length - 1) {
-            const rightButton = allSizeButtons[activeIndex + 1]
-            const rightSku = rightButton.getAttribute('data-sku')
-            if (rightSku) {
-              vtoPromises.push(this.onTryOnClick(rightSku, false, true))
-            }
-          }
-
-          // 3. Add the active size VTO (display this one) - do this last to ensure it's the active one
-          vtoPromises.push(this.onTryOnClick(selectedSku, true, true))
-
-          // Fetch all VTOs simultaneously
-          // try {
-          //   await Promise.all(vtoPromises)
-          // } catch (e) {
-          //   console.error('Error during simultaneous VTO fetching:', e)
-          // }
-        }
+        await this.loadVTOForSelectedSizeAndNeighbors()
       } catch (error) {
-        console.error('Error during sequential try-on process:', error)
+        console.error('Error during try-on process:', error)
       } finally {
         // Reset loading state
         tryOnButton.classList.remove('loading')
         tryOnButton.textContent = originalText
-        ;(tryOnButton as HTMLButtonElement).disabled = false
+          ; (tryOnButton as HTMLButtonElement).disabled = false
       }
     })
   }
@@ -285,12 +338,47 @@ export class SizeRecComponent {
     const selectedSku = target.getAttribute('data-sku')
     if (!selectedSku) return
 
-    // Trigger VTO immediately when size is selected
-    this.onTryOnClick(selectedSku, true, false)
+    // Optimized: Use cached batch results when available, fallback to single call
+    if (this.hasInitializedTryOn && this.vtoComponent) {
+      this.displayCachedOrLoadVto(selectedSku)
+    }
+  }
+
+  private async displayCachedOrLoadVto(sku: string): Promise<void> {
+    try {
+      // Try to get from cache first (much faster)
+      const cachedFrames = await this.fetchFramesFromUser(sku)
+      if (cachedFrames && this.vtoComponent) {
+        this.isMiddleVtoActive = true
+        this.vtoComponent.init()
+        this.vtoComponent.onNewFramesReady(cachedFrames)
+        console.log(`Loaded cached VTO for SKU: ${sku}`)
+        return
+      }
+
+      // Fallback to fresh API call
+      await this.makeTryOnApiCall(sku, true)
+    } catch (error) {
+      console.error('Error loading VTO:', error)
+      await this.makeTryOnApiCall(sku, true)
+    }
+  }
+
+  private async fetchFramesFromUser(sku: string): Promise<types.TryOnFrames | null> {
+    try {
+      const userProfile = await this.tfrShop.user.getUser()
+      const frames = userProfile?.vto?.[this.tfrShop.brandId]?.[sku]?.frames || []
+      return frames.length > 0 ? frames as types.TryOnFrames : null
+    } catch {
+      return null
+    }
   }
 
   private renderSizeRec(recommended: string, sizes: RecommendedSize['sizes']) {
     this.tfrSizeRecSize.innerHTML = `&nbsp;${recommended}`
+
+    // Store available sizes for try-on operations
+    this.availableSizes = sizes
 
     const selectedSizeIndex = sizes.findIndex(({ size }) => size === recommended)
 
@@ -314,8 +402,7 @@ export class SizeRecComponent {
     const html = sizeNames
       .map(
         (name, i) =>
-          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}" data-sku="${
-            sizes[i].sku
+          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}" data-sku="${sizes[i].sku
           }">${name}</div>`,
       )
       .join('')
