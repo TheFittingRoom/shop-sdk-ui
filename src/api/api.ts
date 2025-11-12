@@ -42,7 +42,7 @@ export class TFRAPI {
   }
 
   public get isLoggedIn(): boolean {
-    return !this.firebase || Boolean(this.user.id)
+    return Boolean(this.user.id)
   }
 
   public async onInit(): Promise<boolean> {
@@ -52,10 +52,6 @@ export class TFRAPI {
     return initResult.initPromise
   }
 
-  /**
-   * Enhanced initialization that supports parallel operations
-   * Can optionally preload SKUs while user authentication happens
-   */
   public async onInitParallel(skusToPreload?: string[], forceRefresh: boolean = false): Promise<ParallelInitResult> {
     // Start measurement locations loading (non-blocking)
     const measurementLocationsPromise = this.getMeasurementLocations()
@@ -87,10 +83,6 @@ export class TFRAPI {
     }
   }
 
-  /**
-   * Preload colorway size assets for given SKUs
-   * Can run in parallel with user authentication
-   */
   private async preloadColorwaySizeAssets(skus: string[], forceRefresh: boolean = false): Promise<Map<string, types.FirestoreColorwaySizeAsset>> {
     const results = new Map<string, types.FirestoreColorwaySizeAsset>()
     const uniqueSkus = [...new Set(skus)]
@@ -120,9 +112,6 @@ export class TFRAPI {
     return results
   }
 
-  /**
-   * Enhanced setSku that can handle preloaded assets or start parallel loading
-   */
   public async setSkuWithParallel(sku: string, preloadedAssets?: Map<string, types.FirestoreColorwaySizeAsset>): Promise<types.FirestoreColorwaySizeAsset> {
     // Check if we have preloaded asset for this SKU
     if (preloadedAssets && preloadedAssets.has(sku)) {
@@ -233,7 +222,7 @@ export class TFRAPI {
     })
 
     return locationsWithSortOrder
-      .sort((a, b) => (a.sort_order < b.sort_order ? -1 : 0))
+      .sort((a, b) => a.sort_order - b.sort_order)
       .map((location) => location.name)
   }
 
@@ -273,7 +262,6 @@ export class TFRAPI {
     return this.measurementLocations.has(location) ? this.measurementLocations.get(location).sort_order : Infinity
   }
 
-  // Optimized batch processing for multiple SKUs with proper ordering
   public async tryOnBatch(skus: string[], prioritySku?: string, forceRefresh: boolean = false): Promise<Map<string, types.TryOnFrames>> {
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
 
@@ -316,20 +304,18 @@ export class TFRAPI {
         .map(sku => ({ sku, asset: colorwayAssets.get(sku) }))
         .filter(({ asset }) => asset !== undefined)
 
-      // Step 3a: Make all API requests concurrently using Promise.all
       const apiRequestPromises = validAssets.map(async ({ sku, asset }) => {
         try {
           await this.requestColorwaySizeAssetFramesByID(asset!.id)
           return { sku, success: true, asset }
         } catch (error) {
-          console.error(`❌ API request failed for SKU ${sku}:`, error)
+          console.error(`API request failed for SKU ${sku}:`, error)
           return { sku, success: false, error }
         }
       })
 
       const apiResults = await Promise.all(apiRequestPromises)
 
-      // Step 3b: Collect frames for successful API requests concurrently
       const framePromises = apiResults
         .filter(result => result.success)
         .map(async (result) => {
@@ -337,7 +323,7 @@ export class TFRAPI {
             const frames = await this.awaitColorwaySizeAssetFrames(result.asset!.sku)
             return { sku: result.sku, frames: frames as types.TryOnFrames, success: true, retryable: false }
           } catch (error) {
-            console.error(`❌ Frame retrieval failed for SKU ${result.sku}:`, error)
+            console.error(`Frame retrieval failed for SKU ${result.sku}:`, error)
 
             // Handle try-on in progress errors
             if (this.isTryOnInProgressError(error)) {
@@ -350,24 +336,20 @@ export class TFRAPI {
 
       const requestResults = await Promise.all(framePromises)
 
-      // Process results maintaining the original order
       const uncachedSkusWithResults = uncachedSkus.map((sku, index) => ({
         sku,
         result: requestResults[index]
       }))
 
-      // Separate successful results from failed ones (maintaining order)
       const successfulResults = uncachedSkusWithResults.filter(({ result }) => result.success && result.frames)
       const retryableResults = uncachedSkusWithResults.filter(({ result }) => !result.success && result.retryable)
 
-      // Add successful results to the final map (in order)
       successfulResults.forEach(({ sku, result }) => {
         if (result.frames) {
           results.set(sku, result.frames)
         }
       })
 
-      // Retry retryable results once with delay (maintaining order)
       if (retryableResults.length > 0) {
         console.log(`Retrying ${retryableResults.length} SKUs due to try-on in progress:`, retryableResults.map(r => r.sku))
         await this.delay(2000) // 2 second delay for batch retry
@@ -381,14 +363,13 @@ export class TFRAPI {
             const frames = await this.awaitColorwaySizeAssetFrames(asset.sku)
             return { sku, frames: frames as types.TryOnFrames, success: true, retryable: false }
           } catch (retryError) {
-            console.error(`❌ Retry failed for SKU ${sku}:`, retryError)
+            console.error(`Retry failed for SKU ${sku}:`, retryError)
             return { sku, frames: null as types.TryOnFrames | null, success: false, retryable: false }
           }
         })
 
         const retryResults = await Promise.all(retryPromises)
 
-        // Process retry results maintaining the original order
         const retrySkusWithResults = retryableResults.map(({ sku }, index) => ({
           sku,
           result: retryResults[index]
@@ -402,7 +383,6 @@ export class TFRAPI {
       }
     }
 
-    // Step 4: If priority SKU exists and not in results, ensure it's processed first
     if (prioritySku && !results.has(prioritySku) && colorwayAssets.has(prioritySku)) {
       try {
         const priorityAsset = colorwayAssets.get(prioritySku)
@@ -413,7 +393,7 @@ export class TFRAPI {
           results.set(prioritySku, priorityFrames)
         }
       } catch (error) {
-        console.error(`❌ Priority SKU request failed for ${prioritySku}:`, error)
+        console.error(`Priority SKU request failed for ${prioritySku}:`, error)
         throw new Error(`Failed to get priority frames for SKU ${prioritySku}: ${error.message || error}`)
       }
     }
@@ -421,7 +401,6 @@ export class TFRAPI {
     return results
   }
 
-  // Optimized single SKU tryOn (uses batch processing internally)
   public async tryOn(colorwaySizeAssetSKU: string, forceRefresh: boolean = false): Promise<types.TryOnFrames> {
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
 
