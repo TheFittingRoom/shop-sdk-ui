@@ -9,7 +9,7 @@ import { Config } from './helpers/config'
 import * as Errors from './helpers/errors'
 import { testImage } from './utils'
 
-export class TFRShop {
+export class TFRAPI {
   private measurementLocations: Map<string, { name: string; sort_order: number }> = new Map()
   private colorwaySizeAssetsCache: Map<string, types.FirestoreColorwaySizeAsset> = new Map()
 
@@ -166,15 +166,17 @@ export class TFRShop {
     return this.measurementLocations.has(location) ? this.measurementLocations.get(location).sort_order : Infinity
   }
 
-  // Optimized batch processing for multiple SKUs
+  // Optimized batch processing for multiple SKUs with proper ordering
   public async tryOnBatch(skus: string[], prioritySku?: string): Promise<Map<string, types.TryOnFrames>> {
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
 
     const results = new Map<string, types.TryOnFrames>()
     const uniqueSkus = [...new Set(skus)]
 
+    // Step 1: Batch fetch all colorway size assets (avoids N+1 queries)
     const colorwayAssets = await this.batchGetColorwaySizeAssetsFromSkus(uniqueSkus)
 
+    // Step 2: Check cache for existing frames first
     const cachePromises = uniqueSkus.map(async (sku) => {
       const asset = colorwayAssets.get(sku)
       if (!asset) return { sku, frames: null, fromCache: false }
@@ -188,75 +190,89 @@ export class TFRShop {
     })
 
     const cacheResults = await Promise.all(cachePromises)
-    const cachedFrames = new Map<string, types.TryOnFrames>()
     const uncachedSkus: string[] = []
 
+    // Process cache results in order
     cacheResults.forEach(({ sku, frames, fromCache }) => {
       if (frames && fromCache) {
-        cachedFrames.set(sku, frames)
         results.set(sku, frames)
       } else {
         uncachedSkus.push(sku)
       }
     })
 
+    // Step 3: Request frames for uncached SKUs in batch (maintain input order)
     if (uncachedSkus.length > 0) {
+      // Create request promises that maintain the original order
       const requestPromises = uncachedSkus.map(async (sku) => {
         const asset = colorwayAssets.get(sku)
-        if (!asset) return { sku, frames: null, success: false, retryable: false }
+        if (!asset) return { sku, frames: null as types.TryOnFrames | null, success: false, retryable: false }
 
         try {
           await this.requestColorwaySizeAssetFramesByID(asset.id)
           const frames = await this.awaitColorwaySizeAssetFrames(asset.sku)
-          return { sku, frames, success: true, retryable: false }
+          return { sku, frames: frames as types.TryOnFrames, success: true, retryable: false }
         } catch (error) {
           console.error(`Failed to get frames for SKU ${sku}:`, error)
 
           // Handle try-on in progress errors in batch processing
           if (this.isTryOnInProgressError(error)) {
-            return { sku, frames: null, success: false, retryable: true }
+            return { sku, frames: null as types.TryOnFrames | null, success: false, retryable: true }
           }
 
-          return { sku, frames: null, success: false, retryable: false }
+          return { sku, frames: null as types.TryOnFrames | null, success: false, retryable: false }
         }
       })
 
       const requestResults = await Promise.all(requestPromises)
 
-      // Separate successful results from failed ones
-      const successfulResults = requestResults.filter(result => result.success && result.frames)
-      const retryableResults = requestResults.filter(result => !result.success && result.retryable)
+      // Process results maintaining the original order
+      const uncachedSkusWithResults = uncachedSkus.map((sku, index) => ({
+        sku,
+        result: requestResults[index]
+      }))
 
-      // Add successful results to the final map
-      successfulResults.forEach(({ sku, frames }) => {
-        if (frames) {
-          results.set(sku, frames)
+      // Separate successful results from failed ones (maintaining order)
+      const successfulResults = uncachedSkusWithResults.filter(({ result }) => result.success && result.frames)
+      const retryableResults = uncachedSkusWithResults.filter(({ result }) => !result.success && result.retryable)
+
+      // Add successful results to the final map (in order)
+      successfulResults.forEach(({ sku, result }) => {
+        if (result.frames) {
+          results.set(sku, result.frames)
         }
       })
 
-      // Retry retryable results once with delay
+      // Retry retryable results once with delay (maintaining order)
       if (retryableResults.length > 0) {
         console.log(`Retrying ${retryableResults.length} SKUs due to try-on in progress:`, retryableResults.map(r => r.sku))
         await this.delay(2000) // 2 second delay for batch retry
 
         const retryPromises = retryableResults.map(async ({ sku }) => {
           const asset = colorwayAssets.get(sku)
-          if (!asset) return { sku, frames: null, success: false, retryable: false }
+          if (!asset) return { sku, frames: null as types.TryOnFrames | null, success: false, retryable: false }
 
           try {
             await this.requestColorwaySizeAssetFramesByID(asset.id)
             const frames = await this.awaitColorwaySizeAssetFrames(asset.sku)
-            return { sku, frames, success: true, retryable: false }
+            return { sku, frames: frames as types.TryOnFrames, success: true, retryable: false }
           } catch (retryError) {
             console.error(`Retry failed for SKU ${sku}:`, retryError)
-            return { sku, frames: null, success: false, retryable: false }
+            return { sku, frames: null as types.TryOnFrames | null, success: false, retryable: false }
           }
         })
 
         const retryResults = await Promise.all(retryPromises)
-        retryResults.forEach(({ sku, frames, success }) => {
-          if (success && frames) {
-            results.set(sku, frames)
+
+        // Process retry results maintaining the original order
+        const retrySkusWithResults = retryableResults.map(({ sku }, index) => ({
+          sku,
+          result: retryResults[index]
+        }))
+
+        retrySkusWithResults.forEach(({ sku, result }) => {
+          if (result.success && result.frames) {
+            results.set(sku, result.frames)
           }
         })
       }
@@ -509,5 +525,5 @@ export const initShop = (brandId: number, env: string = 'dev') => {
 
   Config.getInstance().setEnv(env)
 
-  return new TFRShop(brandId, new Firebase())
+  return new TFRAPI(brandId, new Firebase())
 }

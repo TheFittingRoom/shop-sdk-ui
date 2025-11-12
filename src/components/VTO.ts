@@ -12,14 +12,29 @@ export class VtoComponent {
 
     const vtoMainDiv = document.getElementById(this.vtoMainDivId)
 
-    if (!vtoMainDiv) throw new Error(`Element with id ${this.vtoMainDivId} not found`)
+    if (!vtoMainDiv) {
+      console.error(`VTO Element with id ${this.vtoMainDivId} not found`)
+      // Create the div if it doesn't exist
+      const newDiv = document.createElement('div')
+      newDiv.id = this.vtoMainDivId
+      newDiv.style.display = 'block'
+      document.body.appendChild(newDiv)
+      console.log(`Created VTO div with id: ${this.vtoMainDivId}`)
+    }
 
-    vtoMainDiv.innerHTML = `
+    const targetDiv = document.getElementById(this.vtoMainDivId)!
+    console.log(`Initializing VTO in div: ${this.vtoMainDivId}`, targetDiv)
+
+    targetDiv.innerHTML = `
         <div class="tfr-slider-wrapper">
-          <img id="tfr-tryon-image" src="" />
+          <img id="tfr-tryon-image" src="" style="max-width: 30vw; display: block;" />
           <input type="range" id="tfr-slider" />
         </div>
     `
+
+    // Make sure the div is visible
+    targetDiv.style.display = 'block'
+    targetDiv.style.visibility = 'visible'
 
     const tryOnImage = <HTMLImageElement>document.getElementById('tfr-tryon-image')
     const onChange = (slider, imageUrl) => {
@@ -30,6 +45,7 @@ export class VtoComponent {
 
     this.slider = InitImageSlider('tfr-slider', onChange)
     this.isInit = true
+    console.log('VTO Component initialized successfully')
   }
 
   public onNewFramesReady(frames: string[]) {

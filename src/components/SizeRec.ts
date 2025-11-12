@@ -1,5 +1,5 @@
 import { infoIcon, tfrDoor, userIcon } from './svgs'
-import { TFRShop } from '../api'
+import { TFRAPI } from '../api/api'
 import * as types from '../api'
 
 export type RecommendedSize = {
@@ -21,10 +21,10 @@ export class SizeRecComponent {
   private _styleId: number = null
   private isLoggedIn: boolean
   private availableSizes: RecommendedSize['sizes'] = []
-  private tfrShop: TFRShop
+  private tfrShop: TFRAPI
   private vtoComponent: any = null
   private hasInitializedTryOn: boolean = false
-  private isMiddleVtoActive: boolean = false
+  private vtoFramesCache: Map<string, types.TryOnFrames> = new Map() // Cache for batch-loaded frames
 
   private sizeRecMainDiv: HTMLDivElement
 
@@ -58,7 +58,7 @@ export class SizeRecComponent {
     private readonly onSignOutClick: () => void,
     private readonly onFitInfoClick: () => void,
     initialIsLoggedIn: boolean,
-    tfrShop: TFRShop,
+    tfrShop: TFRAPI,
     vtoComponent?: any,
   ) {
     this.isLoggedIn = initialIsLoggedIn
@@ -215,7 +215,6 @@ export class SizeRecComponent {
       const frames = await this.tfrShop.tryOn(sku)
 
       if (shouldDisplay) {
-        this.isMiddleVtoActive = true
         try {
           this.vtoComponent.init()
           this.vtoComponent.onNewFramesReady(frames)
@@ -228,7 +227,7 @@ export class SizeRecComponent {
     }
   }
 
-  private async loadVTOForSelectedSizeAndNeighbors(): Promise<void> {
+  private async loadVTOForAvailableSizes(): Promise<void> {
     const activeButton = document.querySelector('.tfr-size-rec-select-button.active')
     if (!activeButton) {
       throw new Error("no active button found")
@@ -259,18 +258,25 @@ export class SizeRecComponent {
     try {
       const vtoResults = await this.tfrShop.tryOnBatch(skusToLoad, selectedSku)
 
+      // Store results in local cache for instant switching
+      vtoResults.forEach((frames, sku) => {
+        this.vtoFramesCache.set(sku, frames)
+      })
+
       // Display the priority SKU first
       if (this.vtoComponent && vtoResults.has(selectedSku)) {
-        this.isMiddleVtoActive = true
+        console.log('Displaying VTO for selected SKU:', selectedSku)
+        console.log('VTO Component available:', this.vtoComponent)
+        console.log('Frames available:', vtoResults.get(selectedSku))
         try {
           this.vtoComponent.init()
           this.vtoComponent.onNewFramesReady(vtoResults.get(selectedSku)!)
+          console.log('VTO Component initialized and frames loaded successfully')
         } catch (e) {
           console.error('Error initializing VTO:', e)
         }
       }
 
-      // Note: Preloaded sizes are cached and will be available instantly when user switches
       console.log(`Successfully loaded VTO for ${vtoResults.size} sizes:`, Array.from(vtoResults.keys()))
 
     } catch (error) {
@@ -307,7 +313,7 @@ export class SizeRecComponent {
       this.hasInitializedTryOn = true
 
       try {
-        await this.loadVTOForSelectedSizeAndNeighbors()
+        await this.loadVTOForAvailableSizes()
       } catch (error) {
         console.error('Error during try-on process:', error)
       } finally {
@@ -340,19 +346,27 @@ export class SizeRecComponent {
 
     // Optimized: Use cached batch results when available, fallback to single call
     if (this.hasInitializedTryOn && this.vtoComponent) {
-      this.displayCachedOrLoadVto(selectedSku)
+      this.displayCachedOrLoadVTO(selectedSku)
     }
   }
 
-  private async displayCachedOrLoadVto(sku: string): Promise<void> {
+  private async displayCachedOrLoadVTO(sku: string): Promise<void> {
     try {
-      // Try to get from cache first (much faster)
-      const cachedFrames = await this.fetchFramesFromUser(sku)
-      if (cachedFrames && this.vtoComponent) {
-        this.isMiddleVtoActive = true
+      // Check local cache first (fastest)
+      const localCachedFrames = this.vtoFramesCache.get(sku)
+      if (localCachedFrames && this.vtoComponent) {
         this.vtoComponent.init()
-        this.vtoComponent.onNewFramesReady(cachedFrames)
-        console.log(`Loaded cached VTO for SKU: ${sku}`)
+        this.vtoComponent.onNewFramesReady(localCachedFrames)
+        console.log(`Loaded locally cached VTO for SKU: ${sku}`)
+        return
+      }
+
+      // Try to get from user profile cache (second fastest)
+      const userCachedFrames = await this.fetchFramesFromUser(sku)
+      if (userCachedFrames && this.vtoComponent) {
+        this.vtoComponent.init()
+        this.vtoComponent.onNewFramesReady(userCachedFrames)
+        console.log(`Loaded user cached VTO for SKU: ${sku}`)
         return
       }
 

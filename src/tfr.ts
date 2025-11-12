@@ -57,6 +57,9 @@ export class FittingRoom {
       this.submitTel.bind(this),
     )
     this.tfrShop = initShop(Number(this.shopId), env)
+
+    if (vtoMainDivId) this.vtoComponent = new VtoComponent(vtoMainDivId)
+
     this.tfrSizeRec = new TFRSizeRecommendation(
       sizeRecMainDivId,
       cssVariables,
@@ -67,8 +70,6 @@ export class FittingRoom {
       this.onTryOnClick.bind(this),
       this.vtoComponent,
     )
-
-    if (vtoMainDivId) this.vtoComponent = new VtoComponent(vtoMainDivId)
   }
 
   get shop() {
