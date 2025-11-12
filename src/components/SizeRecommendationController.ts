@@ -1,5 +1,6 @@
 import { Fit, FitNames, TFRShop } from '../api'
 import { RecommendedSize, SizeRecComponent } from './SizeRecComponent'
+import type { FirestoreColorwaySizeAsset } from '../api/gen/responses'
 
 export type TFRCssVariables = {
   brandColor?: string
@@ -98,11 +99,11 @@ export class TFRSizeRec {
     this.sizeRecComponent.show()
   }
 
-  public async startSizeRecommendation(styleId: number) {
+  public async startSizeRecommendation(styleId: number, useCache: boolean = true) {
     try {
       this.setStyleId(styleId)
       this.sizeRecComponent.setLoading(true)
-      const sizes = await this.getRecommendedSizes(this.styleId)
+      const sizes = await this.getRecommendedSizes(this.styleId, useCache)
       if (!sizes) {
         console.error('No sizes found for sku')
         this.sizeRecComponent.setLoading(false)
@@ -131,22 +132,30 @@ export class TFRSizeRec {
     }
   }
 
-  private async getRecommendedSizes(styleId: number): Promise<RecommendedSize> {
+  private async getRecommendedSizes(styleId: number, useCache: boolean = true): Promise<RecommendedSize> {
     const sizeRec = await this.tfrShop.getRecommendedSizes(styleId)
 
     if (!sizeRec) return null
 
-    // Fetch all colorway size assets for this style to get SKUs
-    const colorwaySizeAssets = await this.tfrShop.getColorwaySizeAssetsFromStyleId(styleId)
+    const colorwaySizeAssets = await this.tfrShop.getColorwaySizeAssetsFromStyleId(styleId, useCache)
 
     return {
       recommended: sizeRec.recommended_size.size_value.name,
       sizes: sizeRec.fits.map((fit) => {
-        // Find the corresponding colorway size asset for this size_id
         const colorwayAsset = colorwaySizeAssets.find((asset) => asset.size_id === fit.size_id)
 
+        if (!colorwayAsset) {
+          console.warn(`No colorway asset found for size_id: ${fit.size_id}`)
+        }
+
+        const availableSize = sizeRec.available_sizes.find((size) => size.id === fit.size_id)
+        if (!availableSize) {
+          console.error(`Size with id ${fit.size_id} not found in available sizes`)
+          return null
+        }
+
         return {
-          size: sizeRec.available_sizes.find((size) => size.id === fit.size_id).size_value.name,
+          size: availableSize.size_value.name,
           size_id: fit.size_id,
           sku: colorwayAsset?.sku || '',
           locations: fit.measurement_location_fits
@@ -163,9 +172,10 @@ export class TFRSizeRec {
                 sortOrder: this.tfrShop.getMeasurementLocationSortOrder(locationFit.measurement_location),
               }
             })
+            .filter((location) => location !== null) // Filter out null locations
             .sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : 1)),
         }
-      }),
+      }).filter((size) => size !== null), // Filter out null sizes
     }
   }
 

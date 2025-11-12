@@ -26,7 +26,7 @@ export const initFittingRoom = async ({
     const tfr = new FittingRoom(shopId, modalDivId, sizeRecMainDivId, vtoMainDivId, allowVTORetry, hooks, cssVariables, env)
 
     try {
-      await tfr.onInit()
+      await tfr.onInitParallel()
     } catch (error) {
       console.warn('Initial onInit failed, but returning TFR instance anyway:', error)
     }

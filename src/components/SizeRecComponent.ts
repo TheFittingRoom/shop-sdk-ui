@@ -98,8 +98,9 @@ export class SizeRecComponent {
   }
 
   public setIsLoggedIn(isLoggedIn: boolean) {
-    console.debug('setIsLoggedIn:', isLoggedIn)
+    console.log('[DEBUG-UI] SizeRecComponent.setIsLoggedIn called with:', isLoggedIn, 'current isLoggedIn:', this.isLoggedIn)
     this.isLoggedIn = isLoggedIn
+    console.log('[DEBUG-UI] SizeRecComponent.isLoggedIn set to:', this.isLoggedIn)
     this.tfrSizeRecSelectContainer.style.display = 'flex'
     this.tfrSizeRecSelect.style.display = 'flex'
     this.tfrSizeHowItFits.style.display = 'block'

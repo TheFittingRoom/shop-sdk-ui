@@ -49,16 +49,18 @@ export class TFRAPI {
     console.debug('onInit')
     await this.getMeasurementLocations()
 
-    const initResult = this.user.onInit(this.brandId)
+    const initResult = await this.user.onInit(this.brandId)
     return initResult.initPromise
   }
 
   public async onInitParallel(skusToPreload?: string[], forceRefresh: boolean = false): Promise<ParallelInitResult> {
-    console.debug('onInitParallel')
+    console.log('[DEBUG-A1] onInitParallel called at:', new Date().toISOString(), 'brandId:', this.brandId, 'skusToPreload:', skusToPreload)
     // Start measurement locations loading (non-blocking)
     const measurementLocationsPromise = this.getMeasurementLocations()
 
-    const userInitResult: UserInitResult = this.user.onInit(this.brandId)
+    console.log('[DEBUG-A1] Calling user.onInit')
+    const userInitResult: UserInitResult = await this.user.onInit(this.brandId)
+    console.log('[DEBUG-A1] user.onInit returned - isLoggedIn:', userInitResult.isLoggedIn, 'isInitialized:', userInitResult.isInitialized)
 
     // If SKUs provided, start preloading in parallel
     let preloadedAssets: Map<string, types.FirestoreColorwaySizeAsset> | undefined
@@ -75,8 +77,15 @@ export class TFRAPI {
       userInitResult.initPromise,
       measurementLocationsPromise,
       preloadPromise
-    ]).then(([isLoggedIn]) => isLoggedIn)
+    ]).then(([isLoggedIn]) => {
+      console.log('[DEBUG-A2] initPromise resolved with isLoggedIn:', isLoggedIn)
+      return isLoggedIn
+    }).catch((error) => {
+      console.log('[DEBUG-A2] initPromise rejected:', error)
+      return false
+    })
 
+    console.log('[DEBUG-A1] Returning init result - isLoggedIn:', userInitResult.isLoggedIn, 'initPromise exists:', !!initPromise)
     return {
       isLoggedIn: userInitResult.isLoggedIn,
       initPromise,
@@ -191,8 +200,24 @@ export class TFRAPI {
     }
   }
 
-  public async getColorwaySizeAssetsFromStyleId(styleId: number): Promise<types.FirestoreColorwaySizeAsset[]> {
+  public async getColorwaySizeAssetsFromStyleId(styleId: number, useCache: boolean = true): Promise<types.FirestoreColorwaySizeAsset[]> {
     console.debug('getColorwaySizeAssetsFromStyleId')
+
+    // If using cache, check cache first for assets with this style_id
+    if (useCache) {
+      const cachedAssets: types.FirestoreColorwaySizeAsset[] = []
+      for (const asset of this.colorwaySizeAssetsCache.values()) {
+        if (asset.style_id === styleId) {
+          cachedAssets.push(asset)
+        }
+      }
+
+      if (cachedAssets.length > 0) {
+        console.debug('using cached assets for style:', styleId)
+        return cachedAssets
+      }
+    }
+
     const constraints: QueryFieldFilterConstraint[] = [
       where('brand_id', '==', this.brandId),
       where('style_id', '==', styleId),
