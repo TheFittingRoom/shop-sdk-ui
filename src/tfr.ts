@@ -4,8 +4,8 @@ import { FirestoreStyle, initShop, TryOnFrames, FirestoreColorwaySizeAsset, Fire
 import { VtoComponent } from './components/virtualTryOn'
 import { L } from './components/locale'
 import { validateEmail, validatePassword } from './helpers/validations'
-import { TFRModal } from './tfr-modal'
-import { TFRCssVariables, TFRSizeRec as TFRSizeRecommendation } from './tfr-size-rec'
+import { TFRModal } from './components/ModalController'
+import { TFRSizeRec as TFRSizeRecommendation, TFRCssVariables } from './components/SizeRecommendationController'
 
 export interface TFRHooks {
   onLoading?: () => void

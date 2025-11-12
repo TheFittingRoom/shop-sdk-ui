@@ -1,6 +1,6 @@
-import * as modals from './components'
-import { TryOnFrames } from './api'
-import * as types from './components/types'
+import * as modals from '.'
+import { TryOnFrames } from '../api'
+import * as types from './types'
 
 export class TFRModal {
   private readonly manager: modals.ModalManager

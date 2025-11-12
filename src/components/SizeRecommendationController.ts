@@ -1,5 +1,5 @@
-import { Fit, FitNames, TFRShop } from './api'
-import { RecommendedSize, SizeRecComponent } from './components/SizeRec'
+import { Fit, FitNames, TFRShop } from '../api'
+import { RecommendedSize, SizeRecComponent } from './SizeRecComponent'
 
 export type TFRCssVariables = {
   brandColor?: string
