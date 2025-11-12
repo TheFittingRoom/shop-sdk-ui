@@ -1,4 +1,4 @@
-import { FirestoreStyle, initShop, TryOnFrames, FirestoreColorwaySizeAsset, FirestoreUser, AvatarState } from './api'
+import { FirestoreStyle, initShop, TryOnFrames, FirestoreColorwaySizeAsset, FirestoreUser, AvatarState, ParallelInitResult } from './api'
 /// <reference types="vite/client" />
 
 import { VtoComponent } from './components/virtualTryOn'
@@ -35,8 +35,9 @@ export class FittingRoom {
     modalDivId: string,
     sizeRecMainDivId: string,
     vtoMainDivId: string,
+    private readonly allowVTORetry: boolean = false,
     private readonly hooks: TFRHooks = {},
-    cssVariables: TFRCssVariables,
+    cssVariables?: TFRCssVariables,
     _env?: string,
   ) {
     // prettier-ignore
@@ -60,13 +61,14 @@ export class FittingRoom {
 
     this.tfrSizeRec = new TFRSizeRecommendationController(
       sizeRecMainDivId,
-      cssVariables,
+      cssVariables || {},
       this.tfrAPI,
       this.onSignInClick.bind(this),
       this.signOut.bind(this),
       this.onFitInfoClick.bind(this),
       this.onTryOnClick.bind(this),
       this.vtoComponent,
+      this.allowVTORetry,
     )
   }
 
@@ -134,6 +136,47 @@ export class FittingRoom {
     }
 
     return this.isLoggedIn
+  }
+
+  /**
+   * Enhanced initialization that supports parallel operations
+   * Can optionally preload SKUs while user authentication happens
+   */
+  public async onInitParallel(skusToPreload?: string[], forceRefresh: boolean = false): Promise<ParallelInitResult> {
+    const initResult = await this.tfrAPI.onInitParallel(skusToPreload, forceRefresh)
+    this.isLoggedIn = initResult.isLoggedIn
+    this.tfrSizeRec.setIsLoggedIn(this.isLoggedIn)
+
+    if (this.isLoggedIn) {
+      if (this.hooks?.onLogin) this.hooks.onLogin()
+
+      // Don't auto-subscribe - wait for middle VTO to be displayed
+      this.updateFirestoreSubscription()
+    } else {
+      if (this.hooks?.onLogout) this.hooks.onLogout()
+
+      this.unsubscribeFromProfileChanges()
+    }
+
+    return initResult
+  }
+
+  /**
+   * Enhanced setSku that can handle preloaded assets or start parallel loading
+   */
+  public async setSkuWithParallel(sku: string, preloadedAssets?: Map<string, any>) {
+    const asset = await this.tfrAPI.setSkuWithParallel(sku, preloadedAssets)
+
+    // Update the internal style reference if needed
+    if (!this.style || this.style.id !== asset.style_id) {
+      console.debug('fetching style for sku:', sku)
+      this.style = await this.getStyleFromColorwaySizeAssetSku(sku)
+    }
+
+    // Continue with normal setSku logic
+    await this.setSku(sku)
+
+    return asset
   }
 
   public close() {
@@ -225,7 +268,7 @@ export class FittingRoom {
     if (!this.vtoComponent)
       return console.error('VtoComponent is not initialized. Please check if the vtoMainDivId is correct.')
 
-    const frames = await this.api.tryOn(sku)
+    const frames = await this.api.tryOn(sku, this.allowVTORetry)
 
     if (shouldDisplay) {
       this.updateFirestoreSubscription()

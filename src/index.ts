@@ -18,8 +18,9 @@ import {
 import type { ModalManager } from './components'
 import './styles'
 
+// Export both the function and the class
 export { initFittingRoom } from './init'
-export type { FittingRoom } from './tfr'
+export { FittingRoom } from './tfr'
 
 // Export individual components
 export {

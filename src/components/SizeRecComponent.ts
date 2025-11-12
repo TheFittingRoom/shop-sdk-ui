@@ -24,6 +24,7 @@ export class SizeRecComponent {
   private tfrShop: TFRAPI
   private vtoComponent: any = null
   private hasInitializedTryOn: boolean = false
+  private hasSuccessfulVTO: boolean = false
   private vtoFramesCache: Map<string, types.TryOnFrames> = new Map() // Cache for batch-loaded frames
 
   private sizeRecMainDiv: HTMLDivElement
@@ -60,10 +61,12 @@ export class SizeRecComponent {
     initialIsLoggedIn: boolean,
     tfrShop: TFRAPI,
     vtoComponent?: any,
+    private readonly allowVTORetry: boolean = false,
   ) {
     this.isLoggedIn = initialIsLoggedIn
     this.tfrShop = tfrShop
     this.vtoComponent = vtoComponent
+    this.allowVTORetry = allowVTORetry
     this.init(sizeRecMainDivId)
     this.setIsLoggedIn(this.isLoggedIn)
   }
@@ -74,6 +77,9 @@ export class SizeRecComponent {
 
   public setSku(sku: string) {
     this._sku = sku
+    // Reset success state when SKU changes (new product)
+    this.hasSuccessfulVTO = false
+    this.updateTryOnButtonText()
   }
 
   public setVtoComponent(vtoComponent: any) {
@@ -86,6 +92,9 @@ export class SizeRecComponent {
 
   public setStyleId(styleId: number) {
     this._styleId = styleId
+    // Reset success state when style changes
+    this.hasSuccessfulVTO = false
+    this.updateTryOnButtonText()
   }
 
   public setIsLoggedIn(isLoggedIn: boolean) {
@@ -212,7 +221,7 @@ export class SizeRecComponent {
     }
 
     try {
-      const frames = await this.tfrShop.tryOn(sku)
+      const frames = await this.tfrShop.tryOn(sku, this.allowVTORetry)
 
       if (shouldDisplay) {
         try {
@@ -256,7 +265,7 @@ export class SizeRecComponent {
 
     // Use optimized batch processing
     try {
-      const vtoResults = await this.tfrShop.tryOnBatch(skusToLoad, selectedSku)
+      const vtoResults = await this.tfrShop.tryOnBatch(skusToLoad, selectedSku, this.allowVTORetry)
 
       // Store results in local cache for instant switching
       vtoResults.forEach((frames, sku) => {
@@ -314,12 +323,15 @@ export class SizeRecComponent {
 
       try {
         await this.loadVTOForAvailableSizes()
+        // Mark as successful for "Try On Again" functionality
+        this.hasSuccessfulVTO = true
       } catch (error) {
         console.error('Error during try-on process:', error)
+        this.hasSuccessfulVTO = false // Reset on error
       } finally {
-        // Reset loading state
+        // Reset loading state and update button text based on success state
         tryOnButton.classList.remove('loading')
-        tryOnButton.textContent = originalText
+        tryOnButton.textContent = this.hasSuccessfulVTO ? 'Try On Again' : 'Try On'
           ; (tryOnButton as HTMLButtonElement).disabled = false
       }
     })
@@ -374,7 +386,16 @@ export class SizeRecComponent {
       await this.makeTryOnApiCall(sku, true)
     } catch (error) {
       console.error('Error loading VTO:', error)
-      await this.makeTryOnApiCall(sku, true)
+      // Reset success flag on any error
+      this.hasSuccessfulVTO = false
+      await this.updateTryOnButtonText()
+    }
+  }
+
+  private async updateTryOnButtonText(): Promise<void> {
+    const tryOnButton = document.getElementById('tfr-try-on-button') as HTMLButtonElement
+    if (tryOnButton && this.hasInitializedTryOn) {
+      tryOnButton.textContent = this.hasSuccessfulVTO ? 'Try On Again' : 'Try On'
     }
   }
 

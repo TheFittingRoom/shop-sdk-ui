@@ -6,6 +6,7 @@ export type TrfConfig = {
   modalDivId: string
   sizeRecMainDivId: string
   vtoMainDivId: string
+  allowVTORetry?: boolean // Enable VTO retry with cache bypass
   hooks?: TFRHooks
   cssVariables?: TFRCssVariables
   env?: string
@@ -16,12 +17,23 @@ export const initFittingRoom = async ({
   modalDivId,
   sizeRecMainDivId,
   vtoMainDivId,
+  allowVTORetry = false,
   hooks = {},
   cssVariables = {},
   env = 'dev',
-}: TrfConfig) => {
-  const tfr = new FittingRoom(shopId, modalDivId, sizeRecMainDivId, vtoMainDivId, hooks, cssVariables, env)
-  await tfr.onInit()
+}: TrfConfig): Promise<FittingRoom> => {
+  try {
+    const tfr = new FittingRoom(shopId, modalDivId, sizeRecMainDivId, vtoMainDivId, allowVTORetry, hooks, cssVariables, env)
 
-  return tfr
+    try {
+      await tfr.onInit()
+    } catch (error) {
+      console.warn('Initial onInit failed, but returning TFR instance anyway:', error)
+    }
+
+    return tfr
+  } catch (error) {
+    console.error('Failed to create FittingRoom instance:', error)
+    throw error
+  }
 }

@@ -207,13 +207,14 @@
 
     window.addEventListener('DOMContentLoaded', async (e) => {
       let disableFittingRoom = false
+      let tfr = null
 
       try {
         const modalDiv = requireElement('thefittingroom-modal')
         const sizeRecMainDiv = requireElement('tfr-size-recommendation-main')
         const vtoMainDiv = requireElement('tfr-vto')
 
-        if (!modalDiv || !sizeRecMainDiv || !vtoMainDiv || typeof initFittingRoom !== 'function') {
+        if (!modalDiv || !sizeRecMainDiv || !vtoMainDiv) {
           disableFittingRoom = true
           console.error(
             'The Fitting Room functionality has been disabled due to missing critical elements or functions. Please resolve the errors above.',
@@ -226,37 +227,30 @@
           modalDivId: 'thefittingroom-modal',
           sizeRecMainDivId: 'tfr-size-recommendation-main',
           vtoMainDivId: 'tfr-vto',
+          allowVTORetry: true, // Enable VTO retry with cache bypass
           env: typeof ENV !== 'undefined' ? ENV : 'development',
         }
 
         const startTime = performance.now()
 
-        // 🚀 PARALLEL INITIALIZATION
-        const tfr = initFittingRoom(config)
+        tfr = await initFittingRoom(config)
         const sku = getSku()
 
         if (!sku) {
-          console.warn(
-            'SKU not retrieved. The Fitting Room will initialize but may not function optimally without a specific SKU.',
-          )
+          console.warn('SKU not retrieved. The Fitting Room will initialize but may not function optimally without a specific SKU.')
         }
 
-        // Step 2: Start parallel initialization with SKU preloading
-        const initResult = tfr.onInitParallel(availableSKUs)
-
-        // Step 3: Set SKU immediately using preloaded assets
-        if (sku && initResult.preloadedAssets) {
-          await tfr.setSkuWithParallel(sku, initResult.preloadedAssets)
-        } else if (sku) {
-          tfr.setSku(sku) // Fallback to sequential loading
+        const initResult = await tfr.onInitParallel(availableSKUs, true)
+        if (sku) {
+          if (initResult.preloadedAssets) {
+            await tfr.setSkuWithParallel(sku, initResult.preloadedAssets)
+          } else {
+            await tfr.setSku(sku)
+          }
         }
-
-        // Step 4: Only wait for user auth when actually needed
         await initResult.initPromise
 
-        const loadTime = performance.now() - startTime
-        console.log(`🚀 Parallel initialization completed in ${loadTime.toFixed(0)}ms`)
-        console.log('Expected improvement: 50-70% faster startup')
+        console.debug("init time in ms", performance.now() - startTime)
 
         // Add event listeners for product selection changes
         const sizeSelect = document.querySelector('select[name="options[Size]"]')
