@@ -1,4 +1,4 @@
-export { ErrorOutsideRecommendedSizes, ErrorResponse } from '../gen/errors'
+export type { ErrorOutsideRecommendedSizes, ErrorResponse } from '../gen/errors'
 
 export class AvatarNotCreatedError extends Error {
   constructor() {
