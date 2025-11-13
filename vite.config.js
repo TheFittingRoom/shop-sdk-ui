@@ -9,6 +9,11 @@ const banner = `/*!
  */`
 
 export default defineConfig(({ mode }) => ({
+  server: {
+    port: 5173,
+    host: true,
+    cors: true,
+  },
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
