@@ -53,7 +53,7 @@ export class TFRAPI {
     return initResult.initPromise
   }
 
-  public async onInitParallel(skusToPreload?: string[], forceRefresh: boolean = false): Promise<ParallelInitResult> {
+  public async onInitParallel(skusToPreload?: string[], fromCache: boolean = true): Promise<ParallelInitResult> {
     console.debug('onInitParallel called at:', new Date().toISOString(), 'brandId:', this.brandId, 'skusToPreload:', skusToPreload)
     // Start measurement locations loading (non-blocking)
     const measurementLocationsPromise = this.getMeasurementLocations()
@@ -68,7 +68,7 @@ export class TFRAPI {
 
     if (skusToPreload && skusToPreload.length > 0) {
       // Start SKU preloading immediately (parallel to user auth)
-      preloadPromise = this.preloadColorwaySizeAssets(skusToPreload, forceRefresh).then((assets) => {
+      preloadPromise = this.preloadColorwaySizeAssets(skusToPreload, fromCache).then((assets) => {
         preloadedAssets = assets
       })
     }
@@ -94,13 +94,13 @@ export class TFRAPI {
     }
   }
 
-  private async preloadColorwaySizeAssets(skus: string[], forceRefresh: boolean = false): Promise<Map<string, types.FirestoreColorwaySizeAsset>> {
+  private async preloadColorwaySizeAssets(skus: string[], fromCache: boolean = true): Promise<Map<string, types.FirestoreColorwaySizeAsset>> {
     console.debug('preloadColorwaySizeAssets')
     const results = new Map<string, types.FirestoreColorwaySizeAsset>()
     const uniqueSkus = [...new Set(skus)]
 
-    if (forceRefresh) {
-      // If forcing refresh, fetch all SKUs directly from Firestore
+    if (!fromCache) {
+      // If not using cache, fetch all SKUs directly from Firestore
       await this.fetchAssetsFromFirestore(uniqueSkus, results, true)
       return results
     }
@@ -124,24 +124,6 @@ export class TFRAPI {
     return results
   }
 
-  public async setSkuWithParallel(sku: string, preloadedAssets?: Map<string, types.FirestoreColorwaySizeAsset>): Promise<types.FirestoreColorwaySizeAsset> {
-    console.debug('setSkuWithParallel')
-    // Check if we have preloaded asset for this SKU
-    if (preloadedAssets && preloadedAssets.has(sku)) {
-      const asset = preloadedAssets.get(sku)!
-      this.colorwaySizeAssetsCache.set(sku, asset)
-      return asset
-    }
-
-    // Check cache
-    const cachedAsset = this.colorwaySizeAssetsCache.get(sku)
-    if (cachedAsset) {
-      return cachedAsset
-    }
-
-    // Load from Firestore (can run in parallel with user auth)
-    return await this.getColorwaySizeAssetFromSku(sku)
-  }
 
   public async getRecommendedSizes(styleId: number): Promise<SizeFitRecommendation | null> {
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
@@ -299,20 +281,20 @@ export class TFRAPI {
     return this.measurementLocations.has(location) ? this.measurementLocations.get(location).sort_order : Infinity
   }
 
-  public async tryOnBatch(skus: string[], prioritySku?: string, forceRefresh: boolean = false): Promise<Map<string, types.TryOnFrames>> {
+  public async tryOnBatch(skus: string[], prioritySku?: string, fromCache: boolean = true): Promise<Map<string, types.TryOnFrames>> {
     console.debug('tryOnBatch')
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
 
     const results = new Map<string, types.TryOnFrames>()
     const uniqueSkus = [...new Set(skus)]
 
-    const colorwayAssets = await this.batchGetColorwaySizeAssetsFromSKUs(uniqueSkus, forceRefresh)
+    const colorwayAssets = await this.batchGetColorwaySizeAssetsFromSKUs(uniqueSkus, fromCache)
 
     const cachePromises = uniqueSkus.map(async (sku) => {
       const asset = colorwayAssets.get(sku)
       if (!asset) return { sku, frames: null, fromCache: false }
 
-      if (forceRefresh) {
+      if (!fromCache) {
         return { sku, frames: null, fromCache: false }
       }
 
@@ -359,16 +341,10 @@ export class TFRAPI {
         .map(async (result) => {
           try {
             const frames = await this.watchForTryOnFrames(result.asset!.sku)
-            return { sku: result.sku, frames: frames as types.TryOnFrames, success: true, retryable: false }
+            return { sku: result.sku, frames: frames as types.TryOnFrames, success: true }
           } catch (error) {
             console.error(`Frame retrieval failed for SKU ${result.sku}:`, error)
-
-            // Handle try-on in progress errors
-            if (this.isTryOnInProgressError(error)) {
-              return { sku: result.sku, frames: null as types.TryOnFrames | null, success: false, retryable: true }
-            }
-
-            return { sku: result.sku, frames: null as types.TryOnFrames | null, success: false, retryable: false }
+            return { sku: result.sku, frames: null as types.TryOnFrames | null, success: false }
           }
         })
 
@@ -390,47 +366,12 @@ export class TFRAPI {
 
       console.debug('uncachedSkusWithResults:', uncachedSkusWithResults.map(r => ({ sku: r.sku, hasResult: !!r.result, success: r.result?.success, frames: !!r.result?.frames })))
       const successfulResults = uncachedSkusWithResults.filter(({ result }) => result && result.success && result.frames)
-      const retryableResults = uncachedSkusWithResults.filter(({ result }) => !result.success && result.retryable)
 
       successfulResults.forEach(({ sku, result }) => {
         if (result.frames) {
           results.set(sku, result.frames)
         }
       })
-
-      if (retryableResults.length > 0) {
-        console.log(`Retrying ${retryableResults.length} SKUs due to try-on in progress:`, retryableResults.map(r => r.sku))
-        await this.delay(2000) // 2 second delay for batch retry
-
-        const retryPromises = retryableResults.map(async ({ sku }) => {
-          const asset = colorwayAssets.get(sku)
-          if (!asset) return { sku, frames: null as types.TryOnFrames | null, success: false, retryable: false }
-
-          try {
-            await this.requestColorwaySizeAssetFramesByID(asset.id)
-            const frames = await this.watchForTryOnFrames(asset.sku)
-            return { sku, frames: frames as types.TryOnFrames, success: true, retryable: false }
-          } catch (retryError) {
-            console.error(`Retry failed for SKU ${sku}:`, retryError)
-            return { sku, frames: null as types.TryOnFrames | null, success: false, retryable: false }
-          }
-        })
-
-        const retryResults = await Promise.all(retryPromises)
-
-        // Map retry results back to SKUs
-        const retryResultsMap = new Map<string, any>()
-        retryableResults.forEach(({ sku }, index) => {
-          retryResultsMap.set(sku, retryResults[index])
-        })
-
-        retryableResults.forEach(({ sku }) => {
-          const result = retryResultsMap.get(sku)
-          if (result.success && result.frames) {
-            results.set(sku, result.frames)
-          }
-        })
-      }
     }
 
     if (prioritySku && !results.has(prioritySku) && colorwayAssets.has(prioritySku)) {
@@ -451,51 +392,14 @@ export class TFRAPI {
     return results
   }
 
-  public async tryOn(colorwaySizeAssetSKU: string, forceRefresh: boolean = false): Promise<types.TryOnFrames> {
-    console.debug('tryOn')
-    if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
 
-    return await this.performSingleTryOn(colorwaySizeAssetSKU, forceRefresh)
-  }
-
-  private async performSingleTryOn(sku: string, forceRefresh: boolean = false): Promise<types.TryOnFrames> {
-    console.debug('performSingleTryOn')
-    // Use the existing batch system for consistent caching and optimization
-    const batchResult = await this.tryOnBatch([sku], sku, forceRefresh)
-
-    const frames = batchResult.get(sku)
-    if (!frames) {
-      throw new Error(`Failed to get VTO frames for SKU: ${sku}`)
-    }
-
-    return frames
-  }
-
-  private isTryOnInProgressError(error: any): boolean {
-    // Check for various error patterns that indicate a try-on is already in progress
-    const errorMessage = error?.message?.toLowerCase() || ''
-    const errorText = error?.error?.toLowerCase?.() || ''
-
-    return errorMessage.includes('try on in progress') ||
-      errorMessage.includes('try-on in progress') ||
-      errorMessage.includes('already in progress') ||
-      errorMessage.includes('operation in progress') ||
-      errorText.includes('try on in progress') ||
-      errorText.includes('try-on in progress') ||
-      errorText.includes('already in progress') ||
-      errorText.includes('operation in progress')
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
-  }
 
   // Batch method to fetch multiple colorway assets efficiently
-  private async batchGetColorwaySizeAssetsFromSKUs(skus: string[], forceRefresh: boolean = false): Promise<Map<string, types.FirestoreColorwaySizeAsset>> {
+  public async batchGetColorwaySizeAssetsFromSKUs(skus: string[], fromCache: boolean = true): Promise<Map<string, types.FirestoreColorwaySizeAsset>> {
     console.debug('batchGetColorwaySizeAssetsFromSKUs')
     const results = new Map<string, types.FirestoreColorwaySizeAsset>()
 
-    if (!forceRefresh) {
+    if (fromCache) {
       const uncachedSkus: string[] = []
 
       skus.forEach(sku => {
@@ -645,7 +549,7 @@ export class TFRAPI {
     })
   }
 
-  private async fetchColorwaySizeAssetFrames(colorwaySizeAssetSKU: string): Promise<types.TryOnFrames> {
+  public async fetchColorwaySizeAssetFrames(colorwaySizeAssetSKU: string): Promise<types.TryOnFrames> {
     console.debug('fetchColorwaySizeAssetFrames')
     const userProfile = await this.user.getUser()
 

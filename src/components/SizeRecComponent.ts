@@ -62,12 +62,12 @@ export class SizeRecComponent {
     initialIsLoggedIn: boolean,
     tfrShop: TFRAPI,
     vtoComponent?: any,
-    private readonly allowVTORetry: boolean = false,
+    private readonly forceFreshVTOOnRetry: boolean = false,
   ) {
     this.isLoggedIn = initialIsLoggedIn
     this.tfrShop = tfrShop
     this.vtoComponent = vtoComponent
-    this.allowVTORetry = allowVTORetry
+    this.forceFreshVTOOnRetry = forceFreshVTOOnRetry
     this.init(sizeRecMainDivId)
     this.setIsLoggedIn(this.isLoggedIn)
   }
@@ -211,7 +211,7 @@ export class SizeRecComponent {
     this.tfrToggleClosedElements = document.querySelectorAll('.tfr-toggle-closed')
   }
 
-  private async makeTryOnApiCall(sku: string, shouldDisplay: boolean = false): Promise<void> {
+  private async makeTryOnApiCall(sku: string, shouldDisplay: boolean = false, fromCache: boolean = true): Promise<void> {
     if (!this.hasInitializedTryOn) {
       console.debug('skipping try on, not initialized')
       return
@@ -223,7 +223,8 @@ export class SizeRecComponent {
     }
 
     try {
-      const frames = await this.tfrShop.tryOn(sku, this.hasAttemptedTryOn)
+      const batchResult = await this.tfrShop.tryOnBatch([sku], sku, fromCache)
+      const frames = batchResult.get(sku)!
 
       if (shouldDisplay) {
         try {
@@ -267,7 +268,12 @@ export class SizeRecComponent {
 
     // Use optimized batch processing
     try {
-      const vtoResults = await this.tfrShop.tryOnBatch(skusToLoad, selectedSku, this.hasAttemptedTryOn)
+      // Control cache behavior:
+      // - First click: hasAttemptedTryOn = false → fromCache = true → use cache if available
+      // - Second+ click: hasAttemptedTryOn = true → fromCache = false → force fresh API calls
+      // But only force fresh if forceFreshVTOOnRetry is enabled
+      const fromCache = !this.hasAttemptedTryOn || !this.forceFreshVTOOnRetry
+      const vtoResults = await this.tfrShop.tryOnBatch(skusToLoad, selectedSku, fromCache)
 
       // Store results in local cache for instant switching
       vtoResults.forEach((frames, sku) => {
@@ -293,7 +299,7 @@ export class SizeRecComponent {
     } catch (error) {
       console.error('Error during batch VTO loading:', error)
       // Fallback to single SKU loading for the selected size
-      await this.makeTryOnApiCall(selectedSku, true)
+      await this.makeTryOnApiCall(selectedSku, true, this.forceFreshVTOOnRetry)
     }
   }
 
@@ -322,7 +328,22 @@ export class SizeRecComponent {
       this.hasInitializedTryOn = true
 
       try {
-        this.hasAttemptedTryOn = true
+        // Track if this is the first click in the current session
+        const isFirstClickInSession = !this.hasAttemptedTryOn
+        
+        // First click: use cache logic (fromCache = true)
+        // Second+ click: if forceFreshVTOOnRetry is enabled, force fresh (fromCache = false)
+        const shouldForceFresh = this.forceFreshVTOOnRetry && !isFirstClickInSession
+        this.hasAttemptedTryOn = true // Mark that we've attempted try on at least once
+        
+        console.debug('TryOn button clicked:', {
+          hasInitializedTryOn: this.hasInitializedTryOn,
+          hasAttemptedTryOn: this.hasAttemptedTryOn,
+          forceFreshVTOOnRetry: this.forceFreshVTOOnRetry,
+          isFirstClickInSession,
+          shouldForceFresh
+        })
+        
         await this.loadVTOForAvailableSizes()
         this.hasSuccessfulVTO = true
       } catch (error) {
@@ -383,7 +404,7 @@ export class SizeRecComponent {
       }
 
       // Fallback to fresh API call
-      await this.makeTryOnApiCall(sku, true)
+      await this.makeTryOnApiCall(sku, true, false) // Force fresh on fallback
     } catch (error) {
       console.error('Error loading VTO:', error)
       // Reset success flag on any error

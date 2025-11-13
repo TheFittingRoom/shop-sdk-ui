@@ -13,7 +13,6 @@
     "watch:prod": "vite build --mode production --watch",
     "watch:dev": "vite build --mode development --watch",
     "serve": "vite preview --host localhost --port 3030",
-    "pub": "npm run build:prod && npm publish --access public",
     "prune": "ts-prune"
   },
   "engines": {

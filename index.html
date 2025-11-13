@@ -227,7 +227,7 @@
           modalDivId: 'thefittingroom-modal',
           sizeRecMainDivId: 'tfr-size-recommendation-main',
           vtoMainDivId: 'tfr-vto',
-          allowVTORetry: true,
+          forceFreshVTOOnRetry: true,
           env: typeof ENV !== 'undefined' ? ENV : 'development',
         }
 
@@ -242,7 +242,7 @@
 
         const initResult = await tfr.onInitParallel(availableSKUs, true)
         if (sku) {
-          await tfr.setSku(sku)
+          await tfr.setSku(sku, availableSKUs, true)
         }
         await initResult.initPromise
 
@@ -256,7 +256,7 @@
           sizeSelect.addEventListener('change', () => {
             const newSku = getSku()
             if (newSku && tfr) {
-              tfr.setSku(newSku)
+              tfr.setSku(newSku, availableSKUs, true)
               console.debug('SKU updated to:', newSku)
             }
           })
@@ -266,7 +266,7 @@
           colorSelect.addEventListener('change', () => {
             const newSku = getSku()
             if (newSku && tfr) {
-              tfr.setSku(newSku)
+              tfr.setSku(newSku, availableSKUs, true)
               console.debug('SKU updated to:', newSku)
             }
           })

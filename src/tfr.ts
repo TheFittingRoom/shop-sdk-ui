@@ -20,6 +20,7 @@ export class FittingRoom {
   private isLoggedIn: boolean = false
   private hasInitializedTryOn: boolean = false
   private manualListeningOverride: boolean = false
+  private forceFreshVTO: boolean = false
 
   public style: FirestoreStyle
   public colorwaySizeAsset: FirestoreColorwaySizeAsset
@@ -35,7 +36,7 @@ export class FittingRoom {
     modalDivId: string,
     sizeRecMainDivId: string,
     vtoMainDivId: string,
-    private readonly allowVTORetry: boolean = false,
+    private readonly forceFreshVTOOnRetry: boolean = false,
     private readonly hooks: TFRHooks = {},
     cssVariables?: TFRCssVariables,
     _env?: string,
@@ -66,7 +67,7 @@ export class FittingRoom {
       this.onFitInfoClick.bind(this),
       this.onTryOnClick.bind(this),
       this.vtoComponent,
-      this.allowVTORetry,
+      this.forceFreshVTOOnRetry,
     )
 
     // Register for Firebase auth state changes to handle session restoration
@@ -115,9 +116,9 @@ export class FittingRoom {
     }
   }
 
-  public async onInitParallel(skusToPreload?: string[], forceRefresh: boolean = false): Promise<ParallelInitResult> {
+  public async onInitParallel(skusToPreload?: string[], fromCache: boolean = true): Promise<ParallelInitResult> {
     console.debug('FittingRoom.onInitParallel called at:', new Date().toISOString())
-    const initResult = await this.tfrAPI.onInitParallel(skusToPreload, forceRefresh)
+    const initResult = await this.tfrAPI.onInitParallel(skusToPreload, fromCache)
     console.debug('initResult received - isLoggedIn:', initResult.isLoggedIn)
     console.debug('Before setting isLoggedIn - this.isLoggedIn:', this.isLoggedIn)
     this.isLoggedIn = initResult.isLoggedIn
@@ -149,15 +150,21 @@ export class FittingRoom {
   /**
    * Enhanced setSku that can handle preloaded assets or start parallel loading
    */
-  public async setSku(sku: string, preloadedAssets?: Map<string, any>) {
-    const asset = await this.tfrAPI.setSkuWithParallel(sku, preloadedAssets)
+  public async setSku(activeSku: string, preloadedSkus?: string[], fromCache: boolean = true) {
+    let assets: Map<string, any>
 
-    // Style is already preloaded in onInitParallel, no need to fetch
+    if (preloadedSkus && preloadedSkus.length > 0) {
+      // Use the preloaded SKUs for parallel loading
+      assets = await this.tfrAPI.batchGetColorwaySizeAssetsFromSKUs(preloadedSkus, fromCache)
+    } else {
+      // Single SKU mode - use existing logic
+      assets = await this.tfrAPI.batchGetColorwaySizeAssetsFromSKUs([activeSku], fromCache)
+    }
 
-    // Continue with normal setSku logic
-    await this.setSkuInternal(sku)
+    // Continue with normal setSku logic for the active SKU
+    await this.setSkuInternal(activeSku)
 
-    return asset
+    return assets
   }
 
   public close() {
@@ -239,7 +246,7 @@ export class FittingRoom {
   }
 
   public async onTryOnClick(sku: string, shouldDisplay: boolean = true, isFromTryOnButton = false) {
-    console.debug('onTryOnClick:', sku, shouldDisplay, isFromTryOnButton, 'hasInitialized:', this.hasInitializedTryOn)
+    console.debug('onTryOnClick:', sku, shouldDisplay, isFromTryOnButton, 'hasInitialized:', this.hasInitializedTryOn, 'forceFreshVTOOnRetry:', this.forceFreshVTOOnRetry, 'forceFreshVTO:', this.forceFreshVTO)
     if (isFromTryOnButton) this.hasInitializedTryOn = true
     if (!this.hasInitializedTryOn) {
       console.debug('skipping try on, not initialized')
@@ -249,7 +256,39 @@ export class FittingRoom {
     if (!this.vtoComponent)
       return console.error('VtoComponent is not initialized. Please check if the vtoMainDivId is correct.')
 
-    const frames = await this.api.tryOn(sku, this.allowVTORetry)
+    // Set forceFreshVTO flag if this is a retry and forceFreshVTOOnRetry is enabled
+    if (this.hasInitializedTryOn && this.forceFreshVTOOnRetry) {
+      this.forceFreshVTO = true
+      console.debug('Second click detected, setting forceFreshVTO to true')
+    }
+
+    let frames = null
+
+    // Check if we should force fresh API calls or use cache
+    if (!this.forceFreshVTO) {
+      console.debug('Checking for existing frames in Firestore for SKU:', sku)
+
+      // First, check if frames already exist in Firestore (this is the cached check)
+      try {
+        frames = await this.api.fetchColorwaySizeAssetFrames(sku)
+        console.debug('Found cached frames for SKU:', sku, 'frames count:', frames?.length || 0)
+      } catch (error) {
+        console.debug('No cached frames found for SKU:', sku, 'will request new frames')
+        frames = null
+      }
+    } else {
+      console.debug('Force fresh VTO requested, skipping cache check for SKU:', sku)
+    }
+
+    // If no cached frames exist or forcing fresh API call, make API request
+    if (!frames || frames.length === 0) {
+      console.debug('Making API request for SKU:', sku, '(forceFreshVTO:', this.forceFreshVTO, ')')
+      const batchResult = await this.api.tryOnBatch([sku], sku, this.forceFreshVTO)
+      frames = batchResult.get(sku)!
+      console.debug('API request completed for SKU:', sku, 'frames count:', frames.length)
+    } else {
+      console.debug('Using cached frames for SKU:', sku)
+    }
 
     if (shouldDisplay) {
       this.updateFirestoreSubscription()
@@ -261,6 +300,9 @@ export class FittingRoom {
         this.tfrModal.onError(L.SomethingWentWrong)
       }
     }
+
+    // Reset forceFreshVTO after use (so cache works on subsequent clicks unless explicitly forced)
+    this.forceFreshVTO = false
   }
 
   public setManualListeningOverride(enabled: boolean) {
