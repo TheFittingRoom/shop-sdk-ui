@@ -116,22 +116,26 @@ export class FittingRoom {
     }
   }
 
-  public async onInitParallel(skusToPreload?: string[], noCache: boolean = false): Promise<ParallelInitResult> {
-    console.debug('FittingRoom.onInitParallel called at:', new Date().toISOString())
-    const initResult = await this.tfrAPI.onInitParallel(skusToPreload, noCache)
-    console.debug('initResult received - isLoggedIn:', initResult.isLoggedIn)
-    console.debug('Before setting isLoggedIn - this.isLoggedIn:', this.isLoggedIn)
-    this.isLoggedIn = initResult.isLoggedIn
-    console.debug('After setting isLoggedIn - this.isLoggedIn:', this.isLoggedIn)
-    console.debug('Calling tfrSizeRec.setIsLoggedIn with:', this.isLoggedIn)
-    this.tfrSizeRec.setIsLoggedIn(this.isLoggedIn)
+  public async onInitParallel(): Promise<ParallelInitResult> {
+    // Start measurement locations loading (non-blocking)
+    const measurementLocationsPromise = this.tfrAPI.getMeasurementLocations()
+    const userInitResult = await this.tfrAPI.user.onInit(this.tfrAPI.brandId)
 
-    // Preload the style since all SKUs share the same style_id
-    if (initResult.preloadedAssets && initResult.preloadedAssets.size > 0) {
-      const firstSku = Array.from(initResult.preloadedAssets.keys())[0]
-      const firstAsset = initResult.preloadedAssets.get(firstSku)!
-      this.style = await this.tfrAPI.GetStyle(firstAsset.style_id)
-    }
+    const initPromise = Promise.all([
+      userInitResult.initPromise,
+      measurementLocationsPromise,
+    ]).then(([isLoggedIn]) => {
+      console.debug('initPromise resolved with isLoggedIn:', isLoggedIn)
+      return isLoggedIn
+    }).catch((error) => {
+      console.debug('initPromise rejected:', error)
+      return false
+    })
+
+    console.debug('Returning init result - isLoggedIn:', userInitResult.isLoggedIn, 'initPromise exists:', !!initPromise)
+
+    this.isLoggedIn = userInitResult.isLoggedIn
+    this.tfrSizeRec.setIsLoggedIn(this.isLoggedIn)
 
     if (this.isLoggedIn) {
       if (this.hooks?.onLogin) this.hooks.onLogin()
@@ -144,7 +148,12 @@ export class FittingRoom {
       this.unsubscribeFromProfileChanges()
     }
 
-    return initResult
+    const result: ParallelInitResult = {
+      isLoggedIn: userInitResult.isLoggedIn,
+      initPromise,
+    }
+
+    return result
   }
 
   /**
