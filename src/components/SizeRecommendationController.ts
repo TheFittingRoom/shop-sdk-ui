@@ -120,18 +120,6 @@ export class TFRSizeRec {
     }
   }
 
-  public async getStyleMeasurementLocations(filledLocations: string[]): Promise<string[]> {
-    try {
-      const locations = await this.tfrShop.getMeasurementLocationsFromSku(this.sku, filledLocations)
-
-      return locations
-    } catch (error) {
-      console.error(error)
-      this.sizeRecComponent.hide()
-      return null
-    }
-  }
-
   private async getRecommendedSizes(styleId: number, useCache: boolean = true): Promise<RecommendedSize> {
     const sizeRec = await this.tfrShop.getRecommendedSizes(styleId)
 

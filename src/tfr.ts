@@ -350,11 +350,6 @@ export class FittingRoom {
     }
   }
 
-  public async cacheMeasurementLocations(filledLocations: string[]) {
-    const garmentLocations = await this.tfrAPI.getMeasurementLocationsFromSku(this.sku, filledLocations)
-    this.tfrSizeRec.setStyleMeasurementLocations(garmentLocations)
-  }
-
   public styleToGarmentMeasurementLocations(style: FirestoreStyle) {
     return style.sizes[0].garment_measurements.map((measurement) => measurement.measurement_location)
   }

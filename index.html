@@ -129,7 +129,7 @@
     }
 
     const brandID = 1
-    const availableSKUs = [
+    const productSKUs = [
       'TFR_Fitted-Dress_178_BlackBandana_2',
       'TFR_Fitted-Dress_178_BlackBandana_4',
       'TFR_Fitted-Dress_178_BlackBandana_6',
@@ -241,9 +241,9 @@
           console.warn('SKU not retrieved. The Fitting Room will initialize but may not function optimally without a specific SKU.')
         }
 
-        const initResult = await tfr.onInitParallel(availableSKUs, true)
+        const initResult = await tfr.onInitParallel(productSKUs, true)
         if (sku) {
-          await tfr.setSku(sku, availableSKUs, true)
+          await tfr.setSku(sku, productSKUs, true)
         }
         await initResult.initPromise
 
@@ -257,7 +257,7 @@
           sizeSelect.addEventListener('change', () => {
             const newSku = getSku()
             if (newSku && tfr) {
-              tfr.setSku(newSku, availableSKUs, true)
+              tfr.setSku(newSku, productSKUs, true)
               console.debug('SKU updated to:', newSku)
             }
           })
@@ -267,7 +267,7 @@
           colorSelect.addEventListener('change', () => {
             const newSku = getSku()
             if (newSku && tfr) {
-              tfr.setSku(newSku, availableSKUs, true)
+              tfr.setSku(newSku, productSKUs, true)
               console.debug('SKU updated to:', newSku)
             }
           })
