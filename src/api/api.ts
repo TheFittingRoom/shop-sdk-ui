@@ -211,7 +211,6 @@ export class TFRAPI {
   }
 
   public async tryOnBatch(skus: string[], prioritySku?: string, noCache: boolean = false): Promise<Map<string, types.TryOnFrames>> {
-    console.debug('tryOnBatch')
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
 
     const results = new Map<string, types.TryOnFrames>()
@@ -269,7 +268,7 @@ export class TFRAPI {
         .filter(result => result.success)
         .map(async (result) => {
           try {
-            const frames = await this.watchForTryOnFrames(result.asset!.sku)
+            const frames = await this.watchForTryOnFrames(result.asset!.sku, noCache)
             return { sku: result.sku, frames: frames as types.TryOnFrames, success: true }
           } catch (error) {
             console.error(`Frame retrieval failed for SKU ${result.sku}:`, error)
@@ -309,7 +308,7 @@ export class TFRAPI {
         if (priorityAsset) {
           // Request priority SKU frames
           await this.requestColorwaySizeAssetFramesByID(priorityAsset.id)
-          const priorityFrames = await this.watchForTryOnFrames(priorityAsset.sku)
+          const priorityFrames = await this.watchForTryOnFrames(priorityAsset.sku, noCache)
           results.set(prioritySku, priorityFrames)
         }
       } catch (error) {
@@ -431,11 +430,19 @@ export class TFRAPI {
     }
   }
 
-  private async watchForTryOnFrames(colorwaySizeAssetSKU: string): Promise<types.TryOnFrames> {
-    console.debug('awaitColorwaySizeAssetFrames')
+  private async watchForTryOnFrames(colorwaySizeAssetSKU: string, noCache: boolean = false): Promise<types.TryOnFrames> {
+    console.debug('awaitColorwaySizeAssetFrames', "noCache", noCache)
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
 
+    let firstSnapshotProcessed = false;
+
     const callback = async (data: QuerySnapshot<DocumentData>) => {
+      if (noCache && !firstSnapshotProcessed) {
+        firstSnapshotProcessed = true;
+        console.debug('Skipping first snapshot for noCache=true, waiting for actual change');
+        return false;
+      }
+
       const frames = data.docs[0].data()?.vto?.[this.brandId]?.[colorwaySizeAssetSKU]?.frames
       console.debug('awaitColorwaySizeAssetFrames callback, frames length:', frames?.length)
       if (!frames?.length) return false
