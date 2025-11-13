@@ -233,63 +233,72 @@ export class SizeRecComponent {
     }
   }
 
-  private async loadVTOForAvailableSizes(): Promise<void> {
-    const activeButton = document.querySelector('.tfr-size-rec-select-button.active')
+
+  private getSizeRecommendationState(): {
+    selectedSku: string;
+    skusToLoad: string[];
+  } {
+    const activeButton = document.querySelector('.tfr-size-rec-select-button.active');
     if (!activeButton) {
-      throw new Error("no active button found")
+      throw new Error("no active button found");
     }
 
-    const selectedIndex = Number(activeButton.getAttribute('data-index'))
+    const selectedIndex = Number(activeButton.getAttribute('data-index'));
     if (Number.isNaN(selectedIndex) || !this.availableSizes[selectedIndex]) {
-      throw new Error("no selectedIndex found")
+      throw new Error("no selectedIndex found");
     }
 
-    const selectedSku = this.availableSizes[selectedIndex].sku
+    const selectedSku = this.availableSizes[selectedIndex].sku;
     if (!selectedSku) {
-      throw new Error("no selectedSku found")
+      throw new Error("no selectedSku found");
     }
 
-    // Optimized: Use batch processing for multiple SKUs
-    const skusToLoad: string[] = [selectedSku] // Priority: selected size first
+    const skusToLoad: string[] = [selectedSku];
 
-    // Add neighboring sizes for preloading
     if (selectedIndex > 0 && this.availableSizes[selectedIndex - 1]?.sku) {
-      skusToLoad.push(this.availableSizes[selectedIndex - 1].sku)
+      skusToLoad.push(this.availableSizes[selectedIndex - 1].sku);
     }
     if (selectedIndex < this.availableSizes.length - 1 && this.availableSizes[selectedIndex + 1]?.sku) {
-      skusToLoad.push(this.availableSizes[selectedIndex + 1].sku)
+      skusToLoad.push(this.availableSizes[selectedIndex + 1].sku);
     }
 
-    // Use optimized batch processing
+    return { selectedSku, skusToLoad };
+  }
+
+  private async loadVTOForAvailableSizes(
+    selectedSku: string,
+    skusToLoad: string[]
+  ): Promise<void> {
     try {
-      const noCache = this.hasAttemptedTryOn && this.noCacheOnRetry
-      const vtoResults = await this.tfrShop.tryOnBatch(skusToLoad, selectedSku, noCache)
+      const noCache = this.hasAttemptedTryOn && this.noCacheOnRetry;
+      console.log("loadVTOForAvailableSizes nocache", noCache);
 
-      // Store results in local cache for instant switching
+      const vtoResults = await this.tfrShop.tryOnBatch(skusToLoad, selectedSku, noCache);
+
+      // Cache all results
       vtoResults.forEach((frames, sku) => {
-        this.vtoFramesCache.set(sku, frames)
-      })
+        this.vtoFramesCache.set(sku, frames);
+      });
 
-      // Display the priority SKU first
+      // Display selected SKU
       if (this.vtoComponent && vtoResults.has(selectedSku)) {
-        console.log('Displaying VTO for selected SKU:', selectedSku)
-        console.log('VTO Component available:', this.vtoComponent)
-        console.log('Frames available:', vtoResults.get(selectedSku))
+        console.log('Displaying VTO for selected SKU:', selectedSku);
+        console.log('VTO Component available:', this.vtoComponent);
+        console.log('Frames available:', vtoResults.get(selectedSku));
         try {
-          this.vtoComponent.init()
-          this.vtoComponent.onNewFramesReady(vtoResults.get(selectedSku)!)
-          console.log('VTO Component initialized and frames loaded successfully')
+          this.vtoComponent.init();
+          this.vtoComponent.onNewFramesReady(vtoResults.get(selectedSku)!);
+          console.log('VTO Component initialized and frames loaded successfully');
         } catch (e) {
-          console.error('Error initializing VTO:', e)
+          console.error('Error initializing VTO:', e);
         }
       }
 
-      console.log(`Successfully loaded VTO for ${vtoResults.size} sizes:`, Array.from(vtoResults.keys()))
-
+      console.log(`Successfully loaded VTO for ${vtoResults.size} sizes:`, Array.from(vtoResults.keys()));
     } catch (error) {
-      console.error('Error during batch VTO loading:', error)
-      // Fallback to single SKU loading for the selected size
-      await this.makeTryOnApiCall(selectedSku, true, this.noCacheOnRetry)
+      console.error('Error during batch VTO loading:', error);
+      // Fallback to single SKU
+      await this.makeTryOnApiCall(selectedSku, true, this.noCacheOnRetry);
     }
   }
 
@@ -318,20 +327,15 @@ export class SizeRecComponent {
       this.hasInitializedTryOn = true
 
       try {
-        const isFirstClickInSession = !this.hasAttemptedTryOn
-
-        const shouldForceFresh = this.noCacheOnRetry && !isFirstClickInSession
         this.hasAttemptedTryOn = true // Mark that we've attempted try on at least once
 
         console.debug('TryOn button clicked:', {
           hasInitializedTryOn: this.hasInitializedTryOn,
           hasAttemptedTryOn: this.hasAttemptedTryOn,
           noCacheOnRetry: this.noCacheOnRetry,
-          isFirstClickInSession,
-          shouldForceFresh
         })
-
-        await this.loadVTOForAvailableSizes()
+        const { selectedSku, skusToLoad } = this.getSizeRecommendationState()
+        await this.loadVTOForAvailableSizes(selectedSku, skusToLoad)
       } catch (error) {
         console.error('Error during try-on process:', error)
       } finally {
