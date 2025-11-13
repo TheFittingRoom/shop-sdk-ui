@@ -36,7 +36,7 @@ export class FittingRoom {
     modalDivId: string,
     sizeRecMainDivId: string,
     vtoMainDivId: string,
-    private readonly forceFreshVTOOnRetry: boolean = false,
+    private readonly noCacheOnRetry: boolean = false,
     private readonly hooks: TFRHooks = {},
     cssVariables?: TFRCssVariables,
     _env?: string,
@@ -67,7 +67,7 @@ export class FittingRoom {
       this.onFitInfoClick.bind(this),
       this.onTryOnClick.bind(this),
       this.vtoComponent,
-      this.forceFreshVTOOnRetry,
+      this.noCacheOnRetry,
     )
 
     // Register for Firebase auth state changes to handle session restoration
@@ -246,7 +246,7 @@ export class FittingRoom {
   }
 
   public async onTryOnClick(sku: string, shouldDisplay: boolean = true, isFromTryOnButton = false) {
-    console.debug('onTryOnClick:', sku, shouldDisplay, isFromTryOnButton, 'hasInitialized:', this.hasInitializedTryOn, 'forceFreshVTOOnRetry:', this.forceFreshVTOOnRetry, 'forceFreshVTO:', this.forceFreshVTO)
+    console.debug('onTryOnClick:', sku, shouldDisplay, isFromTryOnButton, 'hasInitialized:', this.hasInitializedTryOn, 'noCacheOnRetry:', this.noCacheOnRetry, 'forceFreshVTO:', this.forceFreshVTO)
     if (isFromTryOnButton) this.hasInitializedTryOn = true
     if (!this.hasInitializedTryOn) {
       console.debug('skipping try on, not initialized')
@@ -256,8 +256,8 @@ export class FittingRoom {
     if (!this.vtoComponent)
       return console.error('VtoComponent is not initialized. Please check if the vtoMainDivId is correct.')
 
-    // Set forceFreshVTO flag if this is a retry and forceFreshVTOOnRetry is enabled
-    if (this.hasInitializedTryOn && this.forceFreshVTOOnRetry) {
+    // Set forceFreshVTO flag if this is a retry and noCacheOnRetry is enabled
+    if (this.hasInitializedTryOn && this.noCacheOnRetry) {
       this.forceFreshVTO = true
       console.debug('Second click detected, setting forceFreshVTO to true')
     }

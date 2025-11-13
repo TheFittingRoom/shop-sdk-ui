@@ -8,7 +8,8 @@
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&family=Roboto&display=swap"
     rel="stylesheet" />
-  <link href="/dist/index.css" rel="stylesheet" />
+  <!-- CSS is generated during build to dist/ directory -->
+  <!-- <link href="/dist/index.css" rel="stylesheet" /> -->
 
   <style>
     body {
@@ -227,7 +228,7 @@
           modalDivId: 'thefittingroom-modal',
           sizeRecMainDivId: 'tfr-size-recommendation-main',
           vtoMainDivId: 'tfr-vto',
-          forceFreshVTOOnRetry: true,
+          noCacheOnRetry: true,
           env: typeof ENV !== 'undefined' ? ENV : 'development',
         }
 

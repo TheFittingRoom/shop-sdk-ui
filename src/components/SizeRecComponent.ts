@@ -62,12 +62,12 @@ export class SizeRecComponent {
     initialIsLoggedIn: boolean,
     tfrShop: TFRAPI,
     vtoComponent?: any,
-    private readonly forceFreshVTOOnRetry: boolean = false,
+    private readonly noCacheOnRetry: boolean = false,
   ) {
     this.isLoggedIn = initialIsLoggedIn
     this.tfrShop = tfrShop
     this.vtoComponent = vtoComponent
-    this.forceFreshVTOOnRetry = forceFreshVTOOnRetry
+    this.noCacheOnRetry = noCacheOnRetry
     this.init(sizeRecMainDivId)
     this.setIsLoggedIn(this.isLoggedIn)
   }
@@ -271,8 +271,8 @@ export class SizeRecComponent {
       // Control cache behavior:
       // - First click: hasAttemptedTryOn = false → fromCache = true → use cache if available
       // - Second+ click: hasAttemptedTryOn = true → fromCache = false → force fresh API calls
-      // But only force fresh if forceFreshVTOOnRetry is enabled
-      const fromCache = !this.hasAttemptedTryOn || !this.forceFreshVTOOnRetry
+      // But only force fresh if noCacheOnRetry is enabled
+      const fromCache = !this.hasAttemptedTryOn || !this.noCacheOnRetry
       const vtoResults = await this.tfrShop.tryOnBatch(skusToLoad, selectedSku, fromCache)
 
       // Store results in local cache for instant switching
@@ -299,7 +299,7 @@ export class SizeRecComponent {
     } catch (error) {
       console.error('Error during batch VTO loading:', error)
       // Fallback to single SKU loading for the selected size
-      await this.makeTryOnApiCall(selectedSku, true, this.forceFreshVTOOnRetry)
+      await this.makeTryOnApiCall(selectedSku, true, this.noCacheOnRetry)
     }
   }
 
@@ -330,20 +330,20 @@ export class SizeRecComponent {
       try {
         // Track if this is the first click in the current session
         const isFirstClickInSession = !this.hasAttemptedTryOn
-        
+
         // First click: use cache logic (fromCache = true)
-        // Second+ click: if forceFreshVTOOnRetry is enabled, force fresh (fromCache = false)
-        const shouldForceFresh = this.forceFreshVTOOnRetry && !isFirstClickInSession
+        // Second+ click: if noCacheOnRetry is enabled, force fresh (fromCache = false)
+        const shouldForceFresh = this.noCacheOnRetry && !isFirstClickInSession
         this.hasAttemptedTryOn = true // Mark that we've attempted try on at least once
-        
+
         console.debug('TryOn button clicked:', {
           hasInitializedTryOn: this.hasInitializedTryOn,
           hasAttemptedTryOn: this.hasAttemptedTryOn,
-          forceFreshVTOOnRetry: this.forceFreshVTOOnRetry,
+          noCacheOnRetry: this.noCacheOnRetry,
           isFirstClickInSession,
           shouldForceFresh
         })
-        
+
         await this.loadVTOForAvailableSizes()
         this.hasSuccessfulVTO = true
       } catch (error) {
