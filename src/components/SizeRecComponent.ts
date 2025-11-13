@@ -1,6 +1,5 @@
 import { infoIcon, tfrDoor, userIcon } from '../assets/svgs'
 import { TFRAPI } from '../api/api'
-import * as types from '../api'
 
 export type RecommendedSize = {
   recommended: string
@@ -25,7 +24,6 @@ export class SizeRecComponent {
   private vtoComponent: any = null
   private hasInitializedTryOn: boolean = false
   private hasAttemptedTryOn: boolean = false
-  private vtoFramesCache: Map<string, types.TryOnFrames> = new Map() // Cache for batch-loaded frames
 
   private sizeRecMainDiv: HTMLDivElement
 
@@ -204,39 +202,10 @@ export class SizeRecComponent {
     this.tfrToggleClosedElements = document.querySelectorAll('.tfr-toggle-closed')
   }
 
-  private async makeTryOnApiCall(sku: string, shouldDisplay: boolean = false, noCache: boolean = false): Promise<void> {
-    if (!this.hasInitializedTryOn) {
-      console.debug('skipping try on, not initialized')
-      return
-    }
-
-    if (!this.vtoComponent) {
-      console.error('VtoComponent is not initialized')
-      return
-    }
-
-    try {
-      const skipCache = noCache && this.hasAttemptedTryOn
-      const batchResult = await this.tfrShop.tryOnBatch([sku], sku, skipCache)
-      const frames = batchResult.get(sku)!
-
-      if (shouldDisplay) {
-        try {
-          this.vtoComponent.init()
-          this.vtoComponent.onNewFramesReady(frames)
-        } catch (e) {
-          console.error('Error initializing VTO:', e)
-        }
-      }
-    } catch (error) {
-      console.error('Error during try-on API call:', error)
-    }
-  }
-
 
   private getSizeRecommendationState(): {
     selectedSku: string;
-    skusToLoad: string[];
+    availableSkus: string[];
   } {
     const activeButton = document.querySelector('.tfr-size-rec-select-button.active');
     if (!activeButton) {
@@ -262,45 +231,28 @@ export class SizeRecComponent {
       skusToLoad.push(this.availableSizes[selectedIndex + 1].sku);
     }
 
-    return { selectedSku, skusToLoad };
+    return { selectedSku, availableSkus: skusToLoad };
   }
 
-  private async loadVTOForAvailableSizes(
-    selectedSku: string,
-    skusToLoad: string[]
-  ): Promise<void> {
-    try {
-      const noCache = this.hasAttemptedTryOn && this.noCacheOnRetry;
-      console.log("loadVTOForAvailableSizes nocache", noCache);
-
-      const vtoResults = await this.tfrShop.tryOnBatch(skusToLoad, selectedSku, noCache);
-
-      // Cache all results
-      vtoResults.forEach((frames, sku) => {
-        this.vtoFramesCache.set(sku, frames);
-      });
-
-      // Display selected SKU
-      if (this.vtoComponent && vtoResults.has(selectedSku)) {
-        console.log('Displaying VTO for selected SKU:', selectedSku);
-        console.log('VTO Component available:', this.vtoComponent);
-        console.log('Frames available:', vtoResults.get(selectedSku));
-        try {
-          this.vtoComponent.init();
-          this.vtoComponent.onNewFramesReady(vtoResults.get(selectedSku)!);
-          console.log('VTO Component initialized and frames loaded successfully');
-        } catch (e) {
-          console.error('Error initializing VTO:', e);
-        }
-      }
-
-      console.log(`Successfully loaded VTO for ${vtoResults.size} sizes:`, Array.from(vtoResults.keys()));
-    } catch (error) {
-      console.error('Error during batch VTO loading:', error);
-      // Fallback to single SKU
-      await this.makeTryOnApiCall(selectedSku, true, this.noCacheOnRetry);
+  private async tryOn(noCache: boolean = false): Promise<void> {
+    if (!this.vtoComponent) {
+      console.error('VtoComponent is not initialized')
+      return
     }
+
+    const { selectedSku, availableSkus } = this.getSizeRecommendationState()
+    await this.getCachedOrNewVTO(selectedSku, availableSkus)
+
+    const skipCache = noCache && this.hasAttemptedTryOn
+    this.tfrShop.priorityTryOnWithMultiRequestCache(selectedSku, availableSkus, skipCache).then(priorityFrames => {
+      this.vtoComponent.init()
+      this.vtoComponent.onNewFramesReady(priorityFrames)
+    }).catch(e => {
+      console.error("failed to get frames", e)
+    })
   }
+
+
 
   private bindEvents() {
     this.tfrSizeRecActionLogin.addEventListener('click', this.onSignInClick)
@@ -319,29 +271,16 @@ export class SizeRecComponent {
         return
       }
 
+
       tryOnButton.classList.add('loading')
-      tryOnButton.textContent = ' '
         ; (tryOnButton as HTMLButtonElement).disabled = true
 
-      // Mark as initialized when TryOn is clicked
-      this.hasInitializedTryOn = true
-
       try {
-        this.hasAttemptedTryOn = true // Mark that we've attempted try on at least once
-
-        console.debug('TryOn button clicked:', {
-          hasInitializedTryOn: this.hasInitializedTryOn,
-          hasAttemptedTryOn: this.hasAttemptedTryOn,
-          noCacheOnRetry: this.noCacheOnRetry,
-        })
-        const { selectedSku, skusToLoad } = this.getSizeRecommendationState()
-        await this.loadVTOForAvailableSizes(selectedSku, skusToLoad)
+        this.tryOn()
       } catch (error) {
         console.error('Error during try-on process:', error)
       } finally {
-        // Reset loading state
         tryOnButton.classList.remove('loading')
-        tryOnButton.textContent = 'Try On'
           ; (tryOnButton as HTMLButtonElement).disabled = false
       }
     })
@@ -363,49 +302,19 @@ export class SizeRecComponent {
 
     this.redraw(selectedIndex)
 
-    const selectedSku = target.getAttribute('data-sku')
-    if (!selectedSku) return
-
-    // Optimized: Use cached batch results when available, fallback to single call
-    if (this.hasInitializedTryOn && this.vtoComponent) {
-      this.displayCachedOrLoadVTO(selectedSku)
-    }
+    this.tryOn()
   }
 
-  private async displayCachedOrLoadVTO(sku: string): Promise<void> {
-    try {
-      // Check local cache first (fastest)
-      const localCachedFrames = this.vtoFramesCache.get(sku)
-      if (localCachedFrames && this.vtoComponent) {
-        this.vtoComponent.init()
-        this.vtoComponent.onNewFramesReady(localCachedFrames)
-        console.log(`Loaded locally cached VTO for SKU: ${sku}`)
-        return
-      }
+  private async getCachedOrNewVTO(
+    activeSku: string,
+    availableSkus: string[]
+  ): Promise<void> {
+    const noCache = this.hasAttemptedTryOn && this.noCacheOnRetry;
+    const vtoResults = await this.tfrShop.priorityTryOnWithMultiRequestCache(activeSku, availableSkus, noCache);
 
-      // Try to get from user profile cache (second fastest)
-      const userCachedFrames = await this.fetchFramesFromUser(sku)
-      if (userCachedFrames && this.vtoComponent) {
-        this.vtoComponent.init()
-        this.vtoComponent.onNewFramesReady(userCachedFrames)
-        console.log(`Loaded user cached VTO for SKU: ${sku}`)
-        return
-      }
-
-      // Fallback to fresh API call
-      await this.makeTryOnApiCall(sku, true, true) // Force fresh on fallback
-    } catch (error) {
-      console.error('Error loading VTO:', error)
-    }
-  }
-
-  private async fetchFramesFromUser(sku: string): Promise<types.TryOnFrames | null> {
-    try {
-      const userProfile = await this.tfrShop.user.getUser()
-      const frames = userProfile?.vto?.[this.tfrShop.brandId]?.[sku]?.frames || []
-      return frames.length > 0 ? frames as types.TryOnFrames : null
-    } catch {
-      return null
+    if (this.vtoComponent && vtoResults.includes(activeSku)) {
+      this.vtoComponent.init();
+      this.vtoComponent.onNewFramesReady(activeSku);
     }
   }
 

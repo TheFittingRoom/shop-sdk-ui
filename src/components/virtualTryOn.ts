@@ -13,17 +13,13 @@ export class VtoComponent {
     const vtoMainDiv = document.getElementById(this.vtoMainDivId)
 
     if (!vtoMainDiv) {
-      console.error(`VTO Element with id ${this.vtoMainDivId} not found`)
-      // Create the div if it doesn't exist
       const newDiv = document.createElement('div')
       newDiv.id = this.vtoMainDivId
       newDiv.style.display = 'block'
       document.body.appendChild(newDiv)
-      console.log(`Created VTO div with id: ${this.vtoMainDivId}`)
     }
 
     const targetDiv = document.getElementById(this.vtoMainDivId)!
-    console.log(`Initializing VTO in div: ${this.vtoMainDivId}`, targetDiv)
 
     targetDiv.innerHTML = `
         <div class="tfr-slider-wrapper">
@@ -38,7 +34,6 @@ export class VtoComponent {
 
     const tryOnImage = <HTMLImageElement>document.getElementById('tfr-tryon-image')
     const onChange = (slider, imageUrl) => {
-      console.debug('slider change', imageUrl)
       tryOnImage.src = imageUrl
       this.currentSliderValue = parseInt(slider.value)
     }
@@ -54,7 +49,6 @@ export class VtoComponent {
     }
 
     if (Array.isArray(frames) && frames.length > 0) {
-      // Ensure the current slider value is within bounds of the new frames array
       const boundedValue = Math.min(this.currentSliderValue, frames.length - 1)
       const e = this.slider.Load(frames, boundedValue)
       if (e instanceof Error) {
@@ -62,7 +56,6 @@ export class VtoComponent {
         return
       }
 
-      // Restore previous slider position if it's within bounds
       const sliderElement = document.getElementById('tfr-slider') as HTMLInputElement
       if (sliderElement && this.currentSliderValue < frames.length) {
         sliderElement.value = this.currentSliderValue.toString()

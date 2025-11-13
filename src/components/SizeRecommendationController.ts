@@ -99,11 +99,11 @@ export class TFRSizeRec {
     this.sizeRecComponent.show()
   }
 
-  public async startSizeRecommendation(styleId: number, useCache: boolean = true) {
+  public async startSizeRecommendation(styleId: number, skipCache: boolean) {
     try {
       this.setStyleId(styleId)
       this.sizeRecComponent.setLoading(true)
-      const sizes = await this.getRecommendedSizes(this.styleId, useCache)
+      const sizes = await this.getRecommendedSizes(this.styleId, skipCache)
       if (!sizes) {
         console.error('No sizes found for sku')
         this.sizeRecComponent.setLoading(false)
@@ -120,12 +120,12 @@ export class TFRSizeRec {
     }
   }
 
-  private async getRecommendedSizes(styleId: number, useCache: boolean = true): Promise<RecommendedSize> {
+  private async getRecommendedSizes(styleId: number, skipCache: boolean): Promise<RecommendedSize> {
     const sizeRec = await this.tfrShop.getRecommendedSizes(styleId)
 
     if (!sizeRec) return null
 
-    const colorwaySizeAssets = await this.tfrShop.getColorwaySizeAssetsFromStyleId(styleId, useCache)
+    const colorwaySizeAssets = await this.tfrShop.getColorwaySizeAssetsFromStyleId(styleId, skipCache)
 
     return {
       recommended: sizeRec.recommended_size.size_value.name,

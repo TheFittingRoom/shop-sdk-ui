@@ -11,7 +11,7 @@ import {
 } from './gen/responses'
 import { Fetcher } from './fetcher'
 import { Firebase } from './helpers/firebase/firebase'
-import { FirebaseUser, UserInitResult } from './helpers/firebase/user'
+import { FirebaseUser } from './helpers/firebase/user'
 import { getFirebaseError } from './helpers/firebase/error'
 import { Config } from './helpers/config'
 import * as Errors from './helpers/errors'
@@ -27,6 +27,7 @@ export interface ParallelInitResult {
 export class TFRAPI {
   private measurementLocations: Map<string, { name: string; sort_order: number }> = new Map()
   private colorwaySizeAssetsCache: Map<string, types.FirestoreColorwaySizeAsset> = new Map()
+  private vtoFramesCache: Map<string, types.TryOnFrames> = new Map()
 
   constructor(
     private readonly _brandId: number,
@@ -111,11 +112,11 @@ export class TFRAPI {
     }
   }
 
-  public async getColorwaySizeAssetsFromStyleId(styleId: number, useCache: boolean = true): Promise<types.FirestoreColorwaySizeAsset[]> {
+  public async getColorwaySizeAssetsFromStyleId(styleId: number, skipCache: boolean): Promise<types.FirestoreColorwaySizeAsset[]> {
     console.debug('getColorwaySizeAssetsFromStyleId')
 
     // If using cache, check cache first for assets with this style_id
-    if (useCache) {
+    if (!skipCache) {
       const cachedAssets: types.FirestoreColorwaySizeAsset[] = []
       for (const asset of this.colorwaySizeAssetsCache.values()) {
         if (asset.style_id === styleId) {
@@ -210,114 +211,17 @@ export class TFRAPI {
     return this.measurementLocations.has(location) ? this.measurementLocations.get(location).sort_order : Infinity
   }
 
-  public async tryOnBatch(skus: string[], prioritySku?: string, noCache: boolean = false): Promise<Map<string, types.TryOnFrames>> {
+  public async priorityTryOnWithMultiRequestCache(activeSKU: string, availableSKUs: string[], skipCache: boolean = false): Promise<types.TryOnFrames> {
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
 
-    const results = new Map<string, types.TryOnFrames>()
-    const uniqueSkus = [...new Set(skus)]
+    const priorityPromise = this.getCachedOrRequestUserColorwaySizeAssetFrames(activeSKU, skipCache)
 
-    const colorwayAssets = await this.FetchAndCacheColorwaySizeAssets(uniqueSkus, noCache)
-
-    const cachePromises = uniqueSkus.map(async (sku) => {
-      const asset = colorwayAssets.get(sku)
-      if (!asset) return { sku, frames: null, cached: false }
-
-      if (noCache) {
-        return { sku, frames: null, cached: false }
-      }
-
-      try {
-        const frames = await this.fetchUserVTOFrames(asset.sku)
-        return { sku, frames, cached: true }
-      } catch {
-        return { sku, frames: null, cached: false }
-      }
+    const lowPrioritySkus = [...availableSKUs].filter(sku => sku !== activeSKU)
+    lowPrioritySkus.forEach(sku => {
+      this.getCachedOrRequestUserColorwaySizeAssetFrames(sku, skipCache)
     })
 
-    const cacheResults = await Promise.all(cachePromises)
-    const uncachedSkus: string[] = []
-
-    // Process cache results in order
-    cacheResults.forEach(({ sku, frames, cached }) => {
-      if (frames && cached) {
-        results.set(sku, frames)
-      } else {
-        uncachedSkus.push(sku)
-      }
-    })
-
-    if (uncachedSkus.length > 0) {
-      // Separate asset validation from API requests
-      const validAssets = uncachedSkus
-        .map(sku => ({ sku, asset: colorwayAssets.get(sku) }))
-        .filter(({ asset }) => asset !== undefined)
-
-      const apiRequestPromises = validAssets.map(async ({ sku, asset }) => {
-        try {
-          await this.requestColorwaySizeAssetFramesByID(asset!.id)
-          return { sku, success: true, asset }
-        } catch (error) {
-          console.error(`API request failed for SKU ${sku}:`, error)
-          return { sku, success: false, error }
-        }
-      })
-
-      const apiResults = await Promise.all(apiRequestPromises)
-
-      const framePromises = apiResults
-        .filter(result => result.success)
-        .map(async (result) => {
-          try {
-            const frames = await this.watchForTryOnFrames(result.asset!.sku, noCache)
-            return { sku: result.sku, frames: frames as types.TryOnFrames, success: true }
-          } catch (error) {
-            console.error(`Frame retrieval failed for SKU ${result.sku}:`, error)
-            return { sku: result.sku, frames: null as types.TryOnFrames | null, success: false }
-          }
-        })
-
-      const requestResults = await Promise.all(framePromises)
-      console.debug('framePromises length:', framePromises.length, 'uncachedSkus length:', uncachedSkus.length)
-
-      // Map successful results back to SKUs
-      const successfulResultsMap = new Map<string, any>()
-      const successfulApiResults = apiResults.filter(result => result.success)
-      requestResults.forEach((result, index) => {
-        const sku = successfulApiResults[index].sku
-        successfulResultsMap.set(sku, result)
-      })
-
-      const uncachedSkusWithResults = uncachedSkus.map(sku => ({
-        sku,
-        result: successfulResultsMap.get(sku)
-      }))
-
-      console.debug('uncachedSkusWithResults:', uncachedSkusWithResults.map(r => ({ sku: r.sku, hasResult: !!r.result, success: r.result?.success, frames: !!r.result?.frames })))
-      const successfulResults = uncachedSkusWithResults.filter(({ result }) => result && result.success && result.frames)
-
-      successfulResults.forEach(({ sku, result }) => {
-        if (result.frames) {
-          results.set(sku, result.frames)
-        }
-      })
-    }
-
-    if (prioritySku && !results.has(prioritySku) && colorwayAssets.has(prioritySku)) {
-      try {
-        const priorityAsset = colorwayAssets.get(prioritySku)
-        if (priorityAsset) {
-          // Request priority SKU frames
-          await this.requestColorwaySizeAssetFramesByID(priorityAsset.id)
-          const priorityFrames = await this.watchForTryOnFrames(priorityAsset.sku, noCache)
-          results.set(prioritySku, priorityFrames)
-        }
-      } catch (error) {
-        console.error(`Priority SKU request failed for ${prioritySku}:`, error)
-        throw new Error(`Failed to get priority frames for SKU ${prioritySku}: ${error.message || error}`)
-      }
-    }
-
-    return results
+    return await priorityPromise
   }
 
 
@@ -325,11 +229,11 @@ export class TFRAPI {
   // Helper method to fetch assets from Firestore
   public async FetchAndCacheColorwaySizeAssets(
     skus: string[],
-    noCache: boolean
+    skipCache: boolean
   ): Promise<Map<string, types.FirestoreColorwaySizeAsset>> {
 
     let uncachedSkus: string[] = []
-    if (noCache) {
+    if (skipCache) {
       uncachedSkus = [...skus]
     } else {
       skus.forEach(sku => {
@@ -430,16 +334,14 @@ export class TFRAPI {
     }
   }
 
-  private async watchForTryOnFrames(colorwaySizeAssetSKU: string, noCache: boolean = false): Promise<types.TryOnFrames> {
-    console.debug('awaitColorwaySizeAssetFrames', "noCache", noCache)
+  private async watchForTryOnFrames(colorwaySizeAssetSKU: string, skipCache: boolean = false): Promise<types.TryOnFrames> {
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
 
     let firstSnapshotProcessed = false;
 
     const callback = async (data: QuerySnapshot<DocumentData>) => {
-      if (noCache && !firstSnapshotProcessed) {
+      if (skipCache && !firstSnapshotProcessed) {
         firstSnapshotProcessed = true;
-        console.debug('Skipping first snapshot for noCache=true, waiting for actual change');
         return false;
       }
 
@@ -456,6 +358,7 @@ export class TFRAPI {
 
     if (!userProfile?.vto?.[this.brandId]?.[colorwaySizeAssetSKU]?.frames?.length) throw new Errors.NoFramesFoundError()
 
+    this.vtoFramesCache.set(colorwaySizeAssetSKU, userProfile.vto[this.brandId][colorwaySizeAssetSKU].frames)
     return userProfile.vto[this.brandId][colorwaySizeAssetSKU].frames
   }
 
@@ -470,17 +373,24 @@ export class TFRAPI {
     })
   }
 
-  public async fetchUserVTOFrames(colorwaySizeAssetSKU: string): Promise<types.TryOnFrames> {
-    console.debug('fetchColorwaySizeAssetFrames')
-    const userProfile = await this.user.getUser()
+  public async getCachedOrRequestUserColorwaySizeAssetFrames(colorwaySizeAssetSKU: string, skipCache: boolean): Promise<types.TryOnFrames | null> {
+    console.debug('fetchUserVTOFrames', colorwaySizeAssetSKU, 'skipCache:', skipCache)
+    if (!skipCache) {
+      const cached = this.vtoFramesCache.get(colorwaySizeAssetSKU)
+      if (cached) {
+        console.debug('returning cached frames', colorwaySizeAssetSKU)
+        return cached
+      }
+    }
 
-    const frames = userProfile?.vto?.[this.brandId]?.[colorwaySizeAssetSKU]?.frames || []
-    if (!frames.length) throw new Errors.NoFramesFoundError()
+    const colorwaySizeAssetID = this.colorwaySizeAssetsCache.get(colorwaySizeAssetSKU).id
+    await this.requestColorwaySizeAssetFramesByID(colorwaySizeAssetID)
 
-    const testedImage = await testImage(frames[0])
-    if (!testedImage) throw new Errors.NoFramesFoundError()
+    const tryOnFrames = await this.watchForTryOnFrames(colorwaySizeAssetSKU, skipCache)
 
-    return frames as types.TryOnFrames
+    const framesTyped = tryOnFrames as types.TryOnFrames
+    this.vtoFramesCache.set(colorwaySizeAssetSKU, framesTyped)
+    return framesTyped
   }
 }
 

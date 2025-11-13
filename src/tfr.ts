@@ -256,25 +256,18 @@ export class FittingRoom {
   }
 
   public async onTryOnClick(sku: string, shouldDisplay: boolean = true, isFromTryOnButton = false) {
-    console.debug('onTryOnClick:', sku, shouldDisplay, isFromTryOnButton, 'hasInitialized:', this.hasInitializedTryOn, 'noCacheOnRetry:', this.noCacheOnRetry, 'forceFreshVTO:', this.forceFreshVTO)
     if (isFromTryOnButton) this.hasInitializedTryOn = true
     if (!this.hasInitializedTryOn) {
-      console.debug('skipping try on, not initialized')
       return
     }
 
     if (!this.vtoComponent)
       return console.error('VtoComponent is not initialized. Please check if the vtoMainDivId is correct.')
 
-    // Set forceFreshVTO flag if this is a retry and noCacheOnRetry is enabled
     this.forceFreshVTO = this.hasInitializedTryOn && this.noCacheOnRetry
-    console.debug('Setting forceFreshVTO to', this.forceFreshVTO, 'hasInitializedTryOn=', this.hasInitializedTryOn, 'noCacheOnRetry=', this.noCacheOnRetry)
 
-    // Always make API request
-    console.debug('Making API request for SKU:', sku, '(forceFreshVTO:', this.forceFreshVTO, ')')
     const batchResult = await this.api.tryOnBatch([sku], sku, this.forceFreshVTO)
     const frames = batchResult.get(sku)!
-    console.debug('API request completed for SKU:', sku, 'frames count:', frames.length)
 
     if (shouldDisplay) {
       this.setManualListeningOverride(true)
@@ -282,7 +275,6 @@ export class FittingRoom {
         this.vtoComponent.init()
         this.vtoComponent.onNewFramesReady(frames)
       } catch (e) {
-        console.error('Error initializing VTO:', e)
         this.tfrModal.onError(L.SomethingWentWrong)
       }
     }
