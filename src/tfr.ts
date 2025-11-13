@@ -158,7 +158,7 @@ export class FittingRoom {
       const skuSet = new Set([...preloadedSkus, activeSku])
       skusToLoad = Array.from(skuSet)
     } else {
-      skusToLoad = [activeSku]s
+      skusToLoad = [activeSku]
     }
 
     assets = await this.tfrAPI.batchGetColorwaySizeAssetsFromSKUs(skusToLoad, fromCache)
@@ -258,41 +258,17 @@ export class FittingRoom {
       return console.error('VtoComponent is not initialized. Please check if the vtoMainDivId is correct.')
 
     // Set forceFreshVTO flag if this is a retry and noCacheOnRetry is enabled
-    if (this.hasInitializedTryOn && this.noCacheOnRetry) {
-      this.forceFreshVTO = true
-      console.debug('Second click detected, setting forceFreshVTO to true')
-    }
+    this.forceFreshVTO = this.hasInitializedTryOn && this.noCacheOnRetry
+    console.debug('Setting forceFreshVTO to', this.forceFreshVTO, 'hasInitializedTryOn=', this.hasInitializedTryOn, 'noCacheOnRetry=', this.noCacheOnRetry)
 
-    let frames = null
-
-    // Check if we should force fresh API calls or use cache
-    if (!this.forceFreshVTO) {
-      console.debug('Checking for existing frames in Firestore for SKU:', sku)
-
-      // First, check if frames already exist in Firestore (this is the cached check)
-      try {
-        frames = await this.api.fetchColorwaySizeAssetFrames(sku)
-        console.debug('Found cached frames for SKU:', sku, 'frames count:', frames?.length || 0)
-      } catch (error) {
-        console.debug('No cached frames found for SKU:', sku, 'will request new frames')
-        frames = null
-      }
-    } else {
-      console.debug('Force fresh VTO requested, skipping cache check for SKU:', sku)
-    }
-
-    // If no cached frames exist or forcing fresh API call, make API request
-    if (!frames || frames.length === 0) {
-      console.debug('Making API request for SKU:', sku, '(forceFreshVTO:', this.forceFreshVTO, ')')
-      const batchResult = await this.api.tryOnBatch([sku], sku, this.forceFreshVTO)
-      frames = batchResult.get(sku)!
-      console.debug('API request completed for SKU:', sku, 'frames count:', frames.length)
-    } else {
-      console.debug('Using cached frames for SKU:', sku)
-    }
+    // Always make API request
+    console.debug('Making API request for SKU:', sku, '(forceFreshVTO:', this.forceFreshVTO, ')')
+    const batchResult = await this.api.tryOnBatch([sku], sku, this.forceFreshVTO)
+    const frames = batchResult.get(sku)!
+    console.debug('API request completed for SKU:', sku, 'frames count:', frames.length)
 
     if (shouldDisplay) {
-      this.updateFirestoreSubscription()
+      this.setManualListeningOverride(true)
       try {
         this.vtoComponent.init()
         this.vtoComponent.onNewFramesReady(frames)
@@ -302,8 +278,6 @@ export class FittingRoom {
       }
     }
 
-    // Reset forceFreshVTO after use (so cache works on subsequent clicks unless explicitly forced)
-    this.forceFreshVTO = false
   }
 
   public setManualListeningOverride(enabled: boolean) {
@@ -367,6 +341,7 @@ export class FittingRoom {
     if (!this.isLoggedIn) return
 
     const shouldSubscribe = this.manualListeningOverride
+    console.debug('updateFirestoreSubscription: isLoggedIn=', this.isLoggedIn, 'manualListeningOverride=', this.manualListeningOverride, 'shouldSubscribe=', shouldSubscribe, 'hasUnsub=', !!this.unsub)
 
     if (shouldSubscribe && !this.unsub) {
       this.subscribeToProfileChanges()

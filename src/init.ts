@@ -6,7 +6,7 @@ export type TrfConfig = {
   modalDivId: string
   sizeRecMainDivId: string
   vtoMainDivId: string
-  allowVTORetry?: boolean // Enable VTO retry with cache bypass
+  noCacheOnRetry?: boolean // Enable VTO retry with cache bypass
   hooks?: TFRHooks
   cssVariables?: TFRCssVariables
   env?: string
@@ -17,13 +17,13 @@ export const initFittingRoom = async ({
   modalDivId,
   sizeRecMainDivId,
   vtoMainDivId,
-  allowVTORetry = false,
+  noCacheOnRetry = false,
   hooks = {},
   cssVariables = {},
   env = 'dev',
 }: TrfConfig): Promise<FittingRoom> => {
   try {
-    const tfr = new FittingRoom(shopId, modalDivId, sizeRecMainDivId, vtoMainDivId, allowVTORetry, hooks, cssVariables, env)
+    const tfr = new FittingRoom(shopId, modalDivId, sizeRecMainDivId, vtoMainDivId, noCacheOnRetry, hooks, cssVariables, env)
 
     try {
       await tfr.onInitParallel()

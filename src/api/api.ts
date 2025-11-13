@@ -101,7 +101,7 @@ export class TFRAPI {
 
     if (!fromCache) {
       // If not using cache, fetch all SKUs directly from Firestore
-      await this.fetchAssetsFromFirestore(uniqueSkus, results, true)
+      await this.fetchAndCacheColorwaySizeAssets(uniqueSkus, results, true)
       return results
     }
 
@@ -118,7 +118,7 @@ export class TFRAPI {
 
     // Batch fetch uncached assets
     if (uncachedSkus.length > 0) {
-      await this.fetchAssetsFromFirestore(uncachedSkus, results, true)
+      await this.fetchAndCacheColorwaySizeAssets(uncachedSkus, results, true)
     }
 
     return results
@@ -288,7 +288,7 @@ export class TFRAPI {
     const results = new Map<string, types.TryOnFrames>()
     const uniqueSkus = [...new Set(skus)]
 
-    const colorwayAssets = await this.batchGetColorwaySizeAssetsFromSKUs(uniqueSkus, fromCache)
+    const colorwayAssets = await this.batchCacheColorwaySizeAssetsFromSKUs(uniqueSkus, fromCache)
 
     const cachePromises = uniqueSkus.map(async (sku) => {
       const asset = colorwayAssets.get(sku)
@@ -299,7 +299,7 @@ export class TFRAPI {
       }
 
       try {
-        const frames = await this.fetchColorwaySizeAssetFrames(asset.sku)
+        const frames = await this.fetchUserVTOFrames(asset.sku)
         return { sku, frames, fromCache: true }
       } catch {
         return { sku, frames: null, fromCache: false }
@@ -395,7 +395,7 @@ export class TFRAPI {
 
 
   // Batch method to fetch multiple colorway assets efficiently
-  public async batchGetColorwaySizeAssetsFromSKUs(skus: string[], fromCache: boolean = true): Promise<Map<string, types.FirestoreColorwaySizeAsset>> {
+  public async batchCacheColorwaySizeAssetsFromSKUs(skus: string[], fromCache: boolean = true): Promise<Map<string, types.FirestoreColorwaySizeAsset>> {
     console.debug('batchGetColorwaySizeAssetsFromSKUs')
     const results = new Map<string, types.FirestoreColorwaySizeAsset>()
 
@@ -412,20 +412,19 @@ export class TFRAPI {
       })
 
       if (uncachedSkus.length > 0) {
-        await this.fetchAssetsFromFirestore(uncachedSkus, results)
+        await this.fetchAndCacheColorwaySizeAssets(uncachedSkus, results)
       }
     } else {
-      await this.fetchAssetsFromFirestore(skus, results, true)
+      await this.fetchAndCacheColorwaySizeAssets(skus, results)
     }
 
     return results
   }
 
   // Helper method to fetch assets from Firestore
-  private async fetchAssetsFromFirestore(
+  private async fetchAndCacheColorwaySizeAssets(
     skus: string[],
     results: Map<string, types.FirestoreColorwaySizeAsset>,
-    updateCache: boolean = true
   ): Promise<void> {
     console.debug('fetchAssetsFromFirestore')
     const constraints: QueryFieldFilterConstraint[] = [
@@ -440,9 +439,7 @@ export class TFRAPI {
         const asset = doc.data() as types.FirestoreColorwaySizeAsset
         if (asset.sku) {
           results.set(asset.sku, asset)
-          if (updateCache) {
-            this.colorwaySizeAssetsCache.set(asset.sku, asset) // Cache for future use
-          }
+          this.colorwaySizeAssetsCache.set(asset.sku, asset) // Cache for future use
         }
       })
 
@@ -549,7 +546,7 @@ export class TFRAPI {
     })
   }
 
-  public async fetchColorwaySizeAssetFrames(colorwaySizeAssetSKU: string): Promise<types.TryOnFrames> {
+  public async fetchUserVTOFrames(colorwaySizeAssetSKU: string): Promise<types.TryOnFrames> {
     console.debug('fetchColorwaySizeAssetFrames')
     const userProfile = await this.user.getUser()
 
