@@ -381,23 +381,26 @@ export class TFRAPI {
       })
     }
 
-    const constraints: QueryFieldFilterConstraint[] = [
-      where('brand_id', '==', this.brandId),
-      where('sku', 'in', uncachedSkus),
-    ]
-    try {
-      const querySnapshot = await this.firebase.getDocs('colorway_size_assets', constraints)
+    if (uncachedSkus.length > 0) {
+      const constraints: QueryFieldFilterConstraint[] = [
+        where('brand_id', '==', this.brandId),
+        where('sku', 'in', uncachedSkus),
+      ]
+      try {
+        const querySnapshot = await this.firebase.getDocs('colorway_size_assets', constraints)
 
-      querySnapshot.docs.forEach(doc => {
-        const asset = doc.data() as types.FirestoreColorwaySizeAsset
-        if (asset.sku) {
-          this.colorwaySizeAssetsCache.set(asset.sku, asset)
-        }
-      })
-    } catch (error) {
-      console.error('batch fetch error:', error)
-      throw error
+        querySnapshot.docs.forEach(doc => {
+          const asset = doc.data() as types.FirestoreColorwaySizeAsset
+          if (asset.sku) {
+            this.colorwaySizeAssetsCache.set(asset.sku, asset)
+          }
+        })
+      } catch (error) {
+        console.error('batch fetch error:', error)
+        throw error
+      }
     }
+
 
     const copyOfCache = new Map<string, types.FirestoreColorwaySizeAsset>()
     for (const sku of skus) {

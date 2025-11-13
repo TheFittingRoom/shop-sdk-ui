@@ -18,9 +18,6 @@ export default defineConfig(({ mode, command }) => {
           usePolling: true,
         }
       },
-      css: {
-        devSourcemap: true,
-      },
     }
   } else { // build mode
     return {
@@ -30,7 +27,6 @@ export default defineConfig(({ mode, command }) => {
           name: 'TheFittingRoom',
           fileName: 'index',
         },
-        sourcemap: mode !== 'production',
         minify: mode === 'production' ? 'esbuild' : false,
       },
       server: {
@@ -42,9 +38,6 @@ export default defineConfig(({ mode, command }) => {
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
           'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
         },
-      },
-      css: {
-        devSourcemap: true,
       },
     }
   }
