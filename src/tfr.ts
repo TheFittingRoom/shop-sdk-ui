@@ -153,15 +153,16 @@ export class FittingRoom {
   public async setSku(activeSku: string, preloadedSkus?: string[], fromCache: boolean = true) {
     let assets: Map<string, any>
 
+    let skusToLoad: string[]
     if (preloadedSkus && preloadedSkus.length > 0) {
-      // Use the preloaded SKUs for parallel loading
-      assets = await this.tfrAPI.batchGetColorwaySizeAssetsFromSKUs(preloadedSkus, fromCache)
+      const skuSet = new Set([...preloadedSkus, activeSku])
+      skusToLoad = Array.from(skuSet)
     } else {
-      // Single SKU mode - use existing logic
-      assets = await this.tfrAPI.batchGetColorwaySizeAssetsFromSKUs([activeSku], fromCache)
+      skusToLoad = [activeSku]s
     }
 
-    // Continue with normal setSku logic for the active SKU
+    assets = await this.tfrAPI.batchGetColorwaySizeAssetsFromSKUs(skusToLoad, fromCache)
+
     await this.setSkuInternal(activeSku)
 
     return assets
