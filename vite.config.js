@@ -14,6 +14,9 @@ export default defineConfig(({ mode, command }) => {
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
           'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
         },
+        watch: {
+          usePolling: true,
+        }
       },
       css: {
         devSourcemap: true,
