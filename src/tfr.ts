@@ -116,9 +116,9 @@ export class FittingRoom {
     }
   }
 
-  public async onInitParallel(skusToPreload?: string[], fromCache: boolean = true): Promise<ParallelInitResult> {
+  public async onInitParallel(skusToPreload?: string[], noCache: boolean = false): Promise<ParallelInitResult> {
     console.debug('FittingRoom.onInitParallel called at:', new Date().toISOString())
-    const initResult = await this.tfrAPI.onInitParallel(skusToPreload, fromCache)
+    const initResult = await this.tfrAPI.onInitParallel(skusToPreload, noCache)
     console.debug('initResult received - isLoggedIn:', initResult.isLoggedIn)
     console.debug('Before setting isLoggedIn - this.isLoggedIn:', this.isLoggedIn)
     this.isLoggedIn = initResult.isLoggedIn
@@ -150,7 +150,7 @@ export class FittingRoom {
   /**
    * Enhanced setSku that can handle preloaded assets or start parallel loading
    */
-  public async setSku(activeSku: string, preloadedSkus?: string[], fromCache: boolean = true) {
+  public async setSku(activeSku: string, preloadedSkus?: string[], noCache: boolean = false) {
     let assets: Map<string, any>
 
     let skusToLoad: string[]
@@ -161,7 +161,7 @@ export class FittingRoom {
       skusToLoad = [activeSku]
     }
 
-    assets = await this.tfrAPI.FetchAndCacheColorwaySizeAssets(skusToLoad, fromCache)
+    assets = await this.tfrAPI.FetchAndCacheColorwaySizeAssets(skusToLoad, noCache)
 
     await this.setSkuInternal(activeSku)
 

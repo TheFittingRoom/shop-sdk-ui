@@ -211,7 +211,7 @@ export class SizeRecComponent {
     this.tfrToggleClosedElements = document.querySelectorAll('.tfr-toggle-closed')
   }
 
-  private async makeTryOnApiCall(sku: string, shouldDisplay: boolean = false, fromCache: boolean = true): Promise<void> {
+  private async makeTryOnApiCall(sku: string, shouldDisplay: boolean = false, noCache: boolean = false): Promise<void> {
     if (!this.hasInitializedTryOn) {
       console.debug('skipping try on, not initialized')
       return
@@ -223,7 +223,7 @@ export class SizeRecComponent {
     }
 
     try {
-      const batchResult = await this.tfrShop.tryOnBatch([sku], sku, fromCache)
+      const batchResult = await this.tfrShop.tryOnBatch([sku], sku, noCache)
       const frames = batchResult.get(sku)!
 
       if (shouldDisplay) {
@@ -269,11 +269,11 @@ export class SizeRecComponent {
     // Use optimized batch processing
     try {
       // Control cache behavior:
-      // - First click: hasAttemptedTryOn = false → fromCache = true → use cache if available
-      // - Second+ click: hasAttemptedTryOn = true → fromCache = false → force fresh API calls
+      // - First click: hasAttemptedTryOn = false → noCache = false → use cache if available
+      // - Second+ click: hasAttemptedTryOn = true → noCache = true → force fresh API calls
       // But only force fresh if noCacheOnRetry is enabled
-      const fromCache = !this.hasAttemptedTryOn || !this.noCacheOnRetry
-      const vtoResults = await this.tfrShop.tryOnBatch(skusToLoad, selectedSku, fromCache)
+      const noCache = this.hasAttemptedTryOn && this.noCacheOnRetry
+      const vtoResults = await this.tfrShop.tryOnBatch(skusToLoad, selectedSku, noCache)
 
       // Store results in local cache for instant switching
       vtoResults.forEach((frames, sku) => {
@@ -331,8 +331,8 @@ export class SizeRecComponent {
         // Track if this is the first click in the current session
         const isFirstClickInSession = !this.hasAttemptedTryOn
 
-        // First click: use cache logic (fromCache = true)
-        // Second+ click: if noCacheOnRetry is enabled, force fresh (fromCache = false)
+        // First click: use cache logic (noCache = false)
+        // Second+ click: if noCacheOnRetry is enabled, force fresh (noCache = true)
         const shouldForceFresh = this.noCacheOnRetry && !isFirstClickInSession
         this.hasAttemptedTryOn = true // Mark that we've attempted try on at least once
 
@@ -404,7 +404,7 @@ export class SizeRecComponent {
       }
 
       // Fallback to fresh API call
-      await this.makeTryOnApiCall(sku, true, false) // Force fresh on fallback
+      await this.makeTryOnApiCall(sku, true, true) // Force fresh on fallback
     } catch (error) {
       console.error('Error loading VTO:', error)
       // Reset success flag on any error

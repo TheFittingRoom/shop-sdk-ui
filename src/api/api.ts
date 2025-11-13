@@ -53,7 +53,7 @@ export class TFRAPI {
     return initResult.initPromise
   }
 
-  public async onInitParallel(skusToPreload?: string[], fromCache: boolean = true): Promise<ParallelInitResult> {
+  public async onInitParallel(skusToPreload?: string[], noCache: boolean = false): Promise<ParallelInitResult> {
     console.debug('onInitParallel called at:', new Date().toISOString(), 'brandId:', this.brandId, 'skusToPreload:', skusToPreload)
     // Start measurement locations loading (non-blocking)
     const measurementLocationsPromise = this.getMeasurementLocations()
@@ -68,7 +68,7 @@ export class TFRAPI {
 
     if (skusToPreload && skusToPreload.length > 0) {
       // Start SKU preloading immediately (parallel to user auth)
-      colorwayPreloadPromise = this.FetchAndCacheColorwaySizeAssets(skusToPreload, fromCache).then((assets) => {
+      colorwayPreloadPromise = this.FetchAndCacheColorwaySizeAssets(skusToPreload, noCache).then((assets) => {
         preloadedAssets = assets
       })
     }
@@ -251,28 +251,28 @@ export class TFRAPI {
     return this.measurementLocations.has(location) ? this.measurementLocations.get(location).sort_order : Infinity
   }
 
-  public async tryOnBatch(skus: string[], prioritySku?: string, fromCache: boolean = true): Promise<Map<string, types.TryOnFrames>> {
+  public async tryOnBatch(skus: string[], prioritySku?: string, noCache: boolean = false): Promise<Map<string, types.TryOnFrames>> {
     console.debug('tryOnBatch')
     if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
 
     const results = new Map<string, types.TryOnFrames>()
     const uniqueSkus = [...new Set(skus)]
 
-    const colorwayAssets = await this.FetchAndCacheColorwaySizeAssets(uniqueSkus, fromCache)
+    const colorwayAssets = await this.FetchAndCacheColorwaySizeAssets(uniqueSkus, noCache)
 
     const cachePromises = uniqueSkus.map(async (sku) => {
       const asset = colorwayAssets.get(sku)
-      if (!asset) return { sku, frames: null, fromCache: false }
+      if (!asset) return { sku, frames: null, cached: false }
 
-      if (!fromCache) {
-        return { sku, frames: null, fromCache: false }
+      if (noCache) {
+        return { sku, frames: null, cached: false }
       }
 
       try {
         const frames = await this.fetchUserVTOFrames(asset.sku)
-        return { sku, frames, fromCache: true }
+        return { sku, frames, cached: true }
       } catch {
-        return { sku, frames: null, fromCache: false }
+        return { sku, frames: null, cached: false }
       }
     })
 
@@ -280,8 +280,8 @@ export class TFRAPI {
     const uncachedSkus: string[] = []
 
     // Process cache results in order
-    cacheResults.forEach(({ sku, frames, fromCache }) => {
-      if (frames && fromCache) {
+    cacheResults.forEach(({ sku, frames, cached }) => {
+      if (frames && cached) {
         results.set(sku, frames)
       } else {
         uncachedSkus.push(sku)
