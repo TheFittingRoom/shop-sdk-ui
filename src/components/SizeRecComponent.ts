@@ -25,7 +25,6 @@ export class SizeRecComponent {
   private vtoComponent: any = null
   private hasInitializedTryOn: boolean = false
   private hasAttemptedTryOn: boolean = false
-  private hasSuccessfulVTO: boolean = false
   private vtoFramesCache: Map<string, types.TryOnFrames> = new Map() // Cache for batch-loaded frames
 
   private sizeRecMainDiv: HTMLDivElement
@@ -78,9 +77,6 @@ export class SizeRecComponent {
 
   public setSku(sku: string) {
     this._sku = sku
-    // Reset success state when SKU changes (new product)
-    this.hasSuccessfulVTO = false
-    this.updateTryOnButtonText()
   }
 
   public setVtoComponent(vtoComponent: any) {
@@ -93,9 +89,6 @@ export class SizeRecComponent {
 
   public setStyleId(styleId: number) {
     this._styleId = styleId
-    // Reset success state when style changes
-    this.hasSuccessfulVTO = false
-    this.updateTryOnButtonText()
   }
 
   public setIsLoggedIn(isLoggedIn: boolean) {
@@ -223,7 +216,8 @@ export class SizeRecComponent {
     }
 
     try {
-      const batchResult = await this.tfrShop.tryOnBatch([sku], sku, noCache)
+      const skipCache = noCache && this.hasAttemptedTryOn
+      const batchResult = await this.tfrShop.tryOnBatch([sku], sku, skipCache)
       const frames = batchResult.get(sku)!
 
       if (shouldDisplay) {
@@ -268,10 +262,6 @@ export class SizeRecComponent {
 
     // Use optimized batch processing
     try {
-      // Control cache behavior:
-      // - First click: hasAttemptedTryOn = false → noCache = false → use cache if available
-      // - Second+ click: hasAttemptedTryOn = true → noCache = true → force fresh API calls
-      // But only force fresh if noCacheOnRetry is enabled
       const noCache = this.hasAttemptedTryOn && this.noCacheOnRetry
       const vtoResults = await this.tfrShop.tryOnBatch(skusToLoad, selectedSku, noCache)
 
@@ -328,11 +318,8 @@ export class SizeRecComponent {
       this.hasInitializedTryOn = true
 
       try {
-        // Track if this is the first click in the current session
         const isFirstClickInSession = !this.hasAttemptedTryOn
 
-        // First click: use cache logic (noCache = false)
-        // Second+ click: if noCacheOnRetry is enabled, force fresh (noCache = true)
         const shouldForceFresh = this.noCacheOnRetry && !isFirstClickInSession
         this.hasAttemptedTryOn = true // Mark that we've attempted try on at least once
 
@@ -345,10 +332,8 @@ export class SizeRecComponent {
         })
 
         await this.loadVTOForAvailableSizes()
-        this.hasSuccessfulVTO = true
       } catch (error) {
         console.error('Error during try-on process:', error)
-        this.hasSuccessfulVTO = false // Reset on error
       } finally {
         // Reset loading state
         tryOnButton.classList.remove('loading')
@@ -407,16 +392,6 @@ export class SizeRecComponent {
       await this.makeTryOnApiCall(sku, true, true) // Force fresh on fallback
     } catch (error) {
       console.error('Error loading VTO:', error)
-      // Reset success flag on any error
-      this.hasSuccessfulVTO = false
-      await this.updateTryOnButtonText()
-    }
-  }
-
-  private async updateTryOnButtonText(): Promise<void> {
-    const tryOnButton = document.getElementById('tfr-try-on-button') as HTMLButtonElement
-    if (tryOnButton && this.hasInitializedTryOn) {
-      tryOnButton.textContent = 'Try On'
     }
   }
 
