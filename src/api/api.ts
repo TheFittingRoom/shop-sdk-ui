@@ -68,7 +68,7 @@ export class TFRAPI {
 
     if (skusToPreload && skusToPreload.length > 0) {
       // Start SKU preloading immediately (parallel to user auth)
-      colorwayPreloadPromise = this.fetchAndCacheColorwaySizeAssets(skusToPreload, fromCache).then((assets) => {
+      colorwayPreloadPromise = this.FetchAndCacheColorwaySizeAssets(skusToPreload, fromCache).then((assets) => {
         preloadedAssets = assets
       })
     }
@@ -258,7 +258,7 @@ export class TFRAPI {
     const results = new Map<string, types.TryOnFrames>()
     const uniqueSkus = [...new Set(skus)]
 
-    const colorwayAssets = await this.fetchAndCacheColorwaySizeAssets(uniqueSkus, fromCache)
+    const colorwayAssets = await this.FetchAndCacheColorwaySizeAssets(uniqueSkus, fromCache)
 
     const cachePromises = uniqueSkus.map(async (sku) => {
       const asset = colorwayAssets.get(sku)
@@ -365,7 +365,7 @@ export class TFRAPI {
 
 
   // Helper method to fetch assets from Firestore
-  private async fetchAndCacheColorwaySizeAssets(
+  public async FetchAndCacheColorwaySizeAssets(
     skus: string[],
     noCache: boolean
   ): Promise<Map<string, types.FirestoreColorwaySizeAsset>> {

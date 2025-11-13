@@ -161,7 +161,7 @@ export class FittingRoom {
       skusToLoad = [activeSku]
     }
 
-    assets = await this.tfrAPI.batchGetColorwaySizeAssetsFromSKUs(skusToLoad, fromCache)
+    assets = await this.tfrAPI.FetchAndCacheColorwaySizeAssets(skusToLoad, fromCache)
 
     await this.setSkuInternal(activeSku)
 
