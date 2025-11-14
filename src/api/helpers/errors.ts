@@ -21,13 +21,6 @@ export class NoColorwaySizeAssetsFoundError extends Error {
   }
 }
 
-export class BrandUserIdNotSetError extends Error {
-  constructor() {
-    super('brand user id not set')
-    this.name = 'BrandUserIdNotSetError'
-  }
-}
-
 export class NoFramesFoundError extends Error {
   constructor() {
     super('no frames found')

@@ -339,12 +339,8 @@ export class TFRAPI {
   private async requestColorwaySizeAssetFramesByID(colorwaySizeAssetId: number): Promise<void> {
     console.debug('requestColorwaySizeAssetFramesByID')
     if (!this.IsLoggedIn) throw new Errors.UserNotLoggedInError()
-    if (!this.User.brandUserId) throw new Errors.BrandUserIdNotSetError()
 
-    console.debug('Requesting frames for assetId:', colorwaySizeAssetId, 'brandUserId:', this.User.brandUserId)
-    await Fetcher.Post(this.User, `/colorway-size-assets/${colorwaySizeAssetId}/frames`, {
-      brand_user_id: String(this.User.brandUserId),
-    })
+    await Fetcher.Post(this.User, `/colorway-size-assets/${colorwaySizeAssetId}/frames`)
   }
 
   public async getCachedOrRequestUserColorwaySizeAssetFrames(colorwaySizeAssetSKU: string, skipCache: boolean): Promise<types.TryOnFrames | null> {

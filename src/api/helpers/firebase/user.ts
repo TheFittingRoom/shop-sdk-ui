@@ -22,12 +22,8 @@ export const fromFirebaseDate = (date: FirebaseDate) => {
   return dayjs(date.seconds * 1000)
 }
 
-export type BrandUserId = string | number
-
 
 export class FirebaseUser {
-  public brandUserId: BrandUserId = null
-
   private user: User
   private intializationUserPromise: Promise<User>
   private readonly auth: Auth
