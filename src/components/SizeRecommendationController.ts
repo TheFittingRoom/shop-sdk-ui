@@ -1,6 +1,5 @@
 import { Fit, FitNames, TFRShop } from '../api'
 import { RecommendedSize, SizeRecComponent } from './SizeRecComponent'
-import type { FirestoreColorwaySizeAsset } from '../api/gen/responses'
 
 export type TFRCssVariables = {
   brandColor?: string
@@ -65,14 +64,6 @@ export class TFRSizeRec {
       vtoComponent,
       this.noCacheOnRetry,
     )
-  }
-
-  public get sku() {
-    return this.sizeRecComponent.sku
-  }
-
-  public setSku(sku: string) {
-    this.sizeRecComponent.setSku(sku)
   }
 
   public get styleId() {

@@ -16,13 +16,11 @@ export type RecommendedSize = {
 }
 
 export class SizeRecComponent {
-  private _sku: string = ''
   private _styleId: number = null
   private isLoggedIn: boolean
   private availableSizes: RecommendedSize['sizes'] = []
   private tfrShop: TFRAPI
   private vtoComponent: any = null
-  private hasInitializedTryOn: boolean = false
   private hasAttemptedTryOn: boolean = false
 
   private sizeRecMainDiv: HTMLDivElement
@@ -67,14 +65,6 @@ export class SizeRecComponent {
     this.noCacheOnRetry = noCacheOnRetry
     this.init(sizeRecMainDivId)
     this.setIsLoggedIn(this.isLoggedIn)
-  }
-
-  public get sku() {
-    return this._sku
-  }
-
-  public setSku(sku: string) {
-    this._sku = sku
   }
 
   public setVtoComponent(vtoComponent: any) {

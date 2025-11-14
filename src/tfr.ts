@@ -21,6 +21,7 @@ export class FittingRoom {
   private hasInitializedTryOn: boolean = false
   private manualListeningOverride: boolean = false
   private forceFreshVTO: boolean = false
+  private _activeSku: string = ''
 
   public style: FirestoreStyle
   public colorwaySizeAsset: FirestoreColorwaySizeAsset
@@ -83,41 +84,10 @@ export class FittingRoom {
   }
 
   get sku() {
-    return this.tfrSizeRec.sku
-  }
-
-  private async setSkuInternal(sku: string) {
-    this.tfrSizeRec.setSku(sku)
-
-    if (!this.style) {
-      console.debug('fetching style for sku:', this.sku)
-      this.style = await this.getStyleFromColorwaySizeAssetSku(this.sku)
-    }
-
-    if (!this.style) {
-      console.error('failed to retrieve style from sku:', sku)
-      document.getElementById('tfr-size-recommendations').style.display = 'none'
-      return
-    }
-
-    if (!this.style.is_published) {
-      document.getElementById('tfr-size-recommendations').style.display = 'none'
-    }
-
-    if (this.style.is_vto) {
-      document.getElementById('tfr-try-on-button')?.classList.remove('hide')
-    }
-
-    if (this.isLoggedIn) {
-      this.tfrSizeRec.startSizeRecommendation(this.style.id, true)
-    } else {
-      const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
-      this.setStyleMeasurementLocations(styleMeasurementLocations)
-    }
+    return this._activeSku
   }
 
   public async onInitParallel(): Promise<ParallelInitResult> {
-    // Start measurement locations loading (non-blocking)
     const measurementLocationsPromise = this.tfrAPI.getMeasurementLocations()
     const userInitResult = await this.tfrAPI.user.onInit(this.tfrAPI.brandId)
 
@@ -172,7 +142,33 @@ export class FittingRoom {
 
     assets = await this.tfrAPI.FetchAndCacheColorwaySizeAssets(skusToLoad, noCache)
 
-    await this.setSkuInternal(activeSku)
+    this._activeSku = activeSku
+
+    if (!this.style) {
+      console.debug('fetching style for sku:', this.sku)
+      this.style = await this.getStyleFromColorwaySizeAssetSku(this.sku)
+    }
+
+    if (!this.style) {
+      console.error('failed to retrieve style from sku:', activeSku)
+      document.getElementById('tfr-size-recommendations').style.display = 'none'
+      return
+    }
+
+    if (!this.style.is_published) {
+      document.getElementById('tfr-size-recommendations').style.display = 'none'
+    }
+
+    if (this.style.is_vto) {
+      document.getElementById('tfr-try-on-button')?.classList.remove('hide')
+    }
+
+    if (this.isLoggedIn) {
+      this.tfrSizeRec.startSizeRecommendation(this.style.id, true)
+    } else {
+      const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
+      this.setStyleMeasurementLocations(styleMeasurementLocations)
+    }
 
     return assets
   }
