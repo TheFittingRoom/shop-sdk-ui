@@ -24,16 +24,9 @@ export const initFittingRoom = async ({
 }: TrfConfig): Promise<FittingRoom> => {
   try {
     const tfr = new FittingRoom(shopId, modalDivId, sizeRecMainDivId, vtoMainDivId, noCacheOnRetry, hooks, cssVariables, env)
-
-    try {
-      await tfr.onInitParallel()
-    } catch (error) {
-      console.warn('Initial onInit failed, but returning TFR instance anyway:', error)
-    }
-
     return tfr
-  } catch (error) {
-    console.error('Failed to create FittingRoom instance:', error)
-    throw error
+  } catch (e) {
+    console.error("failed to init FittingRoom", e)
+    return Promise.reject(e)
   }
 }

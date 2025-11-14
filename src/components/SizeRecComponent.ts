@@ -80,9 +80,7 @@ export class SizeRecComponent {
   }
 
   public setIsLoggedIn(isLoggedIn: boolean) {
-    console.debug('SizeRecComponent.setIsLoggedIn called with:', isLoggedIn, 'current isLoggedIn:', this.isLoggedIn)
     this.isLoggedIn = isLoggedIn
-    console.debug('SizeRecComponent.isLoggedIn set to:', this.isLoggedIn)
     this.tfrSizeRecSelectContainer.style.display = 'flex'
     this.tfrSizeRecSelect.style.display = 'flex'
     this.tfrSizeHowItFits.style.display = 'block'
@@ -193,7 +191,7 @@ export class SizeRecComponent {
   }
 
 
-  private getSizeRecommendationState(): {
+  public GetSizeRecommendationState(): {
     selectedSku: string;
     availableSkus: string[];
   } {
@@ -230,7 +228,7 @@ export class SizeRecComponent {
       return
     }
 
-    const { selectedSku, availableSkus } = this.getSizeRecommendationState()
+    const { selectedSku, availableSkus } = this.GetSizeRecommendationState()
     await this.getCachedOrNewVTO(selectedSku, availableSkus)
 
     const skipCache = noCache && this.hasAttemptedTryOn
@@ -241,8 +239,6 @@ export class SizeRecComponent {
       console.error("failed to get frames", e)
     })
   }
-
-
 
   private bindEvents() {
     this.tfrSizeRecActionLogin.addEventListener('click', this.onSignInClick)

@@ -17,13 +17,6 @@ import { Config } from './helpers/config'
 import * as Errors from './helpers/errors'
 import { testImage } from './helpers/utils'
 
-export interface ParallelInitResult {
-  isLoggedIn: boolean
-  initPromise: Promise<boolean>
-  preloadedAssets?: Map<string, types.FirestoreColorwaySizeAsset>
-  preloadSkus?: string[]
-}
-
 export class TFRAPI {
   private measurementLocations: Map<string, { name: string; sort_order: number }> = new Map()
   private colorwaySizeAssetsCache: Map<string, types.FirestoreColorwaySizeAsset> = new Map()
@@ -48,7 +41,7 @@ export class TFRAPI {
 
   public async onInit(): Promise<boolean> {
     console.debug('onInit')
-    await this.getMeasurementLocations()
+    await this.fetchCacheMeasurementLocations()
 
     const initResult = await this.user.onInit(this.brandId)
     return initResult.initPromise
@@ -309,7 +302,7 @@ export class TFRAPI {
     }
   }
 
-  public async getMeasurementLocations(): Promise<void> {
+  public async fetchCacheMeasurementLocations(): Promise<void> {
     console.debug('getMeasurementLocations')
     try {
       const locations = await this.fetchMeasurementLocations()

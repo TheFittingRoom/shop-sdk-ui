@@ -1,11 +1,12 @@
 import { FirestoreStyle, initShop, TryOnFrames, FirestoreColorwaySizeAsset, FirestoreUser, AvatarState, ParallelInitResult } from './api'
 /// <reference types="vite/client" />
 
-import { VtoComponent } from './components/virtualTryOn'
+import { VtoComponent } from './components/VirtualTryOnController'
 import { L } from './components/locale'
 import { validateEmail, validatePassword } from './helpers/validations'
 import { TFRModal } from './components/ModalController'
 import { TFRSizeRec as TFRSizeRecommendationController, TFRCssVariables } from './components/SizeRecommendationController'
+import { TFRAPI } from './api/api'
 
 export interface TFRHooks {
   onLoading?: () => void
@@ -29,7 +30,7 @@ export class FittingRoom {
   public readonly tfrModal: TFRModal
   public readonly tfrSizeRec: TFRSizeRecommendationController
   private readonly vtoComponent: VtoComponent
-  private readonly tfrAPI: any
+  private readonly tfrAPI: TFRAPI
   private unsub: () => void = null
 
   constructor(
@@ -42,7 +43,6 @@ export class FittingRoom {
     cssVariables?: TFRCssVariables,
     _env?: string,
   ) {
-    // prettier-ignore
     const env = _env
       ? _env
       : import.meta.env.MODE === 'production'
@@ -87,30 +87,21 @@ export class FittingRoom {
     return this._activeSku
   }
 
-  public async onInitParallel(): Promise<ParallelInitResult> {
-    const measurementLocationsPromise = this.tfrAPI.getMeasurementLocations()
-    const userInitResult = await this.tfrAPI.user.onInit(this.tfrAPI.brandId)
+  public async init(): Promise<ParallelInitResult> {
+    const measurementLocationsPromise = this.tfrAPI.fetchCacheMeasurementLocations()
+    const userInitResult = this.tfrAPI.user.onInit(this.tfrAPI.brandId)
 
-    const initPromise = Promise.all([
-      userInitResult.initPromise,
+    const initPromise = await Promise.all([
+      userInitResult,
       measurementLocationsPromise,
-    ]).then(([isLoggedIn]) => {
-      console.debug('initPromise resolved with isLoggedIn:', isLoggedIn)
-      return isLoggedIn
-    }).catch((error) => {
-      console.debug('initPromise rejected:', error)
-      return false
-    })
+    ])
 
-    console.debug('Returning init result - isLoggedIn:', userInitResult.isLoggedIn, 'initPromise exists:', !!initPromise)
-
-    this.isLoggedIn = userInitResult.isLoggedIn
+    this.isLoggedIn = initPromise[0].isLoggedIn
     this.tfrSizeRec.setIsLoggedIn(this.isLoggedIn)
 
     if (this.isLoggedIn) {
       if (this.hooks?.onLogin) this.hooks.onLogin()
 
-      // Don't auto-subscribe - wait for middle VTO to be displayed
       this.updateFirestoreSubscription()
     } else {
       if (this.hooks?.onLogout) this.hooks.onLogout()
@@ -119,17 +110,19 @@ export class FittingRoom {
     }
 
     const result: ParallelInitResult = {
-      isLoggedIn: userInitResult.isLoggedIn,
+      isLoggedIn: initPromise[0].isLoggedIn,
       initPromise,
     }
 
     return result
   }
 
-  /**
-   * Enhanced setSku that can handle preloaded assets or start parallel loading
-   */
-  public async setSku(activeSku: string, preloadedSkus?: string[], noCache: boolean = false) {
+  public async initSizeRecommendationWithSku(activeSku: string, preloadedSkus?: string[], noCache: boolean = false) {
+    if (!this.style) {
+      console.error('failed to retrieve style from sku:', activeSku)
+      document.getElementById('tfr-size-recommendations').style.display = 'none'
+    }
+
     let assets: Map<string, any>
 
     let skusToLoad: string[]
@@ -147,12 +140,6 @@ export class FittingRoom {
     if (!this.style) {
       console.debug('fetching style for sku:', this.sku)
       this.style = await this.getStyleFromColorwaySizeAssetSku(this.sku)
-    }
-
-    if (!this.style) {
-      console.error('failed to retrieve style from sku:', activeSku)
-      document.getElementById('tfr-size-recommendations').style.display = 'none'
-      return
     }
 
     if (!this.style.is_published) {
@@ -251,24 +238,20 @@ export class FittingRoom {
     this.tfrModal.toFitInfo()
   }
 
-  public async onTryOnClick(sku: string, shouldDisplay: boolean = true, isFromTryOnButton = false) {
-    if (isFromTryOnButton) this.hasInitializedTryOn = true
-    if (!this.hasInitializedTryOn) {
-      return
-    }
+  public async onTryOnClick(primarySKU: string, availableSKUs: string[]) {
+    this.vtoComponent.init()
 
     if (!this.vtoComponent)
       return console.error('VtoComponent is not initialized. Please check if the vtoMainDivId is correct.')
 
     this.forceFreshVTO = this.hasInitializedTryOn && this.noCacheOnRetry
 
-    const batchResult = await this.api.tryOnBatch([sku], sku, this.forceFreshVTO)
-    const frames = batchResult.get(sku)!
+    const batchResult = await this.api.priorityTryOnWithMultiRequestCache(primarySKU, availableSKUs, this.forceFreshVTO)
 
     if (shouldDisplay) {
       this.setManualListeningOverride(true)
       try {
-        this.vtoComponent.init()
+
         this.vtoComponent.onNewFramesReady(frames)
       } catch (e) {
         this.tfrModal.onError(L.SomethingWentWrong)
