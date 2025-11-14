@@ -31,7 +31,7 @@ export class FittingRoomController {
   public readonly tfrModal: TFRModal
   public readonly tfrSizeRecommendationController: SizeRecommendationController
   private readonly vtoComponent: VTOController
-  private readonly TFRAPI: TFRAPI
+  private readonly API: TFRAPI
   private unsub: () => void = null
 
   constructor(
@@ -51,27 +51,25 @@ export class FittingRoomController {
       this.forgotPassword.bind(this),
       this.submitTel.bind(this),
     )
-    this.TFRAPI = new TFRAPI(this.shopID)
+    this.API = new TFRAPI(this.shopID)
 
     if (vtoMainDivId) this.vtoComponent = new VTOController(vtoMainDivId)
 
     this.tfrSizeRecommendationController = new SizeRecommendationController(
       sizeRecMainDivId,
       cssVariables || {},
-      this.TFRAPI,
+      this.API,
       this.onSignInClick.bind(this),
       this.signOut.bind(this),
       this.onFitInfoClick.bind(this),
       this.onTryOnClick.bind(this),
-      this.vtoComponent,
-      this.noCacheOnRetry,
     )
 
     // fetch measurement locations and user
     this.init()
 
     // Register for Firebase auth state changes to handle session restoration
-    this.TFRAPI.user.onAuthStateChange((isLoggedIn) => {
+    this.API.User.onAuthStateChange((isLoggedIn) => {
       console.debug('Firebase auth state changed to:', isLoggedIn, 'updating UI')
       this.isLoggedIn = isLoggedIn
       this.tfrSizeRecommendationController.setIsLoggedIn(isLoggedIn)
@@ -83,8 +81,8 @@ export class FittingRoomController {
   }
 
   private async init(): Promise<void> {
-    const measurementLocationsPromise = this.TFRAPI.fetchCacheMeasurementLocations()
-    const user = this.TFRAPI.user.User()
+    const measurementLocationsPromise = this.API.fetchCacheMeasurementLocations()
+    const user = this.API.User.User()
     const initPromise = await Promise.all([
       user,
       measurementLocationsPromise,
@@ -116,7 +114,7 @@ export class FittingRoomController {
       skusToLoad = [activeSku]
     }
 
-    assets = await this.TFRAPI.FetchAndCacheColorwaySizeAssets(skusToLoad, noCache)
+    assets = await this.API.FetchAndCacheColorwaySizeAssets(skusToLoad, noCache)
 
     this._activeSku = activeSku
 
@@ -148,7 +146,7 @@ export class FittingRoomController {
   }
 
   public async signOut() {
-    await this.TFRAPI.user.logout()
+    await this.API.User.logout()
 
     if (this.hooks?.onLogout) this.hooks.onLogout()
 
@@ -165,7 +163,7 @@ export class FittingRoomController {
     if (!validatePassword(password)) return validationError(L.PasswordError)
 
     try {
-      await this.TFRAPI.user.login(username, password)
+      await this.API.User.login(username, password)
 
       if (this.hooks?.onLogin) this.hooks.onLogin()
       this.tfrModal.close()
@@ -185,7 +183,7 @@ export class FittingRoomController {
 
   public async submitTel(tel: string) {
     try {
-      await this.TFRAPI.SubmitTelephoneNumber(tel)
+      await this.API.SubmitTelephoneNumber(tel)
       this.tfrModal.toSignIn()
     } catch {
       this.tfrModal.onError(L.SomethingWentWrong)
@@ -193,19 +191,19 @@ export class FittingRoomController {
   }
 
   public async forgotPassword(email: string) {
-    await this.TFRAPI.user.sendPasswordResetEmail(email)
+    await this.API.User.sendPasswordResetEmail(email)
 
     this.tfrModal.toSignIn()
   }
 
   public async passwordReset(code: string, newPassword: string) {
-    await this.TFRAPI.user.confirmPasswordReset(code, newPassword)
+    await this.API.User.confirmPasswordReset(code, newPassword)
 
     this.tfrModal.toPasswordReset()
   }
 
   public async getMeasurementLocationsFromSku(sku: string) {
-    return this.TFRAPI.GetMeasurementLocationsFromSku(sku, [])
+    return this.API.GetMeasurementLocationsFromSku(sku, [])
   }
 
   public onSignInClick() {
@@ -220,7 +218,7 @@ export class FittingRoomController {
   public async onTryOnClick(primarySKU: string, availableSKUs: string[]) {
     this.forceFreshVTO = this.hasInitializedTryOn && this.noCacheOnRetry
 
-    const batchResult = await this.TFRAPI.priorityTryOnWithMultiRequestCache(primarySKU, availableSKUs, this.forceFreshVTO)
+    const batchResult = await this.API.PriorityTryOnWithMultiRequestCache(primarySKU, availableSKUs, this.forceFreshVTO)
 
     this.setManualListeningOverride(true)
     try {
@@ -268,14 +266,14 @@ export class FittingRoomController {
       console.debug('Profile changes subscription already active')
       return
     }
-    const user = await this.TFRAPI.user.User()
+    const user = await this.API.User.User()
     if (!user) {
       throw new Error("subscribeToProfileChanges called with no user")
     }
 
     console.debug('Starting continuous user profile monitoring')
     // Use the continuous monitoring method for ongoing updates
-    this.unsub = this.TFRAPI.user.watchUserProfileForChangesContinuous(
+    this.unsub = this.API.User.watchUserProfileForChangesContinuous(
       (user as User).uid,
       (userProfile) => this.onAvatarStateChange(userProfile as FirestoreUser),
       undefined
@@ -312,8 +310,8 @@ export class FittingRoomController {
 
   private async getStyleFromColorwaySizeAssetSku(sku: string): Promise<FirestoreStyle | null> {
     try {
-      const colorwaySizeAsset = await this.TFRAPI.GetColorwaySizeAssetFromSku(sku)
-      const style = await this.TFRAPI.GetStyle(colorwaySizeAsset.style_id)
+      const colorwaySizeAsset = await this.API.GetColorwaySizeAssetFromSku(sku)
+      const style = await this.API.GetStyle(colorwaySizeAsset.style_id)
       return style
     } catch (e) {
       return null

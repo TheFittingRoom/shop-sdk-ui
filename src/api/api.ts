@@ -28,23 +28,23 @@ export class TFRAPI {
     this.firebase = new FirebaseController()
   }
 
-  public get user(): FirebaseUser {
+  public get User(): FirebaseUser {
     return this.firebase.userController
   }
 
-  public get brandId(): number {
+  public get BrandID(): number {
     return this.brandID
   }
 
-  public async isLoggedIn(): Promise<boolean> {
-    return Boolean(await this.user.User())
+  public async IsLoggedIn(): Promise<boolean> {
+    return Boolean(await this.User.User())
   }
 
   public async GetRecommendedSizes(styleId: number): Promise<SizeFitRecommendation | null> {
-    if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
+    if (!this.IsLoggedIn) throw new Errors.UserNotLoggedInError()
     console.debug('fetching size_recommendation', styleId)
     try {
-      const res = await Fetcher.Get(this.user, `/styles/${String(styleId)}/recommendation`)
+      const res = await Fetcher.Get(this.User, `/styles/${String(styleId)}/recommendation`)
       const data = (await res.json()) as SizeFitRecommendation
 
       if (!data?.fits?.length || !data?.recommended_size?.id) return null
@@ -59,7 +59,7 @@ export class TFRAPI {
 
   public async SubmitTelephoneNumber(tel: string): Promise<void> {
     const sanitizedTel = tel.replace(/[^+0-9]/g, '')
-    const res = await Fetcher.Post(this.user, '/ios-app-link', { phone_number: sanitizedTel }, false)
+    const res = await Fetcher.Post(this.User, '/ios-app-link', { phone_number: sanitizedTel }, false)
     console.debug(res)
   }
 
@@ -74,7 +74,7 @@ export class TFRAPI {
     }
 
     const constraints: QueryFieldFilterConstraint[] = [
-      where('brand_id', '==', this.brandId),
+      where('brand_id', '==', this.BrandID),
       where('sku', '==', colorwaySizeAssetSku),
     ]
 
@@ -116,7 +116,7 @@ export class TFRAPI {
     }
 
     const constraints: QueryFieldFilterConstraint[] = [
-      where('brand_id', '==', this.brandId),
+      where('brand_id', '==', this.BrandID),
       where('style_id', '==', styleId),
     ]
 
@@ -140,7 +140,7 @@ export class TFRAPI {
     const styleGarmentCategory = await this.GetStyleGarmentCategory(style.id)
     if (!styleGarmentCategory) throw new Error('Taxonomy not found for style garment category id')
 
-    const userProfile = this.isLoggedIn ? await this.user.getUser() : null
+    const userProfile = this.IsLoggedIn ? await this.User.getUser() : null
     const gender = userProfile?.gender || 'female'
 
     // Use proper typing for the measurement locations based on gender
@@ -167,7 +167,7 @@ export class TFRAPI {
   public async GetStyleByBrandStyleID(styleSKU: string): Promise<FirestoreStyle | null> {
     console.debug('getStyleByBrandStyleID:', styleSKU)
     try {
-      const constraints: QueryFieldFilterConstraint[] = [where('brand_id', '==', this.brandId)]
+      const constraints: QueryFieldFilterConstraint[] = [where('brand_id', '==', this.BrandID)]
       constraints.push(where('brand_style_id', '==', styleSKU))
       const querySnapshot = await this.firebase.getDocs('styles', constraints)
       const style = querySnapshot.docs?.[0]?.data() as FirestoreStyle
@@ -188,16 +188,17 @@ export class TFRAPI {
     }
   }
 
-  public getMeasurementLocationName(location: string): string {
+  public GetMeasurementLocationName(location: string): string {
     return this.measurementLocations.has(location) ? this.measurementLocations.get(location).name : location
   }
 
-  public getMeasurementLocationSortOrder(location: string): number {
+  public GetMeasurementLocationSortOrder(location: string): number {
     return this.measurementLocations.has(location) ? this.measurementLocations.get(location).sort_order : Infinity
   }
 
-  public async priorityTryOnWithMultiRequestCache(activeSKU: string, availableSKUs: string[], skipCache: boolean = false): Promise<types.TryOnFrames> {
-    if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
+  // queues 3+ virtual try ons and only waits on the active rendered virtual tryon
+  public async PriorityTryOnWithMultiRequestCache(activeSKU: string, availableSKUs: string[], skipCache: boolean = false): Promise<types.TryOnFrames> {
+    if (!this.IsLoggedIn) throw new Errors.UserNotLoggedInError()
 
     const priorityPromise = this.getCachedOrRequestUserColorwaySizeAssetFrames(activeSKU, skipCache)
 
@@ -208,8 +209,6 @@ export class TFRAPI {
 
     return await priorityPromise
   }
-
-
 
   // Helper method to fetch assets from Firestore
   public async FetchAndCacheColorwaySizeAssets(
@@ -230,7 +229,7 @@ export class TFRAPI {
 
     if (uncachedSkus.length > 0) {
       const constraints: QueryFieldFilterConstraint[] = [
-        where('brand_id', '==', this.brandId),
+        where('brand_id', '==', this.BrandID),
         where('sku', 'in', uncachedSkus),
       ]
       try {
@@ -315,7 +314,7 @@ export class TFRAPI {
   }
 
   private async watchForTryOnFrames(colorwaySizeAssetSKU: string, skipCache: boolean = false): Promise<types.TryOnFrames> {
-    if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
+    if (!this.IsLoggedIn) throw new Errors.UserNotLoggedInError()
 
     let firstSnapshotProcessed = false;
 
@@ -325,7 +324,7 @@ export class TFRAPI {
         return false;
       }
 
-      const frames = data.docs[0].data()?.vto?.[this.brandId]?.[colorwaySizeAssetSKU]?.frames
+      const frames = data.docs[0].data()?.vto?.[this.BrandID]?.[colorwaySizeAssetSKU]?.frames
       console.debug('awaitColorwaySizeAssetFrames callback, frames length:', frames?.length)
       if (!frames?.length) return false
 
@@ -334,22 +333,22 @@ export class TFRAPI {
       return tested
     }
 
-    const userProfile = (await this.user.watchUserProfileForChanges(callback)) as types.FirestoreUser
+    const userProfile = (await this.User.watchUserProfileForChanges(callback)) as types.FirestoreUser
 
-    if (!userProfile?.vto?.[this.brandId]?.[colorwaySizeAssetSKU]?.frames?.length) throw new Errors.NoFramesFoundError()
+    if (!userProfile?.vto?.[this.BrandID]?.[colorwaySizeAssetSKU]?.frames?.length) throw new Errors.NoFramesFoundError()
 
-    this.vtoFramesCache.set(colorwaySizeAssetSKU, userProfile.vto[this.brandId][colorwaySizeAssetSKU].frames)
-    return userProfile.vto[this.brandId][colorwaySizeAssetSKU].frames
+    this.vtoFramesCache.set(colorwaySizeAssetSKU, userProfile.vto[this.BrandID][colorwaySizeAssetSKU].frames)
+    return userProfile.vto[this.BrandID][colorwaySizeAssetSKU].frames
   }
 
   private async requestColorwaySizeAssetFramesByID(colorwaySizeAssetId: number): Promise<void> {
     console.debug('requestColorwaySizeAssetFramesByID')
-    if (!this.isLoggedIn) throw new Errors.UserNotLoggedInError()
-    if (!this.user.brandUserId) throw new Errors.BrandUserIdNotSetError()
+    if (!this.IsLoggedIn) throw new Errors.UserNotLoggedInError()
+    if (!this.User.brandUserId) throw new Errors.BrandUserIdNotSetError()
 
-    console.debug('Requesting frames for assetId:', colorwaySizeAssetId, 'brandUserId:', this.user.brandUserId)
-    await Fetcher.Post(this.user, `/colorway-size-assets/${colorwaySizeAssetId}/frames`, {
-      brand_user_id: String(this.user.brandUserId),
+    console.debug('Requesting frames for assetId:', colorwaySizeAssetId, 'brandUserId:', this.User.brandUserId)
+    await Fetcher.Post(this.User, `/colorway-size-assets/${colorwaySizeAssetId}/frames`, {
+      brand_user_id: String(this.User.brandUserId),
     })
   }
 

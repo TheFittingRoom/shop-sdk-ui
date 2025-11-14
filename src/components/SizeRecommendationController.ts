@@ -141,8 +141,8 @@ export class SizeRecommendationController {
               return {
                 fit: fitLabel,
                 isPerfect: this.perfectFits.includes(locationFit.fit),
-                location: this.tfrShop.getMeasurementLocationName(locationFit.measurement_location),
-                sortOrder: this.tfrShop.getMeasurementLocationSortOrder(locationFit.measurement_location),
+                location: this.tfrShop.GetMeasurementLocationName(locationFit.measurement_location),
+                sortOrder: this.tfrShop.GetMeasurementLocationSortOrder(locationFit.measurement_location),
               }
             })
             .filter((location) => location !== null) // Filter out null locations
