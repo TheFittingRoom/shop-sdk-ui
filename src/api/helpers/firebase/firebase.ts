@@ -14,12 +14,11 @@ import {
   onSnapshot,
   query,
 } from 'firebase/firestore'
-
 import { Config } from '../config'
-import { FirebaseUser, UserInitResult } from './user'
+import { FirebaseUser } from './user'
 
-export class Firebase {
-  public user: FirebaseUser
+export class FirebaseController {
+  public userController: FirebaseUser
 
   public readonly firestore: Firestore
 
@@ -28,12 +27,12 @@ export class Firebase {
     const firebaseApp = firebase.initializeApp(firebaseKeys)
 
     this.firestore = getFirestore(firebaseApp)
-    this.user = new FirebaseUser(this.firestore, firebaseApp)
+    // auto login user in constructor
+    this.userController = new FirebaseUser(this.firestore, firebaseApp)
   }
 
-  public onInit(brandId: number): Promise<boolean> {
-    const initResult = this.user.onInit(brandId)
-    return initResult.initPromise
+  public async getUser(): Promise<firebase.User | boolean> {
+    return await this.userController.User()
   }
 
   public query(collectionName: string, constraint: QueryFieldFilterConstraint, unsubscribeWhenData: boolean = true) {

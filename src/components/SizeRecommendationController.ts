@@ -1,5 +1,5 @@
 import { Fit, FitNames, TFRShop } from '../api'
-import { RecommendedSize, SizeRecComponent } from './SizeRecComponent'
+import { RecommendedSize, SizeRecComponent } from './SizeRecommendationComponent'
 
 export type TFRCssVariables = {
   brandColor?: string
@@ -38,7 +38,7 @@ export type TFRCssVariables = {
   sizeSelectorButtonShadow?: string
 }
 
-export class TFRSizeRec {
+export class SizeRecommendationController {
   private readonly sizeRecComponent: SizeRecComponent
   private readonly perfectFits = [Fit.PERFECT_FIT, Fit.SLIGHTLY_LOOSE, Fit.SLIGHTLY_TIGHT]
 
@@ -46,33 +46,28 @@ export class TFRSizeRec {
     sizeRecMainDivId: string,
     cssVariables: TFRCssVariables,
     private readonly tfrShop: TFRShop,
-    private readonly onSignInClick: () => void,
-    private readonly onSignOutClick: () => void,
-    private readonly onFitInfoClick: () => void,
-    private readonly onTryOnClick?: (sku: string, shouldDisplay: boolean, isFromTryOnButton?: boolean) => Promise<void>,
-    vtoComponent?: any,
-    private readonly noCacheOnRetry: boolean = false,
+    private readonly onFittingRoomControllerSignInClick: () => void,
+    private readonly onFittingRoomControllerSignOutClick: () => void,
+    private readonly onFittingRoomControllerFitInfoClick: () => void,
+    private readonly onFittingRoomControllerTryOnClick: (selectedSku: string, availableSkus: string[]) => Promise<void>,
   ) {
     this.setCssVariables(cssVariables)
+
     this.sizeRecComponent = new SizeRecComponent(
       sizeRecMainDivId,
-      this.onSignInClick,
-      this.onSignOutClick,
-      this.onFitInfoClick,
-      this.tfrShop.isLoggedIn,
-      this.tfrShop,
-      vtoComponent,
-      this.noCacheOnRetry,
+      this.onFittingRoomControllerSignInClick,
+      this.onFittingRoomControllerSignOutClick,
+      this.onFittingRoomControllerFitInfoClick,
+      this.onSizeRecommendationControllerTryOnClick.bind(this),
     )
   }
 
-  public get styleId() {
-    return this.sizeRecComponent.styleId
+
+  public onSizeRecommendationControllerTryOnClick() {
+    const { selectedSku, availableSkus } = this.sizeRecComponent.GetSizeRecommendationState()
+    this.onFittingRoomControllerTryOnClick(selectedSku, availableSkus)
   }
 
-  public setStyleId(styleId: number) {
-    this.sizeRecComponent.setStyleId(styleId)
-  }
 
   public setIsLoggedIn(isLoggedIn: boolean) {
     this.sizeRecComponent.setIsLoggedIn(isLoggedIn)
@@ -92,9 +87,8 @@ export class TFRSizeRec {
 
   public async startSizeRecommendation(styleId: number, skipCache: boolean) {
     try {
-      this.setStyleId(styleId)
       this.sizeRecComponent.setLoading(true)
-      const sizes = await this.getRecommendedSizes(this.styleId, skipCache)
+      const sizes = await this.getRecommendedSizes(styleId, skipCache)
       if (!sizes) {
         console.error('No sizes found for sku')
         this.sizeRecComponent.setLoading(false)
@@ -112,11 +106,11 @@ export class TFRSizeRec {
   }
 
   private async getRecommendedSizes(styleId: number, skipCache: boolean): Promise<RecommendedSize> {
-    const sizeRec = await this.tfrShop.getRecommendedSizes(styleId)
+    const sizeRec = await this.tfrShop.GetRecommendedSizes(styleId)
 
     if (!sizeRec) return null
 
-    const colorwaySizeAssets = await this.tfrShop.getColorwaySizeAssetsFromStyleId(styleId, skipCache)
+    const colorwaySizeAssets = await this.tfrShop.FetchCachedColorwaySizeAssetsFromStyleId(styleId, skipCache)
 
     return {
       recommended: sizeRec.recommended_size.size_value.name,
@@ -219,3 +213,4 @@ export class TFRSizeRec {
       r.style.setProperty('--tfr-size-selector-button-shadow', cssVariables.sizeSelectorButtonShadow)
   }
 }
+

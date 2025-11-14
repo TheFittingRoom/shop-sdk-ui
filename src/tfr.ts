@@ -1,12 +1,13 @@
-import { FirestoreStyle, initShop, TryOnFrames, FirestoreColorwaySizeAsset, FirestoreUser, AvatarState, ParallelInitResult } from './api'
+import { FirestoreStyle, TryOnFrames, FirestoreColorwaySizeAsset, FirestoreUser, AvatarState, ParallelInitResult } from './api'
 /// <reference types="vite/client" />
 
-import { VtoComponent } from './components/VirtualTryOnController'
+import { VTOController } from './components/VirtualTryOnController'
 import { L } from './components/locale'
 import { validateEmail, validatePassword } from './helpers/validations'
 import { TFRModal } from './components/ModalController'
-import { TFRSizeRec as TFRSizeRecommendationController, TFRCssVariables } from './components/SizeRecommendationController'
+import { SizeRecommendationController, TFRCssVariables } from './components/SizeRecommendationController'
 import { TFRAPI } from './api/api'
+import { User } from 'firebase/auth'
 
 export interface TFRHooks {
   onLoading?: () => void
@@ -17,7 +18,7 @@ export interface TFRHooks {
   onLogout?: () => void
 }
 
-export class FittingRoom {
+export class FittingRoomController {
   private isLoggedIn: boolean = false
   private hasInitializedTryOn: boolean = false
   private manualListeningOverride: boolean = false
@@ -28,26 +29,21 @@ export class FittingRoom {
   public colorwaySizeAsset: FirestoreColorwaySizeAsset
 
   public readonly tfrModal: TFRModal
-  public readonly tfrSizeRec: TFRSizeRecommendationController
-  private readonly vtoComponent: VtoComponent
-  private readonly tfrAPI: TFRAPI
+  public readonly tfrSizeRecommendationController: SizeRecommendationController
+  private readonly vtoComponent: VTOController
+  private readonly TFRAPI: TFRAPI
   private unsub: () => void = null
 
   constructor(
-    private readonly shopId: string | number,
+    private readonly shopID: number,
     modalDivId: string,
     sizeRecMainDivId: string,
     vtoMainDivId: string,
     private readonly noCacheOnRetry: boolean = false,
     private readonly hooks: TFRHooks = {},
+    public readonly env: string,
     cssVariables?: TFRCssVariables,
-    _env?: string,
   ) {
-    const env = _env
-      ? _env
-      : import.meta.env.MODE === 'production'
-        ? 'prod'
-        : 'dev'
 
     this.tfrModal = new TFRModal(
       modalDivId,
@@ -55,14 +51,14 @@ export class FittingRoom {
       this.forgotPassword.bind(this),
       this.submitTel.bind(this),
     )
-    this.tfrAPI = initShop(Number(this.shopId), env)
+    this.TFRAPI = new TFRAPI(this.shopID)
 
-    if (vtoMainDivId) this.vtoComponent = new VtoComponent(vtoMainDivId)
+    if (vtoMainDivId) this.vtoComponent = new VTOController(vtoMainDivId)
 
-    this.tfrSizeRec = new TFRSizeRecommendationController(
+    this.tfrSizeRecommendationController = new SizeRecommendationController(
       sizeRecMainDivId,
       cssVariables || {},
-      this.tfrAPI,
+      this.TFRAPI,
       this.onSignInClick.bind(this),
       this.signOut.bind(this),
       this.onFitInfoClick.bind(this),
@@ -71,50 +67,37 @@ export class FittingRoom {
       this.noCacheOnRetry,
     )
 
+    // fetch measurement locations and user
+    this.init()
+
     // Register for Firebase auth state changes to handle session restoration
-    this.tfrAPI.user.onAuthStateChange((isLoggedIn) => {
+    this.TFRAPI.user.onAuthStateChange((isLoggedIn) => {
       console.debug('Firebase auth state changed to:', isLoggedIn, 'updating UI')
       this.isLoggedIn = isLoggedIn
-      this.tfrSizeRec.setIsLoggedIn(isLoggedIn)
+      this.tfrSizeRecommendationController.setIsLoggedIn(isLoggedIn)
     })
-  }
-
-  get api() {
-    return this.tfrAPI
   }
 
   get sku() {
     return this._activeSku
   }
 
-  public async init(): Promise<ParallelInitResult> {
-    const measurementLocationsPromise = this.tfrAPI.fetchCacheMeasurementLocations()
-    const userInitResult = this.tfrAPI.user.onInit(this.tfrAPI.brandId)
-
+  private async init(): Promise<void> {
+    const measurementLocationsPromise = this.TFRAPI.fetchCacheMeasurementLocations()
+    const user = this.TFRAPI.user.User()
     const initPromise = await Promise.all([
-      userInitResult,
+      user,
       measurementLocationsPromise,
     ])
 
-    this.isLoggedIn = initPromise[0].isLoggedIn
-    this.tfrSizeRec.setIsLoggedIn(this.isLoggedIn)
+    this.isLoggedIn = Boolean(initPromise[0])
+    this.tfrSizeRecommendationController.setIsLoggedIn(this.isLoggedIn)
 
     if (this.isLoggedIn) {
       if (this.hooks?.onLogin) this.hooks.onLogin()
 
       this.updateFirestoreSubscription()
-    } else {
-      if (this.hooks?.onLogout) this.hooks.onLogout()
-
-      this.unsubscribeFromProfileChanges()
     }
-
-    const result: ParallelInitResult = {
-      isLoggedIn: initPromise[0].isLoggedIn,
-      initPromise,
-    }
-
-    return result
   }
 
   public async initSizeRecommendationWithSku(activeSku: string, preloadedSkus?: string[], noCache: boolean = false) {
@@ -133,7 +116,7 @@ export class FittingRoom {
       skusToLoad = [activeSku]
     }
 
-    assets = await this.tfrAPI.FetchAndCacheColorwaySizeAssets(skusToLoad, noCache)
+    assets = await this.TFRAPI.FetchAndCacheColorwaySizeAssets(skusToLoad, noCache)
 
     this._activeSku = activeSku
 
@@ -151,7 +134,7 @@ export class FittingRoom {
     }
 
     if (this.isLoggedIn) {
-      this.tfrSizeRec.startSizeRecommendation(this.style.id, true)
+      this.tfrSizeRecommendationController.startSizeRecommendation(this.style.id, true)
     } else {
       const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
       this.setStyleMeasurementLocations(styleMeasurementLocations)
@@ -165,13 +148,13 @@ export class FittingRoom {
   }
 
   public async signOut() {
-    await this.tfrAPI.user.logout()
+    await this.TFRAPI.user.logout()
 
     if (this.hooks?.onLogout) this.hooks.onLogout()
 
     this.isLoggedIn = false
     this.manualListeningOverride = false
-    this.tfrSizeRec.setIsLoggedIn(false)
+    this.tfrSizeRecommendationController.setIsLoggedIn(false)
     this.setStyleMeasurementLocations(this.styleToGarmentMeasurementLocations(this.style))
     this.unsubscribeFromProfileChanges()
   }
@@ -182,32 +165,27 @@ export class FittingRoom {
     if (!validatePassword(password)) return validationError(L.PasswordError)
 
     try {
-      await this.tfrAPI.user.login(username, password)
+      await this.TFRAPI.user.login(username, password)
 
       if (this.hooks?.onLogin) this.hooks.onLogin()
       this.tfrModal.close()
 
       this.isLoggedIn = true
-      this.tfrSizeRec.setIsLoggedIn(true)
+      this.tfrSizeRecommendationController.setIsLoggedIn(true)
 
-      // Only start size recommendation if we have a valid style
       if (this.style) {
-        this.tfrSizeRec.startSizeRecommendation(this.style.id, true)
+        this.tfrSizeRecommendationController.startSizeRecommendation(this.style.id, true)
       }
-      // Don't auto-subscribe - wait for middle VTO to be displayed
-      this.updateFirestoreSubscription()
+      // TODO manage firestore subscription state
+      // update logged in user
     } catch (e) {
       return validationError(L.UsernameOrPasswordIncorrect)
     }
   }
 
-  public setBrandUserId(brandUserId: string | number) {
-    this.tfrAPI.user.setBrandUserId(brandUserId)
-  }
-
   public async submitTel(tel: string) {
     try {
-      await this.tfrAPI.submitTelephoneNumber(tel)
+      await this.TFRAPI.SubmitTelephoneNumber(tel)
       this.tfrModal.toSignIn()
     } catch {
       this.tfrModal.onError(L.SomethingWentWrong)
@@ -215,19 +193,19 @@ export class FittingRoom {
   }
 
   public async forgotPassword(email: string) {
-    await this.tfrAPI.user.sendPasswordResetEmail(email)
+    await this.TFRAPI.user.sendPasswordResetEmail(email)
 
     this.tfrModal.toSignIn()
   }
 
   public async passwordReset(code: string, newPassword: string) {
-    await this.tfrAPI.user.confirmPasswordReset(code, newPassword)
+    await this.TFRAPI.user.confirmPasswordReset(code, newPassword)
 
     this.tfrModal.toPasswordReset()
   }
 
   public async getMeasurementLocationsFromSku(sku: string) {
-    return this.tfrAPI.getMeasurementLocationsFromSku(sku, [])
+    return this.TFRAPI.GetMeasurementLocationsFromSku(sku, [])
   }
 
   public onSignInClick() {
@@ -238,26 +216,18 @@ export class FittingRoom {
     this.tfrModal.toFitInfo()
   }
 
+  // callback for SizeRecommendationController
   public async onTryOnClick(primarySKU: string, availableSKUs: string[]) {
-    this.vtoComponent.init()
-
-    if (!this.vtoComponent)
-      return console.error('VtoComponent is not initialized. Please check if the vtoMainDivId is correct.')
-
     this.forceFreshVTO = this.hasInitializedTryOn && this.noCacheOnRetry
 
-    const batchResult = await this.api.priorityTryOnWithMultiRequestCache(primarySKU, availableSKUs, this.forceFreshVTO)
+    const batchResult = await this.TFRAPI.priorityTryOnWithMultiRequestCache(primarySKU, availableSKUs, this.forceFreshVTO)
 
-    if (shouldDisplay) {
-      this.setManualListeningOverride(true)
-      try {
-
-        this.vtoComponent.onNewFramesReady(frames)
-      } catch (e) {
-        this.tfrModal.onError(L.SomethingWentWrong)
-      }
+    this.setManualListeningOverride(true)
+    try {
+      this.vtoComponent.onNewFramesReady(batchResult)
+    } catch (e) {
+      this.tfrModal.onError(L.SomethingWentWrong)
     }
-
   }
 
   public setManualListeningOverride(enabled: boolean) {
@@ -265,7 +235,7 @@ export class FittingRoom {
     this.updateFirestoreSubscription()
   }
 
-  private onUserProfileChange(userProfile: FirestoreUser) {
+  private onAvatarStateChange(userProfile: FirestoreUser) {
     console.debug('onUserProfileChange called with avatar_status:', userProfile.avatar_status)
 
     switch (userProfile.avatar_status as AvatarState) {
@@ -293,19 +263,21 @@ export class FittingRoom {
     }
   }
 
-  private subscribeToProfileChanges() {
+  private async subscribeToProfileChanges() {
     if (this.unsub) {
       console.debug('Profile changes subscription already active')
       return
     }
+    const user = await this.TFRAPI.user.User()
+    if (!user) {
+      throw new Error("subscribeToProfileChanges called with no user")
+    }
 
     console.debug('Starting continuous user profile monitoring')
-
     // Use the continuous monitoring method for ongoing updates
-    this.unsub = this.tfrAPI.user.watchUserProfileForChangesContinuous(
-      (userProfile) => this.onUserProfileChange(userProfile),
-      // Optional predicate to filter specific changes if needed
-      // For now, we'll get all changes since we want to monitor avatar_status changes
+    this.unsub = this.TFRAPI.user.watchUserProfileForChangesContinuous(
+      (user as User).uid,
+      (userProfile) => this.onAvatarStateChange(userProfile as FirestoreUser),
       undefined
     )
   }
@@ -335,13 +307,13 @@ export class FittingRoom {
   }
 
   public async setStyleMeasurementLocations(measurementLocations: string[]) {
-    this.tfrSizeRec.setStyleMeasurementLocations(measurementLocations)
+    this.tfrSizeRecommendationController.setStyleMeasurementLocations(measurementLocations)
   }
 
   private async getStyleFromColorwaySizeAssetSku(sku: string): Promise<FirestoreStyle | null> {
     try {
-      const colorwaySizeAsset = await this.tfrAPI.getColorwaySizeAssetFromSku(sku)
-      const style = await this.tfrAPI.GetStyle(colorwaySizeAsset.style_id)
+      const colorwaySizeAsset = await this.TFRAPI.GetColorwaySizeAssetFromSku(sku)
+      const style = await this.TFRAPI.GetStyle(colorwaySizeAsset.style_id)
       return style
     } catch (e) {
       return null

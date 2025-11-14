@@ -1,5 +1,4 @@
 import { infoIcon, tfrDoor, userIcon } from '../assets/svgs'
-import { TFRAPI } from '../api/api'
 
 export type RecommendedSize = {
   recommended: string
@@ -16,12 +15,7 @@ export type RecommendedSize = {
 }
 
 export class SizeRecComponent {
-  private _styleId: number = null
-  private isLoggedIn: boolean
   private availableSizes: RecommendedSize['sizes'] = []
-  private tfrShop: TFRAPI
-  private vtoComponent: any = null
-  private hasAttemptedTryOn: boolean = false
 
   private sizeRecMainDiv: HTMLDivElement
 
@@ -48,35 +42,17 @@ export class SizeRecComponent {
 
   private isCollapsed: boolean = false
   private redraw: (index: number) => void = null
+  private isLoggedIn: boolean
 
   constructor(
     sizeRecMainDivId: string,
+    // auto created as properties due to access modifier
     private readonly onSignInClick: () => void,
     private readonly onSignOutClick: () => void,
     private readonly onFitInfoClick: () => void,
-    initialIsLoggedIn: boolean,
-    tfrShop: TFRAPI,
-    vtoComponent?: any,
-    private readonly noCacheOnRetry: boolean = false,
+    private readonly onTryOnClick: () => void,
   ) {
-    this.isLoggedIn = initialIsLoggedIn
-    this.tfrShop = tfrShop
-    this.vtoComponent = vtoComponent
-    this.noCacheOnRetry = noCacheOnRetry
     this.init(sizeRecMainDivId)
-    this.setIsLoggedIn(this.isLoggedIn)
-  }
-
-  public setVtoComponent(vtoComponent: any) {
-    this.vtoComponent = vtoComponent
-  }
-
-  public get styleId() {
-    return this._styleId
-  }
-
-  public setStyleId(styleId: number) {
-    this._styleId = styleId
   }
 
   public setIsLoggedIn(isLoggedIn: boolean) {
@@ -98,7 +74,6 @@ export class SizeRecComponent {
       this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')
       this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-down')
 
-      // Ensure the container is visible
       this.tfrSizeRecSelectContainer.style.display = 'flex'
       this.tfrSizeRecSelectContainer.style.opacity = '1'
     } else {
@@ -222,24 +197,6 @@ export class SizeRecComponent {
     return { selectedSku, availableSkus: skusToLoad };
   }
 
-  private async tryOn(noCache: boolean = false): Promise<void> {
-    if (!this.vtoComponent) {
-      console.error('VtoComponent is not initialized')
-      return
-    }
-
-    const { selectedSku, availableSkus } = this.GetSizeRecommendationState()
-    await this.getCachedOrNewVTO(selectedSku, availableSkus)
-
-    const skipCache = noCache && this.hasAttemptedTryOn
-    this.tfrShop.priorityTryOnWithMultiRequestCache(selectedSku, availableSkus, skipCache).then(priorityFrames => {
-      this.vtoComponent.init()
-      this.vtoComponent.onNewFramesReady(priorityFrames)
-    }).catch(e => {
-      console.error("failed to get frames", e)
-    })
-  }
-
   private bindEvents() {
     this.tfrSizeRecActionLogin.addEventListener('click', this.onSignInClick)
     this.tfrSizeRecActionLogout.addEventListener('click', this.onSignOutClick)
@@ -257,12 +214,11 @@ export class SizeRecComponent {
         return
       }
 
-
       tryOnButton.classList.add('loading')
         ; (tryOnButton as HTMLButtonElement).disabled = true
 
       try {
-        this.tryOn()
+        this.onTryOnClick()
       } catch (error) {
         console.error('Error during try-on process:', error)
       } finally {
@@ -288,20 +244,7 @@ export class SizeRecComponent {
 
     this.redraw(selectedIndex)
 
-    this.tryOn()
-  }
-
-  private async getCachedOrNewVTO(
-    activeSku: string,
-    availableSkus: string[]
-  ): Promise<void> {
-    const noCache = this.hasAttemptedTryOn && this.noCacheOnRetry;
-    const vtoResults = await this.tfrShop.priorityTryOnWithMultiRequestCache(activeSku, availableSkus, noCache);
-
-    if (this.vtoComponent && vtoResults.includes(activeSku)) {
-      this.vtoComponent.init();
-      this.vtoComponent.onNewFramesReady(activeSku);
-    }
+    this.onTryOnClick()
   }
 
   private renderSizeRec(recommended: string, sizes: RecommendedSize['sizes']) {

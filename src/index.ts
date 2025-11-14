@@ -20,7 +20,7 @@ import './styles'
 
 // Export both the function and the class
 export { initFittingRoom } from './init'
-export { FittingRoom } from './tfr'
+export { FittingRoomController as FittingRoom } from './tfr'
 
 // Export individual components
 export {

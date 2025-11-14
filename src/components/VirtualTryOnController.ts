@@ -1,7 +1,6 @@
 import { InitImageSlider } from './virtualTryOnSlider'
 
-export class VtoComponent {
-  private isInit = false
+export class VTOController {
   private isShown = false
   private currentSliderValue: number = 0
   private slider: ReturnType<typeof InitImageSlider> = null
@@ -9,11 +8,11 @@ export class VtoComponent {
   private tryOnImage: HTMLImageElement | null = null
   private sliderElement: HTMLInputElement | null = null
 
-  constructor(private readonly vtoMainDivId: string) { }
+  constructor(private readonly vtoMainDivId: string) {
+    this.init()
+  }
 
-  public init() {
-    if (this.isInit) return
-
+  private init() {
     this.vtoMainDiv = document.getElementById(this.vtoMainDivId)
 
     if (!this.vtoMainDiv) {
@@ -24,13 +23,11 @@ export class VtoComponent {
       this.vtoMainDiv = newDiv
     }
 
-    this.isInit = true
     console.log('VTO Component initialized successfully')
   }
 
   public show() {
     if (this.isShown) return
-    if (!this.isInit) this.init()
 
     const targetDiv = this.vtoMainDiv!
 
