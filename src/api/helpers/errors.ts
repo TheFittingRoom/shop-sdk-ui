@@ -47,5 +47,13 @@ export class NoStylesFoundError extends Error {
   }
 }
 
+export class ServerUnavailableError extends Error {
+  constructor(message: string = 'Server is unavailable or not running') {
+    super(message)
+    this.name = 'ServerUnavailableError'
+  }
+}
+
 // Backend responses
 export const AvatarNotCreated = 'avatar not created'
+

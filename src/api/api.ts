@@ -8,9 +8,8 @@ import {
   FirestoreStyleCategory,
   FirestoreGarmentCategory,
   FirestoreMeasurementLocation,
-  Style
 } from './gen/responses'
-import { Fetcher } from './fetcher'
+import { Fetcher } from './helpers/fetcher'
 import { FirebaseController } from './helpers/firebase/firebase'
 import { FirebaseUser } from './helpers/firebase/user'
 import { getFirebaseError } from './helpers/firebase/error'

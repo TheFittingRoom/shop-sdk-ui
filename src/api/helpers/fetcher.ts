@@ -1,5 +1,6 @@
-import { FirebaseUser } from './helpers/firebase/user'
-import { Config } from './helpers/config'
+import { FirebaseUser } from './firebase/user'
+import { Config } from './config'
+import { ServerUnavailableError } from './errors'
 
 interface FetchParams {
   user: FirebaseUser
@@ -19,18 +20,25 @@ export class Fetcher {
   private static async Fetch({ user, endpointPath, method, body, useToken = true }: FetchParams): Promise<Response> {
     const url = this.getUrl(endpointPath, useToken)
     const headers = await this.getHeaders(user, useToken)
+
     const config: RequestInit = { method, headers, credentials: 'omit' }
+    if (body && method !== 'GET') {
+      config.body = JSON.stringify(body)
+    }
 
-    if (body) config.body = JSON.stringify(body)
+    try {
+      const res = await fetch(url, config)
+      if (res.ok) return res
+      if (res.status === 500) throw new ServerUnavailableError(res.statusText || 'Internal server error')
 
-    const res = await fetch(url, config)
-
-    if (res.ok) return res
-    if (res.status === 500) throw new Error(res.statusText)
-
-    const json = await res.json()
-
-    return Promise.reject(json)
+      Promise.resolve(res)
+      const errorResponse = await res.json().
+        catch(() => {
+          return Promise.reject(errorResponse)
+        })
+    } catch (error) {
+      throw error
+    }
   }
 
   private static getUrl(endpointPath: string, useToken: boolean): string {
@@ -48,13 +56,13 @@ export class Fetcher {
   }
 
   static Get(user: FirebaseUser, endpointPath: string, useToken?: boolean): Promise<Response> {
-    return this.Fetch({ user, endpointPath, method: 'GET', body: null, useToken })
+    return this.Fetch({ user, endpointPath, method: 'GET', body: undefined, useToken })
   }
 
   static Post(
     user: FirebaseUser,
     endpointPath: string,
-    body: Record<string, any> = null,
+    body?: Record<string, any>,
     useToken?: boolean,
   ): Promise<Response> {
     return this.Fetch({ user, endpointPath, method: 'POST', body, useToken })
@@ -81,7 +89,7 @@ export class Fetcher {
   static Delete(
     user: FirebaseUser,
     endpointPath: string,
-    body: Record<string, any>,
+    body?: Record<string, any>,
     useToken?: boolean,
   ): Promise<Response> {
     return this.Fetch({ user, endpointPath, method: 'DELETE', body, useToken })
