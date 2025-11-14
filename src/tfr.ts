@@ -23,7 +23,7 @@ export class FittingRoomController {
   private hasInitializedTryOn: boolean = false
   private manualListeningOverride: boolean = false
   private forceFreshVTO: boolean = false
-  private _activeSku: string = ''
+  private activeSku: string = ''
 
   public style: FirestoreStyle
   public colorwaySizeAsset: FirestoreColorwaySizeAsset
@@ -36,6 +36,7 @@ export class FittingRoomController {
 
   constructor(
     private readonly shopID: number,
+    private readonly brandStyleID: string,
     modalDivId: string,
     sizeRecMainDivId: string,
     vtoMainDivId: string,
@@ -77,18 +78,29 @@ export class FittingRoomController {
   }
 
   get sku() {
-    return this._activeSku
+    return this.activeSku
   }
 
   private async init(): Promise<void> {
     const measurementLocationsPromise = this.API.fetchCacheMeasurementLocations()
     const user = this.API.User.User()
-    const initPromise = await Promise.all([
+    const stylePromise = this.API.GetStyleByBrandStyleID(this.brandStyleID)
+    const promiseResults = await Promise.all([
       user,
+      stylePromise,
       measurementLocationsPromise,
-    ])
+    ]).catch(e => {
+      console.error("a promise in tfr init failed")
+      throw e
+    })
+    if (promiseResults[1]) {
+      console.debug('style successfully retrieved via style sku')
+      const style = (promiseResults[1] as FirestoreStyle)
+      this.style = style
+      this.API.FetchCachedColorwaySizeAssetsFromStyleId(style.id, false)
+    }
 
-    this.isLoggedIn = Boolean(initPromise[0])
+    this.isLoggedIn = Boolean(promiseResults[0])
     this.tfrSizeRecommendationController.setIsLoggedIn(this.isLoggedIn)
 
     if (this.isLoggedIn) {
@@ -100,7 +112,12 @@ export class FittingRoomController {
 
   public async initSizeRecommendationWithSku(activeSku: string, preloadedSkus?: string[], noCache: boolean = false) {
     if (!this.style) {
-      console.error('failed to retrieve style from sku:', activeSku)
+      console.debug('fetching style for sku:', this.sku)
+      let colorwaySizeAsset = await this.API.GetColorwaySizeAssetFromSku(activeSku)
+      this.style = await this.API.GetStyleByID(colorwaySizeAsset.style_id)
+    }
+
+    if (!this.style) {
       document.getElementById('tfr-size-recommendations').style.display = 'none'
     }
 
@@ -116,12 +133,7 @@ export class FittingRoomController {
 
     assets = await this.API.FetchAndCacheColorwaySizeAssets(skusToLoad, noCache)
 
-    this._activeSku = activeSku
-
-    if (!this.style) {
-      console.debug('fetching style for sku:', this.sku)
-      this.style = await this.getStyleFromColorwaySizeAssetSku(this.sku)
-    }
+    this.activeSku = activeSku
 
     if (!this.style.is_published) {
       document.getElementById('tfr-size-recommendations').style.display = 'none'
@@ -137,8 +149,6 @@ export class FittingRoomController {
       const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
       this.setStyleMeasurementLocations(styleMeasurementLocations)
     }
-
-    return assets
   }
 
   public close() {

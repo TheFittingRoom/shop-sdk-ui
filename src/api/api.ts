@@ -7,7 +7,8 @@ import {
   FirestoreStyleGarmentCategory,
   FirestoreStyleCategory,
   FirestoreGarmentCategory,
-  FirestoreMeasurementLocation
+  FirestoreMeasurementLocation,
+  Style
 } from './gen/responses'
 import { Fetcher } from './fetcher'
 import { FirebaseController } from './helpers/firebase/firebase'
@@ -21,6 +22,7 @@ export class TFRAPI {
   private colorwaySizeAssetsCache: Map<string, types.FirestoreColorwaySizeAsset> = new Map()
   private vtoFramesCache: Map<string, types.TryOnFrames> = new Map()
   private readonly firebase: FirebaseController
+  private style: FirestoreStyle
 
   constructor(
     private readonly brandID: number,
@@ -64,7 +66,6 @@ export class TFRAPI {
   }
 
   public async GetColorwaySizeAssetFromSku(colorwaySizeAssetSku: string): Promise<types.FirestoreColorwaySizeAsset> {
-    console.debug('getColorwaySizeAssetFromSku', colorwaySizeAssetSku)
 
     // Check cache first
     const cachedAsset = this.colorwaySizeAssetsCache.get(colorwaySizeAssetSku)
@@ -98,8 +99,6 @@ export class TFRAPI {
   }
 
   public async FetchCachedColorwaySizeAssetsFromStyleId(styleId: number, skipCache: boolean): Promise<types.FirestoreColorwaySizeAsset[]> {
-    console.debug('getColorwaySizeAssetsFromStyleId')
-
     // If using cache, check cache first for assets with this style_id
     if (!skipCache) {
       const cachedAssets: types.FirestoreColorwaySizeAsset[] = []
@@ -130,14 +129,10 @@ export class TFRAPI {
   }
 
   public async GetMeasurementLocationsFromSku(sku: string, filledLocations: string[] = []): Promise<string[]> {
-    console.debug('getMeasurementLocationsFromSku')
     const colorwaySizeAsset = await this.GetColorwaySizeAssetFromSku(sku)
     if (!colorwaySizeAsset) throw new Error('No colorway size asset found for sku')
 
-    const style = await this.GetStyle(colorwaySizeAsset.style_id)
-    if (!style) throw new Error('Style category not found for style id')
-
-    const styleGarmentCategory = await this.GetStyleGarmentCategory(style.id)
+    const styleGarmentCategory = await this.GetStyleGarmentCategory(this.style.id)
     if (!styleGarmentCategory) throw new Error('Taxonomy not found for style garment category id')
 
     const userProfile = this.IsLoggedIn ? await this.User.getUser() : null
@@ -179,7 +174,7 @@ export class TFRAPI {
     }
   }
 
-  public async GetStyle(styleId: number): Promise<FirestoreStyle | null> {
+  public async GetStyleByID(styleId: number): Promise<FirestoreStyle | null> {
     try {
       const doc = await this.firebase.getDoc('styles', String(styleId))
       return doc as FirestoreStyle

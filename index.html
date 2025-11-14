@@ -236,16 +236,14 @@
 
         tfr = await initFittingRoom(config)
         const sku = getSku()
-
         if (!sku) {
           console.warn('SKU not retrieved. The Fitting Room will initialize but may not function optimally without a specific SKU.')
         }
 
         const initResult = await tfr.init(productSKUs, true)
         if (sku) {
-          await tfr.initSizeRecommendationWithSku(sku, productSKUs, true)
+          tfr.initSizeRecommendationWithSku(sku, productSKUs, true)
         }
-        await initResult.initPromise
         console.debug("init time in ms", performance.now() - startTime)
 
         // Add event listeners for product selection changes
@@ -261,7 +259,6 @@
             }
           })
         }
-
         if (colorSelect) {
           colorSelect.addEventListener('change', () => {
             const newSku = getSku()
