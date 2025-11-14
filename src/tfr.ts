@@ -1,4 +1,4 @@
-import { FirestoreStyle, TryOnFrames, FirestoreColorwaySizeAsset, FirestoreUser, AvatarState, ParallelInitResult } from './api'
+import { FirestoreStyle, TryOnFrames, FirestoreColorwaySizeAsset, FirestoreUser, AvatarState } from './api'
 /// <reference types="vite/client" />
 
 import { VTOController } from './components/VirtualTryOnController'
@@ -110,7 +110,7 @@ export class FittingRoomController {
     }
   }
 
-  public async initSizeRecommendationWithSku(activeSku: string, preloadedSkus?: string[], noCache: boolean = false) {
+  public async initSizeRecommendationWithSku(activeSku: string, skipCache: boolean = false) {
     if (!this.style) {
       console.debug('fetching style for sku:', this.sku)
       let colorwaySizeAsset = await this.API.GetColorwaySizeAssetFromSku(activeSku)
@@ -121,20 +121,6 @@ export class FittingRoomController {
       document.getElementById('tfr-size-recommendations').style.display = 'none'
     }
 
-    let assets: Map<string, any>
-
-    let skusToLoad: string[]
-    if (preloadedSkus && preloadedSkus.length > 0) {
-      const skuSet = new Set([...preloadedSkus, activeSku])
-      skusToLoad = Array.from(skuSet)
-    } else {
-      skusToLoad = [activeSku]
-    }
-
-    assets = await this.API.FetchAndCacheColorwaySizeAssets(skusToLoad, noCache)
-
-    this.activeSku = activeSku
-
     if (!this.style.is_published) {
       document.getElementById('tfr-size-recommendations').style.display = 'none'
     }
@@ -144,7 +130,7 @@ export class FittingRoomController {
     }
 
     if (this.isLoggedIn) {
-      this.tfrSizeRecommendationController.startSizeRecommendation(this.style.id, true)
+      this.tfrSizeRecommendationController.startSizeRecommendation(this.style.id, skipCache)
     } else {
       const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
       this.setStyleMeasurementLocations(styleMeasurementLocations)
@@ -316,15 +302,5 @@ export class FittingRoomController {
 
   public async setStyleMeasurementLocations(measurementLocations: string[]) {
     this.tfrSizeRecommendationController.setStyleMeasurementLocations(measurementLocations)
-  }
-
-  private async getStyleFromColorwaySizeAssetSku(sku: string): Promise<FirestoreStyle | null> {
-    try {
-      const colorwaySizeAsset = await this.API.GetColorwaySizeAssetFromSku(sku)
-      const style = await this.API.GetStyle(colorwaySizeAsset.style_id)
-      return style
-    } catch (e) {
-      return null
-    }
   }
 }
