@@ -17,7 +17,7 @@ export class Fetcher {
     return api.url
   }
 
-  private static async Fetch({ user, endpointPath, method, body, useToken = true }: FetchParams): Promise<Response | Error> {
+  private static async Fetch({ user, endpointPath, method, body, useToken = true }: FetchParams): Promise<Response> {
     const url = this.getUrl(endpointPath, useToken)
     const headers = await this.getHeaders(user, useToken)
 

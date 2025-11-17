@@ -43,7 +43,7 @@ export class SizeRecommendationController {
   private readonly perfectFits = [Fit.PERFECT_FIT, Fit.SLIGHTLY_LOOSE, Fit.SLIGHTLY_TIGHT]
 
   constructor(
-    sizeRecMainDivId: string,
+    sizeRecMainDiv: HTMLDivElement,
     cssVariables: TFRCssVariables,
     private readonly tfrShop: TFRShop,
     private readonly onFittingRoomControllerSignInClick: () => void,
@@ -54,7 +54,7 @@ export class SizeRecommendationController {
     this.setCssVariables(cssVariables)
 
     this.sizeRecComponent = new SizeRecComponent(
-      sizeRecMainDivId,
+      sizeRecMainDiv,
       this.onFittingRoomControllerSignInClick,
       this.onFittingRoomControllerSignOutClick,
       this.onFittingRoomControllerFitInfoClick,

@@ -35,19 +35,30 @@ export class FittingRoomController {
   private unsub: () => void = null
 
   constructor(
+    public readonly env: string,
     private readonly shopID: number,
-    private readonly brandStyleID: string,
+    private readonly styleSKU: string,
+    private readonly noCacheOnRetry: boolean = false,
     modalDivId: string,
     sizeRecMainDivId: string,
     vtoMainDivId: string,
-    private readonly noCacheOnRetry: boolean = false,
-    private readonly hooks: TFRHooks = {},
-    public readonly env: string,
     cssVariables?: TFRCssVariables,
+    private readonly hooks: TFRHooks = {},
   ) {
 
+    const modalDiv = document.getElementById(modalDivId) as HTMLDivElement
+    const sizeRecMainDiv = document.getElementById(sizeRecMainDivId) as HTMLDivElement
+    const vtoMainDiv = document.getElementById(vtoMainDivId) as HTMLDivElement
+
+    if (!modalDiv || !sizeRecMainDiv || !vtoMainDiv) {
+      console.error(
+        'The Fitting Room functionality has been disabled due to missing critical elements or functions. Please resolve the errors above.',
+      )
+      return
+    }
+
     this.tfrModal = new TFRModal(
-      modalDivId,
+      modalDiv,
       this.signIn.bind(this),
       this.forgotPassword.bind(this),
       this.submitTel.bind(this),
@@ -57,11 +68,11 @@ export class FittingRoomController {
     if (vtoMainDivId) this.vtoComponent = new VTOController(vtoMainDivId)
 
     this.tfrSizeRecommendationController = new SizeRecommendationController(
-      sizeRecMainDivId,
+      sizeRecMainDiv,
       cssVariables || {},
       this.API,
       this.onSignInClick.bind(this),
-      this.signOut.bind(this),
+      this.LogOut.bind(this),
       this.onFitInfoClick.bind(this),
       this.onTryOnClick.bind(this),
     )
@@ -84,7 +95,7 @@ export class FittingRoomController {
   private async init(): Promise<void> {
     const measurementLocationsPromise = this.API.fetchCacheMeasurementLocations()
     const user = this.API.User.User()
-    const stylePromise = this.API.GetStyleByBrandStyleID(this.brandStyleID)
+    const stylePromise = this.API.GetStyleByBrandStyleID(this.styleSKU)
     const promiseResults = await Promise.all([
       user,
       stylePromise,
@@ -110,7 +121,7 @@ export class FittingRoomController {
     }
   }
 
-  public async initSizeRecommendationWithSku(activeSku: string, skipCache: boolean = false) {
+  public async InitSizeRecommendationWithSku(activeSku: string, skipCache: boolean = false) {
     if (!this.style) {
       console.debug('fetching style for sku:', this.sku)
       let colorwaySizeAsset = await this.API.GetColorwaySizeAssetFromSku(activeSku)
@@ -141,7 +152,7 @@ export class FittingRoomController {
     this.tfrModal.close()
   }
 
-  public async signOut() {
+  public async LogOut() {
     await this.API.User.logout()
 
     if (this.hooks?.onLogout) this.hooks.onLogout()
@@ -268,7 +279,6 @@ export class FittingRoomController {
     }
 
     console.debug('Starting continuous user profile monitoring')
-    // Use the continuous monitoring method for ongoing updates
     this.unsub = this.API.User.watchUserProfileForChangesContinuous(
       (user as User).uid,
       (userProfile) => this.onAvatarStateChange(userProfile as FirestoreUser),

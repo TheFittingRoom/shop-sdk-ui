@@ -6,12 +6,12 @@ export class TFRModal {
   private readonly manager: modals.ModalManager
 
   constructor(
-    modalDivId: string,
+    modalDiv: HTMLElement,
     private readonly signIn: types.SignInModalProps['onSignIn'],
     private readonly forgotPassword: types.ForgotPasswordModalProps['onPasswordReset'],
     private readonly submitTel: types.ScanCodeModalProps['onTelSubmit'],
   ) {
-    this.manager = modals.InitModalManager(modalDivId)
+    this.manager = modals.InitModalManager(modalDiv)
   }
 
   public close() {

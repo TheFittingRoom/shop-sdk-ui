@@ -129,7 +129,7 @@
     }
 
     const brandID = 1
-    const productSKUs = [
+    const variantSKUs = [
       'TFR_Fitted-Dress_178_BlackBandana_2',
       'TFR_Fitted-Dress_178_BlackBandana_4',
       'TFR_Fitted-Dress_178_BlackBandana_6',
@@ -148,6 +148,12 @@
 
     const getSku = () => {
       try {
+        if (typeof productVariants === 'undefined' || !Array.isArray(productVariants)) {
+          throw new Error(
+            'productVariants is not defined or is not an array. The Fitting Room cannot determine product SKUs without this data.',
+          )
+        }
+
         const colorInput = document.getElementsByName(`options[Color]`)?.[0]
         const sizeInput = document.getElementsByName(`options[Size]`)?.[0]
 
@@ -159,14 +165,6 @@
         }
         if (!sizeInput) {
           console.error('Error in getSku: Size input element (options[Size]) not found on the page.')
-        }
-
-        console.debug('variants', productVariants)
-
-        if (typeof productVariants === 'undefined' || !Array.isArray(productVariants)) {
-          throw new Error(
-            'productVariants is not defined or is not an array. The Fitting Room cannot determine product SKUs without this data.',
-          )
         }
 
         const activeVariant = productVariants.find((item) => {
@@ -181,7 +179,6 @@
           )
         }
 
-        console.debug('variant', activeVariant)
         return activeVariant?.sku
       } catch (error) {
         console.error(`Error in getSku: ${error.message}. SKU retrieval failed.`)
@@ -189,25 +186,7 @@
       }
     }
 
-    function requireElement(id) {
-      const element = document.getElementById(id)
-      if (!element) {
-        console.error(`critical error: mandatory element '${id}' not found in the page.`)
-        return null
-      }
-      return element
-    }
-
-    function requireFunction(name) {
-      if (typeof window[name] !== 'function') {
-        console.error(`critical error: mandatory function '${name}' not defined in the page.`)
-        return false
-      }
-      return true
-    }
-
     window.addEventListener('DOMContentLoaded', async (e) => {
-      let disableFittingRoom = false
       let tfr = null
 
       try {
@@ -216,7 +195,6 @@
         const vtoMainDiv = requireElement('tfr-vto')
 
         if (!modalDiv || !sizeRecMainDiv || !vtoMainDiv) {
-          disableFittingRoom = true
           console.error(
             'The Fitting Room functionality has been disabled due to missing critical elements or functions. Please resolve the errors above.',
           )
@@ -233,16 +211,15 @@
         }
 
         const startTime = performance.now()
-
-        tfr = await initFittingRoom(config)
+        tfrPromise = initFittingRoom(config)
         const sku = getSku()
         if (!sku) {
           console.warn('SKU not retrieved. The Fitting Room will initialize but may not function optimally without a specific SKU.')
         }
 
-        const initResult = await tfr.init(productSKUs, true)
+        const tfrPromise = await tfrPromise
         if (sku) {
-          tfr.initSizeRecommendationWithSku(sku, productSKUs, true)
+          tfr.initSizeRecommendationWithSku(sku, variantSKUs, true)
         }
         console.debug("init time in ms", performance.now() - startTime)
 
@@ -254,7 +231,7 @@
           sizeSelect.addEventListener('change', () => {
             const newSku = getSku()
             if (newSku && tfr) {
-              tfr.setSku(newSku, productSKUs, true)
+              tfr.setSku(newSku, variantSKUs, true)
               console.debug('SKU updated to:', newSku)
             }
           })
@@ -263,7 +240,7 @@
           colorSelect.addEventListener('change', () => {
             const newSku = getSku()
             if (newSku && tfr) {
-              tfr.setSku(newSku, productSKUs, true)
+              tfr.setSku(newSku, variantSKUs, true)
               console.debug('SKU updated to:', newSku)
             }
           })

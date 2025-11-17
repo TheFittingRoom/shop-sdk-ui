@@ -45,14 +45,14 @@ export class SizeRecComponent {
   private isLoggedIn: boolean
 
   constructor(
-    sizeRecMainDivId: string,
+    sizeRecMainDiv: HTMLDivElement,
     // auto created as properties due to access modifier
     private readonly onSignInClick: () => void,
     private readonly onSignOutClick: () => void,
     private readonly onFitInfoClick: () => void,
     private readonly onTryOnClick: () => void,
   ) {
-    this.init(sizeRecMainDivId)
+    this.init(sizeRecMainDiv)
   }
 
   public setIsLoggedIn(isLoggedIn: boolean) {
@@ -129,11 +129,8 @@ export class SizeRecComponent {
     }
   }
 
-  private init(sizeRecMainDivId: string) {
-    const sizeRecMainDiv = document.getElementById(sizeRecMainDivId) as HTMLDivElement
-
+  private init(sizeRecMainDiv: HTMLDivElement) {
     if (!sizeRecMainDiv) throw new Error('Size rec main div not found')
-
     this.sizeRecMainDiv = sizeRecMainDiv
     this.render(sizeRecMainDiv)
     this.setElements()

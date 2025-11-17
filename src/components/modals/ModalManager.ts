@@ -7,12 +7,10 @@ interface ModalManager {
   Content(): ModalContent
 }
 
-const InitModalManager = (elementID: string): ModalManager => {
-  const modalRoot = document.getElementById(elementID)
-  const body = document.querySelector('body')
-
-  if (!modalRoot) {
-    throw new Error(`element with id ${elementID} not found`)
+const InitModalManager = (modalRoot: HTMLElement): ModalManager => {
+  const body = modalRoot.querySelector('body')
+  if (!body) {
+    throw new Error(`element with id ${modalRoot.id} not found`)
   }
 
   let previousContent: ModalContent
@@ -104,7 +102,7 @@ const InitModalManager = (elementID: string): ModalManager => {
       closeLink.removeEventListener('click', Close)
     } else {
       console.error('#tfr-close-container not found on unhook')
-      console.debug(document.getElementById(elementID)?.innerHTML)
+      console.debug(modalRoot.innerHTML)
     }
     document.removeEventListener('keydown', EscClose)
     document.removeEventListener('click', ContainerClose)
