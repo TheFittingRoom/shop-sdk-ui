@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore'
 import { Config } from '../config'
 import { FirebaseUser } from './user'
+import { User } from 'firebase/auth'
 
 export class FirebaseController {
   public userController: FirebaseUser
@@ -31,7 +32,7 @@ export class FirebaseController {
     this.userController = new FirebaseUser(this.firestore, firebaseApp)
   }
 
-  public async getUser(): Promise<firebase.User | boolean> {
+  public async getUser(): Promise<User | boolean> {
     return await this.userController.User()
   }
 

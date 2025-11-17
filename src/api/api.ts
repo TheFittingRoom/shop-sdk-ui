@@ -1,6 +1,5 @@
 import { DocumentData, QueryFieldFilterConstraint, QuerySnapshot, where } from 'firebase/firestore'
 
-import * as types from '.'
 import {
   SizeFitRecommendation,
   FirestoreStyle,
@@ -8,6 +7,8 @@ import {
   FirestoreStyleCategory,
   FirestoreGarmentCategory,
   FirestoreMeasurementLocation,
+  FirestoreColorwaySizeAsset,
+  FirestoreUser,
 } from './gen/responses'
 import { Fetcher } from './helpers/fetcher'
 import { FirebaseController } from './helpers/firebase/firebase'
@@ -15,11 +16,12 @@ import { FirebaseUser } from './helpers/firebase/user'
 import { getFirebaseError } from './helpers/firebase/error'
 import * as Errors from './helpers/errors'
 import { testImage } from './helpers/utils'
+import { TryOnFrames } from '.'
 
 export class TFRAPI {
   private measurementLocations: Map<string, { name: string; sort_order: number }> = new Map()
-  private colorwaySizeAssetsCache: Map<string, types.FirestoreColorwaySizeAsset> = new Map()
-  private vtoFramesCache: Map<string, types.TryOnFrames> = new Map()
+  private colorwaySizeAssetsCache: Map<string, FirestoreColorwaySizeAsset> = new Map()
+  private vtoFramesCache: Map<string, TryOnFrames> = new Map()
   private readonly firebase: FirebaseController
   private style: FirestoreStyle
 
@@ -64,7 +66,7 @@ export class TFRAPI {
     console.debug(res)
   }
 
-  public async GetColorwaySizeAssetFromSku(colorwaySizeAssetSku: string): Promise<types.FirestoreColorwaySizeAsset> {
+  public async GetColorwaySizeAssetFromSku(colorwaySizeAssetSku: string): Promise<FirestoreColorwaySizeAsset> {
 
     // Check cache first
     const cachedAsset = this.colorwaySizeAssetsCache.get(colorwaySizeAssetSku)
@@ -87,7 +89,7 @@ export class TFRAPI {
       if (querySnapshot.size > 1) {
         throw new Error(`Multiple assets for SKU: ${colorwaySizeAssetSku}, found ${querySnapshot.size}`)
       }
-      const data = querySnapshot.docs[0].data() as types.FirestoreColorwaySizeAsset
+      const data = querySnapshot.docs[0].data() as FirestoreColorwaySizeAsset
       // Cache the fetched asset
       this.colorwaySizeAssetsCache.set(colorwaySizeAssetSku, data)
       return data
@@ -97,10 +99,10 @@ export class TFRAPI {
     }
   }
 
-  public async FetchCachedColorwaySizeAssetsFromStyleId(styleId: number, skipCache: boolean): Promise<types.FirestoreColorwaySizeAsset[]> {
+  public async FetchCachedColorwaySizeAssetsFromStyleId(styleId: number, skipCache: boolean): Promise<FirestoreColorwaySizeAsset[]> {
     // If using cache, check cache first for assets with this style_id
     if (!skipCache) {
-      const cachedAssets: types.FirestoreColorwaySizeAsset[] = []
+      const cachedAssets: FirestoreColorwaySizeAsset[] = []
       for (const asset of this.colorwaySizeAssetsCache.values()) {
         if (asset.style_id === styleId) {
           cachedAssets.push(asset)
@@ -121,7 +123,7 @@ export class TFRAPI {
     try {
       const querySnapshot = await this.firebase.getDocs('colorway_size_assets', constraints)
 
-      return querySnapshot.docs.map((doc) => doc.data() as types.FirestoreColorwaySizeAsset)
+      return querySnapshot.docs.map((doc) => doc.data() as FirestoreColorwaySizeAsset)
     } catch (error) {
       return getFirebaseError(error)
     }
@@ -191,7 +193,7 @@ export class TFRAPI {
   }
 
   // queues 3+ virtual try ons and only waits on the active rendered virtual tryon
-  public async PriorityTryOnWithMultiRequestCache(activeSKU: string, availableSKUs: string[], skipCache: boolean = false): Promise<types.TryOnFrames> {
+  public async PriorityTryOnWithMultiRequestCache(activeSKU: string, availableSKUs: string[], skipCache: boolean = false): Promise<TryOnFrames> {
     if (!this.IsLoggedIn) throw new Errors.UserNotLoggedInError()
 
     const priorityPromise = this.getCachedOrRequestUserColorwaySizeAssetFrames(activeSKU, skipCache)
@@ -208,7 +210,7 @@ export class TFRAPI {
   public async FetchAndCacheColorwaySizeAssets(
     skus: string[],
     skipCache: boolean
-  ): Promise<Map<string, types.FirestoreColorwaySizeAsset>> {
+  ): Promise<Map<string, FirestoreColorwaySizeAsset>> {
 
     let uncachedSkus: string[] = []
     if (skipCache) {
@@ -230,7 +232,7 @@ export class TFRAPI {
         const querySnapshot = await this.firebase.getDocs('colorway_size_assets', constraints)
 
         querySnapshot.docs.forEach(doc => {
-          const asset = doc.data() as types.FirestoreColorwaySizeAsset
+          const asset = doc.data() as FirestoreColorwaySizeAsset
           if (asset.sku) {
             this.colorwaySizeAssetsCache.set(asset.sku, asset)
           }
@@ -242,7 +244,7 @@ export class TFRAPI {
     }
 
 
-    const copyOfCache = new Map<string, types.FirestoreColorwaySizeAsset>()
+    const copyOfCache = new Map<string, FirestoreColorwaySizeAsset>()
     for (const sku of skus) {
       const asset = this.colorwaySizeAssetsCache.get(sku)
       if (asset) {
@@ -307,7 +309,7 @@ export class TFRAPI {
     }
   }
 
-  private async watchForTryOnFrames(colorwaySizeAssetSKU: string, skipCache: boolean = false): Promise<types.TryOnFrames> {
+  private async watchForTryOnFrames(colorwaySizeAssetSKU: string, skipCache: boolean = false): Promise<TryOnFrames> {
     if (!this.IsLoggedIn) throw new Errors.UserNotLoggedInError()
 
     let firstSnapshotProcessed = false;
@@ -327,7 +329,7 @@ export class TFRAPI {
       return tested
     }
 
-    const userProfile = (await this.User.watchUserProfileForChanges(callback)) as types.FirestoreUser
+    const userProfile = (await this.User.watchUserProfileForChanges(callback)) as FirestoreUser
 
     if (!userProfile?.vto?.[this.BrandID]?.[colorwaySizeAssetSKU]?.frames?.length) throw new Errors.NoFramesFoundError()
 
@@ -342,7 +344,7 @@ export class TFRAPI {
     await Fetcher.Post(this.User, `/colorway-size-assets/${colorwaySizeAssetId}/frames`)
   }
 
-  public async getCachedOrRequestUserColorwaySizeAssetFrames(colorwaySizeAssetSKU: string, skipCache: boolean): Promise<types.TryOnFrames | null> {
+  public async getCachedOrRequestUserColorwaySizeAssetFrames(colorwaySizeAssetSKU: string, skipCache: boolean): Promise<TryOnFrames | null> {
     console.debug('fetchUserVTOFrames', colorwaySizeAssetSKU, 'skipCache:', skipCache)
     if (!skipCache) {
       const cached = this.vtoFramesCache.get(colorwaySizeAssetSKU)
@@ -357,7 +359,7 @@ export class TFRAPI {
 
     const tryOnFrames = await this.watchForTryOnFrames(colorwaySizeAssetSKU, skipCache)
 
-    const framesTyped = tryOnFrames as types.TryOnFrames
+    const framesTyped = tryOnFrames as TryOnFrames
     this.vtoFramesCache.set(colorwaySizeAssetSKU, framesTyped)
     return framesTyped
   }

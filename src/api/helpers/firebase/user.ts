@@ -25,7 +25,7 @@ export const fromFirebaseDate = (date: FirebaseDate) => {
 
 export class FirebaseUser {
   private user: User
-  private intializationUserPromise: Promise<User>
+  private initializationUserPromise: Promise<User>
   private readonly auth: Auth
   private _authStateCallbacks: Array<(isLoggedIn: boolean) => void> = []
 
@@ -33,12 +33,12 @@ export class FirebaseUser {
     this.auth = getAuth(app)
     this.auth.setPersistence(browserLocalPersistence)
     // prefetch firestore user instantly. Result is stored internally.
-    this.intializationUserPromise = this.fetchCachedFirestoreUser()
+    this.initializationUserPromise = this.fetchCachedFirestoreUser()
   }
 
   private async fetchCachedFirestoreUser(): Promise<User> {
     if (this.user) {
-      Promise.resolve(this.user)
+      return Promise.resolve(this.user)
     }
     return new Promise((resolve) => {
       const timeoutId = setTimeout(() => {
@@ -68,7 +68,7 @@ export class FirebaseUser {
 
 
   public async User(): Promise<User | boolean> {
-    const user = await this.intializationUserPromise
+    const user = await this.initializationUserPromise
     if (!this.user) {
       return Promise.resolve(false)
     }
