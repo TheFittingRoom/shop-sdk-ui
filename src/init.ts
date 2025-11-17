@@ -23,7 +23,7 @@ export const initFittingRoom = async ({
   env = 'dev',
 }: TrfConfig): Promise<FittingRoomController> => {
   try {
-    const tfr = new FittingRoomController(Number(shopId), modalDivId, sizeRecMainDivId, vtoMainDivId, noCacheOnRetry, hooks, cssVariables, env)
+    const tfr = new FittingRoomController(shopId, modalDivId, sizeRecMainDivId, vtoMainDivId, noCacheOnRetry, hooks, cssVariables, env)
     return tfr
   } catch (e) {
     console.error("failed to init FittingRoom", e)

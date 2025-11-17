@@ -1,6 +1,6 @@
 import { FirebaseUser } from './firebase/user'
 import { Config } from './config'
-import { ServerUnavailableError } from './errors'
+import { ErrorResponse, ServerUnavailableError } from './errors'
 
 interface FetchParams {
   user: FirebaseUser
@@ -17,7 +17,7 @@ export class Fetcher {
     return api.url
   }
 
-  private static async Fetch({ user, endpointPath, method, body, useToken = true }: FetchParams): Promise<Response> {
+  private static async Fetch({ user, endpointPath, method, body, useToken = true }: FetchParams): Promise<Response | Error> {
     const url = this.getUrl(endpointPath, useToken)
     const headers = await this.getHeaders(user, useToken)
 
@@ -26,19 +26,11 @@ export class Fetcher {
       config.body = JSON.stringify(body)
     }
 
-    try {
-      const res = await fetch(url, config)
-      if (res.ok) return res
-      if (res.status === 500) throw new ServerUnavailableError(res.statusText || 'Internal server error')
-
-      Promise.resolve(res)
-      const errorResponse = await res.json().
-        catch(() => {
-          return Promise.reject(errorResponse)
-        })
-    } catch (error) {
-      throw error
-    }
+    const res = await fetch(url, config)
+    if (res.ok) return res
+    if (res.status === 500) throw new ServerUnavailableError(res.statusText)
+    const errRes = await res.json() as ErrorResponse
+    throw errRes.error
   }
 
   private static getUrl(endpointPath: string, useToken: boolean): string {
