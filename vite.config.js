@@ -1,5 +1,5 @@
 import { resolve } from 'path'
-import { defineConfig } from 'vite'
+import { defineConfig, resolveEnvPrefix } from 'vite'
 
 export default defineConfig(({ mode, command }) => {
   if (command === 'serve') { // dev mode

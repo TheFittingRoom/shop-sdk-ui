@@ -90,44 +90,6 @@
 
     const ENV = 'development'
 
-    // Initialize modal manager and make components globally available
-    window.mm = comps.InitModalManager('tfr-manual-modal')
-    window.comps = comps
-
-    // Callback functions for modals
-    window.onSignout = (colorwaySizeAssetSKU) => {
-      console.debug('signout', colorwaySizeAssetSKU)
-    }
-    window.onClose = () => {
-      console.debug('close')
-    }
-    window.onNavBack = () => {
-      console.debug('back')
-    }
-    window.onTryOn = (colorwaySizeAssetSKU) => {
-      console.debug('try on', colorwaySizeAssetSKU)
-    }
-    window.whenSignedIn = (user, colorwaySizeAssetSKU) => {
-      console.debug('after sign in', user, colorwaySizeAssetSKU)
-    }
-    window.onSignIn = (colorwaySizeAssetSKU) => (username, password, validationError) => {
-      if (username.length == 0 || password.length == 0) {
-        validationError('Username or password is empty')
-      }
-    }
-    window.onNavSignIn = (colorwaySizeAssetSKU) => (email) => {
-      console.debug('nav sign in', colorwaySizeAssetSKU, email)
-    }
-    window.onPasswordReset = (colorwaySizeAssetSKU) => (email) => {
-      console.debug('password reset', colorwaySizeAssetSKU, email)
-    }
-    window.onNavForgotPassword = (colorwaySizeAssetSKU) => (email) => {
-      console.debug('nav forgot password', colorwaySizeAssetSKU, email)
-    }
-    window.onNavScanCode = () => {
-      console.debug('nav scan code')
-    }
-
     const brandID = 1
     const variantSKUs = [
       'TFR_Fitted-Dress_178_BlackBandana_2',
@@ -190,9 +152,9 @@
       let tfr = null
 
       try {
-        const modalDiv = requireElement('thefittingroom-modal')
-        const sizeRecMainDiv = requireElement('tfr-size-recommendation-main')
-        const vtoMainDiv = requireElement('tfr-vto')
+        const modalDiv = document.getElementById('thefittingroom-modal')
+        const sizeRecMainDiv = document.getElementById('tfr-size-recommendation-main')
+        const vtoMainDiv = document.getElementById('tfr-vto')
 
         if (!modalDiv || !sizeRecMainDiv || !vtoMainDiv) {
           console.error(
@@ -211,13 +173,13 @@
         }
 
         const startTime = performance.now()
-        tfrPromise = initFittingRoom(config)
+        const tfrPromise = initFittingRoom(config)
         const sku = getSku()
         if (!sku) {
           console.warn('SKU not retrieved. The Fitting Room will initialize but may not function optimally without a specific SKU.')
         }
 
-        const tfrPromise = await tfrPromise
+        const tfr = await tfrPromise
         if (sku) {
           tfr.initSizeRecommendationWithSku(sku, variantSKUs, true)
         }

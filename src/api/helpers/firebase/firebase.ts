@@ -14,18 +14,20 @@ import {
   onSnapshot,
   query,
 } from 'firebase/firestore'
-import { Config } from '../config'
 import { FirebaseUser } from './user'
 import { User } from 'firebase/auth'
+import { Config } from '../config'
 
 export class FirebaseController {
   public userController: FirebaseUser
 
   public readonly firestore: Firestore
 
-  constructor() {
-    const firebaseKeys = Config.getInstance().firebase
-    const firebaseApp = firebase.initializeApp(firebaseKeys)
+  constructor(private config: Config) {
+    const firebaseKeys = this.config.ENV.FIREBASE;
+
+    console.debug("sending FirebaseOptions", firebaseKeys)
+    const firebaseApp = firebase.initializeApp(firebaseKeys as firebase.FirebaseOptions)
 
     this.firestore = getFirestore(firebaseApp)
     // auto login user in constructor
@@ -39,7 +41,7 @@ export class FirebaseController {
   public query(collectionName: string, constraint: QueryFieldFilterConstraint, unsubscribeWhenData: boolean = true) {
     const q = query(collection(this.firestore, collectionName), constraint)
 
-    return this.promisefyOnSnapshot(q, unsubscribeWhenData)
+    return this.promisifyOnSnapshot(q, unsubscribeWhenData)
   }
 
   public getDocs(collectionName: string, constraints: QueryFieldFilterConstraint[]): Promise<QuerySnapshot<DocumentData>> {
@@ -55,7 +57,7 @@ export class FirebaseController {
     return docSnap.exists() ? docSnap.data() : null
   }
 
-  private promisefyOnSnapshot = (q: Query<DocumentData>, unsubscribeWhenData: boolean) => {
+  private promisifyOnSnapshot = (q: Query<DocumentData>, unsubscribeWhenData: boolean) => {
     let unsub: Unsubscribe
 
     const promise = new Promise<QuerySnapshot<DocumentData>>((resolve) => {

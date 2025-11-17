@@ -18,17 +18,22 @@ import { testImage } from './helpers/utils'
 import { TryOnFrames } from '.'
 import { AvatarNotCreated, AvatarNotCreatedError, NoColorwaySizeAssetsFoundError, NoFramesFoundError, UserNotLoggedInError } from './helpers/errors'
 
+import { Config } from './helpers/config'
+
 export class TFRAPI {
   private measurementLocations: Map<string, { name: string; sort_order: number }> = new Map()
   private colorwaySizeAssetsCache: Map<string, FirestoreColorwaySizeAsset> = new Map()
   private vtoFramesCache: Map<string, TryOnFrames> = new Map()
   private readonly firebase: FirebaseController
+  private readonly fetcher: Fetcher
   private style: FirestoreStyle
 
   constructor(
     private readonly brandID: number,
+    config: Config,
   ) {
-    this.firebase = new FirebaseController()
+    this.firebase = new FirebaseController(config)
+    this.fetcher = new Fetcher(config)
   }
 
   public get User(): FirebaseUser {
@@ -47,7 +52,7 @@ export class TFRAPI {
     if (!this.IsLoggedIn) throw new UserNotLoggedInError()
     console.debug('fetching size_recommendation', styleId)
     try {
-      const res = await Fetcher.Get(this.User, `/styles/${String(styleId)}/recommendation`)
+      const res = await this.fetcher.Get(this.User, `/styles/${String(styleId)}/recommendation`)
       const data = (await res.json()) as SizeFitRecommendation
 
       if (!data?.fits?.length || !data?.recommended_size?.id) return null
@@ -62,7 +67,7 @@ export class TFRAPI {
 
   public async SubmitTelephoneNumber(tel: string): Promise<void> {
     const sanitizedTel = tel.replace(/[^+0-9]/g, '')
-    const res = await Fetcher.Post(this.User, '/ios-app-link', { phone_number: sanitizedTel }, false)
+    const res = await this.fetcher.Post(this.User, '/ios-app-link', { phone_number: sanitizedTel }, false)
     console.debug(res)
   }
 
@@ -341,7 +346,7 @@ export class TFRAPI {
     console.debug('requestColorwaySizeAssetFramesByID')
     if (!this.IsLoggedIn) throw new UserNotLoggedInError()
 
-    await Fetcher.Post(this.User, `/colorway-size-assets/${colorwaySizeAssetId}/frames`)
+    await this.fetcher.Post(this.User, `/colorway-size-assets/${colorwaySizeAssetId}/frames`)
   }
 
   public async getCachedOrRequestUserColorwaySizeAssetFrames(colorwaySizeAssetSKU: string, skipCache: boolean): Promise<TryOnFrames | null> {

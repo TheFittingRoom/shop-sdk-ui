@@ -11,13 +11,13 @@ interface FetchParams {
 }
 
 export class Fetcher {
-  private static get endpoint() {
-    const api = Config.getInstance().api
+  private endpoint: string
 
-    return api.url
+  constructor(private config: Config) {
+    this.endpoint = this.config.API?.url || import.meta.env.VITE_DEV_API_ENDPOINT;
   }
 
-  private static async Fetch({ user, endpointPath, method, body, useToken = true }: FetchParams): Promise<Response> {
+  private async Fetch({ user, endpointPath, method, body, useToken = true }: FetchParams): Promise<Response> {
     const url = this.getUrl(endpointPath, useToken)
     const headers = await this.getHeaders(user, useToken)
 
@@ -33,11 +33,11 @@ export class Fetcher {
     throw errRes.error
   }
 
-  private static getUrl(endpointPath: string, useToken: boolean): string {
+  private getUrl(endpointPath: string, useToken: boolean): string {
     return useToken ? `${this.endpoint}/v1${endpointPath}` : this.endpoint + endpointPath
   }
 
-  private static async getHeaders(user: FirebaseUser, useToken: boolean): Promise<Record<string, string>> {
+  private async getHeaders(user: FirebaseUser, useToken: boolean): Promise<Record<string, string>> {
     if (!useToken) return { 'Content-Type': 'application/json' }
 
     const token = await user.getToken()
@@ -47,11 +47,11 @@ export class Fetcher {
     }
   }
 
-  static Get(user: FirebaseUser, endpointPath: string, useToken?: boolean): Promise<Response> {
+  Get(user: FirebaseUser, endpointPath: string, useToken?: boolean): Promise<Response> {
     return this.Fetch({ user, endpointPath, method: 'GET', body: undefined, useToken })
   }
 
-  static Post(
+  Post(
     user: FirebaseUser,
     endpointPath: string,
     body?: Record<string, any>,
@@ -60,7 +60,7 @@ export class Fetcher {
     return this.Fetch({ user, endpointPath, method: 'POST', body, useToken })
   }
 
-  static Put(
+  Put(
     user: FirebaseUser,
     endpointPath: string,
     body: Record<string, any>,
@@ -69,7 +69,7 @@ export class Fetcher {
     return this.Fetch({ user, endpointPath, method: 'PUT', body, useToken })
   }
 
-  static Patch(
+  Patch(
     user: FirebaseUser,
     endpointPath: string,
     body: Record<string, any>,
@@ -78,7 +78,7 @@ export class Fetcher {
     return this.Fetch({ user, endpointPath, method: 'PATCH', body, useToken })
   }
 
-  static Delete(
+  Delete(
     user: FirebaseUser,
     endpointPath: string,
     body?: Record<string, any>,

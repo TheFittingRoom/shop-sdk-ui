@@ -8,6 +8,7 @@ import { TFRModal } from './components/ModalController'
 import { SizeRecommendationController, TFRCssVariables } from './components/SizeRecommendationController'
 import { TFRAPI } from './api/api'
 import { User } from 'firebase/auth'
+import { Config } from './api/helpers/config'
 
 export interface TFRHooks {
   onLoading?: () => void
@@ -27,6 +28,7 @@ export class FittingRoomController {
 
   public style: FirestoreStyle
   public colorwaySizeAsset: FirestoreColorwaySizeAsset
+  private config: Config
 
   public readonly tfrModal: TFRModal
   public readonly tfrSizeRecommendationController: SizeRecommendationController
@@ -35,7 +37,7 @@ export class FittingRoomController {
   private unsub: () => void = null
 
   constructor(
-    public readonly env: string,
+    env: string,
     private readonly shopID: number,
     private readonly styleSKU: string,
     private readonly noCacheOnRetry: boolean = false,
@@ -45,7 +47,6 @@ export class FittingRoomController {
     cssVariables?: TFRCssVariables,
     private readonly hooks: TFRHooks = {},
   ) {
-
     const modalDiv = document.getElementById(modalDivId) as HTMLDivElement
     const sizeRecMainDiv = document.getElementById(sizeRecMainDivId) as HTMLDivElement
     const vtoMainDiv = document.getElementById(vtoMainDivId) as HTMLDivElement
@@ -57,13 +58,15 @@ export class FittingRoomController {
       return
     }
 
+    this.config = new Config(env)
+
     this.tfrModal = new TFRModal(
       modalDiv,
       this.signIn.bind(this),
       this.forgotPassword.bind(this),
       this.submitTel.bind(this),
     )
-    this.API = new TFRAPI(this.shopID)
+    this.API = new TFRAPI(this.shopID, this.config)
 
     if (vtoMainDivId) this.vtoComponent = new VTOController(vtoMainDivId)
 
