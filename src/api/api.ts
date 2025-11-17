@@ -14,9 +14,9 @@ import { Fetcher } from './helpers/fetcher'
 import { FirebaseController } from './helpers/firebase/firebase'
 import { FirebaseUser } from './helpers/firebase/user'
 import { getFirebaseError } from './helpers/firebase/error'
-import * as Errors from './helpers/errors'
 import { testImage } from './helpers/utils'
 import { TryOnFrames } from '.'
+import { AvatarNotCreated, AvatarNotCreatedError, NoColorwaySizeAssetsFoundError, NoFramesFoundError, UserNotLoggedInError } from './helpers/errors'
 
 export class TFRAPI {
   private measurementLocations: Map<string, { name: string; sort_order: number }> = new Map()
@@ -44,7 +44,7 @@ export class TFRAPI {
   }
 
   public async GetRecommendedSizes(styleId: number): Promise<SizeFitRecommendation | null> {
-    if (!this.IsLoggedIn) throw new Errors.UserNotLoggedInError()
+    if (!this.IsLoggedIn) throw new UserNotLoggedInError()
     console.debug('fetching size_recommendation', styleId)
     try {
       const res = await Fetcher.Get(this.User, `/styles/${String(styleId)}/recommendation`)
@@ -54,7 +54,7 @@ export class TFRAPI {
       console.debug('getRecommendedSizes', data.available_sizes)
       return data
     } catch (error) {
-      if (error?.error === Errors.AvatarNotCreated) throw new Errors.AvatarNotCreatedError()
+      if (error?.error === AvatarNotCreated) throw new AvatarNotCreatedError()
 
       throw error
     }
@@ -84,7 +84,7 @@ export class TFRAPI {
       const querySnapshot = await this.firebase.getDocs('colorway_size_assets', constraints)
       if (querySnapshot.empty) {
         console.debug('no colorway asset for sku:', colorwaySizeAssetSku)
-        throw new Errors.NoColorwaySizeAssetsFoundError()
+        throw new NoColorwaySizeAssetsFoundError()
       }
       if (querySnapshot.size > 1) {
         throw new Error(`Multiple assets for SKU: ${colorwaySizeAssetSku}, found ${querySnapshot.size}`)
@@ -194,7 +194,7 @@ export class TFRAPI {
 
   // queues 3+ virtual try ons and only waits on the active rendered virtual tryon
   public async PriorityTryOnWithMultiRequestCache(activeSKU: string, availableSKUs: string[], skipCache: boolean = false): Promise<TryOnFrames> {
-    if (!this.IsLoggedIn) throw new Errors.UserNotLoggedInError()
+    if (!this.IsLoggedIn) throw new UserNotLoggedInError()
 
     const priorityPromise = this.getCachedOrRequestUserColorwaySizeAssetFrames(activeSKU, skipCache)
 
@@ -310,7 +310,7 @@ export class TFRAPI {
   }
 
   private async watchForTryOnFrames(colorwaySizeAssetSKU: string, skipCache: boolean = false): Promise<TryOnFrames> {
-    if (!this.IsLoggedIn) throw new Errors.UserNotLoggedInError()
+    if (!this.IsLoggedIn) throw new UserNotLoggedInError()
 
     let firstSnapshotProcessed = false;
 
@@ -331,7 +331,7 @@ export class TFRAPI {
 
     const userProfile = (await this.User.watchUserProfileForChanges(callback)) as FirestoreUser
 
-    if (!userProfile?.vto?.[this.BrandID]?.[colorwaySizeAssetSKU]?.frames?.length) throw new Errors.NoFramesFoundError()
+    if (!userProfile?.vto?.[this.BrandID]?.[colorwaySizeAssetSKU]?.frames?.length) throw new NoFramesFoundError()
 
     this.vtoFramesCache.set(colorwaySizeAssetSKU, userProfile.vto[this.BrandID][colorwaySizeAssetSKU].frames)
     return userProfile.vto[this.BrandID][colorwaySizeAssetSKU].frames
@@ -339,7 +339,7 @@ export class TFRAPI {
 
   private async requestColorwaySizeAssetFramesByID(colorwaySizeAssetId: number): Promise<void> {
     console.debug('requestColorwaySizeAssetFramesByID')
-    if (!this.IsLoggedIn) throw new Errors.UserNotLoggedInError()
+    if (!this.IsLoggedIn) throw new UserNotLoggedInError()
 
     await Fetcher.Post(this.User, `/colorway-size-assets/${colorwaySizeAssetId}/frames`)
   }
