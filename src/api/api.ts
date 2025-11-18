@@ -22,7 +22,7 @@ import { Config } from './helpers/config'
 
 export class TFRAPI {
   private measurementLocations: Map<string, { name: string; sort_order: number }> = new Map()
-  private colorwaySizeAssetsCache: Map<string, FirestoreColorwaySizeAsset> = new Map()
+  private cachedColorwaySizeAssets: Map<string, FirestoreColorwaySizeAsset> = new Map()
   private vtoFramesCache: Map<string, TryOnFrames> = new Map()
   private readonly firebase: FirebaseController
   private readonly fetcher: Fetcher
@@ -71,12 +71,16 @@ export class TFRAPI {
     console.debug(res)
   }
 
-  public async GetCachedColorwaySizeAssetFromSku(colorwaySizeAssetSku: string): Promise<FirestoreColorwaySizeAsset> {
-    const cachedAsset = this.colorwaySizeAssetsCache.get(colorwaySizeAssetSku)
-    if (cachedAsset) {
-      console.debug('using cached colorwaySizeAsset for sku:', colorwaySizeAssetSku)
-      return cachedAsset
+  public async GetCachedColorwaySizeAssetFromSku(colorwaySizeAssetSku: string, skipCache: boolean): Promise<FirestoreColorwaySizeAsset> {
+    if (!skipCache) {
+      const cachedAsset = this.cachedColorwaySizeAssets.get(colorwaySizeAssetSku)
+      if (cachedAsset) {
+        console.debug('using cached colorwaySizeAsset for sku:', colorwaySizeAssetSku)
+        return cachedAsset
+      }
     }
+
+    console.debug('using firestore colorwaySizeAsset for sku:', colorwaySizeAssetSku)
 
     const constraints: QueryFieldFilterConstraint[] = [
       where('brand_id', '==', this.BrandID),
@@ -92,58 +96,40 @@ export class TFRAPI {
       if (querySnapshot.size > 1) {
         throw new Error(`Multiple assets for SKU: ${colorwaySizeAssetSku}, found ${querySnapshot.size}`)
       }
-      const data = querySnapshot.docs[0].data() as FirestoreColorwaySizeAsset
-      // Cache the fetched asset
-      this.colorwaySizeAssetsCache.set(colorwaySizeAssetSku, data)
-      return data
+      const colorwaySizeAsset = querySnapshot.docs[0].data() as FirestoreColorwaySizeAsset
+      this.cachedColorwaySizeAssets.set(colorwaySizeAssetSku, colorwaySizeAsset)
+      return colorwaySizeAsset
     } catch (error) {
       console.debug('getColorwayAsset error:', colorwaySizeAssetSku, error.message)
       throw error
     }
   }
 
-  public async FetchCachedColorwaySizeAssetsFromStyleId(styleId: number, skipCache: boolean): Promise<FirestoreColorwaySizeAsset[]> {
-    const cachedAssets: FirestoreColorwaySizeAsset[] = []
-    if (!skipCache) {
-      console.debug("loading colorway_size_assets from cache")
-      for (const asset of this.colorwaySizeAssetsCache.values()) {
-        if (asset.style_id === styleId) {
-          cachedAssets.push(asset)
-        }
-      }
-    }
-
+  // cannot skip cache due to firestore 10 limit restriction
+  public async FetchColorwaySizeAssetsFromStyleId(styleId: number): Promise<void> {
     const constraints: QueryFieldFilterConstraint[] = [
       where('brand_id', '==', this.BrandID),
       where('style_id', '==', styleId),
     ]
 
-    if (!skipCache && cachedAssets.length > 0) {
-      const cachedIds = cachedAssets.map(asset => asset.id).filter(id => id != null)
-      if (cachedIds.length > 0) {
-        console.debug("skipping cached colorway_size_assets in query", cachedIds)
-        constraints.push(where('id', 'not-in', cachedIds))
-      }
-    }
-
     try {
       const querySnapshot = await this.firebase.getDocs('colorway_size_assets', constraints)
-
       const newAssets = querySnapshot.docs.map((doc) => doc.data() as FirestoreColorwaySizeAsset)
-
-      if (!skipCache) {
-        console.debug("caching new assets", newAssets.length)
-        newAssets.forEach(asset => {
-          this.colorwaySizeAssetsCache.set(asset.sku, asset)
-        })
-      }
-
-      const allAssets = [...cachedAssets, ...newAssets]
-      allAssets.sort((a, b) => a.id - b.id)
-      return allAssets
+      console.debug("caching new assets", newAssets.length)
+      newAssets.forEach(asset => {
+        this.cachedColorwaySizeAssets.set(asset.sku, asset)
+      })
     } catch (error) {
       return getFirebaseError(error)
     }
+  }
+
+  public GetCachedColorwaySizeAssets(): FirestoreColorwaySizeAsset[] {
+    let colorwaySizeAssets: FirestoreColorwaySizeAsset[] = [];
+    this.cachedColorwaySizeAssets.forEach((value) => {
+      colorwaySizeAssets.push(value)
+    })
+    return colorwaySizeAssets
   }
 
   public async GetMeasurementLocationsFromSku(sku: string, filledLocations: string[] = []): Promise<string[]> {
@@ -235,7 +221,7 @@ export class TFRAPI {
       uncachedSkus = [...skus]
     } else {
       skus.forEach(sku => {
-        if (!this.colorwaySizeAssetsCache.has(sku)) {
+        if (!this.cachedColorwaySizeAssets.has(sku)) {
           uncachedSkus.push(sku)
         }
       })
@@ -252,7 +238,7 @@ export class TFRAPI {
         querySnapshot.docs.forEach(doc => {
           const asset = doc.data() as FirestoreColorwaySizeAsset
           if (asset.sku) {
-            this.colorwaySizeAssetsCache.set(asset.sku, asset)
+            this.cachedColorwaySizeAssets.set(asset.sku, asset)
           }
         })
       } catch (error) {
@@ -264,14 +250,14 @@ export class TFRAPI {
 
     const copyOfCache = new Map<string, FirestoreColorwaySizeAsset>()
     for (const sku of skus) {
-      const asset = this.colorwaySizeAssetsCache.get(sku)
+      const asset = this.cachedColorwaySizeAssets.get(sku)
       if (asset) {
         copyOfCache.set(sku, asset)
       } else {
         console.error(`no colorway asset found for SKU: ${sku}`)
       }
     }
-    return this.colorwaySizeAssetsCache
+    return this.cachedColorwaySizeAssets
   }
 
   public async GetStyleGarmentCategory(styleId: number): Promise<FirestoreStyleGarmentCategory | null> {
@@ -372,7 +358,7 @@ export class TFRAPI {
       }
     }
 
-    const colorwaySizeAssetID = this.colorwaySizeAssetsCache.get(colorwaySizeAssetSKU).id
+    const colorwaySizeAssetID = this.cachedColorwaySizeAssets.get(colorwaySizeAssetSKU).id
     await this.requestColorwaySizeAssetFramesByID(colorwaySizeAssetID)
 
     const tryOnFrames = await this.watchForTryOnFrames(colorwaySizeAssetSKU, skipCache)

@@ -103,14 +103,14 @@ export class FittingRoomController {
       stylePromise,
       measurementLocationsPromise,
     ]).catch(e => {
-      console.error("a promise in tfr init failed")
+      console.error("a promise in tfr init failed", e)
       throw e
     })
     if (promiseResults[1]) {
       console.debug('style successfully retrieved via style sku')
       const style = (promiseResults[1] as FirestoreStyle)
       this.style = style
-      this.API.FetchCachedColorwaySizeAssetsFromStyleId(style.id, false)
+      this.API.FetchColorwaySizeAssetsFromStyleId(style.id)
     }
 
     this.isLoggedIn = Boolean(promiseResults[0])
@@ -126,7 +126,7 @@ export class FittingRoomController {
   public async InitSizeRecommendationWithSku(activeSku: string, skipCache: boolean = false) {
     if (!this.style) {
       console.debug('fetching style for sku:', this.sku)
-      let colorwaySizeAsset = await this.API.GetCachedColorwaySizeAssetFromSku(activeSku)
+      let colorwaySizeAsset = await this.API.GetCachedColorwaySizeAssetFromSku(activeSku, skipCache)
       this.style = await this.API.GetStyleByID(colorwaySizeAsset.style_id)
     }
 
@@ -143,7 +143,7 @@ export class FittingRoomController {
     }
 
     if (this.isLoggedIn) {
-      this.tfrSizeRecommendationController.startSizeRecommendation(this.style.id, skipCache)
+      this.tfrSizeRecommendationController.startSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
     } else {
       const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
       this.setStyleMeasurementLocations(styleMeasurementLocations)
@@ -181,7 +181,7 @@ export class FittingRoomController {
       this.tfrSizeRecommendationController.setIsLoggedIn(true)
 
       if (this.style) {
-        this.tfrSizeRecommendationController.startSizeRecommendation(this.style.id, true)
+        this.tfrSizeRecommendationController.startSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
       }
       // TODO manage firestore subscription state
       // update logged in user

@@ -1,4 +1,4 @@
-import { Fit, FitNames, TFRShop } from '../api'
+import { FirestoreColorwaySizeAsset, Fit, FitNames, TFRShop } from '../api'
 import { RecommendedSize, SizeRecComponent } from './SizeRecommendationComponent'
 
 export type TFRCssVariables = {
@@ -85,10 +85,10 @@ export class SizeRecommendationController {
     this.sizeRecComponent.show()
   }
 
-  public async startSizeRecommendation(styleId: number, skipCache: boolean) {
+  public async startSizeRecommendation(styleId: number, colorwaySizeAssets: FirestoreColorwaySizeAsset[]) {
     try {
       this.sizeRecComponent.setLoading(true)
-      const sizes = await this.getRecommendedSizes(styleId, skipCache)
+      const sizes = await this.getRecommendedSizes(styleId, colorwaySizeAssets)
       if (!sizes) {
         console.error('No sizes found for sku')
         this.sizeRecComponent.setLoading(false)
@@ -105,12 +105,10 @@ export class SizeRecommendationController {
     }
   }
 
-  private async getRecommendedSizes(styleId: number, skipCache: boolean): Promise<RecommendedSize> {
+  private async getRecommendedSizes(styleId: number, colorwaySizeAssets: FirestoreColorwaySizeAsset[]): Promise<RecommendedSize> {
     const sizeRec = await this.tfrShop.GetRecommendedSizes(styleId)
 
     if (!sizeRec) return null
-
-    const colorwaySizeAssets = await this.tfrShop.FetchCachedColorwaySizeAssetsFromStyleId(styleId, skipCache)
 
     return {
       recommended: sizeRec.recommended_size.size_value.name,
