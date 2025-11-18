@@ -40,7 +40,7 @@ export class Fetcher {
   private async getHeaders(user: FirebaseUser, useToken: boolean): Promise<Record<string, string>> {
     if (!useToken) return { 'Content-Type': 'application/json' }
 
-    const token = await user.getToken()
+    const token = await user.GetToken()
     return {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,

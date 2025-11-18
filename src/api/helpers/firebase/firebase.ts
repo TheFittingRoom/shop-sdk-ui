@@ -55,6 +55,7 @@ export class FirebaseController {
   }
 
   public getDocs(collectionName: string, constraints: QueryFieldFilterConstraint[]): Promise<QuerySnapshot<DocumentData>> {
+    console.debug('getDocs called for collection:', collectionName, 'with constraints:', constraints)
     const q = query(collection(this.firestore, collectionName), ...constraints)
 
     return getDocs(q)

@@ -63,15 +63,19 @@ export class Config {
   public readonly ENV: EnvironmentVariables;
 
   constructor(environment: string) {
+    console.log('Config constructor called with environment:', environment);
     switch (environment) {
       case 'production':
       case 'prod':
         this.ENV = prodConfig;
+        console.log('Loaded production config');
         break;
       case 'development':
       case 'dev':
       default:
         this.ENV = devConfig;
+        console.log('Loaded development config');
     }
+    console.log('Firebase project ID:', this.ENV.FIREBASE.FIREBASE_PROJECT_ID);
   }
 }

@@ -34,7 +34,7 @@ export class FittingRoomController {
   public readonly tfrSizeRecommendationController: SizeRecommendationController
   private readonly vtoComponent: VTOController
   private readonly API: TFRAPI
-  private unsub: () => void = null
+  private unsubFirestoreUserCollection: () => void = null
 
   constructor(
     env: string,
@@ -61,7 +61,7 @@ export class FittingRoomController {
 
     this.tfrModal = new TFRModal(
       modalDiv,
-      this.signIn.bind(this),
+      this.SignIn.bind(this),
       this.forgotPassword.bind(this),
       this.submitTel.bind(this),
     )
@@ -155,7 +155,7 @@ export class FittingRoomController {
   }
 
   public async LogOut() {
-    await this.API.User.logout()
+    await this.API.User.Logout()
 
     if (this.hooks?.onLogout) this.hooks.onLogout()
 
@@ -166,13 +166,13 @@ export class FittingRoomController {
     this.unsubscribeFromProfileChanges()
   }
 
-  public async signIn(username: string, password: string, validationError: (message: string) => void) {
+  public async SignIn(username: string, password: string, validationError: (message: string) => void) {
     if (username.length == 0 || password.length == 0) return validationError(L.UsernameOrPasswordEmpty)
     if (!validateEmail(username)) return validationError(L.EmailError)
     if (!validatePassword(password)) return validationError(L.PasswordError)
 
     try {
-      await this.API.User.login(username, password)
+      await this.API.User.Login(username, password)
 
       if (this.hooks?.onLogin) this.hooks.onLogin()
       this.tfrModal.close()
@@ -200,19 +200,19 @@ export class FittingRoomController {
   }
 
   public async forgotPassword(email: string) {
-    await this.API.User.sendPasswordResetEmail(email)
+    await this.API.User.SendPasswordResetEmail(email)
 
     this.tfrModal.toSignIn()
   }
 
   public async passwordReset(code: string, newPassword: string) {
-    await this.API.User.confirmPasswordReset(code, newPassword)
+    await this.API.User.ConfirmPasswordReset(code, newPassword)
 
     this.tfrModal.toPasswordReset()
   }
 
-  public async getMeasurementLocationsFromSku(sku: string) {
-    return this.API.GetMeasurementLocationsFromSku(sku, [])
+  public async getMeasurementLocationsFromSku(sku: string, skipCache: boolean) {
+    return this.API.GetMeasurementLocationsFromSku(sku, [], skipCache)
   }
 
   public onSignInClick() {
@@ -270,8 +270,8 @@ export class FittingRoomController {
     }
   }
 
-  private async subscribeToProfileChanges() {
-    if (this.unsub) {
+  private async subscribeFirestoreUserForAvatarStateChange() {
+    if (this.unsubFirestoreUserCollection) {
       console.debug('Profile changes subscription already active')
       return
     }
@@ -281,7 +281,7 @@ export class FittingRoomController {
     }
 
     console.debug('Starting continuous user profile monitoring')
-    this.unsub = this.API.User.watchUserProfileForChangesContinuous(
+    this.unsubFirestoreUserCollection = this.API.User.WatchUserProfileForChangesContinuous(
       (user as User).uid,
       (userProfile) => this.onAvatarStateChange(userProfile as FirestoreUser),
       undefined
@@ -289,21 +289,21 @@ export class FittingRoomController {
   }
 
   private unsubscribeFromProfileChanges() {
-    if (!this.unsub) return
+    if (!this.unsubFirestoreUserCollection) return
 
-    this.unsub()
-    this.unsub = null
+    this.unsubFirestoreUserCollection()
+    this.unsubFirestoreUserCollection = null
   }
 
   private updateFirestoreSubscription() {
     if (!this.isLoggedIn) return
 
     const shouldSubscribe = this.manualListeningOverride
-    console.debug('updateFirestoreSubscription: isLoggedIn=', this.isLoggedIn, 'manualListeningOverride=', this.manualListeningOverride, 'shouldSubscribe=', shouldSubscribe, 'hasUnsub=', !!this.unsub)
+    console.debug('updateFirestoreSubscription: isLoggedIn=', this.isLoggedIn, 'manualListeningOverride=', this.manualListeningOverride, 'shouldSubscribe=', shouldSubscribe, 'hasUnsub=', !!this.unsubFirestoreUserCollection)
 
-    if (shouldSubscribe && !this.unsub) {
-      this.subscribeToProfileChanges()
-    } else if (!shouldSubscribe && this.unsub) {
+    if (shouldSubscribe && !this.unsubFirestoreUserCollection) {
+      this.subscribeFirestoreUserForAvatarStateChange()
+    } else if (!shouldSubscribe && this.unsubFirestoreUserCollection) {
       this.unsubscribeFromProfileChanges()
     }
   }

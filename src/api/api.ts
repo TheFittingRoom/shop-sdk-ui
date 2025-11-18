@@ -132,14 +132,14 @@ export class TFRAPI {
     return colorwaySizeAssets
   }
 
-  public async GetMeasurementLocationsFromSku(sku: string, filledLocations: string[] = []): Promise<string[]> {
-    const colorwaySizeAsset = await this.GetCachedColorwaySizeAssetFromSku(sku)
+  public async GetMeasurementLocationsFromSku(sku: string, filledLocations: string[] = [], skipCache: boolean): Promise<string[]> {
+    const colorwaySizeAsset = await this.GetCachedColorwaySizeAssetFromSku(sku, skipCache)
     if (!colorwaySizeAsset) throw new Error('No colorway size asset found for sku')
 
     const styleGarmentCategory = await this.GetStyleGarmentCategory(this.style.id)
     if (!styleGarmentCategory) throw new Error('Taxonomy not found for style garment category id')
 
-    const userProfile = this.IsLoggedIn ? await this.User.getUser() : null
+    const userProfile = this.IsLoggedIn ? await this.User.GetUser() : null
     const gender = userProfile?.gender || 'female'
 
     // Use proper typing for the measurement locations based on gender
@@ -166,6 +166,9 @@ export class TFRAPI {
   public async GetStyleByBrandStyleID(styleSKU: string): Promise<FirestoreStyle | null> {
     console.debug('getStyleByBrandStyleID:', styleSKU)
     if (!styleSKU) throw new Error('styleSKU is required for GetStyleByBrandStyleID')
+    const isLoggedIn = await this.IsLoggedIn()
+    console.debug('User logged in for GetStyleByBrandStyleID:', isLoggedIn)
+    console.debug('Brand ID:', this.BrandID)
     try {
       const constraints: QueryFieldFilterConstraint[] = [where('brand_id', '==', this.BrandID)]
       constraints.push(where('brand_style_id', '==', styleSKU))
@@ -333,7 +336,7 @@ export class TFRAPI {
       return tested
     }
 
-    const userProfile = (await this.User.watchUserProfileForChanges(callback)) as FirestoreUser
+    const userProfile = (await this.User.WatchUserProfileForChanges(callback)) as FirestoreUser
 
     if (!userProfile?.vto?.[this.BrandID]?.[colorwaySizeAssetSKU]?.frames?.length) throw new NoFramesFoundError()
 

@@ -1,14 +1,24 @@
 import dayjs from 'dayjs/esm'
 import * as firebase from 'firebase/app'
-import { User, Auth, getAuth, browserLocalPersistence, signInWithEmailAndPassword, sendPasswordResetEmail, confirmPasswordReset } from 'firebase/auth'
+import {
+  User,
+  Auth,
+  getAuth,
+  browserLocalPersistence,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  confirmPasswordReset,
+} from 'firebase/auth'
 import {
   DocumentData,
   Firestore,
-  QuerySnapshot,
+  QuerySnapshot, // This is no longer used in the watchers, but might be needed elsewhere
+  DocumentSnapshot, // Used for correct typing
   Unsubscribe,
   doc,
   getDoc,
   onSnapshot,
+  setDoc,
 } from 'firebase/firestore'
 
 import * as Errors from '../errors'
@@ -22,164 +32,165 @@ export const fromFirebaseDate = (date: FirebaseDate) => {
   return dayjs(date.seconds * 1000)
 }
 
-
 export class FirebaseUser {
-  private user: User
-  private initializationUserPromise: Promise<User>
+  private user: User | null = null // Initialize as null
+  private initializationUserPromise: Promise<User | null>
   private readonly auth: Auth
-  private _authStateCallbacks: Array<(isLoggedIn: boolean) => void> = []
 
-  constructor(private readonly firestore: Firestore, app: firebase.FirebaseApp) {
+  constructor(
+    private readonly firestore: Firestore,
+    app: firebase.FirebaseApp,
+  ) {
     this.auth = getAuth(app)
     this.auth.setPersistence(browserLocalPersistence)
-    // prefetch firestore user instantly. Result is stored internally.
-    this.initializationUserPromise = this.fetchCachedFirestoreUser()
+    this.initializationUserPromise = this.initializeUser()
   }
 
-  private async fetchCachedFirestoreUser(): Promise<User> {
+  /**
+   * Runs once on startup to determine the initial auth state.
+   */
+  private async initializeUser(): Promise<User | null> {
+    const timeoutPromise = new Promise<null>((resolve) => {
+      setTimeout(() => {
+        console.debug('user auth callback timeout')
+        resolve(null)
+      }, 5000)
+    })
+
+    try {
+      const authReadyPromise = this.auth.authStateReady().then(() => {
+        return this.auth.currentUser
+      })
+
+      const result = await Promise.race([authReadyPromise, timeoutPromise])
+
+      if (result) {
+        this.user = result
+      }
+      return this.user
+    } catch (error) {
+      console.debug('authStateReady failed:', error)
+      this.user = null
+      return null
+    }
+  }
+
+  /**
+   * Centralized helper to get the authenticated user.
+   * Awaits initialization and throws if no user is found.
+   */
+  private async getAuthUser(): Promise<User> {
     if (this.user) {
       return Promise.resolve(this.user)
     }
-    return new Promise((resolve) => {
-      const timeoutId = setTimeout(() => {
-        resolve(null)
-        // todo test shorter timeout
-      }, 5000) // 5 second timeout
-
-      this.auth.onAuthStateChanged((user) => {
-        clearTimeout(timeoutId)
-        this.setUser(user)
-        resolve(this.user)
-      })
-
-      this.auth.authStateReady().then(() => {
-        if (this.auth.currentUser) {
-          clearTimeout(timeoutId)
-          this.setUser(this.auth.currentUser)
-          resolve(this.auth.currentUser)
-        } else {
-          resolve(null)
-        }
-      }).catch(() => {
-        console.debug('authStateReady failed, keeping current state')
-      })
-    })
-  }
-
-
-  public async User(): Promise<User | boolean> {
+    // Await the init promise. This runs only once on startup.
     const user = await this.initializationUserPromise
-    if (!this.user) {
-      return Promise.resolve(false)
-    }
-    return Promise.resolve(user)
-  }
 
-  public onAuthStateChange(callback: (isLoggedIn: boolean) => void): void {
-    if (!this._authStateCallbacks) {
-      this._authStateCallbacks = []
-    }
-    this._authStateCallbacks.push(callback)
-  }
-
-  public setUser(user: User | null): void {
-    console.debug('setUser called with user uid:', user?.uid || 'null', 'previous user uid:', this.user?.uid || 'null')
-    this.user = user
-    console.debug('setUser completed, current user uid:', this.user?.uid || 'null')
-  }
-
-  public async getToken(): Promise<string> {
-    if (!this.user?.uid) throw new Errors.UserNotLoggedInError()
-
-    const token = await this.user.getIdToken()
-
-    return token
-  }
-
-  public async getUser(): Promise<DocumentData | undefined> {
-    if (!this.user?.uid) throw new Errors.UserNotLoggedInError()
-
-    const user = await getDoc(doc(this.firestore, 'users', this.user.uid))
-
-    return user.data()
-  }
-
-  public async watchUserProfileForChanges(predicate: (data: QuerySnapshot<DocumentData>) => Promise<boolean>): Promise<DocumentData> {
-    let unsub: Unsubscribe
-    const user = await this.User() as User
-    if (!user) {
-      throw new Error("watchUserProfileForChanges called without user init")
+    // If init is done and user is null (or this.user is null), throw.
+    if (!user || !this.user) {
+      throw new Errors.UserNotLoggedInError()
     }
 
-    const docRef = doc(this.firestore, 'users', user.uid)
+    return this.user
+  }
+
+  public async GetToken(): Promise<string> {
+    // The helper handles all auth checks and errors
+    const user = await this.getAuthUser()
+    return user.getIdToken()
+  }
+
+  public async GetUser(): Promise<DocumentData | undefined> {
+    // The helper handles all auth checks and errors
+    const user = await this.getAuthUser()
+    const userDoc = await getDoc(doc(this.firestore, 'users', user.uid))
+    return userDoc.data()
+  }
+
+  /**
+   * Watches a user's profile until a predicate returns true.
+   * Resolves with the document data when the predicate is met.
+   */
+  public async WatchUserProfileForChanges(
+    predicate: (data: DocumentData) => Promise<boolean>,
+  ): Promise<DocumentData> {
+    const user = await this.getAuthUser()
+    let unsub: Unsubscribe | undefined
 
     return new Promise<DocumentData>((resolve, reject) => {
-      unsub = onSnapshot(docRef, async (docSnapshot) => {
-        if (!docSnapshot.exists()) {
-          console.warn('User document does not exist for ID:', user.uid)
-          return
-        }
-        const snapshot = { docs: [docSnapshot] } as QuerySnapshot<DocumentData>
-        try {
-          const result = await predicate(snapshot)
-          if (result) {
-            unsub()
-            resolve(snapshot.docs[0].data())
-          } else {
+      const docRef = doc(this.firestore, 'users', user.uid)
+
+      unsub = onSnapshot(
+        docRef,
+        async (docSnapshot) => {
+          if (!docSnapshot.exists()) {
+            console.warn('User document does not exist for ID:', user.uid)
+            return
           }
-        } catch (error) {
-          console.error('watchUserProfileForChanges predicate error:', error)
-        }
-      }, (error) => {
-        console.error('watchUserProfileForChanges onSnapshot error:', error)
-        reject(error)
-      })
+
+          const data = docSnapshot.data()
+          try {
+            const result = await predicate(data)
+            if (result) {
+              unsub?.() // Unsubscribe when predicate is met
+              resolve(data)
+            }
+          } catch (error) {
+            console.error('watchUserProfileForChanges predicate error:', error)
+          }
+        },
+        (error) => {
+          console.error('watchUserProfileForChanges onSnapshot error:', error)
+          unsub?.()
+          reject(error)
+        },
+      )
     })
   }
 
   /**
-   * Continuous listener for user profile changes.
-   * Returns unsubscribe function that can be called to stop listening.
-   * This is the correct approach for ongoing monitoring of user changes.
+   * Continuously watches a user profile and fires a callback on changes.
+   * An optional predicate can filter updates.
    */
-  public watchUserProfileForChangesContinuous(
+  public WatchUserProfileForChangesContinuous(
     userID: string,
     callback: (userProfile: DocumentData) => void,
-    predicate?: (data: QuerySnapshot<DocumentData>) => Promise<boolean>
+    predicate?: (data: DocumentData) => Promise<boolean>,
   ): () => void {
-
     const docRef = doc(this.firestore, 'users', userID)
-
     console.debug('Starting continuous user profile monitoring for user ID:', userID)
 
-    const unsub = onSnapshot(docRef, async (docSnapshot) => {
-      console.debug('Continuous watch: onSnapshot fired at:', new Date().toISOString())
+    const unsub = onSnapshot(
+      docRef,
+      async (docSnapshot) => {
+        console.debug('Continuous watch: onSnapshot fired at:', new Date().toISOString())
 
-      if (!docSnapshot.exists()) {
-        console.warn('Continuous watch: User document does not exist for ID:', userID)
-        return
-      }
-
-      const snapshot = { docs: [docSnapshot] } as QuerySnapshot<DocumentData>
-
-      try {
-        if (predicate) {
-          const result = await predicate(snapshot)
-          if (!result) {
-            console.debug('Continuous watch: Predicate did not match, skipping callback')
-            return
-          }
+        if (!docSnapshot.exists()) {
+          console.warn('Continuous watch: User document does not exist for ID:', userID)
+          return
         }
 
-        const userProfile = snapshot.docs[0].data()
-        console.debug('Continuous watch: Calling callback with user profile, avatar_status:', userProfile.avatar_status)
-        callback(userProfile)
-      } catch (error) {
-        console.error('Continuous watch: Error in callback or predicate:', error)
-      }
-    }, (error) => {
-      console.error('Continuous watch: onSnapshot error:', error)
-    })
+        const userProfile = docSnapshot.data()
+
+        try {
+          if (predicate) {
+            const result = await predicate(userProfile)
+            if (!result) {
+              console.debug('Continuous watch: Predicate did not match, skipping callback')
+              return
+            }
+          }
+
+          console.debug('Continuous watch: Calling callback with user profile, avatar_status:', userProfile.avatar_status)
+          callback(userProfile)
+        } catch (error) {
+          console.error('Continuous watch: Error in callback or predicate:', error)
+        }
+      },
+      (error) => {
+        console.error('Continuous watch: onSnapshot error:', error)
+      },
+    )
 
     return () => {
       console.debug('Unsubscribing from continuous user profile monitoring')
@@ -187,23 +198,66 @@ export class FirebaseUser {
     }
   }
 
-  public async login(username: string, password: string): Promise<void> {
-    if (this.auth.currentUser) await this.auth.signOut()
+  public async Login(username: string, password: string): Promise<void> {
+    if (this.auth.currentUser) {
+      await this.auth.signOut()
+    }
 
-    const user = await signInWithEmailAndPassword(this.auth, username, password)
-    this.setUser(user.user)
+    const userCred = await signInWithEmailAndPassword(this.auth, username, password)
+    this.user = userCred.user
+
+    this.initializationUserPromise = Promise.resolve(this.user)
   }
 
-  public async logout(): Promise<void> {
+  public async Logout(): Promise<void> {
     await this.auth.signOut()
-    this.setUser(null)
+    this.user = null
+
+    // **IMPROVEMENT**: Reset the init promise to re-run on next check
+    this.initializationUserPromise = this.initializeUser()
   }
 
-  public async sendPasswordResetEmail(email: string): Promise<void> {
+  public async SendPasswordResetEmail(email: string): Promise<void> {
     await sendPasswordResetEmail(this.auth, email)
   }
 
-  public async confirmPasswordReset(code: string, newPassword: string): Promise<void> {
+  public async ConfirmPasswordReset(
+    code: string,
+    newPassword: string,
+  ): Promise<void> {
     await confirmPasswordReset(this.auth, code, newPassword)
   }
+
+  public async LogUserLogin(brandId: number, user: User) {
+    try {
+      const userLoggingDoc = doc(this.firestore, 'user_logging', user.uid)
+      const savedDoc = await getDoc(userLoggingDoc)
+      const lastLogin = new Date()
+      const savedData = savedDoc.exists ? savedDoc.data() : null
+      const lastBrandLogin = savedData?.brands?.[brandId]?.last_login
+
+      if (lastBrandLogin && dayjs(lastLogin).diff(fromFirebaseDate(lastBrandLogin), 'seconds') <= 10080) return
+
+      const logins = savedData?.brands?.[brandId]?.logins ?? []
+      logins.push(lastLogin)
+
+      const userLoggingData = {
+        brands: {
+          [brandId]: {
+            brand_id: brandId,
+            last_login: lastLogin,
+            logins,
+          },
+        },
+        last_brand_id: brandId,
+        created_at: !savedDoc.exists() ? lastLogin : savedDoc.data().created_at,
+        updated_at: lastLogin,
+      }
+
+      await setDoc(userLoggingDoc, userLoggingData, { merge: true })
+    } catch (e) {
+      console.error('LOGGING ERROR:', e)
+    }
+  }
 }
+
