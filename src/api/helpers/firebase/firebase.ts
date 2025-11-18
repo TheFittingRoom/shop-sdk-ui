@@ -26,8 +26,18 @@ export class FirebaseController {
   constructor(private config: Config) {
     const firebaseKeys = this.config.ENV.FIREBASE;
 
-    console.debug("sending FirebaseOptions", firebaseKeys)
-    const firebaseApp = firebase.initializeApp(firebaseKeys as firebase.FirebaseOptions)
+    const firebaseConfig = {
+      apiKey: firebaseKeys.FIREBASE_API_KEY,
+      authDomain: firebaseKeys.FIREBASE_AUTH_DOMAIN,
+      projectId: firebaseKeys.FIREBASE_PROJECT_ID,
+      storageBucket: firebaseKeys.FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: firebaseKeys.FIREBASE_MESSAGING_SENDER_ID,
+      appId: firebaseKeys.FIREBASE_APP_ID,
+      measurementId: firebaseKeys.FIREBASE_MEASUREMENT_ID,
+    };
+
+    console.debug("sending FirebaseOptions", firebaseConfig)
+    const firebaseApp = firebase.initializeApp(firebaseConfig)
 
     this.firestore = getFirestore(firebaseApp)
     // auto login user in constructor

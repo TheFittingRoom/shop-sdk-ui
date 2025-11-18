@@ -72,8 +72,6 @@ export class TFRAPI {
   }
 
   public async GetColorwaySizeAssetFromSku(colorwaySizeAssetSku: string): Promise<FirestoreColorwaySizeAsset> {
-
-    // Check cache first
     const cachedAsset = this.colorwaySizeAssetsCache.get(colorwaySizeAssetSku)
     if (cachedAsset) {
       console.debug('using cached colorwaySizeAsset for sku:', colorwaySizeAssetSku)
@@ -107,6 +105,7 @@ export class TFRAPI {
   public async FetchCachedColorwaySizeAssetsFromStyleId(styleId: number, skipCache: boolean): Promise<FirestoreColorwaySizeAsset[]> {
     // If using cache, check cache first for assets with this style_id
     if (!skipCache) {
+      console.debug("loading colorway_size_assets from cache")
       const cachedAssets: FirestoreColorwaySizeAsset[] = []
       for (const asset of this.colorwaySizeAssetsCache.values()) {
         if (asset.style_id === styleId) {

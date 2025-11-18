@@ -171,7 +171,7 @@
 
         const tfr = await tfrPromise
         if (sku) {
-          tfr.initSizeRecommendationWithSku(sku, variantSKUs, true)
+          tfr.InitSizeRecommendationWithSku(sku, variantSKUs, true)
         }
         console.debug("init time in ms", performance.now() - startTime)
 
