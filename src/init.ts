@@ -4,7 +4,7 @@ import { TFRCssVariables as TFRCSSVariables } from './components/SizeRecommendat
 export type TFR = {
   env?: string
   shopId: number
-  StyleSKU: string,
+  styleSKU: string,
   noCacheOnRetry?: boolean // Enable VTO retry with cache bypass
   modalDivId: string
   sizeRecMainDivId: string
@@ -16,7 +16,7 @@ export type TFR = {
 export const initFittingRoom = async ({
   env,
   shopId,
-  StyleSKU: brandStyleID,
+  styleSKU: brandStyleID,
   modalDivId,
   sizeRecMainDivId,
   vtoMainDivId,

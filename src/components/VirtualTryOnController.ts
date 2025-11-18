@@ -4,45 +4,31 @@ export class VTOController {
   private isShown = false
   private currentSliderValue: number = 0
   private slider: ReturnType<typeof InitImageSlider> = null
-  private vtoMainDiv: HTMLElement | null = null
   private tryOnImage: HTMLImageElement | null = null
   private sliderElement: HTMLInputElement | null = null
 
-  constructor(private readonly vtoMainDivId: string) {
-    this.init()
-  }
-
-  private init() {
-    this.vtoMainDiv = document.getElementById(this.vtoMainDivId)
-
-    if (!this.vtoMainDiv) {
-      const newDiv = document.createElement('div')
-      newDiv.id = this.vtoMainDivId
-      newDiv.style.display = 'none'  // Initially hidden
-      document.body.appendChild(newDiv)
-      this.vtoMainDiv = newDiv
+  constructor(private vtoMainDiv: HTMLElement) {
+    if (!vtoMainDiv) {
+      throw new Error("vtoMainDiv is:" + vtoMainDiv)
     }
-
-    console.log('VTO Component initialized successfully')
+    vtoMainDiv.style.display = 'none'  // Initially hidden
   }
 
   public show() {
     if (this.isShown) return
 
-    const targetDiv = this.vtoMainDiv!
-
-    targetDiv.innerHTML = `
+    this.vtoMainDiv.innerHTML = `
         <div class="tfr-slider-wrapper">
           <img id="tfr-tryon-image" src="" style="max-width: 30vw; display: block;" />
           <input type="range" id="tfr-slider" />
         </div>
     `
 
-    targetDiv.style.display = 'block'
-    targetDiv.style.visibility = 'visible'
+    this.vtoMainDiv.style.display = 'block'
+    this.vtoMainDiv.style.visibility = 'visible'
 
-    this.tryOnImage = targetDiv.querySelector('#tfr-tryon-image') as HTMLImageElement
-    this.sliderElement = targetDiv.querySelector('#tfr-slider') as HTMLInputElement
+    this.tryOnImage = this.vtoMainDiv.querySelector('#tfr-tryon-image') as HTMLImageElement
+    this.sliderElement = this.vtoMainDiv.querySelector('#tfr-slider') as HTMLInputElement
 
     const onChange = (slider, imageUrl) => {
       this.tryOnImage!.src = imageUrl
@@ -56,10 +42,8 @@ export class VTOController {
   public hide() {
     if (!this.isShown) return
 
-    const targetDiv = this.vtoMainDiv!
-
-    targetDiv.style.display = 'none'
-    targetDiv.innerHTML = ''
+    this.vtoMainDiv.style.display = 'none'
+    this.vtoMainDiv.innerHTML = ''
 
     this.slider = null
     this.tryOnImage = null

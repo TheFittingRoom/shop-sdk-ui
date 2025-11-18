@@ -50,12 +50,11 @@ export class FittingRoomController {
     const modalDiv = document.getElementById(modalDivId) as HTMLDivElement
     const sizeRecMainDiv = document.getElementById(sizeRecMainDivId) as HTMLDivElement
     const vtoMainDiv = document.getElementById(vtoMainDivId) as HTMLDivElement
-
     if (!modalDiv || !sizeRecMainDiv || !vtoMainDiv) {
-      console.error(
-        'The Fitting Room functionality has been disabled due to missing critical elements or functions. Please resolve the errors above.',
+      console.error(modalDiv, sizeRecMainDiv, vtoMainDiv)
+      throw new Error(
+        'The Fitting Room essential div id is missing',
       )
-      return
     }
 
     this.config = new Config(env)
@@ -68,7 +67,7 @@ export class FittingRoomController {
     )
     this.API = new TFRAPI(this.shopID, this.config)
 
-    if (vtoMainDivId) this.vtoComponent = new VTOController(vtoMainDivId)
+    if (vtoMainDivId) this.vtoComponent = new VTOController(vtoMainDiv)
 
     this.tfrSizeRecommendationController = new SizeRecommendationController(
       sizeRecMainDiv,

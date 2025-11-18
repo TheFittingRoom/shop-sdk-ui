@@ -152,16 +152,6 @@
       let tfr = null
 
       try {
-        const modalDiv = document.getElementById('thefittingroom-modal')
-        const sizeRecMainDiv = document.getElementById('tfr-size-recommendation-main')
-        const vtoMainDiv = document.getElementById('tfr-vto')
-
-        if (!modalDiv || !sizeRecMainDiv || !vtoMainDiv) {
-          console.error(
-            'The Fitting Room functionality has been disabled due to missing critical elements or functions. Please resolve the errors above.',
-          )
-          return
-        }
 
         const config = {
           shopId: brandID,

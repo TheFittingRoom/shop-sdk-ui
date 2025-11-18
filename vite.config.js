@@ -27,7 +27,7 @@ export default defineConfig(({ mode, command }) => {
             name: 'TheFittingRoom',
             fileName: 'index',
           },
-          minify: 'esbuild',
+          minify: false,
         },
         server: {
           port: 5173,
