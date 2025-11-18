@@ -8,9 +8,9 @@ interface ModalManager {
 }
 
 const InitModalManager = (modalRoot: HTMLElement): ModalManager => {
-  const body = modalRoot.querySelector('body')
+  const body = document.body
   if (!body) {
-    throw new Error(`element with id ${modalRoot.id} not found`)
+    throw new Error('document.body not found')
   }
 
   let previousContent: ModalContent
