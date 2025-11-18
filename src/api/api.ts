@@ -119,9 +119,11 @@ export class TFRAPI {
     ]
 
     if (!skipCache && cachedAssets.length > 0) {
-      const cachedIds = cachedAssets.map(asset => asset.id)
-      console.debug("skipping cached colorway_size_assets in query", cachedIds)
-      constraints.push(where('id', 'not-in', cachedIds))
+      const cachedIds = cachedAssets.map(asset => asset.id).filter(id => id != null)
+      if (cachedIds.length > 0) {
+        console.debug("skipping cached colorway_size_assets in query", cachedIds)
+        constraints.push(where('id', 'not-in', cachedIds))
+      }
     }
 
     try {
