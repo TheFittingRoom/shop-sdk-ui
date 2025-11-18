@@ -126,7 +126,7 @@ export class FittingRoomController {
   public async InitSizeRecommendationWithSku(activeSku: string, skipCache: boolean = false) {
     if (!this.style) {
       console.debug('fetching style for sku:', this.sku)
-      let colorwaySizeAsset = await this.API.GetColorwaySizeAssetFromSku(activeSku)
+      let colorwaySizeAsset = await this.API.GetCachedColorwaySizeAssetFromSku(activeSku)
       this.style = await this.API.GetStyleByID(colorwaySizeAsset.style_id)
     }
 

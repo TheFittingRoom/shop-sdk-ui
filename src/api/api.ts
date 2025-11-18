@@ -71,7 +71,7 @@ export class TFRAPI {
     console.debug(res)
   }
 
-  public async GetColorwaySizeAssetFromSku(colorwaySizeAssetSku: string): Promise<FirestoreColorwaySizeAsset> {
+  public async GetCachedColorwaySizeAssetFromSku(colorwaySizeAssetSku: string): Promise<FirestoreColorwaySizeAsset> {
     const cachedAsset = this.colorwaySizeAssetsCache.get(colorwaySizeAssetSku)
     if (cachedAsset) {
       console.debug('using cached colorwaySizeAsset for sku:', colorwaySizeAssetSku)
@@ -145,7 +145,7 @@ export class TFRAPI {
   }
 
   public async GetMeasurementLocationsFromSku(sku: string, filledLocations: string[] = []): Promise<string[]> {
-    const colorwaySizeAsset = await this.GetColorwaySizeAssetFromSku(sku)
+    const colorwaySizeAsset = await this.GetCachedColorwaySizeAssetFromSku(sku)
     if (!colorwaySizeAsset) throw new Error('No colorway size asset found for sku')
 
     const styleGarmentCategory = await this.GetStyleGarmentCategory(this.style.id)
