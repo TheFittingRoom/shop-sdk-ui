@@ -103,19 +103,13 @@ export class TFRAPI {
   }
 
   public async FetchCachedColorwaySizeAssetsFromStyleId(styleId: number, skipCache: boolean): Promise<FirestoreColorwaySizeAsset[]> {
-    // If using cache, check cache first for assets with this style_id
+    const cachedAssets: FirestoreColorwaySizeAsset[] = []
     if (!skipCache) {
       console.debug("loading colorway_size_assets from cache")
-      const cachedAssets: FirestoreColorwaySizeAsset[] = []
       for (const asset of this.colorwaySizeAssetsCache.values()) {
         if (asset.style_id === styleId) {
           cachedAssets.push(asset)
         }
-      }
-
-      if (cachedAssets.length > 0) {
-        console.debug('using cached assets for style:', styleId)
-        return cachedAssets
       }
     }
 
@@ -124,10 +118,27 @@ export class TFRAPI {
       where('style_id', '==', styleId),
     ]
 
+    if (!skipCache && cachedAssets.length > 0) {
+      const cachedIds = cachedAssets.map(asset => asset.id)
+      console.debug("skipping cached colorway_size_assets in query", cachedIds)
+      constraints.push(where('id', 'not-in', cachedIds))
+    }
+
     try {
       const querySnapshot = await this.firebase.getDocs('colorway_size_assets', constraints)
 
-      return querySnapshot.docs.map((doc) => doc.data() as FirestoreColorwaySizeAsset)
+      const newAssets = querySnapshot.docs.map((doc) => doc.data() as FirestoreColorwaySizeAsset)
+
+      if (!skipCache) {
+        console.debug("caching new assets", newAssets.length)
+        newAssets.forEach(asset => {
+          this.colorwaySizeAssetsCache.set(asset.sku, asset)
+        })
+      }
+
+      const allAssets = [...cachedAssets, ...newAssets]
+      allAssets.sort((a, b) => a.id - b.id)
+      return allAssets
     } catch (error) {
       return getFirebaseError(error)
     }
