@@ -179,6 +179,7 @@ export class TFRAPI {
   // BrandStyleID is the SKU of the style
   public async GetStyleByBrandStyleID(styleSKU: string): Promise<FirestoreStyle | null> {
     console.debug('getStyleByBrandStyleID:', styleSKU)
+    if (!styleSKU) throw new Error('styleSKU is required for GetStyleByBrandStyleID')
     try {
       const constraints: QueryFieldFilterConstraint[] = [where('brand_id', '==', this.BrandID)]
       constraints.push(where('brand_style_id', '==', styleSKU))
