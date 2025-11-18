@@ -13,14 +13,22 @@ import {
   getFirestore,
   onSnapshot,
   query,
+  setDoc,
 } from 'firebase/firestore'
-import { FirebaseUser } from './user'
-import { User } from 'firebase/auth'
 import { Config } from '../config'
+import dayjs from 'dayjs'
+import { User } from 'firebase/auth'
 
-export class FirebaseController {
-  public userController: FirebaseUser
+export type FirebaseDate = {
+  nanoseconds: number
+  seconds: number
+}
 
+export const fromFirebaseDate = (date: FirebaseDate) => {
+  return dayjs(date.seconds * 1000)
+}
+
+export class FirestoreController {
   public readonly firestore: Firestore
 
   constructor(private config: Config) {
@@ -37,15 +45,7 @@ export class FirebaseController {
     };
 
     console.debug("sending FirebaseOptions", firebaseConfig)
-    const firebaseApp = firebase.initializeApp(firebaseConfig)
-
-    this.firestore = getFirestore(firebaseApp)
-    // auto login user in constructor
-    this.userController = new FirebaseUser(this.firestore, firebaseApp)
-  }
-
-  public async getUser(): Promise<User | boolean> {
-    return await this.userController.User()
+    this.firestore = getFirestore(firebase.initializeApp(firebaseConfig))
   }
 
   public query(collectionName: string, constraint: QueryFieldFilterConstraint, unsubscribeWhenData: boolean = true) {
@@ -79,5 +79,37 @@ export class FirebaseController {
     })
 
     return { promise, unsubscribe: () => unsub() }
+  }
+
+  public async LogUserLogin(brandId: number, user: User) {
+    try {
+      const userLoggingDoc = doc(this.firestore, 'user_logging', user.uid)
+      const savedDoc = await getDoc(userLoggingDoc)
+      const lastLogin = new Date()
+      const savedData = savedDoc.exists ? savedDoc.data() : null
+      const lastBrandLogin = savedData?.brands?.[brandId]?.last_login
+
+      if (lastBrandLogin && dayjs(lastLogin).diff(fromFirebaseDate(lastBrandLogin), 'seconds') <= 10080) return
+
+      const logins = savedData?.brands?.[brandId]?.logins ?? []
+      logins.push(lastLogin)
+
+      const userLoggingData = {
+        brands: {
+          [brandId]: {
+            brand_id: brandId,
+            last_login: lastLogin,
+            logins,
+          },
+        },
+        last_brand_id: brandId,
+        created_at: !savedDoc.exists() ? lastLogin : savedDoc.data().created_at,
+        updated_at: lastLogin,
+      }
+
+      await setDoc(userLoggingDoc, userLoggingData, { merge: true })
+    } catch (e) {
+      console.error('LOGGING ERROR:', e)
+    }
   }
 }

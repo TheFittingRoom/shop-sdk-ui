@@ -6,7 +6,7 @@ import { L } from './components/locale'
 import { validateEmail, validatePassword } from './helpers/validations'
 import { TFRModal } from './components/ModalController'
 import { SizeRecommendationController, TFRCssVariables } from './components/SizeRecommendationController'
-import { TFRAPI } from './api/api'
+import { TFRAPI as FittingRoomAPI } from './api/api'
 import { User } from 'firebase/auth'
 import { Config } from './api/helpers/config'
 
@@ -22,7 +22,6 @@ export interface TFRHooks {
 export class FittingRoomController {
   private isLoggedIn: boolean = false
   private hasInitializedTryOn: boolean = false
-  private manualListeningOverride: boolean = false
   private forceFreshVTO: boolean = false
   private activeSku: string = ''
 
@@ -33,7 +32,7 @@ export class FittingRoomController {
   public readonly tfrModal: TFRModal
   public readonly tfrSizeRecommendationController: SizeRecommendationController
   private readonly vtoComponent: VTOController
-  private readonly API: TFRAPI
+  private readonly API: FittingRoomAPI
   private unsubFirestoreUserCollection: () => void = null
 
   constructor(
@@ -65,7 +64,7 @@ export class FittingRoomController {
       this.forgotPassword.bind(this),
       this.submitTel.bind(this),
     )
-    this.API = new TFRAPI(this.shopID, this.config)
+    this.API = new FittingRoomAPI(this.shopID, this.config)
 
     if (vtoMainDivId) this.vtoComponent = new VTOController(vtoMainDiv)
 
@@ -82,12 +81,12 @@ export class FittingRoomController {
     // fetch measurement locations and user
     this.init()
 
-    // Register for Firebase auth state changes to handle session restoration
-    this.API.User.onAuthStateChange((isLoggedIn) => {
-      console.debug('Firebase auth state changed to:', isLoggedIn, 'updating UI')
-      this.isLoggedIn = isLoggedIn
-      this.tfrSizeRecommendationController.setIsLoggedIn(isLoggedIn)
-    })
+    // TODO: write a callback function that gets passed to the API state handlerss
+    // this.API.onAuthStateChange((isLoggedIn) => {
+    //   console.debug('Firebase auth state changed to:', isLoggedIn, 'updating UI')
+    //   this.isLoggedIn = isLoggedIn
+    //   this.tfrSizeRecommendationController.setIsLoggedIn(isLoggedIn)
+    // })
   }
 
   get sku() {
@@ -95,8 +94,8 @@ export class FittingRoomController {
   }
 
   private async init(): Promise<void> {
-    const measurementLocationsPromise = this.API.fetchCacheMeasurementLocations()
-    const user = this.API.User.User()
+    const measurementLocationsPromise = this.API.FetchCacheMeasurementLocations()
+    const user = this.API.User()
     const stylePromise = this.API.GetStyleByBrandStyleID(this.styleSKU)
     const promiseResults = await Promise.all([
       user,
@@ -229,17 +228,11 @@ export class FittingRoomController {
 
     const batchResult = await this.API.PriorityTryOnWithMultiRequestCache(primarySKU, availableSKUs, this.forceFreshVTO)
 
-    this.setManualListeningOverride(true)
     try {
       this.vtoComponent.onNewFramesReady(batchResult)
     } catch (e) {
       this.tfrModal.onError(L.SomethingWentWrong)
     }
-  }
-
-  public setManualListeningOverride(enabled: boolean) {
-    this.manualListeningOverride = enabled
-    this.updateFirestoreSubscription()
   }
 
   private onAvatarStateChange(userProfile: FirestoreUser) {
@@ -270,42 +263,11 @@ export class FittingRoomController {
     }
   }
 
-  private async subscribeFirestoreUserForAvatarStateChange() {
-    if (this.unsubFirestoreUserCollection) {
-      console.debug('Profile changes subscription already active')
-      return
-    }
-    const user = await this.API.User.User()
-    if (!user) {
-      throw new Error("subscribeToProfileChanges called with no user")
-    }
-
-    console.debug('Starting continuous user profile monitoring')
-    this.unsubFirestoreUserCollection = this.API.User.WatchUserProfileForChangesContinuous(
-      (user as User).uid,
-      (userProfile) => this.onAvatarStateChange(userProfile as FirestoreUser),
-      undefined
-    )
-  }
-
   private unsubscribeFromProfileChanges() {
     if (!this.unsubFirestoreUserCollection) return
 
     this.unsubFirestoreUserCollection()
     this.unsubFirestoreUserCollection = null
-  }
-
-  private updateFirestoreSubscription() {
-    if (!this.isLoggedIn) return
-
-    const shouldSubscribe = this.manualListeningOverride
-    console.debug('updateFirestoreSubscription: isLoggedIn=', this.isLoggedIn, 'manualListeningOverride=', this.manualListeningOverride, 'shouldSubscribe=', shouldSubscribe, 'hasUnsub=', !!this.unsubFirestoreUserCollection)
-
-    if (shouldSubscribe && !this.unsubFirestoreUserCollection) {
-      this.subscribeFirestoreUserForAvatarStateChange()
-    } else if (!shouldSubscribe && this.unsubFirestoreUserCollection) {
-      this.unsubscribeFromProfileChanges()
-    }
   }
 
   public styleToGarmentMeasurementLocations(style: FirestoreStyle) {

@@ -1,5 +1,3 @@
-export type { ErrorOutsideRecommendedSizes, ErrorResponse } from '../gen/errors'
-
 export class AvatarNotCreatedError extends Error {
   constructor() {
     super('Avatar not created')
@@ -11,6 +9,13 @@ export class UserNotLoggedInError extends Error {
   constructor() {
     super('user not logged in')
     this.name = 'UserNotLoggedInError'
+  }
+}
+
+export class UserNotFoundError extends Error {
+  constructor(userId?: string) {
+    super(`user not found${userId ? `: ${userId}` : ''}`)
+    this.name = 'UserNotFoundError'
   }
 }
 
@@ -53,7 +58,3 @@ export class ServerUnavailableError extends Error {
     this.name = 'ServerUnavailableError'
   }
 }
-
-// Backend responses
-export const AvatarNotCreated = 'avatar not created'
-

@@ -11,33 +11,42 @@ import {
   FirestoreUser,
 } from './gen/responses'
 import { Fetcher } from './helpers/fetcher'
-import { FirebaseController } from './helpers/firebase/firebase'
-import { FirebaseUser } from './helpers/firebase/user'
+import { FirestoreController } from './helpers/firebase/firestore'
 import { getFirebaseError } from './helpers/firebase/error'
 import { testImage } from './helpers/utils'
 import { TryOnFrames } from '.'
-import { AvatarNotCreated, AvatarNotCreatedError, NoColorwaySizeAssetsFoundError, NoFramesFoundError, UserNotLoggedInError } from './helpers/errors'
+import { AvatarNotCreatedError, NoColorwaySizeAssetsFoundError, NoFramesFoundError, UserNotLoggedInError } from './helpers/errors'
 
 import { Config } from './helpers/config'
+import { FirebaseAuthUserController } from './helpers/firebase/FirebaseAuthUserController'
+import { FirestoreUserController } from './helpers/firebase/FirestoreUserController'
 
 export class TFRAPI {
   private measurementLocations: Map<string, { name: string; sort_order: number }> = new Map()
   private cachedColorwaySizeAssets: Map<string, FirestoreColorwaySizeAsset> = new Map()
   private vtoFramesCache: Map<string, TryOnFrames> = new Map()
-  private readonly firebase: FirebaseController
+  private readonly firebase: FirestoreController
   private readonly fetcher: Fetcher
   private style: FirestoreStyle
+  private firebaseAuthUserController: FirebaseAuthUserController
+  private firestoreUserController: FirestoreUserController
 
   constructor(
     private readonly brandID: number,
     config: Config,
   ) {
-    this.firebase = new FirebaseController(config)
     this.fetcher = new Fetcher(config)
+    this.firebase = new FirestoreController(config)
+    this.firebaseAuthUserController = new FirebaseAuthUserController(this.firebase.firestore.app)
+    this.Init()
   }
 
-  public get User(): FirebaseUser {
-    return this.firebase.userController
+  public async Init(): Promise<void> {
+    const user = await this.firebaseAuthUserController.GetUser()
+    if (user) {
+      this.firestoreUserController = new FirestoreUserController(this.firebase.firestore, user)
+      this.firestoreUserController.FetchUser(true)
+    }
   }
 
   public get BrandID(): number {
@@ -45,21 +54,21 @@ export class TFRAPI {
   }
 
   public async IsLoggedIn(): Promise<boolean> {
-    return Boolean(await this.User.User())
+    return Boolean(await this.firebaseAuthUserController.GetUser())
   }
 
   public async GetRecommendedSizes(styleId: number): Promise<SizeFitRecommendation | null> {
     if (!this.IsLoggedIn) throw new UserNotLoggedInError()
     console.debug('fetching size_recommendation', styleId)
     try {
-      const res = await this.fetcher.Get(this.User, `/styles/${String(styleId)}/recommendation`)
+      const res = await this.fetcher.Get(this.firebaseAuthUserController, `/styles/${String(styleId)}/recommendation`)
       const data = (await res.json()) as SizeFitRecommendation
 
       if (!data?.fits?.length || !data?.recommended_size?.id) return null
       console.debug('getRecommendedSizes', data.available_sizes)
       return data
     } catch (error) {
-      if (error?.error === AvatarNotCreated) throw new AvatarNotCreatedError()
+      if (error?.error === AvatarNotCreatedError) throw new AvatarNotCreatedError()
 
       throw error
     }
@@ -67,7 +76,7 @@ export class TFRAPI {
 
   public async SubmitTelephoneNumber(tel: string): Promise<void> {
     const sanitizedTel = tel.replace(/[^+0-9]/g, '')
-    const res = await this.fetcher.Post(this.User, '/ios-app-link', { phone_number: sanitizedTel }, false)
+    const res = await this.fetcher.Post(this.firebaseAuthUserController, '/ios-app-link', { phone_number: sanitizedTel }, false)
     console.debug(res)
   }
 
@@ -105,13 +114,11 @@ export class TFRAPI {
     }
   }
 
-  // cannot skip cache due to firestore 10 limit restriction
   public async FetchColorwaySizeAssetsFromStyleId(styleId: number): Promise<void> {
     const constraints: QueryFieldFilterConstraint[] = [
       where('brand_id', '==', this.BrandID),
       where('style_id', '==', styleId),
     ]
-
     try {
       const querySnapshot = await this.firebase.getDocs('colorway_size_assets', constraints)
       const newAssets = querySnapshot.docs.map((doc) => doc.data() as FirestoreColorwaySizeAsset)
@@ -139,8 +146,8 @@ export class TFRAPI {
     const styleGarmentCategory = await this.GetStyleGarmentCategory(this.style.id)
     if (!styleGarmentCategory) throw new Error('Taxonomy not found for style garment category id')
 
-    const userProfile = this.IsLoggedIn ? await this.User.GetUser() : null
-    const gender = userProfile?.gender || 'female'
+    // const userProfile = this.IsLoggedIn ? await this.firestoreUserController.FetchUser(false) : null
+    const gender = 'female' //TODO add gender to go api firestore response
 
     // Use proper typing for the measurement locations based on gender
     const measurementLocationsKey = `measurement_locations_${gender}` as const
@@ -296,16 +303,16 @@ export class TFRAPI {
     }
   }
 
-  public async fetchCacheMeasurementLocations(): Promise<void> {
+  public async FetchCacheMeasurementLocations(): Promise<void> {
     console.debug('getMeasurementLocations')
-    const locations = await this.fetchMeasurementLocations()
+    const locations = await this.FetchMeasurementLocations()
 
     locations.forEach((location) => {
       this.measurementLocations.set(location.name, { name: location.garment_label, sort_order: location.sort_order })
     })
   }
 
-  private async fetchMeasurementLocations(): Promise<FirestoreMeasurementLocation[]> {
+  private async FetchMeasurementLocations(): Promise<FirestoreMeasurementLocation[]> {
     console.debug('fetchMeasurementLocations')
     try {
       const docs = await this.firebase.getDocs('measurement_locations', [])
@@ -316,7 +323,7 @@ export class TFRAPI {
     }
   }
 
-  private async watchForTryOnFrames(colorwaySizeAssetSKU: string, skipCache: boolean = false): Promise<TryOnFrames> {
+  private async WatchForTryOnFrames(colorwaySizeAssetSKU: string, skipCache: boolean = false): Promise<TryOnFrames> {
     if (!this.IsLoggedIn) throw new UserNotLoggedInError()
 
     let firstSnapshotProcessed = false;
@@ -336,7 +343,7 @@ export class TFRAPI {
       return tested
     }
 
-    const userProfile = (await this.User.WatchUserProfileForChanges(callback)) as FirestoreUser
+    const userProfile = (await this.firestoreUserController.WatchUserProfileForChanges(callback)) as FirestoreUser
 
     if (!userProfile?.vto?.[this.BrandID]?.[colorwaySizeAssetSKU]?.frames?.length) throw new NoFramesFoundError()
 
@@ -344,11 +351,17 @@ export class TFRAPI {
     return userProfile.vto[this.BrandID][colorwaySizeAssetSKU].frames
   }
 
+  private async addStateChangeHandler(callback: (data: DocumentData) => Promise<boolean>): Promise<void> {
+    if (!this.IsLoggedIn) throw new UserNotLoggedInError()
+    await this.firestoreUserController.WatchUserProfileForChanges(callback)
+  }
+
+
   private async requestColorwaySizeAssetFramesByID(colorwaySizeAssetId: number): Promise<void> {
     console.debug('requestColorwaySizeAssetFramesByID')
     if (!this.IsLoggedIn) throw new UserNotLoggedInError()
 
-    await this.fetcher.Post(this.User, `/colorway-size-assets/${colorwaySizeAssetId}/frames`)
+    await this.fetcher.Post(this.firebaseAuthUserController, `/colorway-size-assets/${colorwaySizeAssetId}/frames`)
   }
 
   public async getCachedOrRequestUserColorwaySizeAssetFrames(colorwaySizeAssetSKU: string, skipCache: boolean): Promise<TryOnFrames | null> {
@@ -364,7 +377,7 @@ export class TFRAPI {
     const colorwaySizeAssetID = this.cachedColorwaySizeAssets.get(colorwaySizeAssetSKU).id
     await this.requestColorwaySizeAssetFramesByID(colorwaySizeAssetID)
 
-    const tryOnFrames = await this.watchForTryOnFrames(colorwaySizeAssetSKU, skipCache)
+    const tryOnFrames = await this.WatchForTryOnFrames(colorwaySizeAssetSKU, skipCache)
 
     const framesTyped = tryOnFrames as TryOnFrames
     this.vtoFramesCache.set(colorwaySizeAssetSKU, framesTyped)

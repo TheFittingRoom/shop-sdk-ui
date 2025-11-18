@@ -1,9 +1,10 @@
-import { FirebaseUser } from './firebase/user'
+import { ErrorResponse } from '../gen/errors'
 import { Config } from './config'
-import { ErrorResponse, ServerUnavailableError } from './errors'
+import { ServerUnavailableError } from './errors'
+import { FirebaseAuthUserController } from './firebase/FirebaseAuthUserController'
 
 interface FetchParams {
-  user: FirebaseUser
+  authUser: FirebaseAuthUserController
   endpointPath: string
   method: string
   body?: Record<string, any>
@@ -14,12 +15,12 @@ export class Fetcher {
   private endpoint: string
 
   constructor(private config: Config) {
-    this.endpoint = this.config.API?.url || import.meta.env.VITE_DEV_API_ENDPOINT;
+    this.endpoint = this.config.ENV.API.API_ENDPOINT;
   }
 
-  private async Fetch({ user, endpointPath, method, body, useToken = true }: FetchParams): Promise<Response> {
+  private async Fetch({ authUser: authUser, endpointPath, method, body, useToken = true }: FetchParams): Promise<Response> {
     const url = this.getUrl(endpointPath, useToken)
-    const headers = await this.getHeaders(user, useToken)
+    const headers = await this.getHeaders(authUser, useToken)
 
     const config: RequestInit = { method, headers, credentials: 'omit' }
     if (body && method !== 'GET') {
@@ -37,53 +38,53 @@ export class Fetcher {
     return useToken ? `${this.endpoint}/v1${endpointPath}` : this.endpoint + endpointPath
   }
 
-  private async getHeaders(user: FirebaseUser, useToken: boolean): Promise<Record<string, string>> {
+  private async getHeaders(authUser: FirebaseAuthUserController, useToken: boolean): Promise<Record<string, string>> {
     if (!useToken) return { 'Content-Type': 'application/json' }
 
-    const token = await user.GetToken()
+    const token = await authUser.GetToken()
     return {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     }
   }
 
-  Get(user: FirebaseUser, endpointPath: string, useToken?: boolean): Promise<Response> {
-    return this.Fetch({ user, endpointPath, method: 'GET', body: undefined, useToken })
+  Get(user: FirebaseAuthUserController, endpointPath: string, useToken?: boolean): Promise<Response> {
+    return this.Fetch({ authUser: user, endpointPath, method: 'GET', body: undefined, useToken })
   }
 
   Post(
-    user: FirebaseUser,
+    authUser: FirebaseAuthUserController,
     endpointPath: string,
     body?: Record<string, any>,
     useToken?: boolean,
   ): Promise<Response> {
-    return this.Fetch({ user, endpointPath, method: 'POST', body, useToken })
+    return this.Fetch({ authUser: authUser, endpointPath, method: 'POST', body, useToken })
   }
 
   Put(
-    user: FirebaseUser,
+    authUser: FirebaseAuthUserController,
     endpointPath: string,
     body: Record<string, any>,
     useToken?: boolean,
   ): Promise<Response> {
-    return this.Fetch({ user, endpointPath, method: 'PUT', body, useToken })
+    return this.Fetch({ authUser: authUser, endpointPath, method: 'PUT', body, useToken })
   }
 
   Patch(
-    user: FirebaseUser,
+    authUser: FirebaseAuthUserController,
     endpointPath: string,
     body: Record<string, any>,
     useToken?: boolean,
   ): Promise<Response> {
-    return this.Fetch({ user, endpointPath, method: 'PATCH', body, useToken })
+    return this.Fetch({ authUser: authUser, endpointPath, method: 'PATCH', body, useToken })
   }
 
   Delete(
-    user: FirebaseUser,
+    authUser: FirebaseAuthUserController,
     endpointPath: string,
     body?: Record<string, any>,
     useToken?: boolean,
   ): Promise<Response> {
-    return this.Fetch({ user, endpointPath, method: 'DELETE', body, useToken })
+    return this.Fetch({ authUser: authUser, endpointPath, method: 'DELETE', body, useToken })
   }
 }
