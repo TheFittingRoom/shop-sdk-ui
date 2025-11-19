@@ -13,48 +13,38 @@ import {
 import { Fetcher } from './helpers/fetcher'
 import { FirestoreController } from './helpers/firebase/firestore'
 import { getFirebaseError } from './helpers/firebase/error'
-import { testImage } from './helpers/utils'
-import { TryOnFrames } from '.'
+import { TryOnFrames as ColorwaySizeAssetFrameURLs, TryOnFrames } from '.'
 import { AvatarNotCreatedError, NoColorwaySizeAssetsFoundError, NoFramesFoundError, UserNotLoggedInError } from './helpers/errors'
 
 import { Config } from './helpers/config'
 import { FirebaseAuthUserController } from './helpers/firebase/FirebaseAuthUserController'
+import { User } from 'firebase/auth'
+import { testImage } from './helpers/utils'
 import { FirestoreUserController } from './helpers/firebase/FirestoreUserController'
 
-export class TFRAPI {
+export class FittingRoomAPI {
   private measurementLocations: Map<string, { name: string; sort_order: number }> = new Map()
   private cachedColorwaySizeAssets: Map<string, FirestoreColorwaySizeAsset> = new Map()
-  private vtoFramesCache: Map<string, TryOnFrames> = new Map()
-  private readonly firebase: FirestoreController
+  private vtoFramesCache: Map<string, ColorwaySizeAssetFrameURLs> = new Map()
   private readonly fetcher: Fetcher
   private style: FirestoreStyle
   private firebaseAuthUserController: FirebaseAuthUserController
-  private firestoreUserController: FirestoreUserController
 
   constructor(
-    private readonly brandID: number,
+    public readonly BrandID: number,
     config: Config,
+    private readonly firebase: FirestoreController
   ) {
     this.fetcher = new Fetcher(config)
-    this.firebase = new FirestoreController(config)
     this.firebaseAuthUserController = new FirebaseAuthUserController(this.firebase.firestore.app)
-    this.Init()
-  }
-
-  public async Init(): Promise<void> {
-    const user = await this.firebaseAuthUserController.GetUser()
-    if (user) {
-      this.firestoreUserController = new FirestoreUserController(this.firebase.firestore, user)
-      this.firestoreUserController.FetchUser(true)
-    }
-  }
-
-  public get BrandID(): number {
-    return this.brandID
   }
 
   public async IsLoggedIn(): Promise<boolean> {
-    return Boolean(await this.firebaseAuthUserController.GetUser())
+    return Boolean(await this.firebaseAuthUserController.GetUserOrNotLoggedIn())
+  }
+
+  public async GetUser(): Promise<User> {
+    return await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
   }
 
   public async GetRecommendedSizes(styleId: number): Promise<SizeFitRecommendation | null> {
@@ -206,20 +196,6 @@ export class TFRAPI {
     return this.measurementLocations.has(location) ? this.measurementLocations.get(location).sort_order : Infinity
   }
 
-  // queues 3+ virtual try ons and only waits on the active rendered virtual tryon
-  public async PriorityTryOnWithMultiRequestCache(activeSKU: string, availableSKUs: string[], skipCache: boolean = false): Promise<TryOnFrames> {
-    if (!this.IsLoggedIn) throw new UserNotLoggedInError()
-
-    const priorityPromise = this.getCachedOrRequestUserColorwaySizeAssetFrames(activeSKU, skipCache)
-
-    const lowPrioritySkus = [...availableSKUs].filter(sku => sku !== activeSKU)
-    lowPrioritySkus.forEach(sku => {
-      this.getCachedOrRequestUserColorwaySizeAssetFrames(sku, skipCache)
-    })
-
-    return await priorityPromise
-  }
-
   // Helper method to fetch assets from Firestore
   public async FetchAndCacheColorwaySizeAssets(
     skus: string[],
@@ -323,7 +299,29 @@ export class TFRAPI {
     }
   }
 
-  private async WatchForTryOnFrames(colorwaySizeAssetSKU: string, skipCache: boolean = false): Promise<TryOnFrames> {
+  // queues 3+ virtual try ons and only waits on the active rendered virtual tryon
+  public async PriorityTryOnWithMultiRequestCache(firestoreUserController: FirestoreUserController, activeSKU: string, availableSKUs: string[], skipCache: boolean = false): Promise<TryOnFrames> {
+    if (!this.IsLoggedIn) throw new UserNotLoggedInError()
+
+    const priorityPromise = this.GetCachedOrRequestUserColorwaySizeAssetFrames(firestoreUserController, activeSKU, skipCache)
+
+    const lowPrioritySkus = [...availableSKUs].filter(sku => sku !== activeSKU)
+    lowPrioritySkus.forEach(sku => {
+      // frames will be cached in the background
+      this.GetCachedOrRequestUserColorwaySizeAssetFrames(firestoreUserController, sku, skipCache)
+    })
+
+    return await priorityPromise
+  }
+
+  private async requestColorwaySizeAssetFramesByID(colorwaySizeAssetId: number): Promise<void> {
+    console.debug('requestColorwaySizeAssetFramesByID')
+    if (!this.IsLoggedIn) throw new UserNotLoggedInError()
+
+    await this.fetcher.Post(this.firebaseAuthUserController, `/colorway-size-assets/${colorwaySizeAssetId}/frames`)
+  }
+
+  private async WatchForTryOnFrames(firestoreUserController: FirestoreUserController, colorwaySizeAssetSKU: string, skipCache: boolean = false): Promise<TryOnFrames> {
     if (!this.IsLoggedIn) throw new UserNotLoggedInError()
 
     let firstSnapshotProcessed = false;
@@ -343,7 +341,7 @@ export class TFRAPI {
       return tested
     }
 
-    const userProfile = (await this.firestoreUserController.WatchUserProfileForChanges(callback)) as FirestoreUser
+    const userProfile = (await firestoreUserController.WatchUserProfileForChanges(callback)) as FirestoreUser
 
     if (!userProfile?.vto?.[this.BrandID]?.[colorwaySizeAssetSKU]?.frames?.length) throw new NoFramesFoundError()
 
@@ -351,20 +349,7 @@ export class TFRAPI {
     return userProfile.vto[this.BrandID][colorwaySizeAssetSKU].frames
   }
 
-  private async addStateChangeHandler(callback: (data: DocumentData) => Promise<boolean>): Promise<void> {
-    if (!this.IsLoggedIn) throw new UserNotLoggedInError()
-    await this.firestoreUserController.WatchUserProfileForChanges(callback)
-  }
-
-
-  private async requestColorwaySizeAssetFramesByID(colorwaySizeAssetId: number): Promise<void> {
-    console.debug('requestColorwaySizeAssetFramesByID')
-    if (!this.IsLoggedIn) throw new UserNotLoggedInError()
-
-    await this.fetcher.Post(this.firebaseAuthUserController, `/colorway-size-assets/${colorwaySizeAssetId}/frames`)
-  }
-
-  public async getCachedOrRequestUserColorwaySizeAssetFrames(colorwaySizeAssetSKU: string, skipCache: boolean): Promise<TryOnFrames | null> {
+  public async GetCachedOrRequestUserColorwaySizeAssetFrames(firestoreUserController: FirestoreUserController, colorwaySizeAssetSKU: string, skipCache: boolean): Promise<TryOnFrames | null> {
     console.debug('fetchUserVTOFrames', colorwaySizeAssetSKU, 'skipCache:', skipCache)
     if (!skipCache) {
       const cached = this.vtoFramesCache.get(colorwaySizeAssetSKU)
@@ -377,7 +362,7 @@ export class TFRAPI {
     const colorwaySizeAssetID = this.cachedColorwaySizeAssets.get(colorwaySizeAssetSKU).id
     await this.requestColorwaySizeAssetFramesByID(colorwaySizeAssetID)
 
-    const tryOnFrames = await this.WatchForTryOnFrames(colorwaySizeAssetSKU, skipCache)
+    const tryOnFrames = await this.WatchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, skipCache)
 
     const framesTyped = tryOnFrames as TryOnFrames
     this.vtoFramesCache.set(colorwaySizeAssetSKU, framesTyped)

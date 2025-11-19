@@ -6,9 +6,12 @@ import { L } from './components/locale'
 import { validateEmail, validatePassword } from './helpers/validations'
 import { TFRModal } from './components/ModalController'
 import { SizeRecommendationController, TFRCssVariables } from './components/SizeRecommendationController'
-import { TFRAPI as FittingRoomAPI } from './api/api'
-import { User } from 'firebase/auth'
+import { FittingRoomAPI } from './api/api'
 import { Config } from './api/helpers/config'
+import { FirebaseAuthUserController } from './api/helpers/firebase/FirebaseAuthUserController'
+import { FirestoreUserController } from './api/helpers/firebase/FirestoreUserController'
+import { DocumentData } from 'firebase/firestore'
+import { FirestoreController } from './api/helpers/firebase/firestore'
 
 export interface TFRHooks {
   onLoading?: () => void
@@ -20,7 +23,6 @@ export interface TFRHooks {
 }
 
 export class FittingRoomController {
-  private isLoggedIn: boolean = false
   private hasInitializedTryOn: boolean = false
   private forceFreshVTO: boolean = false
   private activeSku: string = ''
@@ -32,6 +34,9 @@ export class FittingRoomController {
   public readonly tfrModal: TFRModal
   public readonly tfrSizeRecommendationController: SizeRecommendationController
   private readonly vtoComponent: VTOController
+  private readonly firestoreController: FirestoreController
+  private firebaseAuthUserController: FirebaseAuthUserController
+  private firestoreUserController: FirestoreUserController
   private readonly API: FittingRoomAPI
   private unsubFirestoreUserCollection: () => void = null
 
@@ -64,7 +69,9 @@ export class FittingRoomController {
       this.forgotPassword.bind(this),
       this.submitTel.bind(this),
     )
-    this.API = new FittingRoomAPI(this.shopID, this.config)
+    this.firestoreController = new FirestoreController(this.config)
+    this.firebaseAuthUserController = new FirebaseAuthUserController(this.firestoreController.firestore.app)
+    this.API = new FittingRoomAPI(this.shopID, this.config, this.firestoreController)
 
     if (vtoMainDivId) this.vtoComponent = new VTOController(vtoMainDiv)
 
@@ -95,10 +102,11 @@ export class FittingRoomController {
 
   private async init(): Promise<void> {
     const measurementLocationsPromise = this.API.FetchCacheMeasurementLocations()
-    const user = this.API.User()
+    const authUser = this.firebaseAuthUserController.GetUserOrNotLoggedIn()
+    const user = this.firestoreUserController.FetchUser(false)
     const stylePromise = this.API.GetStyleByBrandStyleID(this.styleSKU)
     const promiseResults = await Promise.all([
-      user,
+      authUser,
       stylePromise,
       measurementLocationsPromise,
     ]).catch(e => {
@@ -112,13 +120,11 @@ export class FittingRoomController {
       this.API.FetchColorwaySizeAssetsFromStyleId(style.id)
     }
 
-    this.isLoggedIn = Boolean(promiseResults[0])
-    this.tfrSizeRecommendationController.setIsLoggedIn(this.isLoggedIn)
+    this.tfrSizeRecommendationController.setIsLoggedIn(Boolean(authUser))
 
-    if (this.isLoggedIn) {
+    if (Boolean(authUser)) {
       if (this.hooks?.onLogin) this.hooks.onLogin()
-
-      this.updateFirestoreSubscription()
+      // subscribe to firestore
     }
   }
 
@@ -141,9 +147,10 @@ export class FittingRoomController {
       document.getElementById('tfr-try-on-button')?.classList.remove('hide')
     }
 
-    if (this.isLoggedIn) {
+    try {
+      await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
       this.tfrSizeRecommendationController.startSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
-    } else {
+    } catch (e) {
       const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
       this.setStyleMeasurementLocations(styleMeasurementLocations)
     }
@@ -154,12 +161,10 @@ export class FittingRoomController {
   }
 
   public async LogOut() {
-    await this.API.User.Logout()
+    await this.firebaseAuthUserController.Logout()
 
     if (this.hooks?.onLogout) this.hooks.onLogout()
 
-    this.isLoggedIn = false
-    this.manualListeningOverride = false
     this.tfrSizeRecommendationController.setIsLoggedIn(false)
     this.setStyleMeasurementLocations(this.styleToGarmentMeasurementLocations(this.style))
     this.unsubscribeFromProfileChanges()
@@ -171,12 +176,11 @@ export class FittingRoomController {
     if (!validatePassword(password)) return validationError(L.PasswordError)
 
     try {
-      await this.API.User.Login(username, password)
+      await this.firebaseAuthUserController.Login(username, password)
 
       if (this.hooks?.onLogin) this.hooks.onLogin()
       this.tfrModal.close()
 
-      this.isLoggedIn = true
       this.tfrSizeRecommendationController.setIsLoggedIn(true)
 
       if (this.style) {
@@ -199,13 +203,13 @@ export class FittingRoomController {
   }
 
   public async forgotPassword(email: string) {
-    await this.API.User.SendPasswordResetEmail(email)
+    await this.firebaseAuthUserController.SendPasswordResetEmail(email)
 
     this.tfrModal.toSignIn()
   }
 
   public async passwordReset(code: string, newPassword: string) {
-    await this.API.User.ConfirmPasswordReset(code, newPassword)
+    await this.firebaseAuthUserController.ConfirmPasswordReset(code, newPassword)
 
     this.tfrModal.toPasswordReset()
   }
@@ -226,7 +230,7 @@ export class FittingRoomController {
   public async onTryOnClick(primarySKU: string, availableSKUs: string[]) {
     this.forceFreshVTO = this.hasInitializedTryOn && this.noCacheOnRetry
 
-    const batchResult = await this.API.PriorityTryOnWithMultiRequestCache(primarySKU, availableSKUs, this.forceFreshVTO)
+    const batchResult = await this.API.PriorityTryOnWithMultiRequestCache(this.firestoreUserController, primarySKU, availableSKUs, this.forceFreshVTO)
 
     try {
       this.vtoComponent.onNewFramesReady(batchResult)
@@ -261,6 +265,11 @@ export class FittingRoomController {
         this.tfrModal.onError(L.SomethingWentWrong)
         break
     }
+  }
+
+  private async addStateChangeHandler(callback: (data: DocumentData) => Promise<boolean>): Promise<void> {
+    await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
+    await this.firestoreUserController.WatchUserProfileForChanges(callback)
   }
 
   private unsubscribeFromProfileChanges() {

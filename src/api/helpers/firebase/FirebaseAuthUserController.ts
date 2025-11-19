@@ -54,7 +54,7 @@ export class FirebaseAuthUserController {
     }
   }
 
-  public async GetUser(): Promise<User> {
+  public async GetUserOrNotLoggedIn(): Promise<User> {
     if (this.user) {
       return Promise.resolve(this.user)
     }
@@ -68,7 +68,7 @@ export class FirebaseAuthUserController {
 
   public async GetToken(): Promise<string> {
     // The helper handles all auth checks and errors
-    const user = await this.GetUser()
+    const user = await this.GetUserOrNotLoggedIn()
     return user.getIdToken()
   }
 

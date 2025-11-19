@@ -1,6 +1,6 @@
 import { AvatarStatusCreated, AvatarStatusNotCreated, AvatarStatusPending } from './gen/enums'
 
-export { TFRAPI as TFRShop } from './api'
+export { FittingRoomAPI as TFRShop } from './api'
 export * from './measurement'
 
 export type TryOnFrames = string[]

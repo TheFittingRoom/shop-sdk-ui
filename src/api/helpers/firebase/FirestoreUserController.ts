@@ -1,7 +1,4 @@
 import {
-  User,
-} from 'firebase/auth'
-import {
   DocumentData,
   Firestore,
   Unsubscribe,
@@ -12,13 +9,14 @@ import {
 
 import * as Errors from '../errors'
 import { FirestoreUser } from '../../gen/responses'
+import { FirebaseAuthUserController } from './FirebaseAuthUserController'
 
 export class FirestoreUserController {
   private userProfile: FirestoreUser
-  private authUser: User
   private getUserPromise: Promise<FirestoreUser>
-  constructor(private readonly firestore: Firestore, authUser: User) {
-    this.authUser = authUser
+  constructor(
+    private readonly firestore: Firestore,
+    private firebaseAuthUserController: FirebaseAuthUserController) {
     this.getUserPromise = this.FetchUser(true)
   }
 
@@ -37,10 +35,11 @@ export class FirestoreUserController {
       this.getUserPromise = null
     }
     console.debug("returning user from firestore")
-    const snapshot = await getDoc(doc(this.firestore, 'users', this.authUser.uid))
+    const user = await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
+    const snapshot = await getDoc(doc(this.firestore, 'users', user.uid))
     if (!snapshot.exists()) {
       console.error("user not found")
-      throw new Errors.UserNotFoundError(this.authUser.uid)
+      throw new Errors.UserNotFoundError(user.uid)
     }
     this.userProfile = snapshot.data() as FirestoreUser
     return this.userProfile
@@ -53,17 +52,18 @@ export class FirestoreUserController {
   public async WatchUserProfileForChanges(
     dataCallbackAndUnsub: (data: DocumentData) => Promise<boolean>,
   ): Promise<DocumentData> {
+    const user = await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
     let unsub: Unsubscribe | undefined
 
     return new Promise<DocumentData>((resolve, reject) => {
-      const docRef = doc(this.firestore, 'users', this.authUser.uid)
+      const docRef = doc(this.firestore, 'users', user.uid)
 
       unsub = onSnapshot(
         docRef,
         async (docSnapshot) => {
           if (!docSnapshot.exists()) {
             unsub()
-            throw new Errors.UserNotFoundError(this.authUser.uid)
+            throw new Errors.UserNotFoundError(user.uid)
           }
 
           const data = docSnapshot.data()
