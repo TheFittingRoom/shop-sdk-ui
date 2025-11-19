@@ -102,22 +102,26 @@ export class FittingRoomController {
 
   private async init(): Promise<void> {
     const measurementLocationsPromise = this.API.FetchCacheMeasurementLocations()
-    const authUser = this.firebaseAuthUserController.GetUserOrNotLoggedIn()
-    const user = this.firestoreUserController.FetchUser(false)
+    const authUserPromise = this.firebaseAuthUserController.GetUserOrNotLoggedIn()
     const stylePromise = this.API.GetStyleByBrandStyleID(this.styleSKU)
-    const promiseResults = await Promise.all([
-      authUser,
+    await Promise.all([
+      authUserPromise,
       stylePromise,
       measurementLocationsPromise,
     ]).catch(e => {
       console.error("a promise in tfr init failed", e)
       throw e
     })
-    if (promiseResults[1]) {
+    const style = await stylePromise
+    if (style) {
       console.debug('style successfully retrieved via style sku')
-      const style = (promiseResults[1] as FirestoreStyle)
       this.style = style
       this.API.FetchColorwaySizeAssetsFromStyleId(style.id)
+    }
+    const authUser = await authUserPromise
+    if (authUser) {
+      //prefetch user
+      this.firestoreUserController.FetchUser(false)
     }
 
     this.tfrSizeRecommendationController.setIsLoggedIn(Boolean(authUser))
