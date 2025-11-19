@@ -105,48 +105,72 @@ export class SizeRecommendationController {
     }
   }
 
-  private async getRecommendedSizes(styleId: number, colorwaySizeAssets: FirestoreColorwaySizeAsset[]): Promise<RecommendedSize> {
+  private async getRecommendedSizes(
+    styleId: number,
+    colorwaySizeAssets: FirestoreColorwaySizeAsset[],
+  ): Promise<RecommendedSize> {
+    console.debug('getting recommended sizes', { styleId })
     const sizeRec = await this.tfrShop.GetRecommendedSizes(styleId)
 
-    if (!sizeRec) return null
+    if (!sizeRec) {
+      console.debug('no size rec found')
+      return null
+    }
+
+    if (!sizeRec.recommended_size?.size_value?.name) {
+      console.debug('no recommended size value found')
+      return null
+    }
+
+    if (!sizeRec.fits?.length) {
+      console.debug('no fits found')
+      return null
+    }
 
     return {
       recommended: sizeRec.recommended_size.size_value.name,
-      sizes: sizeRec.fits.map((fit) => {
-        const colorwayAsset = colorwaySizeAssets.find((asset) => asset.size_id === fit.size_id)
+      sizes: sizeRec.fits
+        .map((fit) => {
+          console.debug('finding colorway asset', {
+            fitSizeId: fit.size_id,
+            assets: colorwaySizeAssets,
+          })
+          const colorwayAsset = colorwaySizeAssets.find((asset) => asset.size_id === fit.size_id)
 
-        if (!colorwayAsset) {
-          console.warn(`No colorway asset found for size_id: ${fit.size_id}`)
-        }
+          if (!colorwayAsset) {
+            console.debug(`no colorway asset found for size_id: ${fit.size_id}`)
+          }
 
-        const availableSize = sizeRec.available_sizes.find((size) => size.id === fit.size_id)
-        if (!availableSize) {
-          console.error(`Size with id ${fit.size_id} not found in available sizes`)
-          return null
-        }
+          const availableSize = sizeRec.available_sizes?.find((size) => size.id === fit.size_id)
+          if (!availableSize) {
+            console.debug(`size with id ${fit.size_id} not found in available sizes`)
+            return null
+          }
 
-        return {
-          size: availableSize.size_value.name,
-          size_id: fit.size_id,
-          sku: colorwayAsset?.sku || '',
-          locations: fit.measurement_location_fits
-            .map((locationFit) => {
-              const fitLabel =
-                typeof locationFit.fit_label === 'string' && locationFit.fit_label
-                  ? locationFit.fit_label
-                  : FitNames[locationFit.fit]
+          return {
+            size: availableSize.size_value.name,
+            size_id: fit.size_id,
+            sku: colorwayAsset?.sku || '',
+            locations:
+              fit.measurement_location_fits
+                ?.map((locationFit) => {
+                  const fitLabel =
+                    typeof locationFit.fit_label === 'string' && locationFit.fit_label
+                      ? locationFit.fit_label
+                      : FitNames[locationFit.fit]
 
-              return {
-                fit: fitLabel,
-                isPerfect: this.perfectFits.includes(locationFit.fit),
-                location: this.tfrShop.GetMeasurementLocationName(locationFit.measurement_location),
-                sortOrder: this.tfrShop.GetMeasurementLocationSortOrder(locationFit.measurement_location),
-              }
-            })
-            .filter((location) => location !== null) // Filter out null locations
-            .sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : 1)),
-        }
-      }).filter((size) => size !== null), // Filter out null sizes
+                  return {
+                    fit: fitLabel,
+                    isPerfect: this.perfectFits.includes(locationFit.fit),
+                    location: this.tfrShop.GetMeasurementLocationName(locationFit.measurement_location),
+                    sortOrder: this.tfrShop.GetMeasurementLocationSortOrder(locationFit.measurement_location),
+                  }
+                })
+                .filter((location) => location !== null) // Filter out null locations
+                .sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : 1)) || [],
+          }
+        })
+        .filter((size) => size !== null), // Filter out null sizes
     }
   }
 

@@ -34,6 +34,7 @@ export const initFittingRoom = async ({
       vtoMainDivId,
       cssVariables,
       hooks)
+    await tfr.Init()
     return tfr
   } catch (e) {
     throw new Error("failed to init FittingRoom: " + e)

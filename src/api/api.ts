@@ -112,12 +112,13 @@ export class FittingRoomAPI {
     try {
       const querySnapshot = await this.firebase.getDocs('colorway_size_assets', constraints)
       const newAssets = querySnapshot.docs.map((doc) => doc.data() as FirestoreColorwaySizeAsset)
-      console.debug("caching new assets", newAssets.length)
+      console.debug("caching new assets", newAssets.length, newAssets)
       newAssets.forEach(asset => {
+        console.debug("caching colorway_size_asset", asset.sku)
         this.cachedColorwaySizeAssets.set(asset.sku, asset)
       })
     } catch (error) {
-      return getFirebaseError(error)
+      getFirebaseError(error)
     }
   }
 

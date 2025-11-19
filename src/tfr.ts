@@ -85,9 +85,6 @@ export class FittingRoomController {
       this.onTryOnClick.bind(this),
     )
 
-    // fetch measurement locations and user
-    this.init()
-
     // TODO: write a callback function that gets passed to the API state handlerss
     // this.API.onAuthStateChange((isLoggedIn) => {
     //   console.debug('Firebase auth state changed to:', isLoggedIn, 'updating UI')
@@ -100,7 +97,7 @@ export class FittingRoomController {
     return this.activeSku
   }
 
-  private async init(): Promise<void> {
+  public async Init(): Promise<void> {
     const measurementLocationsPromise = this.API.FetchCacheMeasurementLocations()
     const authUserPromise = this.firebaseAuthUserController.GetUserOrNotLoggedIn()
     const stylePromise = this.API.GetStyleByBrandStyleID(this.styleSKU)
@@ -112,16 +109,24 @@ export class FittingRoomController {
       console.error("a promise in tfr init failed", e)
       throw e
     })
+    let cacheColorwaySizeAssetsPromise: Promise<void> = null
     const style = await stylePromise
     if (style) {
       console.debug('style successfully retrieved via style sku')
       this.style = style
-      this.API.FetchColorwaySizeAssetsFromStyleId(style.id)
+      cacheColorwaySizeAssetsPromise = this.API.FetchColorwaySizeAssetsFromStyleId(style.id)
     }
     const authUser = await authUserPromise
     if (authUser) {
-      //prefetch user
-      this.firestoreUserController.FetchUser(false)
+      //init and prefetch user
+      this.firestoreUserController = new FirestoreUserController(
+        this.firestoreController.firestore,
+        this.firebaseAuthUserController)
+    }
+
+    if (cacheColorwaySizeAssetsPromise) {
+      // let cache finish before loading
+      await cacheColorwaySizeAssetsPromise
     }
 
     this.tfrSizeRecommendationController.setIsLoggedIn(Boolean(authUser))
@@ -133,6 +138,7 @@ export class FittingRoomController {
   }
 
   public async InitSizeRecommendationWithSku(activeSku: string, skipCache: boolean = false) {
+    console.debug("InitSizeRecommendationWithSku", activeSku, skipCache)
     if (!this.style) {
       console.debug('fetching style for sku:', this.sku)
       let colorwaySizeAsset = await this.API.GetCachedColorwaySizeAssetFromSku(activeSku, skipCache)

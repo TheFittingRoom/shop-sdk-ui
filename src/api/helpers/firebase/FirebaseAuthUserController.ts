@@ -30,7 +30,6 @@ export class FirebaseAuthUserController {
   private async initializeUser(): Promise<User | null> {
     const timeoutPromise = new Promise<null>((resolve) => {
       setTimeout(() => {
-        console.debug('user auth callback timeout')
         resolve(null)
       }, 5000)
     })
