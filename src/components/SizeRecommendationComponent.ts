@@ -33,6 +33,7 @@ export class SizeRecComponent {
   private tfrSizeRecTable: HTMLDivElement
   private tfrSizeRecTitle: HTMLDivElement
   private tfrSizeRecTitleToggle: HTMLDivElement
+  private tfrTryOnButton: HTMLButtonElement
 
   private tfrLoggedInElements: NodeList = [] as any as NodeList
   private tfrLoggedOutElements: NodeList = [] as any as NodeList
@@ -42,7 +43,6 @@ export class SizeRecComponent {
 
   private isCollapsed: boolean = false
   private redraw: (index: number) => void = null
-  private isLoggedIn: boolean
 
   constructor(
     sizeRecMainDiv: HTMLDivElement,
@@ -55,57 +55,52 @@ export class SizeRecComponent {
     this.init(sizeRecMainDiv)
   }
 
-  public setIsLoggedIn(isLoggedIn: boolean) {
-    this.isLoggedIn = isLoggedIn
-    this.tfrSizeRecSelectContainer.style.display = 'flex'
-    this.tfrSizeRecSelect.style.display = 'flex'
-    this.tfrSizeHowItFits.style.display = 'block'
+  public ShowLoggedOut() {
+    this.tfrSizeHowItFits.style.opacity = '0.4'
+    this.tfrSizeRecSelect.style.opacity = '0.4'
 
-    if (isLoggedIn) {
-      this.tfrSizeHowItFits.style.opacity = '1'
-      this.tfrSizeRecSelect.style.opacity = '1'
-      this.tfrLoggedInElements.forEach((element) => ((element as HTMLElement).style.display = 'block'))
-      this.tfrLoggedOutElements.forEach((element) => ((element as HTMLElement).style.display = 'none'))
+    this.tfrLoggedInElements.forEach((element) => (element as HTMLElement).classList.add('hide'))
+    this.tfrLoggedOutElements.forEach((element) => (element as HTMLElement).classList.remove('hide'))
+    this.tfrSizeRecSelectContainer.classList.remove('hide')
+    console.log("tfrSizeRecSelectContainer", this.tfrSizeRecSelectContainer)
+    this.tfrSizeRecActionLogin.classList.remove('hide')
+    this.tfrSizeRecActionLogout.classList.add('hide')
 
-      this.tfrSizeRecActionLogin.style.display = 'none'
-      this.tfrSizeRecActionLogout.style.display = 'block'
-      this.tfrSizeRecTitle.style.display = 'flex'
-      this.isCollapsed = false
-      this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')
-      this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-down')
+    this.tfrSizeRecTitle.classList.remove('hide')
 
-      this.tfrSizeRecSelectContainer.style.display = 'flex'
-      this.tfrSizeRecSelectContainer.style.opacity = '1'
-    } else {
-      this.tfrSizeHowItFits.style.opacity = '0.4'
-      this.tfrSizeRecSelect.style.opacity = '0.4'
-      this.tfrLoggedInElements.forEach((element) => ((element as HTMLElement).style.display = 'none'))
-      this.tfrLoggedOutElements.forEach((element) => ((element as HTMLElement).style.display = 'block'))
+    this.renderSizeRecSelectLoggedOut()
+  }
 
-      this.tfrSizeRecActionLogin.style.display = 'block'
-      this.tfrSizeRecActionLogout.style.display = 'none'
+  public ShowLoggedIn() {
+    this.isCollapsed = false
 
-      this.tfrSizeRecTitle.style.display = 'flex'
-      this.tfrSizeRecommendationError.style.display = 'none'
-      this.tfrSizeRecommendationError.innerHTML = ''
+    this.tfrSizeHowItFits.style.opacity = '1'
+    this.tfrSizeRecSelect.style.opacity = '1'
+    this.tfrSizeRecSelectContainer.style.opacity = '1'
 
-      this.renderSizeRecSelectLoggedOut()
-    }
+    this.tfrLoggedInElements.forEach((element) => (element as HTMLElement).classList.remove('hide'))
+    this.tfrSizeRecActionLogout.classList.remove('hide')
+    this.tfrSizeRecTitle.classList.remove('hide')
+    this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-down')
+
+    this.tfrLoggedOutElements.forEach((element) => (element as HTMLElement).classList.add('hide'))
+    this.tfrSizeRecActionLogin.classList.add('hide')
+    this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')
   }
 
   public setLoading(isLoading: boolean) {
     if (isLoading) {
-      this.tfrSizeRecLoading.style.display = 'block'
-      this.tfrSizeRecommendationsContainer.style.display = 'none'
+      this.tfrSizeRecLoading.classList.remove('hide')
+      this.tfrSizeRecommendationsContainer.classList.add('hide')
     } else {
-      this.tfrSizeRecLoading.style.display = 'none'
-      this.tfrSizeRecommendationsContainer.style.display = 'flex'
+      this.tfrSizeRecLoading.classList.add('hide')
+      this.tfrSizeRecommendationsContainer.classList.remove('hide')
     }
   }
 
   public setStyleMeasurementLocations(locations: string[]) {
     if (!locations || !locations.length) {
-      this.tfrSizeRecTitle.style.display = 'none'
+      this.tfrSizeRecTitle.classList.add('hide')
 
       return
     }
@@ -117,49 +112,52 @@ export class SizeRecComponent {
     this.renderSizeRec(recommended, sizes)
   }
 
-  public hide() {
+  public Hide() {
     if (this.sizeRecMainDiv) {
-      this.sizeRecMainDiv.style.display = 'none'
+      this.sizeRecMainDiv.classList.add('hide')
     }
   }
 
-  public show() {
+  public Show() {
     if (this.sizeRecMainDiv) {
-      this.sizeRecMainDiv.style.display = 'block'
+      this.sizeRecMainDiv.classList.remove('hide')
     }
+  }
+
+  public showTryOnButton() {
+    this.tfrTryOnButton.classList.remove('hide')
   }
 
   private init(sizeRecMainDiv: HTMLDivElement) {
     if (!sizeRecMainDiv) throw new Error('Size rec main div not found')
     this.sizeRecMainDiv = sizeRecMainDiv
     this.render(sizeRecMainDiv)
-    this.setElements()
+    this.setElements(sizeRecMainDiv)
     this.bindEvents()
   }
 
-  private setElements() {
-    this.tfrSizeHowItFits = document.getElementById('tfr-size-how-it-fits') as HTMLDivElement
-    this.tfrSizeRecTitle = document.getElementById('tfr-size-rec-title') as HTMLDivElement
-
-    this.tfrInfoIcon = document.getElementById('tfr-info-icon') as HTMLDivElement
-    this.tfrLoginToView = document.getElementById('tfr-login-to-view') as HTMLDivElement
-    this.tfrSizeRecActionLogin = document.getElementById('tfr-size-rec-action-login') as HTMLDivElement
-    this.tfrSizeRecActionLogout = document.getElementById('tfr-size-rec-action-logout') as HTMLDivElement
-    this.tfrSizeRecTable = document.getElementById('tfr-size-rec-table') as HTMLDivElement
-    this.tfrSizeRecommendationError = document.getElementById('tfr-size-recommendation-error') as HTMLDivElement
-    this.tfrSizeRecSize = document.getElementById('tfr-size-rec-size') as HTMLDivElement
-    this.tfrSizeRecSelect = document.getElementById('tfr-size-rec-select') as HTMLDivElement
-    this.tfrSizeRecLoading = document.getElementById('tfr-size-rec-loading') as HTMLDivElement
-    this.tfrSizeRecTitleToggle = document.getElementById('tfr-size-rec-title-toggle') as HTMLDivElement
-    this.tfrSizeRecSelectContainer = document.getElementById('tfr-size-rec-select-container') as HTMLDivElement
-    this.tfrSizeRecommendationsContainer = document.getElementById(
-      'tfr-size-recommendations-container',
+  private setElements(sizeRecMainDiv: HTMLDivElement) {
+    this.tfrSizeHowItFits = sizeRecMainDiv.querySelector('#tfr-size-how-it-fits') as HTMLDivElement
+    this.tfrSizeRecTitle = sizeRecMainDiv.querySelector('#tfr-size-rec-title') as HTMLDivElement
+    this.tfrTryOnButton = this.sizeRecMainDiv.querySelector('#tfr-try-on-button')
+    this.tfrInfoIcon = sizeRecMainDiv.querySelector('#tfr-info-icon') as HTMLDivElement
+    this.tfrLoginToView = sizeRecMainDiv.querySelector('#tfr-login-to-view') as HTMLDivElement
+    this.tfrSizeRecActionLogin = sizeRecMainDiv.querySelector('#tfr-size-rec-action-login') as HTMLDivElement
+    this.tfrSizeRecActionLogout = sizeRecMainDiv.querySelector('#tfr-size-rec-action-logout') as HTMLDivElement
+    this.tfrSizeRecTable = sizeRecMainDiv.querySelector('#tfr-size-rec-table') as HTMLDivElement
+    this.tfrSizeRecommendationError = sizeRecMainDiv.querySelector('#tfr-size-recommendation-error') as HTMLDivElement
+    this.tfrSizeRecSize = sizeRecMainDiv.querySelector('#tfr-size-rec-size') as HTMLDivElement
+    this.tfrSizeRecSelect = sizeRecMainDiv.querySelector('#tfr-size-rec-select') as HTMLDivElement
+    this.tfrSizeRecLoading = sizeRecMainDiv.querySelector('#tfr-size-rec-loading') as HTMLDivElement
+    this.tfrSizeRecTitleToggle = sizeRecMainDiv.querySelector('#tfr-size-rec-title-toggle') as HTMLDivElement
+    this.tfrSizeRecSelectContainer = sizeRecMainDiv.querySelector('#tfr-size-rec-select-container') as HTMLDivElement
+    this.tfrSizeRecommendationsContainer = sizeRecMainDiv.querySelector(
+      '#tfr-size-recommendations-container',
     ) as HTMLDivElement
-
-    this.tfrLoggedInElements = document.querySelectorAll('.tfr-logged-in')
-    this.tfrLoggedOutElements = document.querySelectorAll('.tfr-logged-out')
-    this.tfrToggleOpenElements = document.querySelectorAll('.tfr-toggle-open')
-    this.tfrToggleClosedElements = document.querySelectorAll('.tfr-toggle-closed')
+    this.tfrLoggedInElements = sizeRecMainDiv.querySelectorAll('.tfr-logged-in')
+    this.tfrLoggedOutElements = sizeRecMainDiv.querySelectorAll('.tfr-logged-out')
+    this.tfrToggleOpenElements = sizeRecMainDiv.querySelectorAll('.tfr-toggle-open')
+    this.tfrToggleClosedElements = sizeRecMainDiv.querySelectorAll('.tfr-toggle-closed')
   }
 
 
@@ -167,7 +165,7 @@ export class SizeRecComponent {
     selectedSku: string;
     availableSkus: string[];
   } {
-    const activeButton = document.querySelector('.tfr-size-rec-select-button.active');
+    const activeButton = this.sizeRecMainDiv.querySelector('.tfr-size-rec-select-button.active');
     if (!activeButton) {
       throw new Error("no active button found");
     }
@@ -202,25 +200,19 @@ export class SizeRecComponent {
     this.tfrInfoIcon.addEventListener('click', this.onFitInfoClick)
     this.tfrLoginToView.addEventListener('click', this.onSignInClick)
 
-    const tryOnButton = document.getElementById('tfr-try-on-button')
-    if (!tryOnButton) return
+    this.tfrTryOnButton.addEventListener('click', async () => {
+      this.onSignInClick()
 
-    tryOnButton.addEventListener('click', async () => {
-      if (!this.isLoggedIn) {
-        this.onSignInClick()
-        return
-      }
-
-      tryOnButton.classList.add('loading')
-        ; (tryOnButton as HTMLButtonElement).disabled = true
+      this.tfrTryOnButton.classList.add('loading')
+      this.tfrTryOnButton.disabled = true
 
       try {
         this.onTryOnClick()
       } catch (error) {
         console.error('Error during try-on process:', error)
       } finally {
-        tryOnButton.classList.remove('loading')
-          ; (tryOnButton as HTMLButtonElement).disabled = false
+        this.tfrTryOnButton.classList.remove('loading')
+        this.tfrTryOnButton.disabled = false
       }
     })
   }
@@ -234,7 +226,7 @@ export class SizeRecComponent {
     const selectedIndex = Number(target.getAttribute('data-index'))
     if (Number.isNaN(selectedIndex)) return
 
-    const allButtons = document.querySelectorAll('.tfr-size-rec-select-button')
+    const allButtons = this.sizeRecMainDiv.querySelectorAll('.tfr-size-rec-select-button')
 
     allButtons.forEach((button) => button.classList.remove('active'))
     allButtons.item(selectedIndex).classList.add('active')
@@ -326,14 +318,14 @@ export class SizeRecComponent {
       this.isCollapsed = false
       this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')
       this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-down')
-      this.tfrToggleOpenElements.forEach((element) => ((element as HTMLElement).style.display = 'block'))
-      this.tfrToggleClosedElements.forEach((element) => ((element as HTMLElement).style.display = 'none'))
+      this.tfrToggleOpenElements.forEach((element) => (element as HTMLElement).classList.remove('hide'))
+      this.tfrToggleClosedElements.forEach((element) => (element as HTMLElement).classList.add('hide'))
     } else {
       this.isCollapsed = true
       this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-up')
       this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-down')
-      this.tfrToggleOpenElements.forEach((element) => ((element as HTMLElement).style.display = 'none'))
-      this.tfrToggleClosedElements.forEach((element) => ((element as HTMLElement).style.display = 'block'))
+      this.tfrToggleOpenElements.forEach((element) => (element as HTMLElement).classList.add('hide'))
+      this.tfrToggleClosedElements.forEach((element) => (element as HTMLElement).classList.remove('hide'))
     }
   }
 
@@ -347,7 +339,7 @@ export class SizeRecComponent {
                         <div></div>
                       </div>
                     </div>
-                    <div id="tfr-size-recommendations-container">
+                    <div id="tfr-size-recommendations-container" class="hide">
                       <div id="tfr-size-rec-title-toggle" class="tfr-chevron-up">v</div>
 
                       <div class="tfr-logged-out">
@@ -382,10 +374,10 @@ export class SizeRecComponent {
                       </div>
 
                       <div class="tfr-toggle-open" style="width: 100%">
-                        <div id="tfr-size-rec-select-container">
+                        <div id="tfr-size-rec-select-container" class="hide">
                           <div id="tfr-size-how-it-fits">Select size to see how it fits:</div>
 
-                          <div id="tfr-size-rec-select"></div>
+                          <div id="tfr-size-rec-select" class="hide"></div>
 
                           <div id="tfr-size-rec-subtitle">
                             How it fits
@@ -394,13 +386,13 @@ export class SizeRecComponent {
 
                           <div id="tfr-size-rec-table"></div>
 
-                          <button id="tfr-try-on-button" class="tfr-try-on-button">Try On</button>
+                          <button id="tfr-try-on-button" class="hide">Try On</button>
                         </div>
                       </div>
 
                       <div id="tfr-size-rec-action">
                         <div id="tfr-size-rec-action-login">Sign up or login</div>
-                        <div id="tfr-size-rec-action-logout">Log out</div>
+                        <div id="tfr-size-rec-action-logout" class="hide">Log out</div>
                       </div>
 
                       <div class="tfr-toggle-open">
@@ -416,4 +408,5 @@ export class SizeRecComponent {
 
     sizeRecMainDiv.innerHTML = body
   }
+
 }

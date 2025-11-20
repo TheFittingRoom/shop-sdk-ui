@@ -51,7 +51,7 @@ export class SizeRecommendationController {
     private readonly onFittingRoomControllerFitInfoClick: () => void,
     private readonly onFittingRoomControllerTryOnClick: (selectedSku: string, availableSkus: string[]) => Promise<void>,
   ) {
-    this.setCssVariables(cssVariables)
+    this.setCssVariables(sizeRecMainDiv, cssVariables)
 
     this.sizeRecComponent = new SizeRecComponent(
       sizeRecMainDiv,
@@ -68,12 +68,7 @@ export class SizeRecommendationController {
     this.onFittingRoomControllerTryOnClick(selectedSku, availableSkus)
   }
 
-
-  public setIsLoggedIn(isLoggedIn: boolean) {
-    this.sizeRecComponent.setIsLoggedIn(isLoggedIn)
-  }
-
-  public async setStyleMeasurementLocations(locations: string[] = []) {
+  public async setLoggedOutStyleMeasurementLocations(locations: string[] = []) {
     this.sizeRecComponent.setLoading(true)
     if (locations.length == 0) {
       throw new Error('filteredLocations passed to setGarmentLocations is 0')
@@ -82,7 +77,8 @@ export class SizeRecommendationController {
 
     this.sizeRecComponent.setStyleMeasurementLocations(locations)
     this.sizeRecComponent.setLoading(false)
-    this.sizeRecComponent.show()
+    this.sizeRecComponent.ShowLoggedOut()
+    this.sizeRecComponent.Show()
   }
 
   public async startSizeRecommendation(styleId: number, colorwaySizeAssets: FirestoreColorwaySizeAsset[]) {
@@ -95,12 +91,12 @@ export class SizeRecommendationController {
         return
       }
 
-      this.sizeRecComponent.show()
+      this.sizeRecComponent.Show()
       this.sizeRecComponent.setRecommendedSize(sizes)
       this.sizeRecComponent.setLoading(false)
     } catch (e) {
       console.error(e)
-      this.sizeRecComponent.hide()
+      this.sizeRecComponent.Hide()
       this.sizeRecComponent.setLoading(false)
     }
   }
@@ -174,8 +170,8 @@ export class SizeRecommendationController {
     }
   }
 
-  private setCssVariables(cssVariables: TFRCssVariables) {
-    const r = document.querySelector<HTMLElement>(':root')
+  private setCssVariables(sizeRecMainDiv: HTMLDivElement, cssVariables: TFRCssVariables) {
+    const r = sizeRecMainDiv
 
     if (cssVariables.brandColor) r.style.setProperty('--tfr-brand-color', cssVariables.brandColor)
     if (cssVariables.black) r.style.setProperty('--tfr-black', cssVariables.black)
@@ -233,6 +229,18 @@ export class SizeRecommendationController {
       r.style.setProperty('--tfr-size-selector-button-radius', cssVariables.sizeSelectorButtonRadius)
     if (cssVariables.sizeSelectorButtonShadow)
       r.style.setProperty('--tfr-size-selector-button-shadow', cssVariables.sizeSelectorButtonShadow)
+  }
+
+  public Hide() {
+    this.sizeRecComponent.Hide()
+  }
+
+  public Show() {
+    this.sizeRecComponent.Show()
+  }
+
+  public ShowTryOnButton() {
+    this.sizeRecComponent.showTryOnButton()
   }
 }
 

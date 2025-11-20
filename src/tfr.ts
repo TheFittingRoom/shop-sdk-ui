@@ -32,12 +32,13 @@ export class FittingRoomController {
   private config: Config
 
   public readonly tfrModal: TFRModal
-  public readonly tfrSizeRecommendationController: SizeRecommendationController
+  public readonly SizeRecommendationController: SizeRecommendationController
   private readonly vtoComponent: VTOController
   private readonly firestoreController: FirestoreController
   private firebaseAuthUserController: FirebaseAuthUserController
   private firestoreUserController: FirestoreUserController
   private readonly API: FittingRoomAPI
+  private readonly sizeRecMainDiv: HTMLDivElement
   private unsubFirestoreUserCollection: () => void = null
 
   constructor(
@@ -75,7 +76,8 @@ export class FittingRoomController {
 
     if (vtoMainDivId) this.vtoComponent = new VTOController(vtoMainDiv)
 
-    this.tfrSizeRecommendationController = new SizeRecommendationController(
+    this.sizeRecMainDiv = sizeRecMainDiv
+    this.SizeRecommendationController = new SizeRecommendationController(
       sizeRecMainDiv,
       cssVariables || {},
       this.API,
@@ -124,7 +126,8 @@ export class FittingRoomController {
         await cacheColorwaySizeAssetsPromise
       }
 
-      this.tfrSizeRecommendationController.setIsLoggedIn(Boolean(authUser))
+      const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
+      this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(styleMeasurementLocations)
 
       if (Boolean(authUser)) {
         if (this.hooks?.onLogin) this.hooks.onLogin()
@@ -148,26 +151,26 @@ export class FittingRoomController {
     }
 
     if (!this.style) {
-      document.getElementById('tfr-size-recommendations').style.display = 'none'
+      this.SizeRecommendationController.Hide()
     }
 
     if (!this.style.is_published) {
-      document.getElementById('tfr-size-recommendations').style.display = 'none'
+      this.SizeRecommendationController.Hide()
     }
 
     if (this.style.is_vto) {
-      document.getElementById('tfr-try-on-button')?.classList.remove('hide')
+      this.SizeRecommendationController.ShowTryOnButton()
     }
 
     try {
       await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
-      this.tfrSizeRecommendationController.startSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
+      this.SizeRecommendationController.startSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
     } catch (e) {
       if (!(e instanceof UserNotLoggedInError)) {
         throw e
       }
       const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
-      this.tfrSizeRecommendationController.setStyleMeasurementLocations(styleMeasurementLocations)
+      this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(styleMeasurementLocations)
     }
   }
 
@@ -180,8 +183,7 @@ export class FittingRoomController {
 
     if (this.hooks?.onLogout) this.hooks.onLogout()
 
-    this.tfrSizeRecommendationController.setIsLoggedIn(false)
-    this.tfrSizeRecommendationController.setStyleMeasurementLocations(this.styleToGarmentMeasurementLocations(this.style))
+    this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(this.styleToGarmentMeasurementLocations(this.style))
     this.unsubscribeFromProfileChanges()
   }
 
@@ -196,10 +198,10 @@ export class FittingRoomController {
       if (this.hooks?.onLogin) this.hooks.onLogin()
       this.tfrModal.close()
 
-      this.tfrSizeRecommendationController.setIsLoggedIn(true)
+      this.SizeRecommendationController.setIsLoggedIn(true)
 
       if (this.style) {
-        this.tfrSizeRecommendationController.startSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
+        this.SizeRecommendationController.startSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
       }
       // TODO manage firestore subscription state
       // update logged in user
