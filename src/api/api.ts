@@ -1,4 +1,4 @@
-import { DocumentData, QueryFieldFilterConstraint, QuerySnapshot, where } from 'firebase/firestore'
+import { DocumentData, QueryFieldFilterConstraint, where } from 'firebase/firestore'
 
 import {
   SizeFitRecommendation,
@@ -317,7 +317,7 @@ export class FittingRoomAPI {
   }
 
   private async requestColorwaySizeAssetFramesByID(colorwaySizeAssetId: number): Promise<void> {
-    console.debug('requestColorwaySizeAssetFramesByID')
+    console.debug('requestColorwaySizeAssetFramesByID', colorwaySizeAssetId)
     if (!this.IsLoggedIn) throw new UserNotLoggedInError()
 
     await this.fetcher.Post(this.firebaseAuthUserController, `/colorway-size-assets/${colorwaySizeAssetId}/frames`)
@@ -329,7 +329,8 @@ export class FittingRoomAPI {
 
     let firstSnapshotProcessed = false;
 
-    const firestoreUserWatchFallback = async (data: DocumentData) => {
+    const firestoreUserWatchCallback = async (data: DocumentData) => {
+      console.debug("firestoreUserWatchCallback", data)
       if (skipFullSnapshot && !firstSnapshotProcessed) {
         firstSnapshotProcessed = true;
         return false;
@@ -353,8 +354,7 @@ export class FittingRoomAPI {
       }
     }
 
-    const firestoreUser = await firestoreUserController.WatchFirestoreUserChange(firestoreUserWatchFallback)
-
+    const firestoreUser = await firestoreUserController.WatchFirestoreUserChange(firestoreUserWatchCallback)
     const frames = firestoreUser.vto[this.BrandID][colorwaySizeAssetSKU].frames
     this.vtoFramesCache.set(colorwaySizeAssetSKU, frames)
     return frames
@@ -379,12 +379,14 @@ export class FittingRoomAPI {
       }
       await this.requestColorwaySizeAssetFramesByID(colorwaySizeAssetID)
 
+      console.debug("waiting for new vto")
       frames = await this.WatchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, true)
     } else {
       // grab the full snapshot
+      console.debug("waiting for full snapshot")
       frames = await this.WatchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, false)
     }
-
+    console.debug("retrieved frames", frames)
     this.vtoFramesCache.set(colorwaySizeAssetSKU, frames)
     return frames
   }

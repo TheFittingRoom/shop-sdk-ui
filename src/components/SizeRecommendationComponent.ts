@@ -48,7 +48,7 @@ export class SizeRecComponent {
 
   constructor(
     sizeRecMainDiv: HTMLDivElement,
-    private readonly onSignInCallback: (selectedSku?: string, availableSkus?: string[]) => void,
+    private readonly onSignInClickCallback: () => void,
     private readonly onTryOnCallback: (selectedSku: string, availableSkus: string[]) => void,
     private readonly onSignOutCallback: () => void,
     private readonly onFitInfoCallback: () => void,
@@ -60,10 +60,9 @@ export class SizeRecComponent {
     console.debug("onSignInClick")
 
     try {
-      this.onSignInCallback()
+      this.onSignInClickCallback()
     } catch (error) {
       console.debug('Could not get state for sign-in callback:', error)
-      this.onSignInCallback('', [])  // Pass empty fallback values
     }
   }
 
@@ -84,8 +83,9 @@ export class SizeRecComponent {
   public ShowLoggedOut() {
     this.isLoggedIn = false
     console.debug('ShowLoggedOut')
-    this.tfrSizeHowItFits.style.opacity = '0.4'
-    this.tfrSizeRecSelect.style.opacity = '0.4'
+    this.tfrSizeHowItFits.classList.remove("logged-in")
+    this.tfrSizeRecSelect.classList.remove("logged-in")
+    this.tfrSizeRecSelectContainer.classList.remove("logged-in")
 
     this.tfrLoggedInElements.forEach((element) => (element as HTMLElement).classList.add('hide'))
     this.tfrLoggedOutElements.forEach((element) => (element as HTMLElement).classList.remove('hide'))
@@ -103,9 +103,9 @@ export class SizeRecComponent {
     this.isLoggedIn = true
     this.isCollapsed = false
 
-    this.tfrSizeHowItFits.style.opacity = '1'
-    this.tfrSizeRecSelect.style.opacity = '1'
-    this.tfrSizeRecSelectContainer.style.opacity = '1'
+    this.tfrSizeHowItFits.classList.add("logged-in")
+    this.tfrSizeRecSelect.classList.add("logged-in")
+    this.tfrSizeRecSelectContainer.classList.add("logged-in")
 
     this.tfrLoggedInElements.forEach((element) => (element as HTMLElement).classList.remove('hide'))
     this.tfrSizeRecActionLogout.classList.remove('hide')
@@ -117,13 +117,22 @@ export class SizeRecComponent {
     this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')
   }
 
-  public setLoading(isLoading: boolean) {
+  public SetSizeRecommendationLoading(isLoading: boolean) {
     if (isLoading) {
       this.tfrSizeRecLoading.classList.remove('hide')
       this.tfrSizeRecommendationsContainer.classList.add('hide')
     } else {
       this.tfrSizeRecLoading.classList.add('hide')
       this.tfrSizeRecommendationsContainer.classList.remove('hide')
+    }
+  }
+
+  public SetVTOLoading(isLoading: boolean) {
+    this.tfrTryOnButton.disabled = isLoading
+    if (isLoading) {
+      this.tfrTryOnButton.classList.add('loading')
+    } else {
+      this.tfrTryOnButton.classList.remove('loading')
     }
   }
 
@@ -241,8 +250,7 @@ export class SizeRecComponent {
       return
     }
 
-    this.tfrTryOnButton.classList.add('loading')
-    this.tfrTryOnButton.disabled = true
+    this.SetVTOLoading(true)
 
     // Get the state and call the try-on callback with the selected SKU and available SKUs
     try {
@@ -250,9 +258,7 @@ export class SizeRecComponent {
       this.onTryOnCallback(selectedSku, availableSkus)
     } catch (error) {
       console.error('Error getting try-on state:', error)
-      // Reset the button state in case of error
-      this.tfrTryOnButton.classList.remove('loading')
-      this.tfrTryOnButton.disabled = false
+      this.SetVTOLoading(false)
     }
   }
 

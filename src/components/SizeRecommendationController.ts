@@ -1,4 +1,4 @@
-import { FirestoreColorwaySizeAsset, Fit, FitNames, TFRShop } from '../api'
+import { FirestoreColorwaySizeAsset, Fit, FitNames, FittingRoomAPI } from '../api'
 import { RecommendedSize, SizeRecComponent } from './SizeRecommendationComponent'
 
 export type TFRCssVariables = {
@@ -45,8 +45,8 @@ export class SizeRecommendationController {
   constructor(
     sizeRecMainDiv: HTMLDivElement,
     cssVariables: TFRCssVariables,
-    private readonly tfrShop: TFRShop,
-    private readonly signInCallback: (selectedSku: string, availableSkus: string[]) => void,
+    private readonly FittingRoomAPI: FittingRoomAPI,
+    private readonly signInClickCallback: () => void,
     private readonly logoutCallback: () => void,
     private readonly fitInfoCallback: () => void,
     private readonly tryOnCallback: (selectedSku: string, availableSkus: string[]) => Promise<void>,
@@ -55,15 +55,15 @@ export class SizeRecommendationController {
 
     this.sizeRecComponent = new SizeRecComponent(
       sizeRecMainDiv,
-      this.onSignInCallback.bind(this),
+      this.onSignInClickCallback.bind(this),
       this.onTryOnCallback.bind(this),
       this.onLogoutCallback.bind(this),
       this.onFitInfoCallback.bind(this)
     )
   }
 
-  private onSignInCallback(selectedSku: string, availableSkus: string[]): void {
-    this.signInCallback(selectedSku, availableSkus)
+  private onSignInClickCallback(): void {
+    this.signInClickCallback()
   }
 
   private onLogoutCallback(): void {
@@ -84,7 +84,7 @@ export class SizeRecommendationController {
     }
     console.debug('filledLocations', locations)
 
-    this.sizeRecComponent.setLoading(false)
+    this.sizeRecComponent.SetSizeRecommendationLoading(false)
     this.sizeRecComponent.setStyleMeasurementLocations(locations)
     this.sizeRecComponent.ShowLoggedOut()
     this.sizeRecComponent.Show()
@@ -93,23 +93,23 @@ export class SizeRecommendationController {
   public async StartSizeRecommendation(styleId: number, colorwaySizeAssets: FirestoreColorwaySizeAsset[]) {
     console.debug('StartSizeRecommendation')
     try {
-      this.sizeRecComponent.setLoading(true)
+      this.sizeRecComponent.SetSizeRecommendationLoading(true)
       this.sizeRecComponent.ShowLoggedIn()
 
       const sizes = await this.getRecommendedSizes(styleId, colorwaySizeAssets)
       if (!sizes) {
         console.error('No sizes found for sku')
-        this.sizeRecComponent.setLoading(false)
+        this.sizeRecComponent.SetSizeRecommendationLoading(false)
         return
       }
 
       this.sizeRecComponent.Show()
       this.sizeRecComponent.setRecommendedSize(sizes)
-      this.sizeRecComponent.setLoading(false)
+      this.sizeRecComponent.SetSizeRecommendationLoading(false)
     } catch (e) {
       console.error(e)
       this.sizeRecComponent.Hide()
-      this.sizeRecComponent.setLoading(false)
+      this.sizeRecComponent.SetSizeRecommendationLoading(false)
     }
   }
 
@@ -118,7 +118,7 @@ export class SizeRecommendationController {
     colorwaySizeAssets: FirestoreColorwaySizeAsset[],
   ): Promise<RecommendedSize> {
     console.debug('getting recommended sizes', { styleId })
-    const sizeRec = await this.tfrShop.GetRecommendedSizes(styleId)
+    const sizeRec = await this.FittingRoomAPI.GetRecommendedSizes(styleId)
 
     if (!sizeRec) {
       console.debug('no size rec found')
@@ -170,8 +170,8 @@ export class SizeRecommendationController {
                   return {
                     fit: fitLabel,
                     isPerfect: this.perfectFits.includes(locationFit.fit),
-                    location: this.tfrShop.GetMeasurementLocationName(locationFit.measurement_location),
-                    sortOrder: this.tfrShop.GetMeasurementLocationSortOrder(locationFit.measurement_location),
+                    location: this.FittingRoomAPI.GetMeasurementLocationName(locationFit.measurement_location),
+                    sortOrder: this.FittingRoomAPI.GetMeasurementLocationSortOrder(locationFit.measurement_location),
                   }
                 })
                 .filter((location) => location !== null) // Filter out null locations
@@ -253,6 +253,26 @@ export class SizeRecommendationController {
 
   public ShowTryOnButton() {
     this.sizeRecComponent.showTryOnButton()
+  }
+
+  public ShowSizeRecommendationLoading() {
+    console.debug("show sizerec loading")
+    this.sizeRecComponent.SetSizeRecommendationLoading(true)
+  }
+
+  public HideSizeRecommendationLoading() {
+    console.debug("hiding sizerec loading")
+    this.sizeRecComponent.SetSizeRecommendationLoading(false)
+  }
+
+  public ShowVTOLoading() {
+    console.debug("show vto loading")
+    this.sizeRecComponent.SetVTOLoading(true)
+  }
+
+  public HideVTOLoading() {
+    console.debug("show vto loading")
+    this.sizeRecComponent.SetVTOLoading(false)
   }
 }
 

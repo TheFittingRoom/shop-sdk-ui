@@ -65,7 +65,7 @@ export class FittingRoomController {
 
     this.tfrModal = new TFRModal(
       modalDiv,
-      this.signInModalCallback.bind(this),
+      this.signInClickModalCallback.bind(this),
       this.forgotPassword.bind(this),
       this.submitTel.bind(this),
     )
@@ -185,7 +185,7 @@ export class FittingRoomController {
     this.unsubscribeFromProfileChanges()
   }
 
-  public async signInModalCallback(username: string, password: string, validationError: (message: string) => void) {
+  public async signInClickModalCallback(username: string, password: string, validationError: (message: string) => void) {
     if (username.length == 0 || password.length == 0) return validationError(L.UsernameOrPasswordEmpty)
     if (!validateEmail(username)) return validationError(L.EmailError)
     if (!validatePassword(password)) return validationError(L.PasswordError)
@@ -241,13 +241,17 @@ export class FittingRoomController {
 
   // callback for SizeRecommendationController
   public async tryOnCallback(primarySKU: string, availableSKUs: string[]) {
+    console.log("tryOncallback", primarySKU, availableSKUs)
     this.forceFreshVTO = this.hasInitializedTryOn && this.noCacheOnRetry
 
     try {
       const batchResult = await this.API.PriorityTryOnWithMultiRequestCache(this.firestoreUserController, primarySKU, availableSKUs, this.forceFreshVTO)
       this.vtoComponent.onNewFramesReady(batchResult)
+      this.SizeRecommendationController.HideVTOLoading()
+      this.hasInitializedTryOn = true
     } catch (e) {
       this.tfrModal.onError(L.SomethingWentWrong)
+      this.SizeRecommendationController.HideVTOLoading()
       console.error(e)
     }
   }

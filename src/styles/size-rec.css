@@ -15,7 +15,12 @@
 
 #tfr-size-how-it-fits {
   opacity: 0.4;
+
+  .logged-in {
+    opacity: 1;
+  }
 }
+
 
 #tfr-size-recommendations-container {
   align-items: center;
@@ -151,6 +156,12 @@
 }
 
 #tfr-size-rec-select {
+  opacity: 0.4;
+
+  .logged-in {
+    opacity: 1;
+  }
+
   align-items: center;
   background-color: var(--tfr-size-selector-bg-color);
   border-radius: var(--tfr-size-selector-button-radius);
@@ -281,6 +292,10 @@
   border-top-color: transparent;
   animation: spin 1s linear infinite;
   margin-left: 8px;
+}
+
+#tfr-try-on-button.loading {
+  color: transparent;
 }
 
 .hide {
