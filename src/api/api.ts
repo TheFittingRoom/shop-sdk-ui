@@ -302,6 +302,7 @@ export class FittingRoomAPI {
 
   // queues 3+ virtual try ons and only waits on the active rendered virtual tryon
   public async PriorityTryOnWithMultiRequestCache(firestoreUserController: FirestoreUserController, activeSKU: string, availableSKUs: string[], skipCache: boolean = false): Promise<TryOnFrames> {
+    console.debug("PriorityTryOnWithMultiRequestCache", activeSKU, availableSKUs)
     if (!this.IsLoggedIn) throw new UserNotLoggedInError()
 
     const priorityPromise = this.GetCachedOrRequestUserColorwaySizeAssetFrames(firestoreUserController, activeSKU, skipCache)

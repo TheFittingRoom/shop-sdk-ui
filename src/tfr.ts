@@ -38,7 +38,6 @@ export class FittingRoomController {
   private firebaseAuthUserController: FirebaseAuthUserController
   private firestoreUserController: FirestoreUserController
   private readonly API: FittingRoomAPI
-  private readonly sizeRecMainDiv: HTMLDivElement
   private unsubFirestoreUserCollection: () => void = null
 
   constructor(
@@ -66,7 +65,7 @@ export class FittingRoomController {
 
     this.tfrModal = new TFRModal(
       modalDiv,
-      this.SignIn.bind(this),
+      this.signInModalCallback.bind(this),
       this.forgotPassword.bind(this),
       this.submitTel.bind(this),
     )
@@ -76,15 +75,14 @@ export class FittingRoomController {
 
     if (vtoMainDivId) this.vtoComponent = new VTOController(vtoMainDiv)
 
-    this.sizeRecMainDiv = sizeRecMainDiv
     this.SizeRecommendationController = new SizeRecommendationController(
       sizeRecMainDiv,
       cssVariables || {},
       this.API,
-      this.onSignInClick.bind(this),
-      this.LogOut.bind(this),
-      this.onFitInfoClick.bind(this),
-      this.onTryOnClick.bind(this),
+      this.signInSizeRecommendationCallback.bind(this),
+      this.logOutCallback.bind(this),
+      this.fitInfoCallback.bind(this),
+      this.tryOnCallback.bind(this),
     )
 
     // TODO: write a callback function that gets passed to the API state handlerss
@@ -164,7 +162,7 @@ export class FittingRoomController {
 
     try {
       await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
-      this.SizeRecommendationController.startSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
+      this.SizeRecommendationController.StartSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
     } catch (e) {
       if (!(e instanceof UserNotLoggedInError)) {
         throw e
@@ -178,7 +176,7 @@ export class FittingRoomController {
     this.tfrModal.close()
   }
 
-  public async LogOut() {
+  public async logOutCallback() {
     await this.firebaseAuthUserController.Logout()
 
     if (this.hooks?.onLogout) this.hooks.onLogout()
@@ -187,7 +185,7 @@ export class FittingRoomController {
     this.unsubscribeFromProfileChanges()
   }
 
-  public async SignIn(username: string, password: string, validationError: (message: string) => void) {
+  public async signInModalCallback(username: string, password: string, validationError: (message: string) => void) {
     if (username.length == 0 || password.length == 0) return validationError(L.UsernameOrPasswordEmpty)
     if (!validateEmail(username)) return validationError(L.EmailError)
     if (!validatePassword(password)) return validationError(L.PasswordError)
@@ -198,10 +196,8 @@ export class FittingRoomController {
       if (this.hooks?.onLogin) this.hooks.onLogin()
       this.tfrModal.close()
 
-      this.SizeRecommendationController.setIsLoggedIn(true)
-
       if (this.style) {
-        this.SizeRecommendationController.startSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
+        this.SizeRecommendationController.StartSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
       }
       // TODO manage firestore subscription state
       // update logged in user
@@ -235,16 +231,16 @@ export class FittingRoomController {
     return this.API.GetMeasurementLocationsFromSku(sku, [], skipCache)
   }
 
-  public onSignInClick() {
+  public signInSizeRecommendationCallback() {
     this.tfrModal.toScan()
   }
 
-  public onFitInfoClick() {
+  public fitInfoCallback() {
     this.tfrModal.toFitInfo()
   }
 
   // callback for SizeRecommendationController
-  public async onTryOnClick(primarySKU: string, availableSKUs: string[]) {
+  public async tryOnCallback(primarySKU: string, availableSKUs: string[]) {
     this.forceFreshVTO = this.hasInitializedTryOn && this.noCacheOnRetry
 
     try {

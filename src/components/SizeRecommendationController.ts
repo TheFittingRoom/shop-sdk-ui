@@ -46,44 +46,56 @@ export class SizeRecommendationController {
     sizeRecMainDiv: HTMLDivElement,
     cssVariables: TFRCssVariables,
     private readonly tfrShop: TFRShop,
-    private readonly onFittingRoomControllerSignInClick: () => void,
-    private readonly onFittingRoomControllerSignOutClick: () => void,
-    private readonly onFittingRoomControllerFitInfoClick: () => void,
-    private readonly onFittingRoomControllerTryOnClick: (selectedSku: string, availableSkus: string[]) => Promise<void>,
+    private readonly signInCallback: (selectedSku: string, availableSkus: string[]) => void,
+    private readonly logoutCallback: () => void,
+    private readonly fitInfoCallback: () => void,
+    private readonly tryOnCallback: (selectedSku: string, availableSkus: string[]) => Promise<void>,
   ) {
     this.setCssVariables(sizeRecMainDiv, cssVariables)
 
     this.sizeRecComponent = new SizeRecComponent(
       sizeRecMainDiv,
-      this.onFittingRoomControllerSignInClick,
-      this.onFittingRoomControllerSignOutClick,
-      this.onFittingRoomControllerFitInfoClick,
-      this.onSizeRecommendationControllerTryOnClick.bind(this),
+      this.onSignInCallback.bind(this),
+      this.onTryOnCallback.bind(this),
+      this.onLogoutCallback.bind(this),
+      this.onFitInfoCallback.bind(this)
     )
   }
 
+  private onSignInCallback(selectedSku: string, availableSkus: string[]): void {
+    this.signInCallback(selectedSku, availableSkus)
+  }
 
-  public onSizeRecommendationControllerTryOnClick() {
-    const { selectedSku, availableSkus } = this.sizeRecComponent.GetSizeRecommendationState()
-    this.onFittingRoomControllerTryOnClick(selectedSku, availableSkus)
+  private onLogoutCallback(): void {
+    this.logoutCallback()
+  }
+
+  private onFitInfoCallback(): void {
+    this.fitInfoCallback()
+  }
+
+  private onTryOnCallback(selectedSku: string, availableSkus: string[]) {
+    this.tryOnCallback(selectedSku, availableSkus)
   }
 
   public async setLoggedOutStyleMeasurementLocations(locations: string[] = []) {
-    this.sizeRecComponent.setLoading(true)
     if (locations.length == 0) {
       throw new Error('filteredLocations passed to setGarmentLocations is 0')
     }
     console.debug('filledLocations', locations)
 
-    this.sizeRecComponent.setStyleMeasurementLocations(locations)
     this.sizeRecComponent.setLoading(false)
+    this.sizeRecComponent.setStyleMeasurementLocations(locations)
     this.sizeRecComponent.ShowLoggedOut()
     this.sizeRecComponent.Show()
   }
 
-  public async startSizeRecommendation(styleId: number, colorwaySizeAssets: FirestoreColorwaySizeAsset[]) {
+  public async StartSizeRecommendation(styleId: number, colorwaySizeAssets: FirestoreColorwaySizeAsset[]) {
+    console.debug('StartSizeRecommendation')
     try {
       this.sizeRecComponent.setLoading(true)
+      this.sizeRecComponent.ShowLoggedIn()
+
       const sizes = await this.getRecommendedSizes(styleId, colorwaySizeAssets)
       if (!sizes) {
         console.error('No sizes found for sku')

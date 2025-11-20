@@ -44,25 +44,53 @@ export class SizeRecComponent {
   private isCollapsed: boolean = false
   private redraw: (index: number) => void = null
 
+  private isLoggedIn: boolean = false
+
   constructor(
     sizeRecMainDiv: HTMLDivElement,
-    // auto created as properties due to access modifier
-    private readonly onSignInClick: () => void,
-    private readonly onSignOutClick: () => void,
-    private readonly onFitInfoClick: () => void,
-    private readonly onTryOnClick: () => void,
+    private readonly onSignInCallback: (selectedSku?: string, availableSkus?: string[]) => void,
+    private readonly onTryOnCallback: (selectedSku: string, availableSkus: string[]) => void,
+    private readonly onSignOutCallback: () => void,
+    private readonly onFitInfoCallback: () => void,
   ) {
     this.init(sizeRecMainDiv)
   }
 
+  private onSignInClick(): void {
+    console.debug("onSignInClick")
+
+    try {
+      this.onSignInCallback()
+    } catch (error) {
+      console.debug('Could not get state for sign-in callback:', error)
+      this.onSignInCallback('', [])  // Pass empty fallback values
+    }
+  }
+
+  private onSignOutClick(): void {
+    console.debug("onSignOutClick")
+    this.ShowLoggedOut()
+    if (this.onSignOutCallback) {
+      this.onSignOutCallback()
+    }
+  }
+
+  private onFitInfoClick(): void {
+    if (this.onFitInfoCallback) {
+      this.onFitInfoCallback()
+    }
+  }
+
   public ShowLoggedOut() {
+    this.isLoggedIn = false
+    console.debug('ShowLoggedOut')
     this.tfrSizeHowItFits.style.opacity = '0.4'
     this.tfrSizeRecSelect.style.opacity = '0.4'
 
     this.tfrLoggedInElements.forEach((element) => (element as HTMLElement).classList.add('hide'))
     this.tfrLoggedOutElements.forEach((element) => (element as HTMLElement).classList.remove('hide'))
     this.tfrSizeRecSelectContainer.classList.remove('hide')
-    console.log("tfrSizeRecSelectContainer", this.tfrSizeRecSelectContainer)
+    this.tfrSizeRecSelect.classList.remove('hide')
     this.tfrSizeRecActionLogin.classList.remove('hide')
     this.tfrSizeRecActionLogout.classList.add('hide')
 
@@ -72,6 +100,7 @@ export class SizeRecComponent {
   }
 
   public ShowLoggedIn() {
+    this.isLoggedIn = true
     this.isCollapsed = false
 
     this.tfrSizeHowItFits.style.opacity = '1'
@@ -193,31 +222,43 @@ export class SizeRecComponent {
   }
 
   private bindEvents() {
-    this.tfrSizeRecActionLogin.addEventListener('click', this.onSignInClick)
-    this.tfrSizeRecActionLogout.addEventListener('click', this.onSignOutClick)
+    this.tfrSizeRecActionLogin.addEventListener('click', this.onSignInClick.bind(this))
+    this.tfrSizeRecActionLogout.addEventListener('click', this.onSignOutClick.bind(this))
     this.tfrSizeRecSelect.addEventListener('click', this.onSizeRecSelectClick.bind(this))
-    this.tfrSizeRecTitleToggle.addEventListener('click', this.toggletSizeRecSelectContainer.bind(this))
-    this.tfrInfoIcon.addEventListener('click', this.onFitInfoClick)
-    this.tfrLoginToView.addEventListener('click', this.onSignInClick)
+    this.tfrSizeRecTitleToggle.addEventListener('click', this.toggleSizeRecSelectContainer.bind(this))
+    this.tfrInfoIcon.addEventListener('click', this.onFitInfoClick.bind(this))
+    this.tfrLoginToView.addEventListener('click', this.onSignInClick.bind(this))
 
-    this.tfrTryOnButton.addEventListener('click', async () => {
+    this.tfrTryOnButton.addEventListener('click', this.onTryOnClick.bind(this))
+  }
+
+  private onTryOnClick(e: MouseEvent) {
+    console.debug("onTryOnClick")
+    e.preventDefault()
+
+    if (!this.isLoggedIn) {
       this.onSignInClick()
+      return
+    }
 
-      this.tfrTryOnButton.classList.add('loading')
-      this.tfrTryOnButton.disabled = true
+    this.tfrTryOnButton.classList.add('loading')
+    this.tfrTryOnButton.disabled = true
 
-      try {
-        this.onTryOnClick()
-      } catch (error) {
-        console.error('Error during try-on process:', error)
-      } finally {
-        this.tfrTryOnButton.classList.remove('loading')
-        this.tfrTryOnButton.disabled = false
-      }
-    })
+    // Get the state and call the try-on callback with the selected SKU and available SKUs
+    try {
+      const { selectedSku, availableSkus } = this.GetSizeRecommendationState()
+      this.onTryOnCallback(selectedSku, availableSkus)
+    } catch (error) {
+      console.error('Error getting try-on state:', error)
+      // Reset the button state in case of error
+      this.tfrTryOnButton.classList.remove('loading')
+      this.tfrTryOnButton.disabled = false
+    }
   }
 
   private onSizeRecSelectClick(e: MouseEvent) {
+    console.debug("onSizeRecSelectClick")
+
     const target = e.target as HTMLDivElement
     if (!target.classList.contains('tfr-size-rec-select-button') || target.classList.contains('tfr-disabled')) return
 
@@ -232,8 +273,6 @@ export class SizeRecComponent {
     allButtons.item(selectedIndex).classList.add('active')
 
     this.redraw(selectedIndex)
-
-    this.onTryOnClick()
   }
 
   private renderSizeRec(recommended: string, sizes: RecommendedSize['sizes']) {
@@ -313,7 +352,7 @@ export class SizeRecComponent {
     return choices[index % choices.length]
   }
 
-  private toggletSizeRecSelectContainer() {
+  private toggleSizeRecSelectContainer() {
     if (this.isCollapsed) {
       this.isCollapsed = false
       this.tfrSizeRecTitleToggle.classList.add('tfr-chevron-up')
