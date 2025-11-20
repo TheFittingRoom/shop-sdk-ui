@@ -16,7 +16,7 @@ export type TFR = {
 export const initFittingRoom = async ({
   env,
   shopId,
-  styleSKU: brandStyleID,
+  styleSKU,
   modalDivId,
   sizeRecMainDivId,
   vtoMainDivId,
@@ -27,7 +27,7 @@ export const initFittingRoom = async ({
   try {
     const tfr = new FittingRoomController(env,
       shopId,
-      brandStyleID,
+      styleSKU,
       noCacheOnRetry,
       modalDivId,
       sizeRecMainDivId,

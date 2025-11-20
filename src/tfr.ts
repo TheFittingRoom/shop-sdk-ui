@@ -12,6 +12,7 @@ import { FirebaseAuthUserController } from './api/helpers/firebase/FirebaseAuthU
 import { FirestoreUserController } from './api/helpers/firebase/FirestoreUserController'
 import { DocumentData } from 'firebase/firestore'
 import { FirestoreController } from './api/helpers/firebase/firestore'
+import { UserNotLoggedInError } from './api/helpers/errors'
 
 export interface TFRHooks {
   onLoading?: () => void
@@ -25,7 +26,6 @@ export interface TFRHooks {
 export class FittingRoomController {
   private hasInitializedTryOn: boolean = false
   private forceFreshVTO: boolean = false
-  private activeSku: string = ''
 
   public style: FirestoreStyle
   public colorwaySizeAsset: FirestoreColorwaySizeAsset
@@ -93,54 +93,56 @@ export class FittingRoomController {
     // })
   }
 
-  get sku() {
-    return this.activeSku
-  }
-
   public async Init(): Promise<void> {
-    const measurementLocationsPromise = this.API.FetchCacheMeasurementLocations()
-    const authUserPromise = this.firebaseAuthUserController.GetUserOrNotLoggedIn()
-    const stylePromise = this.API.GetStyleByBrandStyleID(this.styleSKU)
-    await Promise.all([
-      authUserPromise,
-      stylePromise,
-      measurementLocationsPromise,
-    ]).catch(e => {
-      console.error("a promise in tfr init failed", e)
-      throw e
-    })
-    let cacheColorwaySizeAssetsPromise: Promise<void> = null
-    const style = await stylePromise
-    if (style) {
-      console.debug('style successfully retrieved via style sku')
-      this.style = style
-      cacheColorwaySizeAssetsPromise = this.API.FetchColorwaySizeAssetsFromStyleId(style.id)
-    }
-    const authUser = await authUserPromise
-    if (authUser) {
-      //init and prefetch user
-      this.firestoreUserController = new FirestoreUserController(
-        this.firestoreController.firestore,
-        this.firebaseAuthUserController)
-    }
+    try {
+      const measurementLocationsPromise = this.API.FetchCacheMeasurementLocations()
+      const authUserPromise = this.firebaseAuthUserController.GetUserOrNotLoggedIn()
+      const stylePromise = this.API.GetStyleByBrandStyleID(this.styleSKU)
+      await Promise.all([
+        authUserPromise,
+        stylePromise,
+        measurementLocationsPromise,
+      ])
 
-    if (cacheColorwaySizeAssetsPromise) {
-      // let cache finish before loading
-      await cacheColorwaySizeAssetsPromise
-    }
+      let cacheColorwaySizeAssetsPromise: Promise<void> = null
+      const style = await stylePromise
+      if (style) {
+        console.debug('style successfully retrieved via style sku')
+        this.style = style
+        cacheColorwaySizeAssetsPromise = this.API.FetchColorwaySizeAssetsFromStyleId(style.id)
+      }
+      const authUser = await authUserPromise
+      if (authUser) {
+        //init and prefetch user
+        this.firestoreUserController = new FirestoreUserController(
+          this.firestoreController.firestore,
+          this.firebaseAuthUserController)
+      }
 
-    this.tfrSizeRecommendationController.setIsLoggedIn(Boolean(authUser))
+      if (cacheColorwaySizeAssetsPromise) {
+        // let cache finish before loading
+        await cacheColorwaySizeAssetsPromise
+      }
 
-    if (Boolean(authUser)) {
-      if (this.hooks?.onLogin) this.hooks.onLogin()
-      // subscribe to firestore
+      this.tfrSizeRecommendationController.setIsLoggedIn(Boolean(authUser))
+
+      if (Boolean(authUser)) {
+        if (this.hooks?.onLogin) this.hooks.onLogin()
+        // subscribe to firestore
+      }
+    } catch (e) {
+      if (e instanceof UserNotLoggedInError) {
+        console.log
+        return
+      }
+      throw new e
     }
   }
 
   public async InitSizeRecommendationWithSku(activeSku: string, skipCache: boolean = false) {
     console.debug("InitSizeRecommendationWithSku", activeSku, skipCache)
     if (!this.style) {
-      console.debug('fetching style for sku:', this.sku)
+      console.debug('fetching style for sku:', activeSku)
       let colorwaySizeAsset = await this.API.GetCachedColorwaySizeAssetFromSku(activeSku, skipCache)
       this.style = await this.API.GetStyleByID(colorwaySizeAsset.style_id)
     }
@@ -161,8 +163,11 @@ export class FittingRoomController {
       await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
       this.tfrSizeRecommendationController.startSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
     } catch (e) {
+      if (!(e instanceof UserNotLoggedInError)) {
+        throw e
+      }
       const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
-      this.setStyleMeasurementLocations(styleMeasurementLocations)
+      this.tfrSizeRecommendationController.setStyleMeasurementLocations(styleMeasurementLocations)
     }
   }
 
@@ -176,7 +181,7 @@ export class FittingRoomController {
     if (this.hooks?.onLogout) this.hooks.onLogout()
 
     this.tfrSizeRecommendationController.setIsLoggedIn(false)
-    this.setStyleMeasurementLocations(this.styleToGarmentMeasurementLocations(this.style))
+    this.tfrSizeRecommendationController.setStyleMeasurementLocations(this.styleToGarmentMeasurementLocations(this.style))
     this.unsubscribeFromProfileChanges()
   }
 
@@ -240,12 +245,12 @@ export class FittingRoomController {
   public async onTryOnClick(primarySKU: string, availableSKUs: string[]) {
     this.forceFreshVTO = this.hasInitializedTryOn && this.noCacheOnRetry
 
-    const batchResult = await this.API.PriorityTryOnWithMultiRequestCache(this.firestoreUserController, primarySKU, availableSKUs, this.forceFreshVTO)
-
     try {
+      const batchResult = await this.API.PriorityTryOnWithMultiRequestCache(this.firestoreUserController, primarySKU, availableSKUs, this.forceFreshVTO)
       this.vtoComponent.onNewFramesReady(batchResult)
     } catch (e) {
       this.tfrModal.onError(L.SomethingWentWrong)
+      console.error(e)
     }
   }
 
@@ -291,9 +296,5 @@ export class FittingRoomController {
 
   public styleToGarmentMeasurementLocations(style: FirestoreStyle) {
     return style.sizes[0].garment_measurements.map((measurement) => measurement.measurement_location)
-  }
-
-  public async setStyleMeasurementLocations(measurementLocations: string[]) {
-    this.tfrSizeRecommendationController.setStyleMeasurementLocations(measurementLocations)
   }
 }

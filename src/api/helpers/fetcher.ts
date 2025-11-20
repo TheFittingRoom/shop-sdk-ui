@@ -48,11 +48,11 @@ export class Fetcher {
     }
   }
 
-  Get(user: FirebaseAuthUserController, endpointPath: string, useToken?: boolean): Promise<Response> {
+  async Get(user: FirebaseAuthUserController, endpointPath: string, useToken?: boolean): Promise<Response> {
     return this.Fetch({ authUser: user, endpointPath, method: 'GET', body: undefined, useToken })
   }
 
-  Post(
+  async Post(
     authUser: FirebaseAuthUserController,
     endpointPath: string,
     body?: Record<string, any>,
@@ -61,7 +61,7 @@ export class Fetcher {
     return this.Fetch({ authUser: authUser, endpointPath, method: 'POST', body, useToken })
   }
 
-  Put(
+  async Put(
     authUser: FirebaseAuthUserController,
     endpointPath: string,
     body: Record<string, any>,
@@ -70,7 +70,7 @@ export class Fetcher {
     return this.Fetch({ authUser: authUser, endpointPath, method: 'PUT', body, useToken })
   }
 
-  Patch(
+  async Patch(
     authUser: FirebaseAuthUserController,
     endpointPath: string,
     body: Record<string, any>,
@@ -79,7 +79,7 @@ export class Fetcher {
     return this.Fetch({ authUser: authUser, endpointPath, method: 'PATCH', body, useToken })
   }
 
-  Delete(
+  async Delete(
     authUser: FirebaseAuthUserController,
     endpointPath: string,
     body?: Record<string, any>,

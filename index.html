@@ -167,13 +167,12 @@
         }
 
         const startTime = performance.now()
-        const tfrPromise = initFittingRoom(config)
         const sku = getSku()
         if (!sku) {
           console.warn('SKU not retrieved. The Fitting Room will initialize but may not function optimally without a specific SKU.')
         }
+        const tfr = await initFittingRoom(config)
 
-        const tfr = await tfrPromise
         if (sku) {
           tfr.InitSizeRecommendationWithSku(sku, variantSKUs, true)
         }
