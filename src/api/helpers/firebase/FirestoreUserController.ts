@@ -17,10 +17,10 @@ export class FirestoreUserController {
   constructor(
     private readonly firestore: Firestore,
     private firebaseAuthUserController: FirebaseAuthUserController) {
-    this.getUserPromise = this.FetchUser(true)
+    this.getUserPromise = this.GetUser(true)
   }
 
-  public async FetchUser(skipCache: boolean): Promise<FirestoreUser> {
+  public async GetUser(skipCache: boolean): Promise<FirestoreUser> {
     if (!skipCache) {
       if (this.userProfile) {
         console.debug("returning user from cache")
@@ -35,11 +35,11 @@ export class FirestoreUserController {
       this.getUserPromise = null
     }
     console.debug("returning user from firestore")
-    const user = await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
-    const snapshot = await getDoc(doc(this.firestore, 'users', user.uid))
+    const authUser = await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
+    const snapshot = await getDoc(doc(this.firestore, 'users', authUser.uid))
     if (!snapshot.exists()) {
       console.error("user not found")
-      throw new Errors.UserNotFoundError(user.uid)
+      throw new Errors.UserNotFoundError(authUser.uid)
     }
     this.userProfile = snapshot.data() as FirestoreUser
     return this.userProfile
@@ -49,13 +49,13 @@ export class FirestoreUserController {
    * Watches a user's profile until a predicate returns true.
    * Resolves with the document data when the predicate is met.
    */
-  public async WatchUserProfileForChanges(
+  public async WatchFirestoreUserChange(
     dataCallbackAndUnsub: (data: DocumentData) => Promise<boolean>,
-  ): Promise<DocumentData> {
+  ): Promise<FirestoreUser> {
     const user = await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
     let unsub: Unsubscribe | undefined
 
-    return new Promise<DocumentData>((resolve, reject) => {
+    return new Promise<FirestoreUser>((resolve, reject) => {
       const docRef = doc(this.firestore, 'users', user.uid)
 
       unsub = onSnapshot(
@@ -70,9 +70,8 @@ export class FirestoreUserController {
           const result = await dataCallbackAndUnsub(data)
           if (result) {
             unsub?.()
-            resolve(data)
+            resolve(data as FirestoreUser)
           }
-          // wait for next event dont exit
         },
         (error) => {
           console.error('watchUserProfileForChanges onSnapshot error:', error)

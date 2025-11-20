@@ -282,7 +282,7 @@ export class FittingRoomController {
 
   private async addStateChangeHandler(callback: (data: DocumentData) => Promise<boolean>): Promise<void> {
     await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
-    await this.firestoreUserController.WatchUserProfileForChanges(callback)
+    await this.firestoreUserController.WatchFirestoreUserChange(callback)
   }
 
   private unsubscribeFromProfileChanges() {
