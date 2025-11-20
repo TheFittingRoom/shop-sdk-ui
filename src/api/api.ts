@@ -329,7 +329,7 @@ export class FittingRoomAPI {
 
     let firstSnapshotProcessed = false;
 
-    const callback = async (data: QuerySnapshot<DocumentData>) => {
+    const firestoreUserWatchFallback = async (data: DocumentData) => {
       if (skipFullSnapshot && !firstSnapshotProcessed) {
         firstSnapshotProcessed = true;
         return false;
@@ -337,7 +337,7 @@ export class FittingRoomAPI {
 
       // get the frames from a cached or fresh user profile
       try {
-        const firestoreUser = data.docs[0].data() as FirestoreUser
+        const firestoreUser = data as FirestoreUser
         const frames = firestoreUser.vto[this.BrandID][colorwaySizeAssetSKU].frames
         if (!frames?.length) {
           return false // we recieved an invalid firestore change
@@ -353,7 +353,7 @@ export class FittingRoomAPI {
       }
     }
 
-    const firestoreUser = await firestoreUserController.WatchFirestoreUserChange(callback)
+    const firestoreUser = await firestoreUserController.WatchFirestoreUserChange(firestoreUserWatchFallback)
 
     const frames = firestoreUser.vto[this.BrandID][colorwaySizeAssetSKU].frames
     this.vtoFramesCache.set(colorwaySizeAssetSKU, frames)
