@@ -49,7 +49,7 @@ export class FittingRoomAPI {
 
   public async GetRecommendedSizes(styleId: number): Promise<SizeFitRecommendation | null> {
     if (!this.IsLoggedIn) throw new UserNotLoggedInError()
-    console.debug('fetching size_recommendation', styleId)
+    console.debug('calling /recommend', styleId)
     try {
       const res = await this.fetcher.Get(this.firebaseAuthUserController, `/styles/${String(styleId)}/recommendation`)
       const data = (await res.json()) as SizeFitRecommendation
@@ -105,6 +105,7 @@ export class FittingRoomAPI {
   }
 
   public async FetchColorwaySizeAssetsFromStyleId(styleId: number): Promise<void> {
+    console.debug('fetching colorway_size_assets', 'styleId', styleId)
     const constraints: QueryFieldFilterConstraint[] = [
       where('brand_id', '==', this.BrandID),
       where('style_id', '==', styleId),
@@ -112,7 +113,6 @@ export class FittingRoomAPI {
     try {
       const querySnapshot = await this.firebase.getDocs('colorway_size_assets', constraints)
       const newAssets = querySnapshot.docs.map((doc) => doc.data() as FirestoreColorwaySizeAsset)
-      console.debug("caching new assets", newAssets.length, newAssets)
       newAssets.forEach(asset => {
         console.debug("caching colorway_size_asset", asset.sku)
         this.cachedColorwaySizeAssets.set(asset.sku, asset)
@@ -165,8 +165,7 @@ export class FittingRoomAPI {
     console.debug('getStyleByBrandStyleID:', styleSKU)
     if (!styleSKU) throw new Error('styleSKU is required for GetStyleByBrandStyleID')
     const isLoggedIn = await this.IsLoggedIn()
-    console.debug('User logged in for GetStyleByBrandStyleID:', isLoggedIn)
-    console.debug('Brand ID:', this.BrandID)
+    console.debug("isLoggedIn", isLoggedIn, 'BrandID:', this.BrandID)
     try {
       const constraints: QueryFieldFilterConstraint[] = [where('brand_id', '==', this.BrandID)]
       constraints.push(where('brand_style_id', '==', styleSKU))

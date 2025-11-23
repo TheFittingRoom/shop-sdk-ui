@@ -107,7 +107,6 @@ export class FittingRoomController {
       let cacheColorwaySizeAssetsPromise: Promise<void> = null
       const style = await stylePromise
       if (style) {
-        console.debug('style successfully retrieved via style sku')
         this.style = style
         cacheColorwaySizeAssetsPromise = this.API.FetchColorwaySizeAssetsFromStyleId(style.id)
       }

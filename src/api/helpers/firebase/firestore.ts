@@ -44,7 +44,6 @@ export class FirestoreController {
       measurementId: firebaseKeys.FIREBASE_MEASUREMENT_ID,
     };
 
-    console.debug("sending FirebaseOptions", firebaseConfig)
     this.firestore = getFirestore(firebase.initializeApp(firebaseConfig))
   }
 
@@ -55,7 +54,7 @@ export class FirestoreController {
   }
 
   public getDocs(collectionName: string, constraints: QueryFieldFilterConstraint[]): Promise<QuerySnapshot<DocumentData>> {
-    console.debug('getDocs called for collection:', collectionName, 'with constraints:', constraints)
+    console.debug('getDocs:', collectionName, 'constraints:', constraints)
     const q = query(collection(this.firestore, collectionName), ...constraints)
 
     return getDocs(q)

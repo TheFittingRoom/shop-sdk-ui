@@ -91,7 +91,7 @@ export class SizeRecommendationController {
   }
 
   public async StartSizeRecommendation(styleId: number, colorwaySizeAssets: FirestoreColorwaySizeAsset[]) {
-    console.debug('StartSizeRecommendation')
+    console.debug('StartSizeRecommendation', styleId, colorwaySizeAssets)
     try {
       this.sizeRecComponent.SetSizeRecommendationLoading(true)
       this.sizeRecComponent.ShowLoggedIn()
@@ -117,7 +117,6 @@ export class SizeRecommendationController {
     styleId: number,
     colorwaySizeAssets: FirestoreColorwaySizeAsset[],
   ): Promise<RecommendedSize> {
-    console.debug('getting recommended sizes', { styleId })
     const sizeRec = await this.FittingRoomAPI.GetRecommendedSizes(styleId)
 
     if (!sizeRec) {

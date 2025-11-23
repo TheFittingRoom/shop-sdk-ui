@@ -177,7 +177,6 @@
         if (sku) {
           tfr.InitSizeRecommendationWithSku(sku, variantSKUs, true)
         }
-        console.debug("init time in ms", performance.now() - startTime)
 
         // Add event listeners for product selection changes
         const sizeSelect = document.querySelector('select[name="options[Size]"]')
