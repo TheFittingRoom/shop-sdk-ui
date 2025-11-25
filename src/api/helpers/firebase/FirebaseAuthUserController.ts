@@ -22,6 +22,7 @@ export class FirebaseAuthUserController {
   ) {
     this.auth = getAuth(app)
     this.auth.setPersistence(browserLocalPersistence)
+    console.debug('setPersistance')
     this.initializationPromise = this.setupAuthStateListener()
   }
 
@@ -30,10 +31,12 @@ export class FirebaseAuthUserController {
    * Returns a promise that resolves with the user once the initial state is known.
    */
   private setupAuthStateListener(): Promise<User | null> {
+    console.debug('Setting up auth state change listener...')
     return new Promise<User | null>((resolve) => {
       this.unsubscribeAuthStateChanged = onAuthStateChanged(
         this.auth,
         (user) => {
+          console.debug('Auth state changed:', user ? `User ${user.email} is logged in` : 'No user logged in')
           resolve(user)
         },
         (error) => {
@@ -53,9 +56,12 @@ export class FirebaseAuthUserController {
   }
 
   public async GetUserOrNotLoggedIn(): Promise<User> {
+    console.debug("GetUserOrNotLoggedIn called, waiting for initialization...")
     const user = await this.waitForInitialization()
+    console.debug("Initialization complete, user found:", user ? user.email : "No user")
 
     if (!user) {
+      console.debug("Throwing UserNotLoggedInError")
       throw new Errors.UserNotLoggedInError()
     }
 
@@ -69,10 +75,15 @@ export class FirebaseAuthUserController {
   }
 
   public async GetCurrentUser(): Promise<User | null> {
-    return this.waitForInitialization()
+    console.debug("GetCurrentUser called, waiting for initialization...")
+    const user = await this.waitForInitialization()
+    console.debug("GetCurrentUser initialization complete, user found:", user ? user.email : "No user")
+    return user
   }
 
   public async Login(email: string, password: string): Promise<void> {
+    await this.waitForInitialization()
+
     // Check if already logged in with same email
     if (this.auth.currentUser && this.auth.currentUser.email === email) {
       console.debug("Skipping login since user is already logged in with same email")
@@ -94,6 +105,8 @@ export class FirebaseAuthUserController {
   }
 
   public async Logout(): Promise<void> {
+    await this.waitForInitialization()
+
     try {
       await this.auth.signOut()
       console.debug("Logout successful")

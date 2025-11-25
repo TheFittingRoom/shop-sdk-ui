@@ -94,10 +94,13 @@ export class FittingRoomController {
   }
 
   public async Init(): Promise<void> {
+    console.debug("Starting Init method...")
     try {
       const measurementLocationsPromise = this.API.FetchCacheMeasurementLocations()
+      console.debug("Fetching auth user...")
       const authUserPromise = this.firebaseAuthUserController.GetUserOrNotLoggedIn()
       const stylePromise = this.API.GetStyleByBrandStyleID(this.styleSKU)
+      console.debug("Waiting for auth, style, and measurement locations...")
       await Promise.all([
         authUserPromise,
         stylePromise,
@@ -111,29 +114,46 @@ export class FittingRoomController {
         cacheColorwaySizeAssetsPromise = this.API.FetchColorwaySizeAssetsFromStyleId(style.id)
       }
       const authUser = await authUserPromise
+      console.debug("Auth user after promise resolution:", authUser ? authUser.email : "No user")
       if (authUser) {
         //init and prefetch user
+        console.debug("Initializing FirestoreUserController...")
         this.firestoreUserController = new FirestoreUserController(
           this.firestoreController,
           this.firebaseAuthUserController)
 
         // Log the user login for returning users
+        console.debug("Logging user login...")
         await this.firestoreUserController.LogUserLogin(this.shopID)
       }
 
       if (cacheColorwaySizeAssetsPromise) {
         // let cache finish before loading
+        console.debug("Waiting for colorway size assets cache...")
         await cacheColorwaySizeAssetsPromise
       }
 
       const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
-      this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(styleMeasurementLocations)
 
       if (Boolean(authUser)) {
+        console.debug("User is logged in, calling onLogin hook...")
         if (this.hooks?.onLogin) this.hooks.onLogin()
-        // subscribe to firestore
+        // subscribe to firestore to watch for avatar status changes
+        await this.subscribeToProfileChanges()
+        // For logged-in users, start the size recommendation UI
+        console.debug("About to call StartSizeRecommendation, style available:", !!this.style)
+        if (this.style) {
+          console.debug("Calling StartSizeRecommendation with style id:", this.style.id)
+          this.SizeRecommendationController.StartSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
+        } else {
+          console.debug("Style not available yet, StartSizeRecommendation not called")
+        }
+      } else {
+        console.debug("No user logged in, staying in logged out state")
+        this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(styleMeasurementLocations)
       }
     } catch (e) {
+      console.debug("Init caught error:", e)
       if (e instanceof UserNotLoggedInError) {
         console.debug("No user logged in during init")
         return
@@ -276,23 +296,55 @@ export class FittingRoomController {
         console.debug('Avatar not created - showing error modal')
         if (this.hooks?.onError) this.hooks.onError(L.DontHaveAvatar)
         this.tfrModal.onNotCreated()
+        // Disable try on button with hover message when avatar is not created
+        this.SizeRecommendationController.DisableTryOnButton('Your avatar is not created')
         break
 
       case AvatarState.PENDING:
         console.debug('Avatar pending - showing loading')
         if (this.hooks?.onLoading) this.hooks.onLoading()
+        // Disable try on button with hover message when avatar is pending
+        this.SizeRecommendationController.DisableTryOnButton('Your avatar is not ready yet')
         break
 
       case AvatarState.CREATED:
         console.debug('Avatar created - loading complete')
         if (this.hooks?.onLoadingComplete) this.hooks.onLoadingComplete()
+        // Enable try on button when avatar is created
+        this.SizeRecommendationController.EnableTryOnButton()
         break
 
       default:
         console.debug('Unknown avatar state:', userProfile.avatar_status)
         if (this.hooks?.onError) this.hooks.onError(L.SomethingWentWrong)
         this.tfrModal.onError(L.SomethingWentWrong)
+        // Disable try on button with generic message for unknown states
+        this.SizeRecommendationController.DisableTryOnButton('Your avatar is not ready')
         break
+    }
+  }
+
+  private async subscribeToProfileChanges() {
+    if (!this.firestoreUserController) {
+      this.firestoreUserController = new FirestoreUserController(
+        this.firestoreController,
+        this.firebaseAuthUserController)
+    }
+
+    // Set up a continuous watch for user profile changes for avatar status
+    const avatarStateCallback = async (data: DocumentData) => {
+      const userProfile = data as FirestoreUser;
+      this.onAvatarStateChange(userProfile);
+      return false; // Continue watching indefinitely since we want ongoing updates
+    };
+
+    try {
+      // Since WatchFirestoreUserChange is designed for one-time conditions,
+      // we need to implement a continuous watch differently
+      // We'll set up the watch without expecting it to terminate
+      await this.firestoreUserController.WatchFirestoreUserChange(avatarStateCallback);
+    } catch (error) {
+      console.error('Error setting up avatar state watcher:', error);
     }
   }
 

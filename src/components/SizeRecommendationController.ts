@@ -254,6 +254,14 @@ export class SizeRecommendationController {
     this.sizeRecComponent.showTryOnButton()
   }
 
+  public DisableTryOnButton(message: string) {
+    this.sizeRecComponent.disableTryOnButton(message)
+  }
+
+  public EnableTryOnButton() {
+    this.sizeRecComponent.enableTryOnButton()
+  }
+
   public ShowSizeRecommendationLoading() {
     console.debug("show sizerec loading")
     this.sizeRecComponent.SetSizeRecommendationLoading(true)

@@ -166,6 +166,18 @@ export class SizeRecComponent {
     this.tfrTryOnButton.classList.remove('hide')
   }
 
+  public disableTryOnButton(message: string) {
+    this.tfrTryOnButton.disabled = true;
+    this.tfrTryOnButton.title = message; // Set hover message
+    this.tfrTryOnButton.classList.add('disabled'); // Add disabled styling if needed
+  }
+
+  public enableTryOnButton() {
+    this.tfrTryOnButton.disabled = false;
+    this.tfrTryOnButton.title = ''; // Clear hover message
+    this.tfrTryOnButton.classList.remove('disabled'); // Remove disabled styling
+  }
+
   private init(sizeRecMainDiv: HTMLDivElement) {
     if (!sizeRecMainDiv) throw new Error('Size rec main div not found')
     this.sizeRecMainDiv = sizeRecMainDiv
