@@ -7,13 +7,14 @@ import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   confirmPasswordReset,
+  onAuthStateChanged,
 } from 'firebase/auth'
 
 import * as Errors from '../errors'
 
 export class FirebaseAuthUserController {
-  private user: User | null = null // Initialize as null
-  private initializationUserPromise: Promise<User | null>
+  private readonly initializationPromise: Promise<User | null>
+  private unsubscribeAuthStateChanged: (() => void) | null = null
   private readonly auth: Auth
 
   constructor(
@@ -21,76 +22,85 @@ export class FirebaseAuthUserController {
   ) {
     this.auth = getAuth(app)
     this.auth.setPersistence(browserLocalPersistence)
-    this.initializationUserPromise = this.initializeUser()
+    this.initializationPromise = this.setupAuthStateListener()
   }
 
   /**
-   * Runs once on startup to determine the initial auth state.
+   * Sets up the auth state change listener to track initialization.
+   * Returns a promise that resolves with the user once the initial state is known.
    */
-  private async initializeUser(): Promise<User | null> {
-    const timeoutPromise = new Promise<null>((resolve) => {
-      setTimeout(() => {
-        resolve(null)
-      }, 5000)
+  private setupAuthStateListener(): Promise<User | null> {
+    return new Promise<User | null>((resolve) => {
+      this.unsubscribeAuthStateChanged = onAuthStateChanged(
+        this.auth,
+        (user) => {
+          resolve(user)
+        },
+        (error) => {
+          console.error('Auth state listener error:', error)
+          // Resolve with null to ensure initialization always completes
+          resolve(null)
+        },
+      )
     })
+  }
 
-    try {
-      const authReadyPromise = this.auth.authStateReady().then(() => {
-        return this.auth.currentUser
-      })
-
-      const result = await Promise.race([authReadyPromise, timeoutPromise])
-
-      if (result) {
-        this.user = result
-      }
-      return this.user
-    } catch (error) {
-      console.debug('authStateReady failed:', error)
-      this.user = null
-      this.initializationUserPromise = null
-      return null
-    }
+  /**
+   * Waits for the auth state to be initialized
+   */
+  private waitForInitialization(): Promise<User | null> {
+    return this.initializationPromise
   }
 
   public async GetUserOrNotLoggedIn(): Promise<User> {
-    if (this.user) {
-      return Promise.resolve(this.user)
-    }
-    const user = await this.initializationUserPromise
+    const user = await this.waitForInitialization()
+
     if (!user) {
       throw new Errors.UserNotLoggedInError()
     }
 
-    return this.user
+    return user
   }
 
   public async GetToken(): Promise<string> {
-    // The helper handles all auth checks and errors
     const user = await this.GetUserOrNotLoggedIn()
-    return user.getIdToken()
+    // Force token refresh to ensure it's current
+    return user.getIdToken(true)
+  }
+
+  public async GetCurrentUser(): Promise<User | null> {
+    return this.waitForInitialization()
   }
 
   public async Login(email: string, password: string): Promise<void> {
-    if (this.auth.currentUser) {
-      if (this.auth.currentUser.email == email) {
-        console.debug("skipping logout since login email matches")
-        return
-      }
+    // Check if already logged in with same email
+    if (this.auth.currentUser && this.auth.currentUser.email === email) {
+      console.debug("Skipping login since user is already logged in with same email")
+      return
+    }
+
+    // Sign out existing user if different email
+    if (this.auth.currentUser && this.auth.currentUser.email !== email) {
       await this.auth.signOut()
     }
 
-    const userCred = await signInWithEmailAndPassword(this.auth, email, password)
-    this.user = userCred.user
-
-    this.initializationUserPromise = Promise.resolve(this.user)
+    try {
+      const userCredential = await signInWithEmailAndPassword(this.auth, email, password)
+      console.debug("Login successful for user:", userCredential.user.email)
+    } catch (error) {
+      console.error("Login error:", error)
+      throw error
+    }
   }
 
   public async Logout(): Promise<void> {
-    await this.auth.signOut()
-    this.user = null
-
-    this.initializationUserPromise = this.initializeUser()
+    try {
+      await this.auth.signOut()
+      console.debug("Logout successful")
+    } catch (error) {
+      console.error("Logout error:", error)
+      throw error
+    }
   }
 
   public async SendPasswordResetEmail(email: string): Promise<void> {
@@ -102,6 +112,16 @@ export class FirebaseAuthUserController {
     newPassword: string,
   ): Promise<void> {
     await confirmPasswordReset(this.auth, code, newPassword)
+  }
+
+  /**
+   * Cleans up the auth state listener to prevent memory leaks
+   */
+  public cleanup(): void {
+    if (this.unsubscribeAuthStateChanged) {
+      this.unsubscribeAuthStateChanged()
+      this.unsubscribeAuthStateChanged = null
+    }
   }
 }
 

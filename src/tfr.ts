@@ -114,8 +114,11 @@ export class FittingRoomController {
       if (authUser) {
         //init and prefetch user
         this.firestoreUserController = new FirestoreUserController(
-          this.firestoreController.firestore,
+          this.firestoreController,
           this.firebaseAuthUserController)
+
+        // Log the user login for returning users
+        await this.firestoreUserController.LogUserLogin(this.shopID)
       }
 
       if (cacheColorwaySizeAssetsPromise) {
@@ -132,10 +135,10 @@ export class FittingRoomController {
       }
     } catch (e) {
       if (e instanceof UserNotLoggedInError) {
-        console.log
+        console.debug("No user logged in during init")
         return
       }
-      throw new e
+      throw e
     }
   }
 
@@ -191,6 +194,16 @@ export class FittingRoomController {
 
     try {
       await this.firebaseAuthUserController.Login(username, password)
+
+      // Initialize FirestoreUserController if not already done
+      if (!this.firestoreUserController) {
+        this.firestoreUserController = new FirestoreUserController(
+          this.firestoreController,
+          this.firebaseAuthUserController)
+      }
+
+      // Log the user login
+      await this.firestoreUserController.LogUserLogin(this.shopID)
 
       if (this.hooks?.onLogin) this.hooks.onLogin()
       this.tfrModal.close()

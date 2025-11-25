@@ -58,3 +58,10 @@ export class ServerUnavailableError extends Error {
     this.name = 'ServerUnavailableError'
   }
 }
+
+export class TimeoutError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'TimeoutError'
+  }
+}

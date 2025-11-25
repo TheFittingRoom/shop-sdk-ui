@@ -1,6 +1,5 @@
 import {
   DocumentData,
-  Firestore,
   Unsubscribe,
   doc,
   getDoc,
@@ -10,12 +9,13 @@ import {
 import * as Errors from '../errors'
 import { FirestoreUser } from '../../gen/responses'
 import { FirebaseAuthUserController } from './FirebaseAuthUserController'
+import { FirestoreController } from './firestore'
 
 export class FirestoreUserController {
   private userProfile: FirestoreUser
   private getUserPromise: Promise<FirestoreUser>
   constructor(
-    private readonly firestore: Firestore,
+    private readonly firestoreController: FirestoreController,
     private firebaseAuthUserController: FirebaseAuthUserController) {
     this.getUserPromise = this.GetUser(true)
   }
@@ -36,7 +36,7 @@ export class FirestoreUserController {
     }
     console.debug("returning user from firestore")
     const authUser = await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
-    const snapshot = await getDoc(doc(this.firestore, 'users', authUser.uid))
+    const snapshot = await getDoc(doc(this.firestoreController.firestore, 'users', authUser.uid))
     if (!snapshot.exists()) {
       console.error("user not found")
       throw new Errors.UserNotFoundError(authUser.uid)
@@ -56,21 +56,28 @@ export class FirestoreUserController {
     let unsub: Unsubscribe | undefined
 
     return new Promise<FirestoreUser>((resolve, reject) => {
-      const docRef = doc(this.firestore, 'users', user.uid)
+      const docRef = doc(this.firestoreController.firestore, 'users', user.uid)
 
       unsub = onSnapshot(
         docRef,
         async (docSnapshot) => {
           if (!docSnapshot.exists()) {
             unsub()
-            throw new Errors.UserNotFoundError(user.uid)
+            reject(new Errors.UserNotFoundError(user.uid))
+            return
           }
 
           const data = docSnapshot.data()
-          const result = await dataCallbackAndUnsub(data)
-          if (result) {
+          try {
+            const result = await dataCallbackAndUnsub(data)
+            if (result) {
+              unsub?.()
+              resolve(data as FirestoreUser)
+            }
+          } catch (error) {
+            console.error('watchUserProfileForChanges dataCallback error:', error)
             unsub?.()
-            resolve(data as FirestoreUser)
+            reject(error)
           }
         },
         (error) => {
@@ -80,6 +87,11 @@ export class FirestoreUserController {
         },
       )
     })
+  }
+
+  public async LogUserLogin(brandId: number) {
+    const user = await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
+    await this.firestoreController.LogUserLogin(brandId, user)
   }
 }
 

@@ -14,7 +14,7 @@ import { Fetcher } from './helpers/fetcher'
 import { FirestoreController } from './helpers/firebase/firestore'
 import { getFirebaseError } from './helpers/firebase/error'
 import { TryOnFrames as ColorwaySizeAssetFrameURLs, TryOnFrames } from '.'
-import { AvatarNotCreatedError, NoColorwaySizeAssetsFoundError, NoFramesFoundError, UserNotLoggedInError } from './helpers/errors'
+import { AvatarNotCreatedError, NoColorwaySizeAssetsFoundError, NoFramesFoundError, TimeoutError, UserNotLoggedInError } from './helpers/errors'
 
 import { Config } from './helpers/config'
 import { FirebaseAuthUserController } from './helpers/firebase/FirebaseAuthUserController'
@@ -323,7 +323,6 @@ export class FittingRoomAPI {
   }
 
   private async WatchForTryOnFrames(firestoreUserController: FirestoreUserController, colorwaySizeAssetSKU: string, skipFullSnapshot: boolean = false): Promise<TryOnFrames> {
-    // TODO: rename skip cache to something else, since we are skipping first snapshot and returning update instead
     if (!this.IsLoggedIn) throw new UserNotLoggedInError()
 
     let firstSnapshotProcessed = false;
@@ -349,11 +348,45 @@ export class FittingRoomAPI {
         return true
       } catch (e) {
         console.debug("failed to resolve colorway_size_asset_frames from firestore_user snapshot", e)
-        return false
+        // Only continue watching for certain types of errors
+        // If it's a NoFramesFoundError, we should stop watching and let the error propagate
+        if (e instanceof NoFramesFoundError) {
+          throw e  // Re-throw so it gets handled by WatchFirestoreUserChange
+        }
+        return false  // Continue watching for other types of errors
       }
     }
 
-    const firestoreUser = await firestoreUserController.WatchFirestoreUserChange(firestoreUserWatchCallback)
+    // Create a timeout promise that will reject after 300 seconds
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new TimeoutError(`Timeout waiting for try-on frames for SKU: ${colorwaySizeAssetSKU} after 300 seconds`))
+      }, 300000) // 300 seconds = 300,000 milliseconds
+    })
+
+    // Race between the Firestore watch and the timeout
+    let firestoreUser: FirestoreUser;
+    try {
+      // Create the watch promise
+      const watchPromise = firestoreUserController.WatchFirestoreUserChange(firestoreUserWatchCallback)
+
+      // Use Promise.race to implement timeout
+      firestoreUser = await Promise.race([watchPromise, timeoutPromise])
+    } catch (error) {
+      // If it's a timeout error, provide a more specific message
+      if (error instanceof TimeoutError) {
+        console.error(error.message)
+        throw new TimeoutError(`Timed out waiting for virtual try-on frames. Process cancelled after 300 seconds for SKU: ${colorwaySizeAssetSKU}`)
+      }
+
+      if (error instanceof NoFramesFoundError) {
+        console.debug(`No frames found for SKU: ${colorwaySizeAssetSKU}`)
+        throw error
+      }
+      console.error(`Error watching for try-on frames for SKU: ${colorwaySizeAssetSKU}`, error)
+      throw error
+    }
+
     const frames = firestoreUser.vto[this.BrandID][colorwaySizeAssetSKU].frames
     this.vtoFramesCache.set(colorwaySizeAssetSKU, frames)
     return frames
@@ -370,21 +403,39 @@ export class FittingRoomAPI {
     }
     let frames: TryOnFrames
 
-    if (skipCache) {
-      // make a new vto request and wait for diff snapshot
-      const colorwaySizeAssetID = this.cachedColorwaySizeAssets.get(colorwaySizeAssetSKU).id
-      if (!colorwaySizeAssetID) {
-        throw new Error(`colorwaySizeAssetID wasnt in cache ${colorwaySizeAssetSKU} ${colorwaySizeAssetID}`)
+    // Get the colorway size asset ID upfront
+    const colorwaySizeAssetID = this.cachedColorwaySizeAssets.get(colorwaySizeAssetSKU).id
+    if (!colorwaySizeAssetID) {
+      throw new Error(`colorwaySizeAssetID wasnt in cache ${colorwaySizeAssetSKU} ${colorwaySizeAssetID}`)
+    }
+
+    if (!skipCache) {
+      // grab the full snapshot
+      console.debug("waiting for full snapshot")
+      try {
+        frames = await this.WatchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, false)
+      } catch (error) {
+        // If we get a NoFramesFoundError when not skipping cache, try to request fresh frames
+        if (error instanceof NoFramesFoundError) {
+          console.debug(`No frames found for SKU: ${colorwaySizeAssetSKU}, attempting to request fresh frames`)
+
+          await this.requestColorwaySizeAssetFramesByID(colorwaySizeAssetID)
+
+          // Try again with skipCache=true behavior (watch for diff snapshot)
+          console.debug("waiting for new vto after refresh request")
+          frames = await this.WatchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, true)
+        } else {
+          throw error
+        }
       }
+    } else {
+      // make a new vto request and wait for diff snapshot
       await this.requestColorwaySizeAssetFramesByID(colorwaySizeAssetID)
 
       console.debug("waiting for new vto")
       frames = await this.WatchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, true)
-    } else {
-      // grab the full snapshot
-      console.debug("waiting for full snapshot")
-      frames = await this.WatchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, false)
     }
+
     console.debug("retrieved frames", frames)
     this.vtoFramesCache.set(colorwaySizeAssetSKU, frames)
     return frames
