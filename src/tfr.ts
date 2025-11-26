@@ -1,4 +1,4 @@
-import { FirestoreStyle, TryOnFrames, FirestoreColorwaySizeAsset, FirestoreUser, AvatarState } from './api'
+import { FirestoreStyle, TryOnFrames, FirestoreColorwaySizeAsset, FirestoreUser } from './api'
 /// <reference types="vite/client" />
 
 import { VTOController } from './components/VirtualTryOnController'
@@ -10,9 +10,9 @@ import { FittingRoomAPI } from './api/api'
 import { Config } from './api/helpers/config'
 import { FirebaseAuthUserController } from './api/helpers/firebase/FirebaseAuthUserController'
 import { FirestoreUserController } from './api/helpers/firebase/FirestoreUserController'
-import { DocumentData } from 'firebase/firestore'
 import { FirestoreController } from './api/helpers/firebase/firestore'
 import { UserNotLoggedInError } from './api/helpers/errors'
+import { AvatarStatusCreated, AvatarStatusPending, AvatarStatusNotCreated, AvatarStatus } from './api/gen/enums'
 
 export interface TFRHooks {
   onLoading?: () => void
@@ -121,10 +121,6 @@ export class FittingRoomController {
         this.firestoreUserController = new FirestoreUserController(
           this.firestoreController,
           this.firebaseAuthUserController)
-
-        // Log the user login for returning users
-        console.debug("Logging user login...")
-        await this.firestoreUserController.LogUserLogin(this.shopID)
       }
 
       if (cacheColorwaySizeAssetsPromise) {
@@ -138,8 +134,6 @@ export class FittingRoomController {
       if (Boolean(authUser)) {
         console.debug("User is logged in, calling onLogin hook...")
         if (this.hooks?.onLogin) this.hooks.onLogin()
-        // subscribe to firestore to watch for avatar status changes
-        await this.subscribeToProfileChanges()
         // For logged-in users, start the size recommendation UI
         console.debug("About to call StartSizeRecommendation, style available:", !!this.style)
         if (this.style) {
@@ -225,14 +219,19 @@ export class FittingRoomController {
       // Log the user login
       await this.firestoreUserController.LogUserLogin(this.shopID)
 
-      if (this.hooks?.onLogin) this.hooks.onLogin()
       this.tfrModal.close()
+      if (this.hooks?.onLogin) this.hooks.onLogin()
 
       if (this.style) {
         this.SizeRecommendationController.StartSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
       }
-      // TODO manage firestore subscription state
-      // update logged in user
+
+      const user = await this.firestoreUserController.GetUser(false)
+      if (user.avatar_status == AvatarStatusPending) {
+
+      }
+
+      await this.subscribeToProfileChanges()
     } catch (e) {
       return validationError(L.UsernameOrPasswordIncorrect)
     }
@@ -288,76 +287,51 @@ export class FittingRoomController {
     }
   }
 
-  private onAvatarStateChange(userProfile: FirestoreUser) {
-    console.debug('onUserProfileChange called with avatar_status:', userProfile.avatar_status)
 
+  // if the avatar state loaded from the initial new FirestoreUserController is NOT_CREATED use this listener
+  private async onAvatarStateChange(userProfile: FirestoreUser): Promise<boolean> {
+    console.debug('onAvatarStateChange', userProfile.avatar_status)
     switch (userProfile.avatar_status as AvatarState) {
-      case AvatarState.NOT_CREATED:
-        console.debug('Avatar not created - showing error modal')
-        if (this.hooks?.onError) this.hooks.onError(L.DontHaveAvatar)
-        this.tfrModal.onNotCreated()
-        // Disable try on button with hover message when avatar is not created
-        this.SizeRecommendationController.DisableTryOnButton('Your avatar is not created')
-        break
+      case AvatarStatusNotCreated:
+        return true
 
-      case AvatarState.PENDING:
-        console.debug('Avatar pending - showing loading')
-        if (this.hooks?.onLoading) this.hooks.onLoading()
-        // Disable try on button with hover message when avatar is pending
-        this.SizeRecommendationController.DisableTryOnButton('Your avatar is not ready yet')
-        break
+      case AvatarStatusPending:
+        return false
 
-      case AvatarState.CREATED:
-        console.debug('Avatar created - loading complete')
-        if (this.hooks?.onLoadingComplete) this.hooks.onLoadingComplete()
-        // Enable try on button when avatar is created
-        this.SizeRecommendationController.EnableTryOnButton()
-        break
+      case AvatarStatusCreated:
+        return true
 
       default:
-        console.debug('Unknown avatar state:', userProfile.avatar_status)
-        if (this.hooks?.onError) this.hooks.onError(L.SomethingWentWrong)
-        this.tfrModal.onError(L.SomethingWentWrong)
-        // Disable try on button with generic message for unknown states
-        this.SizeRecommendationController.DisableTryOnButton('Your avatar is not ready')
+        // if (this.hooks?.onError) this.hooks.onError(L.SomethingWentWrong)
+        return true
+    }
+  }
+
+  private updateAvatarState(userProfile: FirestoreUser) {
+    switch (userProfile.avatar_status as AvatarStatus) {
+      case AvatarStatusNotCreated:
+        this.tfrModal.onNotCreated()
+        this.SizeRecommendationController.DisableTryOnButton('Your avatar is not created')
         break
+      case AvatarStatusPending:
+        if (this.hooks?.onLoading) this.hooks.onLoading()
+        this.SizeRecommendationController.DisableTryOnButton('Your avatar is not ready yet')
+        break
+      case AvatarStatusCreated:
+        if (this.hooks?.onLoadingComplete) this.hooks.onLoadingComplete()
+        this.SizeRecommendationController.EnableTryOnButton()
+        break
+      default:
+        this.SizeRecommendationController.DisableTryOnButton('The Fitting Room is currently unavailable.')
+        throw new Error("no avatar status")
     }
-  }
-
-  private async subscribeToProfileChanges() {
-    if (!this.firestoreUserController) {
-      this.firestoreUserController = new FirestoreUserController(
-        this.firestoreController,
-        this.firebaseAuthUserController)
-    }
-
-    // Set up a continuous watch for user profile changes for avatar status
-    const avatarStateCallback = async (data: DocumentData) => {
-      const userProfile = data as FirestoreUser;
-      this.onAvatarStateChange(userProfile);
-      return false; // Continue watching indefinitely since we want ongoing updates
-    };
-
-    try {
-      // Since WatchFirestoreUserChange is designed for one-time conditions,
-      // we need to implement a continuous watch differently
-      // We'll set up the watch without expecting it to terminate
-      await this.firestoreUserController.WatchFirestoreUserChange(avatarStateCallback);
-    } catch (error) {
-      console.error('Error setting up avatar state watcher:', error);
-    }
-  }
-
-  private async addStateChangeHandler(callback: (data: DocumentData) => Promise<boolean>): Promise<void> {
-    await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
-    await this.firestoreUserController.WatchFirestoreUserChange(callback)
   }
 
   private unsubscribeFromProfileChanges() {
-    if (!this.unsubFirestoreUserCollection) return
+    if (!this.unsubFirestoreUserCollection) return;
 
-    this.unsubFirestoreUserCollection()
-    this.unsubFirestoreUserCollection = null
+    this.unsubFirestoreUserCollection();
+    this.unsubFirestoreUserCollection = null;
   }
 
   public styleToGarmentMeasurementLocations(style: FirestoreStyle) {

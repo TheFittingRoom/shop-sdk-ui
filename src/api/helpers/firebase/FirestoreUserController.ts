@@ -69,8 +69,8 @@ export class FirestoreUserController {
 
           const data = docSnapshot.data()
           try {
-            const result = await dataCallbackAndUnsub(data)
-            if (result) {
+            const unsubscribe = await dataCallbackAndUnsub(data)
+            if (unsubscribe) {
               unsub?.()
               resolve(data as FirestoreUser)
             }
