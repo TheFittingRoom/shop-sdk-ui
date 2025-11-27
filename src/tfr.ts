@@ -131,10 +131,12 @@ export class FittingRoomController {
         if (this.hooks?.onLogin) this.hooks.onLogin()
         // For logged-in users, start the size recommendation UI
         if (this.style) {
+          console.log("calling StartSizeRecommendation from Init method for logged in user")
           this.SizeRecommendationController.StartSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
         } else {
         }
       } else {
+        console.log("calling setLoggedOutStyleMeasurementLocations from Init method")
         this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(styleMeasurementLocations)
       }
     } catch (e) {
@@ -149,11 +151,12 @@ export class FittingRoomController {
 
   public async GetSizeRecommendation(activeSku: string, skipCache: boolean = false) {
     console.debug("StartSizeRecommendation", activeSku, skipCache)
+    this.SizeRecommendationController.ShowLoggedIn()
+    this.SizeRecommendationController.Show()
+
     let colorwaySizeAsset = await this.API.GetCachedColorwaySizeAssetFromSku(activeSku, skipCache)
     if (this.style && this.style.id == colorwaySizeAsset.style_id && !skipCache) {
       console.debug("style and size_recommendation is precached")
-      this.SizeRecommendationController.ShowLoggedIn()
-      this.SizeRecommendationController.Show()
     } else {
       console.debug('fetching style for sku:', activeSku)
       this.style = await this.API.GetStyleByID(colorwaySizeAsset.style_id)
@@ -179,6 +182,7 @@ export class FittingRoomController {
         throw e
       }
       const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
+      console.log("calling setLoggedOutStyleMeasurementLocations from GetSizeRecommendation catch block")
       this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(styleMeasurementLocations)
     }
   }
@@ -192,6 +196,7 @@ export class FittingRoomController {
 
     if (this.hooks?.onLogout) this.hooks.onLogout()
 
+    console.log("calling setLoggedOutStyleMeasurementLocations from logOutCallback")
     this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(this.styleToGarmentMeasurementLocations(this.style))
     this.unsubscribeFromProfileChanges()
   }
@@ -217,6 +222,7 @@ export class FittingRoomController {
       if (this.hooks?.onLogin) this.hooks.onLogin()
 
       if (this.style) {
+        console.log("calling StartSizeRecommendation after successful login")
         this.SizeRecommendationController.StartSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
       }
 
@@ -270,10 +276,12 @@ export class FittingRoomController {
     try {
       const batchResult = await this.API.PriorityTryOnWithMultiRequestCache(this.firestoreUserController, primarySKU, availableSKUs, this.forceFreshVTO)
       this.vtoComponent.onNewFramesReady(batchResult)
+      console.log("calling HideVTOLoading after successful VTO")
       this.SizeRecommendationController.HideVTOLoading()
       this.hasInitializedTryOn = true
     } catch (e) {
       this.tfrModal.onError(L.SomethingWentWrong)
+      console.log("calling HideVTOLoading after VTO error")
       this.SizeRecommendationController.HideVTOLoading()
       console.error(e)
     }
@@ -309,13 +317,16 @@ export class FittingRoomController {
         break
       case AvatarStatusPending:
         if (this.hooks?.onLoading) this.hooks.onLoading()
+        console.log("calling DisableTryOnButton - avatar not ready")
         this.SizeRecommendationController.DisableTryOnButton('Your avatar is not ready yet')
         break
       case AvatarStatusCreated:
         if (this.hooks?.onLoadingComplete) this.hooks.onLoadingComplete()
+        console.log("calling EnableTryOnButton - avatar ready")
         this.SizeRecommendationController.EnableTryOnButton()
         break
       default:
+        console.log("calling DisableTryOnButton - fitting room unavailable")
         this.SizeRecommendationController.DisableTryOnButton('The Fitting Room is currently unavailable.')
         throw new Error("no avatar status")
     }

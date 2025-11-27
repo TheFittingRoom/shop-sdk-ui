@@ -118,9 +118,10 @@ export class SizeRecComponent {
   }
 
   public SetSizeRecommendationLoading(isLoading: boolean) {
+    console.debug("SetSizeRecommendationLoading", isLoading)
     if (isLoading) {
-      this.tfrSizeRecLoading.classList.remove('hide')
       this.tfrSizeRecommendationsContainer.classList.add('hide')
+      this.tfrSizeRecLoading.classList.remove('hide')
     } else {
       this.tfrSizeRecLoading.classList.add('hide')
       this.tfrSizeRecommendationsContainer.classList.remove('hide')

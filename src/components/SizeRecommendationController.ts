@@ -243,6 +243,7 @@ export class SizeRecommendationController {
   }
 
   public Show() {
+    console.debug("SizeRecommendationContoller.Show")
     this.sizeRecComponent.Show()
   }
 
@@ -251,6 +252,7 @@ export class SizeRecommendationController {
 
   }
   public ShowLoggedIn() {
+    console.debug("SizeRecommendationContoller.ShowLoggedIn")
     this.sizeRecComponent.ShowLoggedIn()
   }
 
@@ -282,7 +284,7 @@ export class SizeRecommendationController {
   }
 
   public HideVTOLoading() {
-    console.debug("show vto loading")
+    console.debug("hide vto loading")
     this.sizeRecComponent.SetVTOLoading(false)
   }
 }
