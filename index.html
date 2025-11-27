@@ -175,7 +175,7 @@
         const tfr = await initFittingRoom(config)
 
         if (sku) {
-          tfr.InitSizeRecommendationWithSku(sku, variantSKUs, true)
+          tfr.GetSizeRecommendation(sku, variantSKUs, true)
         }
 
         // Add event listeners for product selection changes

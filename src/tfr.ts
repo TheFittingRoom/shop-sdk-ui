@@ -13,6 +13,7 @@ import { FirestoreUserController } from './api/helpers/firebase/FirestoreUserCon
 import { FirestoreController } from './api/helpers/firebase/firestore'
 import { UserNotLoggedInError } from './api/helpers/errors'
 import { AvatarStatusCreated, AvatarStatusPending, AvatarStatusNotCreated, AvatarStatus } from './api/gen/enums'
+import { Avatar } from './api/gen/responses'
 
 export interface TFRHooks {
   onLoading?: () => void
@@ -94,18 +95,16 @@ export class FittingRoomController {
   }
 
   public async Init(): Promise<void> {
-    console.debug("Starting Init method...")
     try {
       const measurementLocationsPromise = this.API.FetchCacheMeasurementLocations()
-      console.debug("Fetching auth user...")
       const authUserPromise = this.firebaseAuthUserController.GetUserOrNotLoggedIn()
       const stylePromise = this.API.GetStyleByBrandStyleID(this.styleSKU)
-      console.debug("Waiting for auth, style, and measurement locations...")
       await Promise.all([
         authUserPromise,
         stylePromise,
         measurementLocationsPromise,
       ])
+      console.debug("promise all ready")
 
       let cacheColorwaySizeAssetsPromise: Promise<void> = null
       const style = await stylePromise
@@ -113,11 +112,11 @@ export class FittingRoomController {
         this.style = style
         cacheColorwaySizeAssetsPromise = this.API.FetchColorwaySizeAssetsFromStyleId(style.id)
       }
+      const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
+
       const authUser = await authUserPromise
-      console.debug("Auth user after promise resolution:", authUser ? authUser.email : "No user")
       if (authUser) {
         //init and prefetch user
-        console.debug("Initializing FirestoreUserController...")
         this.firestoreUserController = new FirestoreUserController(
           this.firestoreController,
           this.firebaseAuthUserController)
@@ -125,25 +124,17 @@ export class FittingRoomController {
 
       if (cacheColorwaySizeAssetsPromise) {
         // let cache finish before loading
-        console.debug("Waiting for colorway size assets cache...")
         await cacheColorwaySizeAssetsPromise
       }
 
-      const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
-
       if (Boolean(authUser)) {
-        console.debug("User is logged in, calling onLogin hook...")
         if (this.hooks?.onLogin) this.hooks.onLogin()
         // For logged-in users, start the size recommendation UI
-        console.debug("About to call StartSizeRecommendation, style available:", !!this.style)
         if (this.style) {
-          console.debug("Calling StartSizeRecommendation with style id:", this.style.id)
           this.SizeRecommendationController.StartSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
         } else {
-          console.debug("Style not available yet, StartSizeRecommendation not called")
         }
       } else {
-        console.debug("No user logged in, staying in logged out state")
         this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(styleMeasurementLocations)
       }
     } catch (e) {
@@ -156,11 +147,15 @@ export class FittingRoomController {
     }
   }
 
-  public async InitSizeRecommendationWithSku(activeSku: string, skipCache: boolean = false) {
-    console.debug("InitSizeRecommendationWithSku", activeSku, skipCache)
-    if (!this.style) {
+  public async GetSizeRecommendation(activeSku: string, skipCache: boolean = false) {
+    console.debug("StartSizeRecommendation", activeSku, skipCache)
+    let colorwaySizeAsset = await this.API.GetCachedColorwaySizeAssetFromSku(activeSku, skipCache)
+    if (this.style && this.style.id == colorwaySizeAsset.style_id && !skipCache) {
+      console.debug("style and size_recommendation is precached")
+      this.SizeRecommendationController.ShowLoggedIn()
+      this.SizeRecommendationController.Show()
+    } else {
       console.debug('fetching style for sku:', activeSku)
-      let colorwaySizeAsset = await this.API.GetCachedColorwaySizeAssetFromSku(activeSku, skipCache)
       this.style = await this.API.GetStyleByID(colorwaySizeAsset.style_id)
     }
 
@@ -216,8 +211,7 @@ export class FittingRoomController {
           this.firebaseAuthUserController)
       }
 
-      // Log the user login
-      await this.firestoreUserController.LogUserLogin(this.shopID)
+      this.firestoreUserController.LogUserLogin(this.shopID)
 
       this.tfrModal.close()
       if (this.hooks?.onLogin) this.hooks.onLogin()
@@ -227,11 +221,9 @@ export class FittingRoomController {
       }
 
       const user = await this.firestoreUserController.GetUser(false)
-      if (user.avatar_status == AvatarStatusPending) {
+      this.updateAvatarStatus(user)
 
-      }
-
-      await this.subscribeToProfileChanges()
+      this.firestoreUserController.WatchFirestoreUserChange(this.avatarStatusChangeCallback)
     } catch (e) {
       return validationError(L.UsernameOrPasswordIncorrect)
     }
@@ -289,17 +281,20 @@ export class FittingRoomController {
 
 
   // if the avatar state loaded from the initial new FirestoreUserController is NOT_CREATED use this listener
-  private async onAvatarStateChange(userProfile: FirestoreUser): Promise<boolean> {
-    console.debug('onAvatarStateChange', userProfile.avatar_status)
-    switch (userProfile.avatar_status as AvatarState) {
+  private async avatarStatusChangeCallback(user: FirestoreUser): Promise<boolean> {
+    console.debug('onAvatarStateChange', user.avatar_status)
+    switch (user.avatar_status as AvatarStatus) {
       case AvatarStatusNotCreated:
-        return true
+        this.updateAvatarStatus(user)
+        return false
 
       case AvatarStatusPending:
+        this.updateAvatarStatus(user)
         return false
 
       case AvatarStatusCreated:
-        return true
+        this.updateAvatarStatus(user)
+        return false
 
       default:
         // if (this.hooks?.onError) this.hooks.onError(L.SomethingWentWrong)
@@ -307,11 +302,10 @@ export class FittingRoomController {
     }
   }
 
-  private updateAvatarState(userProfile: FirestoreUser) {
+  private updateAvatarStatus(userProfile: FirestoreUser) {
     switch (userProfile.avatar_status as AvatarStatus) {
       case AvatarStatusNotCreated:
         this.tfrModal.onNotCreated()
-        this.SizeRecommendationController.DisableTryOnButton('Your avatar is not created')
         break
       case AvatarStatusPending:
         if (this.hooks?.onLoading) this.hooks.onLoading()

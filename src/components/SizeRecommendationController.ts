@@ -94,7 +94,6 @@ export class SizeRecommendationController {
     console.debug('StartSizeRecommendation', styleId, colorwaySizeAssets)
     try {
       this.sizeRecComponent.SetSizeRecommendationLoading(true)
-      this.sizeRecComponent.ShowLoggedIn()
 
       const sizes = await this.getRecommendedSizes(styleId, colorwaySizeAssets)
       if (!sizes) {
@@ -103,6 +102,7 @@ export class SizeRecommendationController {
         return
       }
 
+      this.sizeRecComponent.ShowLoggedIn()
       this.sizeRecComponent.Show()
       this.sizeRecComponent.setRecommendedSize(sizes)
       this.sizeRecComponent.SetSizeRecommendationLoading(false)
@@ -138,10 +138,6 @@ export class SizeRecommendationController {
       recommended: sizeRec.recommended_size.size_value.name,
       sizes: sizeRec.fits
         .map((fit) => {
-          console.debug('finding colorway asset', {
-            fitSizeId: fit.size_id,
-            assets: colorwaySizeAssets,
-          })
           const colorwayAsset = colorwaySizeAssets.find((asset) => asset.size_id === fit.size_id)
 
           if (!colorwayAsset) {
@@ -248,6 +244,14 @@ export class SizeRecommendationController {
 
   public Show() {
     this.sizeRecComponent.Show()
+  }
+
+  public ShowLoggedOut() {
+    this.sizeRecComponent.ShowLoggedOut()
+
+  }
+  public ShowLoggedIn() {
+    this.sizeRecComponent.ShowLoggedIn()
   }
 
   public ShowTryOnButton() {

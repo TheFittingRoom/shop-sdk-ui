@@ -21,6 +21,7 @@ export class FirestoreUserController {
   }
 
   public async GetUser(skipCache: boolean): Promise<FirestoreUser> {
+    console.debug("GetUser", skipCache)
     if (!skipCache) {
       if (this.userProfile) {
         console.debug("returning user from cache")

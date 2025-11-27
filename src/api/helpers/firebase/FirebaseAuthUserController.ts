@@ -22,7 +22,6 @@ export class FirebaseAuthUserController {
   ) {
     this.auth = getAuth(app)
     this.auth.setPersistence(browserLocalPersistence)
-    console.debug('setPersistance')
     this.initializationPromise = this.setupAuthStateListener()
   }
 
@@ -56,9 +55,8 @@ export class FirebaseAuthUserController {
   }
 
   public async GetUserOrNotLoggedIn(): Promise<User> {
-    console.debug("GetUserOrNotLoggedIn called, waiting for initialization...")
     const user = await this.waitForInitialization()
-    console.debug("Initialization complete, user found:", user ? user.email : "No user")
+    console.debug("GetUserOrNotLoggedIn:", Boolean(user))
 
     if (!user) {
       console.debug("Throwing UserNotLoggedInError")
