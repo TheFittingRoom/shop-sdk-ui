@@ -267,8 +267,9 @@ export class FittingRoomController {
     this.tfrModal.toPasswordReset()
   }
 
-  public async getMeasurementLocationsFromSku(sku: string, skipCache: boolean) {
-    return this.API.GetMeasurementLocationsFromSku(sku, [], skipCache)
+  public async getMeasurementLocations(skipCache: boolean) {
+    const user = await this.firestoreUserController.GetUser(skipCache)
+    return this.API.GetMeasurementLocations(user)
   }
 
   public onSignInSizeRecommendationCallback() {

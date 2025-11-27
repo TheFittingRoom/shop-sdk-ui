@@ -1,29 +1,34 @@
+import { User } from 'firebase/auth'
 import { DocumentData, QueryFieldFilterConstraint, where } from 'firebase/firestore'
 
+import { TryOnFrames as ColorwaySizeAssetFrameURLs, TryOnFrames } from '.'
 import {
-  SizeFitRecommendation,
-  FirestoreStyle,
-  FirestoreStyleGarmentCategory,
-  FirestoreStyleCategory,
+  FirestoreColorwaySizeAsset,
   FirestoreGarmentCategory,
   FirestoreMeasurementLocation,
-  FirestoreColorwaySizeAsset,
+  FirestoreStyle,
+  FirestoreStyleCategory,
+  FirestoreStyleGarmentCategory,
   FirestoreUser,
+  SizeFitRecommendation,
 } from './gen/responses'
-import { Fetcher } from './helpers/fetcher'
-import { FirestoreController } from './helpers/firebase/firestore'
-import { getFirebaseError } from './helpers/firebase/error'
-import { TryOnFrames as ColorwaySizeAssetFrameURLs, TryOnFrames } from '.'
-import { AvatarNotCreatedError, NoColorwaySizeAssetsFoundError, NoFramesFoundError, TimeoutError, UserNotLoggedInError } from './helpers/errors'
-
 import { Config } from './helpers/config'
+import {
+  AvatarNotCreatedError,
+  NoColorwaySizeAssetsFoundError,
+  NoFramesFoundError,
+  TimeoutError,
+  UserNotLoggedInError,
+} from './helpers/errors'
+import { Fetcher } from './helpers/fetcher'
 import { FirebaseAuthUserController } from './helpers/firebase/FirebaseAuthUserController'
-import { User } from 'firebase/auth'
-import { testImage } from './helpers/utils'
 import { FirestoreUserController } from './helpers/firebase/FirestoreUserController'
+import { getFirebaseError } from './helpers/firebase/error'
+import { FirestoreController } from './helpers/firebase/firestore'
+import { testImage } from './helpers/utils'
 
 export class FittingRoomAPI {
-  private measurementLocations: Map<string, { name: string; sort_order: number }> = new Map()
+  public measurementLocations: Map<string, FirestoreMeasurementLocation> = new Map()
   private cachedColorwaySizeAssets: Map<string, FirestoreColorwaySizeAsset> = new Map()
   private vtoFramesCache: Map<string, ColorwaySizeAssetFrameURLs> = new Map()
   private readonly fetcher: Fetcher
@@ -33,7 +38,7 @@ export class FittingRoomAPI {
   constructor(
     public readonly BrandID: number,
     config: Config,
-    private readonly firebase: FirestoreController
+    private readonly firebase: FirestoreController,
   ) {
     this.fetcher = new Fetcher(config)
     this.firebaseAuthUserController = new FirebaseAuthUserController(this.firebase.firestore.app)
@@ -66,11 +71,19 @@ export class FittingRoomAPI {
 
   public async SubmitTelephoneNumber(tel: string): Promise<void> {
     const sanitizedTel = tel.replace(/[^+0-9]/g, '')
-    const res = await this.fetcher.Post(this.firebaseAuthUserController, '/ios-app-link', { phone_number: sanitizedTel }, false)
+    const res = await this.fetcher.Post(
+      this.firebaseAuthUserController,
+      '/ios-app-link',
+      { phone_number: sanitizedTel },
+      false,
+    )
     console.debug(res)
   }
 
-  public async GetCachedColorwaySizeAssetFromSku(colorwaySizeAssetSku: string, skipCache: boolean): Promise<FirestoreColorwaySizeAsset> {
+  public async GetCachedColorwaySizeAssetFromSku(
+    colorwaySizeAssetSku: string,
+    skipCache: boolean,
+  ): Promise<FirestoreColorwaySizeAsset> {
     if (!skipCache) {
       const cachedAsset = this.cachedColorwaySizeAssets.get(colorwaySizeAssetSku)
       if (cachedAsset) {
@@ -113,8 +126,8 @@ export class FittingRoomAPI {
     try {
       const querySnapshot = await this.firebase.getDocs('colorway_size_assets', constraints)
       const newAssets = querySnapshot.docs.map((doc) => doc.data() as FirestoreColorwaySizeAsset)
-      newAssets.forEach(asset => {
-        console.debug("caching colorway_size_asset", asset.sku)
+      newAssets.forEach((asset) => {
+        console.debug('caching colorway_size_asset', asset.sku)
         this.cachedColorwaySizeAssets.set(asset.sku, asset)
       })
     } catch (error) {
@@ -123,25 +136,27 @@ export class FittingRoomAPI {
   }
 
   public GetCachedColorwaySizeAssets(): FirestoreColorwaySizeAsset[] {
-    let colorwaySizeAssets: FirestoreColorwaySizeAsset[] = [];
+    let colorwaySizeAssets: FirestoreColorwaySizeAsset[] = []
     this.cachedColorwaySizeAssets.forEach((value) => {
       colorwaySizeAssets.push(value)
     })
     return colorwaySizeAssets
   }
 
-  public async GetMeasurementLocationsFromSku(sku: string, filledLocations: string[] = [], skipCache: boolean): Promise<string[]> {
-    const colorwaySizeAsset = await this.GetCachedColorwaySizeAssetFromSku(sku, skipCache)
-    if (!colorwaySizeAsset) throw new Error('No colorway size asset found for sku')
+  public async GetMeasurementLocations(
+    user: FirestoreUser,
+    filledLocations: string[] = [],
+  ): Promise<string[]> {
+
+    if (!user.avatar_gender) {
+      throw new Error("no user avatar gender found")
+    }
 
     const styleGarmentCategory = await this.GetStyleGarmentCategory(this.style.id)
     if (!styleGarmentCategory) throw new Error('Taxonomy not found for style garment category id')
 
-    // const userProfile = this.IsLoggedIn ? await this.firestoreUserController.FetchUser(false) : null
-    const gender = 'female' //TODO add gender to go api firestore response
-
     // Use proper typing for the measurement locations based on gender
-    const measurementLocationsKey = `measurement_locations_${gender}` as const
+    const measurementLocationsKey = `measurement_locations_${user.avatar_gender}` as const
     const measurementLocationsMap = styleGarmentCategory.measurement_locations
     const measurementLocations = (measurementLocationsMap?.[measurementLocationsKey] || []) as string[]
 
@@ -155,9 +170,7 @@ export class FittingRoomAPI {
         : { name: location, sort_order: Infinity }
     })
 
-    return locationsWithSortOrder
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map((location) => location.name)
+    return locationsWithSortOrder.sort((a, b) => a.sort_order - b.sort_order).map((location) => location.name)
   }
 
   // BrandStyleID is the SKU of the style
@@ -165,7 +178,7 @@ export class FittingRoomAPI {
     console.debug('getStyleByBrandStyleID:', styleSKU)
     if (!styleSKU) throw new Error('styleSKU is required for GetStyleByBrandStyleID')
     const isLoggedIn = await this.IsLoggedIn()
-    console.debug("isLoggedIn", isLoggedIn, 'BrandID:', this.BrandID)
+    console.debug('isLoggedIn', isLoggedIn, 'BrandID:', this.BrandID)
     try {
       const constraints: QueryFieldFilterConstraint[] = [where('brand_id', '==', this.BrandID)]
       constraints.push(where('brand_style_id', '==', styleSKU))
@@ -188,25 +201,16 @@ export class FittingRoomAPI {
     }
   }
 
-  public GetMeasurementLocationName(location: string): string {
-    return this.measurementLocations.has(location) ? this.measurementLocations.get(location).name : location
-  }
-
-  public GetMeasurementLocationSortOrder(location: string): number {
-    return this.measurementLocations.has(location) ? this.measurementLocations.get(location).sort_order : Infinity
-  }
-
   // Helper method to fetch assets from Firestore
   public async FetchAndCacheColorwaySizeAssets(
     skus: string[],
-    skipCache: boolean
+    skipCache: boolean,
   ): Promise<Map<string, FirestoreColorwaySizeAsset>> {
-
     let uncachedSkus: string[] = []
     if (skipCache) {
       uncachedSkus = [...skus]
     } else {
-      skus.forEach(sku => {
+      skus.forEach((sku) => {
         if (!this.cachedColorwaySizeAssets.has(sku)) {
           uncachedSkus.push(sku)
         }
@@ -221,7 +225,7 @@ export class FittingRoomAPI {
       try {
         const querySnapshot = await this.firebase.getDocs('colorway_size_assets', constraints)
 
-        querySnapshot.docs.forEach(doc => {
+        querySnapshot.docs.forEach((doc) => {
           const asset = doc.data() as FirestoreColorwaySizeAsset
           if (asset.sku) {
             this.cachedColorwaySizeAssets.set(asset.sku, asset)
@@ -232,7 +236,6 @@ export class FittingRoomAPI {
         throw error
       }
     }
-
 
     const copyOfCache = new Map<string, FirestoreColorwaySizeAsset>()
     for (const sku of skus) {
@@ -284,7 +287,7 @@ export class FittingRoomAPI {
     const locations = await this.FetchMeasurementLocations()
 
     locations.forEach((location) => {
-      this.measurementLocations.set(location.name, { name: location.garment_label, sort_order: location.sort_order })
+      this.measurementLocations.set(location.name, location)
     })
   }
 
@@ -300,14 +303,23 @@ export class FittingRoomAPI {
   }
 
   // queues 3+ virtual try ons and only waits on the active rendered virtual tryon
-  public async PriorityTryOnWithMultiRequestCache(firestoreUserController: FirestoreUserController, activeSKU: string, availableSKUs: string[], skipCache: boolean = false): Promise<TryOnFrames> {
-    console.debug("PriorityTryOnWithMultiRequestCache", activeSKU, availableSKUs)
+  public async PriorityTryOnWithMultiRequestCache(
+    firestoreUserController: FirestoreUserController,
+    activeSKU: string,
+    availableSKUs: string[],
+    skipCache: boolean = false,
+  ): Promise<TryOnFrames> {
+    console.debug('PriorityTryOnWithMultiRequestCache', activeSKU, availableSKUs)
     if (!this.IsLoggedIn) throw new UserNotLoggedInError()
 
-    const priorityPromise = this.GetCachedOrRequestUserColorwaySizeAssetFrames(firestoreUserController, activeSKU, skipCache)
+    const priorityPromise = this.GetCachedOrRequestUserColorwaySizeAssetFrames(
+      firestoreUserController,
+      activeSKU,
+      skipCache,
+    )
 
-    const lowPrioritySkus = [...availableSKUs].filter(sku => sku !== activeSKU)
-    lowPrioritySkus.forEach(sku => {
+    const lowPrioritySkus = [...availableSKUs].filter((sku) => sku !== activeSKU)
+    lowPrioritySkus.forEach((sku) => {
       // frames will be cached in the background
       this.GetCachedOrRequestUserColorwaySizeAssetFrames(firestoreUserController, sku, skipCache)
     })
@@ -322,17 +334,21 @@ export class FittingRoomAPI {
     await this.fetcher.Post(this.firebaseAuthUserController, `/colorway-size-assets/${colorwaySizeAssetId}/frames`)
   }
 
-  private async WatchForTryOnFrames(firestoreUserController: FirestoreUserController, colorwaySizeAssetSKU: string, skipFullSnapshot: boolean = false): Promise<TryOnFrames> {
-    console.debug("WatchForTryOnFrames")
+  private async WatchForTryOnFrames(
+    firestoreUserController: FirestoreUserController,
+    colorwaySizeAssetSKU: string,
+    skipFullSnapshot: boolean = false,
+  ): Promise<TryOnFrames> {
+    console.debug('WatchForTryOnFrames')
     if (!this.IsLoggedIn) throw new UserNotLoggedInError()
 
-    let firstSnapshotProcessed = false;
+    let firstSnapshotProcessed = false
 
     const firestoreUserWatchCallback = async (data: DocumentData) => {
-      console.debug("firestoreUserWatchCallback", data)
+      console.debug('firestoreUserWatchCallback', data)
       if (skipFullSnapshot && !firstSnapshotProcessed) {
-        firstSnapshotProcessed = true;
-        return false;
+        firstSnapshotProcessed = true
+        return false
       }
 
       const firestoreUser = data as FirestoreUser
@@ -355,7 +371,7 @@ export class FittingRoomAPI {
     })
 
     // Race between the Firestore watch and the timeout
-    let firestoreUser: FirestoreUser;
+    let firestoreUser: FirestoreUser
     try {
       // Create the watch promise
       const watchPromise = firestoreUserController.WatchFirestoreUserChange(firestoreUserWatchCallback)
@@ -366,7 +382,9 @@ export class FittingRoomAPI {
       // If it's a timeout error, provide a more specific message
       if (error instanceof TimeoutError) {
         console.error(error.message)
-        throw new TimeoutError(`Timed out waiting for virtual try-on frames. Process cancelled after 300 seconds for SKU: ${colorwaySizeAssetSKU}`)
+        throw new TimeoutError(
+          `Timed out waiting for virtual try-on frames. Process cancelled after 300 seconds for SKU: ${colorwaySizeAssetSKU}`,
+        )
       }
 
       if (error instanceof NoFramesFoundError) {
@@ -379,14 +397,18 @@ export class FittingRoomAPI {
 
     const frames = firestoreUser.vto?.[this.BrandID]?.[colorwaySizeAssetSKU]?.frames
     if (!frames) {
-      console.error(`Frames not found on final user object for SKU: ${colorwaySizeAssetSKU}`, firestoreUser);
-      throw new NoFramesFoundError();
+      console.error(`Frames not found on final user object for SKU: ${colorwaySizeAssetSKU}`, firestoreUser)
+      throw new NoFramesFoundError()
     }
     this.vtoFramesCache.set(colorwaySizeAssetSKU, frames)
     return frames
   }
 
-  public async GetCachedOrRequestUserColorwaySizeAssetFrames(firestoreUserController: FirestoreUserController, colorwaySizeAssetSKU: string, skipCache: boolean): Promise<TryOnFrames | null> {
+  public async GetCachedOrRequestUserColorwaySizeAssetFrames(
+    firestoreUserController: FirestoreUserController,
+    colorwaySizeAssetSKU: string,
+    skipCache: boolean,
+  ): Promise<TryOnFrames | null> {
     console.debug('fetchUserVTOFrames', colorwaySizeAssetSKU, 'skipCache:', skipCache)
     if (!skipCache) {
       const cached = this.vtoFramesCache.get(colorwaySizeAssetSKU)
@@ -405,7 +427,7 @@ export class FittingRoomAPI {
 
     if (!skipCache) {
       // grab the full snapshot
-      console.debug("waiting for full snapshot")
+      console.debug('waiting for full snapshot')
       try {
         frames = await this.WatchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, false)
       } catch (error) {
@@ -416,7 +438,7 @@ export class FittingRoomAPI {
           await this.requestColorwaySizeAssetFramesByID(colorwaySizeAssetID)
 
           // Try again with skipCache=true behavior (watch for diff snapshot)
-          console.debug("waiting for new vto after refresh request")
+          console.debug('waiting for new vto after refresh request')
           frames = await this.WatchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, true)
         } else {
           throw error
@@ -426,11 +448,11 @@ export class FittingRoomAPI {
       // make a new vto request and wait for diff snapshot
       await this.requestColorwaySizeAssetFramesByID(colorwaySizeAssetID)
 
-      console.debug("waiting for new vto")
+      console.debug('waiting for new vto')
       frames = await this.WatchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, true)
     }
 
-    console.debug("retrieved frames", frames)
+    console.debug('retrieved frames', frames)
     this.vtoFramesCache.set(colorwaySizeAssetSKU, frames)
     return frames
   }

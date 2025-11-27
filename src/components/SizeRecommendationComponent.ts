@@ -140,7 +140,7 @@ export class SizeRecComponent {
     }
   }
 
-  public setStyleMeasurementLocations(locations: string[]) {
+  public SetStyleMeasurementLocations(locations: string[]) {
     if (!locations || !locations.length) {
       this.tfrSizeRecTitle.classList.add('hide')
 
@@ -150,7 +150,7 @@ export class SizeRecComponent {
     this.renderGarmentLocations(locations)
   }
 
-  public setRecommendedSize({ recommended, sizes }: RecommendedSize) {
+  public SetRecommendedSize({ recommended, sizes }: RecommendedSize) {
     this.renderSizeRec(recommended, sizes)
   }
 
