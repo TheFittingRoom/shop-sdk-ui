@@ -167,16 +167,15 @@
           env: typeof ENV !== 'undefined' ? ENV : 'development',
         }
 
-        const startTime = performance.now()
         const sku = getSku()
         if (!sku) {
           console.warn('SKU not retrieved. The Fitting Room will initialize but may not function optimally without a specific SKU.')
         }
         const tfr = await initFittingRoom(config)
 
-        if (sku) {
-          tfr.GetSizeRecommendation(sku, variantSKUs, true)
-        }
+        // if (sku) {
+        //   tfr.SizeRecommendationBySKU(sku, variantSKUs, true)
+        // }
 
         // Add event listeners for product selection changes
         const sizeSelect = document.querySelector('select[name="options[Size]"]')

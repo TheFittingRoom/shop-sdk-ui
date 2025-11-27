@@ -157,11 +157,6 @@
 
 #tfr-size-rec-select {
   opacity: 0.4;
-
-  .logged-in {
-    opacity: 1;
-  }
-
   align-items: center;
   background-color: var(--tfr-size-selector-bg-color);
   border-radius: var(--tfr-size-selector-button-radius);
@@ -177,6 +172,10 @@
   justify-content: center;
   margin-bottom: 20px;
   margin-top: 10px;
+}
+
+#tfr-size-rec-select.logged-in {
+  opacity: 1;
 }
 
 .tfr-size-rec-select-button {

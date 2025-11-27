@@ -110,6 +110,8 @@ export class SizeRecComponent {
     this.tfrLoggedInElements.forEach((element) => (element as HTMLElement).classList.remove('hide'))
     this.tfrSizeRecActionLogout.classList.remove('hide')
     this.tfrSizeRecTitle.classList.remove('hide')
+    this.tfrSizeRecSelectContainer.classList.remove('hide')
+    this.tfrSizeRecSelect.classList.remove('hide')
     this.tfrSizeRecTitleToggle.classList.remove('tfr-chevron-down')
 
     this.tfrLoggedOutElements.forEach((element) => (element as HTMLElement).classList.add('hide'))

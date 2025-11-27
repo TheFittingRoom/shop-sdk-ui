@@ -90,7 +90,7 @@ export class FirestoreUserController {
     })
   }
 
-  public async LogUserLogin(brandId: number) {
+  public async WriteUserLogging(brandId: number) {
     const user = await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
     await this.firestoreController.LogUserLogin(brandId, user)
   }

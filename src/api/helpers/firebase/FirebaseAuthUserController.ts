@@ -55,7 +55,8 @@ export class FirebaseAuthUserController {
   }
 
   public async GetUserOrNotLoggedIn(): Promise<User> {
-    const user = await this.waitForInitialization()
+    await this.waitForInitialization()
+    const user = this.auth.currentUser
     console.debug("GetUserOrNotLoggedIn:", Boolean(user))
 
     if (!user) {

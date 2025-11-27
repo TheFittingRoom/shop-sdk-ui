@@ -11,7 +11,7 @@ export class VTOController {
     if (!vtoMainDiv) {
       throw new Error("vtoMainDiv is:" + vtoMainDiv)
     }
-    vtoMainDiv.style.display = 'none'  // Initially hidden
+    vtoMainDiv.classList.add("hide")
   }
 
   public show() {
@@ -24,8 +24,8 @@ export class VTOController {
         </div>
     `
 
-    this.vtoMainDiv.style.display = 'block'
-    this.vtoMainDiv.style.visibility = 'visible'
+    this.vtoMainDiv.classList.remove("hide")
+
 
     this.tryOnImage = this.vtoMainDiv.querySelector('#tfr-tryon-image') as HTMLImageElement
     this.sliderElement = this.vtoMainDiv.querySelector('#tfr-slider') as HTMLInputElement
@@ -42,8 +42,7 @@ export class VTOController {
   public hide() {
     if (!this.isShown) return
 
-    this.vtoMainDiv.style.display = 'none'
-    this.vtoMainDiv.innerHTML = ''
+    this.vtoMainDiv.classList.add("hide")
 
     this.slider = null
     this.tryOnImage = null

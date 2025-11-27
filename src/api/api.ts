@@ -323,6 +323,7 @@ export class FittingRoomAPI {
   }
 
   private async WatchForTryOnFrames(firestoreUserController: FirestoreUserController, colorwaySizeAssetSKU: string, skipFullSnapshot: boolean = false): Promise<TryOnFrames> {
+    console.debug("WatchForTryOnFrames")
     if (!this.IsLoggedIn) throw new UserNotLoggedInError()
 
     let firstSnapshotProcessed = false;
@@ -334,27 +335,16 @@ export class FittingRoomAPI {
         return false;
       }
 
-      // get the frames from a cached or fresh user profile
-      try {
-        const firestoreUser = data as FirestoreUser
-        const frames = firestoreUser.vto[this.BrandID][colorwaySizeAssetSKU].frames
-        if (!frames?.length) {
-          return false // we recieved an invalid firestore change
-        }
-        const tested = await testImage(frames[0])
-        if (!tested) {
-          throw new NoFramesFoundError()
-        }
-        return true
-      } catch (e) {
-        console.debug("failed to resolve colorway_size_asset_frames from firestore_user snapshot", e)
-        // Only continue watching for certain types of errors
-        // If it's a NoFramesFoundError, we should stop watching and let the error propagate
-        if (e instanceof NoFramesFoundError) {
-          throw e  // Re-throw so it gets handled by WatchFirestoreUserChange
-        }
-        return false  // Continue watching for other types of errors
+      const firestoreUser = data as FirestoreUser
+      const frames = firestoreUser.vto?.[this.BrandID]?.[colorwaySizeAssetSKU]?.frames
+      if (!frames?.length) {
+        throw new NoFramesFoundError()
       }
+      const tested = await testImage(frames[0])
+      if (!tested) {
+        throw new NoFramesFoundError()
+      }
+      return true
     }
 
     // Create a timeout promise that will reject after 300 seconds
@@ -387,7 +377,11 @@ export class FittingRoomAPI {
       throw error
     }
 
-    const frames = firestoreUser.vto[this.BrandID][colorwaySizeAssetSKU].frames
+    const frames = firestoreUser.vto?.[this.BrandID]?.[colorwaySizeAssetSKU]?.frames
+    if (!frames) {
+      console.error(`Frames not found on final user object for SKU: ${colorwaySizeAssetSKU}`, firestoreUser);
+      throw new NoFramesFoundError();
+    }
     this.vtoFramesCache.set(colorwaySizeAssetSKU, frames)
     return frames
   }

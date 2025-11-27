@@ -111,6 +111,16 @@ export class FittingRoomController {
       if (style) {
         this.style = style
         cacheColorwaySizeAssetsPromise = this.API.FetchColorwaySizeAssetsFromStyleId(style.id)
+
+        console.debug("is_published", this.style.is_published)
+        if (!this.style.is_published) {
+          this.SizeRecommendationController.Hide()
+        }
+
+        console.debug("is_vto", this.style.is_vto)
+        if (this.style.is_vto) {
+          this.SizeRecommendationController.ShowTryOnButton()
+        }
       }
       const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
 
@@ -128,6 +138,8 @@ export class FittingRoomController {
       }
 
       if (Boolean(authUser)) {
+        this.SizeRecommendationController.ShowLoggedIn()
+        this.SizeRecommendationController.Show()
         if (this.hooks?.onLogin) this.hooks.onLogin()
         // For logged-in users, start the size recommendation UI
         if (this.style) {
@@ -149,11 +161,8 @@ export class FittingRoomController {
     }
   }
 
-  public async GetSizeRecommendation(activeSku: string, skipCache: boolean = false) {
+  public async SizeRecommendationBySKU(activeSku: string, skipCache: boolean = false) {
     console.debug("StartSizeRecommendation", activeSku, skipCache)
-    this.SizeRecommendationController.ShowLoggedIn()
-    this.SizeRecommendationController.Show()
-
     let colorwaySizeAsset = await this.API.GetCachedColorwaySizeAssetFromSku(activeSku, skipCache)
     if (this.style && this.style.id == colorwaySizeAsset.style_id && !skipCache) {
       console.debug("style and size_recommendation is precached")
@@ -166,10 +175,12 @@ export class FittingRoomController {
       this.SizeRecommendationController.Hide()
     }
 
+    console.debug("is_published", this.style.is_published)
     if (!this.style.is_published) {
       this.SizeRecommendationController.Hide()
     }
 
+    console.debug("is_vto", this.style.is_vto)
     if (this.style.is_vto) {
       this.SizeRecommendationController.ShowTryOnButton()
     }
@@ -216,7 +227,7 @@ export class FittingRoomController {
           this.firebaseAuthUserController)
       }
 
-      this.firestoreUserController.LogUserLogin(this.shopID)
+      await this.firestoreUserController.WriteUserLogging(this.shopID)
 
       this.tfrModal.close()
       if (this.hooks?.onLogin) this.hooks.onLogin()
