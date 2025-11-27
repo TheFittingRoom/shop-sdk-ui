@@ -1,5 +1,20 @@
 import { FirestoreColorwaySizeAsset, Fit, FitNames, FittingRoomAPI } from '../api'
+import { MeasurementLocationFit, SizeFit, SizeFitRecommendation } from '../api/gen/responses'
 import { RecommendedSize, SizeRecComponent } from './SizeRecommendationComponent'
+
+type LocationItem = {
+  fit: string
+  isPerfect: boolean
+  location: string
+  sortOrder: number
+}
+
+type SizeItem = {
+  size: string
+  size_id: number
+  sku: string
+  locations: LocationItem[]
+}
 
 export type TFRCssVariables = {
   brandColor?: string
@@ -58,7 +73,7 @@ export class SizeRecommendationController {
       this.onSignInClickCallback.bind(this),
       this.onTryOnCallback.bind(this),
       this.onLogoutCallback.bind(this),
-      this.onFitInfoCallback.bind(this)
+      this.onFitInfoCallback.bind(this),
     )
   }
 
@@ -117,63 +132,92 @@ export class SizeRecommendationController {
     styleId: number,
     colorwaySizeAssets: FirestoreColorwaySizeAsset[],
   ): Promise<RecommendedSize> {
+    console.debug('getRecommendedSizes', styleId, colorwaySizeAssets)
     const sizeRec = await this.FittingRoomAPI.GetRecommendedSizes(styleId)
 
-    if (!sizeRec) {
-      console.debug('no size rec found')
-      return null
-    }
-
-    if (!sizeRec.recommended_size?.size_value?.name) {
-      console.debug('no recommended size value found')
-      return null
-    }
-
-    if (!sizeRec.fits?.length) {
-      console.debug('no fits found')
+    if (!this.isValidSizeRec(sizeRec)) {
       return null
     }
 
     return {
       recommended: sizeRec.recommended_size.size_value.name,
-      sizes: sizeRec.fits
-        .map((fit) => {
-          const colorwayAsset = colorwaySizeAssets.find((asset) => asset.size_id === fit.size_id)
+      sizes: this.buildSizes(sizeRec, colorwaySizeAssets),
+    }
+  }
 
-          if (!colorwayAsset) {
-            console.debug(`no colorway asset found for size_id: ${fit.size_id}`)
-          }
+  private isValidSizeRec(sizeRec: SizeFitRecommendation | null): boolean {
+    console.debug('isValidSizeRec', sizeRec)
+    if (!sizeRec) {
+      console.debug('no size rec found')
+      return false
+    }
 
-          const availableSize = sizeRec.available_sizes?.find((size) => size.id === fit.size_id)
-          if (!availableSize) {
-            console.debug(`size with id ${fit.size_id} not found in available sizes`)
-            return null
-          }
+    if (!sizeRec.recommended_size?.size_value?.name) {
+      console.debug('no recommended size value found')
+      return false
+    }
 
-          return {
-            size: availableSize.size_value.name,
-            size_id: fit.size_id,
-            sku: colorwayAsset?.sku || '',
-            locations:
-              fit.measurement_location_fits
-                ?.map((locationFit) => {
-                  const fitLabel =
-                    typeof locationFit.fit_label === 'string' && locationFit.fit_label
-                      ? locationFit.fit_label
-                      : FitNames[locationFit.fit]
+    if (!sizeRec.fits?.length) {
+      console.debug('no fits found')
+      return false
+    }
 
-                  return {
-                    fit: fitLabel,
-                    isPerfect: this.perfectFits.includes(locationFit.fit),
-                    location: this.FittingRoomAPI.GetMeasurementLocationName(locationFit.measurement_location),
-                    sortOrder: this.FittingRoomAPI.GetMeasurementLocationSortOrder(locationFit.measurement_location),
-                  }
-                })
-                .filter((location) => location !== null) // Filter out null locations
-                .sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : 1)) || [],
-          }
-        })
-        .filter((size) => size !== null), // Filter out null sizes
+    return true
+  }
+
+  private buildSizes(sizeRec: SizeFitRecommendation, colorwaySizeAssets: FirestoreColorwaySizeAsset[]): SizeItem[] {
+    console.debug('buildSizes', sizeRec, colorwaySizeAssets)
+    return sizeRec.fits.map((fit) => this.buildSize(fit, sizeRec, colorwaySizeAssets)).filter((size) => size !== null)
+  }
+
+  private buildSize(
+    fit: SizeFit,
+    sizeRec: SizeFitRecommendation,
+    colorwaySizeAssets: FirestoreColorwaySizeAsset[],
+  ): SizeItem | null {
+    console.debug('buildSize', fit, sizeRec, colorwaySizeAssets)
+    const colorwayAsset = colorwaySizeAssets.find((asset) => asset.size_id === fit.size_id)
+
+    if (!colorwayAsset) {
+      console.debug(`no colorway asset found for size_id: ${fit.size_id}`)
+    }
+
+    const availableSize = sizeRec.available_sizes?.find((size) => size.id === fit.size_id)
+    if (!availableSize) {
+      console.debug(`size with id ${fit.size_id} not found in available sizes`)
+      return null
+    }
+
+    return {
+      size: availableSize.size_value.name,
+      size_id: fit.size_id,
+      sku: colorwayAsset?.sku || '',
+      locations: this.buildLocations(fit),
+    }
+  }
+
+  private buildLocations(fit: SizeFit): LocationItem[] {
+    console.debug('buildLocations', fit)
+    return (
+      fit.measurement_location_fits
+        ?.map((locationFit) => this.buildLocation(locationFit))
+        .filter((location) => location !== null)
+        .sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : 1)) || []
+    )
+  }
+
+  private buildLocation(locationFit: MeasurementLocationFit): LocationItem {
+    console.debug('buildLocation', locationFit)
+    const fitLabel =
+      typeof locationFit.fit_label === 'string' && locationFit.fit_label
+        ? locationFit.fit_label
+        : FitNames[locationFit.fit]
+
+    return {
+      fit: fitLabel,
+      isPerfect: this.perfectFits.includes(locationFit.fit),
+      location: this.FittingRoomAPI.GetMeasurementLocationName(locationFit.measurement_location),
+      sortOrder: this.FittingRoomAPI.GetMeasurementLocationSortOrder(locationFit.measurement_location),
     }
   }
 
@@ -243,16 +287,15 @@ export class SizeRecommendationController {
   }
 
   public Show() {
-    console.debug("SizeRecommendationContoller.Show")
+    console.debug('SizeRecommendationContoller.Show')
     this.sizeRecComponent.Show()
   }
 
   public ShowLoggedOut() {
     this.sizeRecComponent.ShowLoggedOut()
-
   }
   public ShowLoggedIn() {
-    console.debug("SizeRecommendationContoller.ShowLoggedIn")
+    console.debug('SizeRecommendationContoller.ShowLoggedIn')
     this.sizeRecComponent.ShowLoggedIn()
   }
 
@@ -269,23 +312,26 @@ export class SizeRecommendationController {
   }
 
   public ShowSizeRecommendationLoading() {
-    console.debug("show sizerec loading")
+    console.debug('show sizerec loading')
     this.sizeRecComponent.SetSizeRecommendationLoading(true)
   }
 
   public HideSizeRecommendationLoading() {
-    console.debug("hiding sizerec loading")
+    console.debug('hiding sizerec loading')
     this.sizeRecComponent.SetSizeRecommendationLoading(false)
   }
 
   public ShowVTOLoading() {
-    console.debug("show vto loading")
+    console.debug('show vto loading')
     this.sizeRecComponent.SetVTOLoading(true)
   }
 
   public HideVTOLoading() {
-    console.debug("hide vto loading")
+    console.debug('hide vto loading')
     this.sizeRecComponent.SetVTOLoading(false)
   }
-}
 
+  public SetColorwayID(colorwayId: number): void {
+    this.sizeRecComponent.SetColorwayID(colorwayId)
+  }
+}

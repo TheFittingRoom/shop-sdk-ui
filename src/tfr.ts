@@ -80,10 +80,10 @@ export class FittingRoomController {
       sizeRecMainDiv,
       cssVariables || {},
       this.API,
-      this.signInSizeRecommendationCallback.bind(this),
-      this.logOutCallback.bind(this),
-      this.fitInfoCallback.bind(this),
-      this.tryOnCallback.bind(this),
+      this.onSignInSizeRecommendationCallback.bind(this),
+      this.onLogOutCallback.bind(this),
+      this.onFitInfoCallback.bind(this),
+      this.onTryOnCallback.bind(this),
     )
 
     // TODO: write a callback function that gets passed to the API state handlerss
@@ -144,7 +144,7 @@ export class FittingRoomController {
         // For logged-in users, start the size recommendation UI
         if (this.style) {
           console.log("calling StartSizeRecommendation from Init method for logged in user")
-          this.SizeRecommendationController.StartSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
+          this.SizeRecommendationController.GetSizeRecommendationByStyleID(this.style.id, this.API.GetCachedColorwaySizeAssets())
         } else {
         }
       } else {
@@ -187,7 +187,7 @@ export class FittingRoomController {
 
     try {
       await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
-      this.SizeRecommendationController.StartSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
+      this.SizeRecommendationController.GetSizeRecommendationByStyleID(this.style.id, this.API.GetCachedColorwaySizeAssets())
     } catch (e) {
       if (!(e instanceof UserNotLoggedInError)) {
         throw e
@@ -202,7 +202,7 @@ export class FittingRoomController {
     this.tfrModal.close()
   }
 
-  public async logOutCallback() {
+  public async onLogOutCallback() {
     await this.firebaseAuthUserController.Logout()
 
     if (this.hooks?.onLogout) this.hooks.onLogout()
@@ -234,7 +234,7 @@ export class FittingRoomController {
 
       if (this.style) {
         console.log("calling StartSizeRecommendation after successful login")
-        this.SizeRecommendationController.StartSizeRecommendation(this.style.id, this.API.GetCachedColorwaySizeAssets())
+        this.SizeRecommendationController.GetSizeRecommendationByStyleID(this.style.id, this.API.GetCachedColorwaySizeAssets())
       }
 
       const user = await this.firestoreUserController.GetUser(false)
@@ -271,16 +271,16 @@ export class FittingRoomController {
     return this.API.GetMeasurementLocationsFromSku(sku, [], skipCache)
   }
 
-  public signInSizeRecommendationCallback() {
+  public onSignInSizeRecommendationCallback() {
     this.tfrModal.toScan()
   }
 
-  public fitInfoCallback() {
+  public onFitInfoCallback() {
     this.tfrModal.toFitInfo()
   }
 
   // callback for SizeRecommendationController
-  public async tryOnCallback(primarySKU: string, availableSKUs: string[]) {
+  public async onTryOnCallback(primarySKU: string, availableSKUs: string[]) {
     console.log("tryOncallback", primarySKU, availableSKUs)
     this.forceFreshVTO = this.hasInitializedTryOn && this.noCacheOnRetry
 
@@ -352,5 +352,9 @@ export class FittingRoomController {
 
   public styleToGarmentMeasurementLocations(style: FirestoreStyle) {
     return style.sizes[0].garment_measurements.map((measurement) => measurement.measurement_location)
+  }
+
+  public SetColorwayID(colorwayId: number): void {
+    this.SizeRecommendationController.SetColorwayID(colorwayId)
   }
 }

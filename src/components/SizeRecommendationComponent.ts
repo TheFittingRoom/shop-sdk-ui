@@ -16,6 +16,7 @@ export type RecommendedSize = {
 
 export class SizeRecComponent {
   private availableSizes: RecommendedSize['sizes'] = []
+  private currentColorwayId: number | null = null
 
   private sizeRecMainDiv: HTMLDivElement
 
@@ -57,7 +58,7 @@ export class SizeRecComponent {
   }
 
   private onSignInClick(): void {
-    console.debug("onSignInClick")
+    console.debug('onSignInClick')
 
     try {
       this.onSignInClickCallback()
@@ -67,7 +68,7 @@ export class SizeRecComponent {
   }
 
   private onSignOutClick(): void {
-    console.debug("onSignOutClick")
+    console.debug('onSignOutClick')
     this.ShowLoggedOut()
     if (this.onSignOutCallback) {
       this.onSignOutCallback()
@@ -83,9 +84,9 @@ export class SizeRecComponent {
   public ShowLoggedOut() {
     this.isLoggedIn = false
     console.debug('ShowLoggedOut')
-    this.tfrSizeHowItFits.classList.remove("logged-in")
-    this.tfrSizeRecSelect.classList.remove("logged-in")
-    this.tfrSizeRecSelectContainer.classList.remove("logged-in")
+    this.tfrSizeHowItFits.classList.remove('logged-in')
+    this.tfrSizeRecSelect.classList.remove('logged-in')
+    this.tfrSizeRecSelectContainer.classList.remove('logged-in')
 
     this.tfrLoggedInElements.forEach((element) => (element as HTMLElement).classList.add('hide'))
     this.tfrLoggedOutElements.forEach((element) => (element as HTMLElement).classList.remove('hide'))
@@ -103,9 +104,9 @@ export class SizeRecComponent {
     this.isLoggedIn = true
     this.isCollapsed = false
 
-    this.tfrSizeHowItFits.classList.add("logged-in")
-    this.tfrSizeRecSelect.classList.add("logged-in")
-    this.tfrSizeRecSelectContainer.classList.add("logged-in")
+    this.tfrSizeHowItFits.classList.add('logged-in')
+    this.tfrSizeRecSelect.classList.add('logged-in')
+    this.tfrSizeRecSelectContainer.classList.add('logged-in')
 
     this.tfrLoggedInElements.forEach((element) => (element as HTMLElement).classList.remove('hide'))
     this.tfrSizeRecActionLogout.classList.remove('hide')
@@ -120,7 +121,7 @@ export class SizeRecComponent {
   }
 
   public SetSizeRecommendationLoading(isLoading: boolean) {
-    console.debug("SetSizeRecommendationLoading", isLoading)
+    console.debug('SetSizeRecommendationLoading', isLoading)
     if (isLoading) {
       this.tfrSizeRecommendationsContainer.classList.add('hide')
       this.tfrSizeRecLoading.classList.remove('hide')
@@ -170,15 +171,20 @@ export class SizeRecComponent {
   }
 
   public disableTryOnButton(message: string) {
-    this.tfrTryOnButton.disabled = true;
-    this.tfrTryOnButton.title = message; // Set hover message
-    this.tfrTryOnButton.classList.add('disabled'); // Add disabled styling if needed
+    this.tfrTryOnButton.disabled = true
+    this.tfrTryOnButton.title = message // Set hover message
+    this.tfrTryOnButton.classList.add('disabled') // Add disabled styling if needed
   }
 
   public enableTryOnButton() {
-    this.tfrTryOnButton.disabled = false;
-    this.tfrTryOnButton.title = ''; // Clear hover message
-    this.tfrTryOnButton.classList.remove('disabled'); // Remove disabled styling
+    this.tfrTryOnButton.disabled = false
+    this.tfrTryOnButton.title = '' // Clear hover message
+    this.tfrTryOnButton.classList.remove('disabled') // Remove disabled styling
+  }
+
+  public SetColorwayID(colorwayId: number): void {
+    console.debug('SetColorwayID', colorwayId)
+    this.currentColorwayId = colorwayId
   }
 
   private init(sizeRecMainDiv: HTMLDivElement) {
@@ -213,36 +219,35 @@ export class SizeRecComponent {
     this.tfrToggleClosedElements = sizeRecMainDiv.querySelectorAll('.tfr-toggle-closed')
   }
 
-
   public GetSizeRecommendationState(): {
-    selectedSku: string;
-    availableSkus: string[];
+    selectedSku: string
+    availableSkus: string[]
   } {
-    const activeButton = this.sizeRecMainDiv.querySelector('.tfr-size-rec-select-button.active');
+    const activeButton = this.sizeRecMainDiv.querySelector('.tfr-size-rec-select-button.active')
     if (!activeButton) {
-      throw new Error("no active button found");
+      throw new Error('no active button found')
     }
 
-    const selectedIndex = Number(activeButton.getAttribute('data-index'));
+    const selectedIndex = Number(activeButton.getAttribute('data-index'))
     if (Number.isNaN(selectedIndex) || !this.availableSizes[selectedIndex]) {
-      throw new Error("no selectedIndex found");
+      throw new Error('no selectedIndex found')
     }
 
-    const selectedSku = this.availableSizes[selectedIndex].sku;
+    const selectedSku = this.availableSizes[selectedIndex].sku
     if (!selectedSku) {
-      throw new Error("no selectedSku found");
+      throw new Error('no selectedSku found')
     }
 
-    const skusToLoad: string[] = [selectedSku];
+    const availableSkus: string[] = [selectedSku]
 
     if (selectedIndex > 0 && this.availableSizes[selectedIndex - 1]?.sku) {
-      skusToLoad.push(this.availableSizes[selectedIndex - 1].sku);
+      availableSkus.push(this.availableSizes[selectedIndex - 1].sku)
     }
     if (selectedIndex < this.availableSizes.length - 1 && this.availableSizes[selectedIndex + 1]?.sku) {
-      skusToLoad.push(this.availableSizes[selectedIndex + 1].sku);
+      availableSkus.push(this.availableSizes[selectedIndex + 1].sku)
     }
 
-    return { selectedSku, availableSkus: skusToLoad };
+    return { selectedSku, availableSkus }
   }
 
   private bindEvents() {
@@ -257,7 +262,7 @@ export class SizeRecComponent {
   }
 
   private onTryOnClick(e: MouseEvent) {
-    console.debug("onTryOnClick")
+    console.debug('onTryOnClick')
     e.preventDefault()
 
     if (!this.isLoggedIn) {
@@ -278,7 +283,7 @@ export class SizeRecComponent {
   }
 
   private onSizeRecSelectClick(e: MouseEvent) {
-    console.debug("onSizeRecSelectClick")
+    console.debug('onSizeRecSelectClick')
 
     const target = e.target as HTMLDivElement
     if (!target.classList.contains('tfr-size-rec-select-button') || target.classList.contains('tfr-disabled')) return
@@ -468,5 +473,4 @@ export class SizeRecComponent {
 
     sizeRecMainDiv.innerHTML = body
   }
-
 }
