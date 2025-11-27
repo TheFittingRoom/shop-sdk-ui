@@ -752,6 +752,7 @@ export interface User {
   is_tos_accepted: boolean;
   email: string;
   job: string;
+  gender: string;
 }
 export interface FirestoreVTOData {
   error: string;
@@ -767,6 +768,7 @@ export interface FirestoreUser {
   last_name: string; // Depricated
   job: string;
   avatar_status: string;
+  avatar_gender: string;
   created_at: any /* time.Time */;
   updated_at?: any /* time.Time */;
   is_tos_accepted: boolean;

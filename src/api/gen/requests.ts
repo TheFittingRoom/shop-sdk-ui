@@ -22,7 +22,7 @@ export interface Avatar {
 }
 export interface UpdateAvatarWebhook {
   error: string;
-  measurements: { [key: string]: number /* float64 */};
+  measurements: { [key: string]: number /* float64 */ };
   joints: Joint[];
   frames_storage_path: string;
   object_storage_path: string;
@@ -30,7 +30,7 @@ export interface UpdateAvatarWebhook {
 }
 export interface FakeAvatar {
   gender: string;
-  measurements: { [key: string]: number /* float64 */};
+  measurements: { [key: string]: number /* float64 */ };
 }
 
 //////////
@@ -100,8 +100,6 @@ export interface ColorwaySizeAsset {
 }
 export interface ColorwaySizeAssetUpload {
   File?: any /* multipart.FileHeader */;
-}
-export interface ColorwaySizeAssetFrames {
 }
 export interface UpdateColorwaySizeAssetWebhook {
   avatar_id: number /* int64 */;
