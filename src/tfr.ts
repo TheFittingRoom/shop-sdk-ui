@@ -161,11 +161,16 @@ export class FittingRoomController {
     }
   }
 
-  public async SizeRecommendationBySKU(activeSku: string, skipCache: boolean = false) {
+  private selectedColorwaySizeAsset: FirestoreColorwaySizeAsset
+
+  public async SetColorwaySizeAssetBySKU(activeSku: string, skipCache: boolean = false) {
     console.debug("StartSizeRecommendation", activeSku, skipCache)
+    let cachedStyle = false;
     let colorwaySizeAsset = await this.API.GetCachedColorwaySizeAssetFromSku(activeSku, skipCache)
+    this.selectedColorwaySizeAsset = colorwaySizeAsset
     if (this.style && this.style.id == colorwaySizeAsset.style_id && !skipCache) {
       console.debug("style and size_recommendation is precached")
+      cachedStyle = true
     } else {
       console.debug('fetching style for sku:', activeSku)
       this.style = await this.API.GetStyleByID(colorwaySizeAsset.style_id)
@@ -185,16 +190,18 @@ export class FittingRoomController {
       this.SizeRecommendationController.ShowTryOnButton()
     }
 
-    try {
-      await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
-      this.SizeRecommendationController.GetSizeRecommendationByStyleID(this.style.id, this.API.GetCachedColorwaySizeAssets(), colorwaySizeAsset.colorway_id)
-    } catch (e) {
-      if (!(e instanceof UserNotLoggedInError)) {
-        throw e
+    if (!cachedStyle) {
+      try {
+        await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
+        this.SizeRecommendationController.GetSizeRecommendationByStyleID(this.style.id, this.API.GetCachedColorwaySizeAssets(), colorwaySizeAsset.colorway_id)
+      } catch (e) {
+        if (!(e instanceof UserNotLoggedInError)) {
+          throw e
+        }
+        const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
+        console.log("calling setLoggedOutStyleMeasurementLocations from GetSizeRecommendation catch block")
+        this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(styleMeasurementLocations)
       }
-      const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
-      console.log("calling setLoggedOutStyleMeasurementLocations from GetSizeRecommendation catch block")
-      this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(styleMeasurementLocations)
     }
   }
 
@@ -281,12 +288,22 @@ export class FittingRoomController {
   }
 
   // callback for SizeRecommendationController
-  public async onTryOnCallback(primarySKU: string, availableSKUs: string[]) {
-    console.log("tryOncallback", primarySKU, availableSKUs)
+  public async onTryOnCallback(selectedSizeID: number, availableSizeIDs: number[]) {
+    if (!this.selectedColorwaySizeAsset) {
+      throw new Error("selectedColorwaySizeAsset is not set")
+    }
+    console.log("tryOncallback", selectedSizeID, availableSizeIDs)
     this.forceFreshVTO = this.hasInitializedTryOn && this.noCacheOnRetry
 
+    const selectedColorwaySizeAssetSKU = this.API.GetCachedColorwaySizeAssets().
+      filter(asset => asset.id == selectedSizeID &&
+        asset.colorway_id == this.selectedColorwaySizeAsset.colorway_id).map(asset => asset.sku)[0]
+    const availableColorwaySizeAssetSKUs = this.API.GetCachedColorwaySizeAssets().
+      filter(asset => availableSizeIDs.includes(asset.id)
+        && asset.colorway_id == this.selectedColorwaySizeAsset.colorway_id).map(asset => asset.sku)
+
     try {
-      const batchResult = await this.API.PriorityTryOnWithMultiRequestCache(this.firestoreUserController, primarySKU, availableSKUs, this.forceFreshVTO)
+      const batchResult = await this.API.PriorityTryOnWithMultiRequestCache(this.firestoreUserController, selectedColorwaySizeAssetSKU, availableColorwaySizeAssetSKUs, this.forceFreshVTO)
       this.vtoComponent.onNewFramesReady(batchResult)
       console.log("calling HideVTOLoading after successful VTO")
       this.SizeRecommendationController.SetVTOLoading(true)

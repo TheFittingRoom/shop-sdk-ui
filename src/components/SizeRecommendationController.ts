@@ -60,17 +60,17 @@ export class SizeRecommendationController {
     private readonly FittingRoomAPI: FittingRoomAPI,
     private readonly signInClickCallback: () => void,
     private readonly logoutCallback: () => void,
-    private readonly fitInfoCallback: () => void,
-    private readonly tryOnCallback: (selectedSizeID: number, availableSizeIDs: number[]) => Promise<void>,
+    private readonly FitInfoCallback: () => void,
+    private readonly TryOnCallback: (selectedSizeID: number, availableSizeIDs: number[]) => Promise<void>,
   ) {
     this.setCssVariables(sizeRecMainDiv, cssVariables)
 
     this.sizeRecComponent = new SizeRecComponent(
       sizeRecMainDiv,
       this.signInClickCallback,
-      this.tryOnCallback,
+      this.TryOnCallback,
       this.logoutCallback,
-      this.fitInfoCallback,
+      this.FitInfoCallback,
     )
   }
 
@@ -90,11 +90,6 @@ export class SizeRecommendationController {
     console.debug('StartSizeRecommendation', styleId, colorwaySizeAssets, colorwayId)
     try {
       this.SetSizeRecommendationLoading(true)
-
-      let filteredColorwaySizeAssets = colorwaySizeAssets
-      if (colorwayId !== undefined) {
-        filteredColorwaySizeAssets = colorwaySizeAssets.filter(asset => asset.colorway_id === colorwayId)
-      }
 
       const sizeFitRecommendation = await this.FittingRoomAPI.GetRecommendedSizes(styleId)
 
