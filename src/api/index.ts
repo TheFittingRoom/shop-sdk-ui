@@ -1,4 +1,4 @@
-import { AvatarStatusCreated, AvatarStatusNotCreated, AvatarStatusPending } from './gen/enums'
+import { AvatarStatusCreated, AvatarStatusNotCreated, AvatarStatusPending, HorizontalFitLoose, HorizontalFitOversized, HorizontalFitPerfectFit, HorizontalFitSlightlyLoose, HorizontalFitSlightlyTight, HorizontalFitTight, HorizontalFitTooTight } from './gen/enums'
 
 export { FittingRoomAPI } from './api'
 export * from './measurement'

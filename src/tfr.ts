@@ -13,7 +13,7 @@ import { FirestoreUserController } from './api/helpers/firebase/FirestoreUserCon
 import { FirestoreController } from './api/helpers/firebase/firestore'
 import { UserNotLoggedInError } from './api/helpers/errors'
 import { AvatarStatusCreated, AvatarStatusPending, AvatarStatusNotCreated, AvatarStatus } from './api/gen/enums'
-import { Avatar } from './api/gen/responses'
+import { Avatar, GarmentMeasurement } from './api/gen/responses'
 
 export interface TFRHooks {
   onLoading?: () => void
@@ -187,7 +187,7 @@ export class FittingRoomController {
 
     try {
       await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
-      this.SizeRecommendationController.GetSizeRecommendationByStyleID(this.style.id, this.API.GetCachedColorwaySizeAssets())
+      this.SizeRecommendationController.GetSizeRecommendationByStyleID(this.style.id, this.API.GetCachedColorwaySizeAssets(), colorwaySizeAsset.colorway_id)
     } catch (e) {
       if (!(e instanceof UserNotLoggedInError)) {
         throw e
@@ -351,11 +351,8 @@ export class FittingRoomController {
     this.unsubFirestoreUserCollection = null;
   }
 
-  public styleToGarmentMeasurementLocations(style: FirestoreStyle) {
-    return style.sizes[0].garment_measurements.map((measurement) => measurement.measurement_location)
+  public styleToGarmentMeasurementLocations(style: FirestoreStyle): GarmentMeasurement[] {
+    return style.sizes[0].garment_measurements
   }
 
-  public SetColorwayID(colorwayId: number): void {
-    this.SizeRecommendationController.SetColorwayID(colorwayId)
-  }
 }

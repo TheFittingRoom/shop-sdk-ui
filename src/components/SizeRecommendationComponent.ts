@@ -1,22 +1,10 @@
+import { Fit, HorizontalFit, HorizontalFitLoose, HorizontalFitOversized, HorizontalFitPerfectFit, HorizontalFitSlightlyLoose, HorizontalFitSlightlyTight, HorizontalFitTight, HorizontalFitTooTight } from '../api/gen/enums'
+import { GarmentMeasurement } from '../api/gen/responses'
 import { infoIcon, tfrDoor, userIcon } from '../assets/svgs'
-
-export type RecommendedSize = {
-  recommended: string
-  sizes: {
-    size: string
-    size_id: number
-    sku: string
-    locations: {
-      fit: string
-      isPerfect: boolean
-      location: string
-    }[]
-  }[]
-}
+import { MeasurementLocationFitWithPerfectFit, SizeMeasurementLocationFits } from './SizeRecommendationController'
 
 export class SizeRecComponent {
-  private availableSizes: RecommendedSize['sizes'] = []
-  private currentColorwayId: number | null = null
+  private availableSizes: SizeMeasurementLocationFits[] = []
 
   private sizeRecMainDiv: HTMLDivElement
 
@@ -50,7 +38,7 @@ export class SizeRecComponent {
   constructor(
     sizeRecMainDiv: HTMLDivElement,
     private readonly onSignInClickCallback: () => void,
-    private readonly onTryOnCallback: (selectedSku: string, availableSkus: string[]) => void,
+    private readonly onTryOnCallback: (selectedSizeID: number, availableSizeIDs: number[]) => void,
     private readonly onSignOutCallback: () => void,
     private readonly onFitInfoCallback: () => void,
   ) {
@@ -140,18 +128,18 @@ export class SizeRecComponent {
     }
   }
 
-  public SetStyleMeasurementLocations(locations: string[]) {
-    if (!locations || !locations.length) {
+  public SetStyleMeasurementLocations(garmentMeasurementLocations: GarmentMeasurement[]) {
+    if (!garmentMeasurementLocations || !garmentMeasurementLocations.length) {
       this.tfrSizeRecTitle.classList.add('hide')
 
       return
     }
 
-    this.renderGarmentLocations(locations)
+    this.renderGarmentLocations(garmentMeasurementLocations)
   }
 
-  public SetRecommendedSize({ recommended, sizes }: RecommendedSize) {
-    this.renderSizeRec(recommended, sizes)
+  public SetRecommendedSize(sizeMeasurementLocationFits: SizeMeasurementLocationFits[]) {
+    this.renderSizeRec(sizeMeasurementLocationFits)
   }
 
   public Hide() {
@@ -180,11 +168,6 @@ export class SizeRecComponent {
     this.tfrTryOnButton.disabled = false
     this.tfrTryOnButton.title = '' // Clear hover message
     this.tfrTryOnButton.classList.remove('disabled') // Remove disabled styling
-  }
-
-  public SetColorwayID(colorwayId: number): void {
-    console.debug('SetColorwayID', colorwayId)
-    this.currentColorwayId = colorwayId
   }
 
   private init(sizeRecMainDiv: HTMLDivElement) {
@@ -220,8 +203,8 @@ export class SizeRecComponent {
   }
 
   public GetSizeRecommendationState(): {
-    selectedSku: string
-    availableSkus: string[]
+    selectedID: number
+    availableIDs: number[]
   } {
     const activeButton = this.sizeRecMainDiv.querySelector('.tfr-size-rec-select-button.active')
     if (!activeButton) {
@@ -233,21 +216,21 @@ export class SizeRecComponent {
       throw new Error('no selectedIndex found')
     }
 
-    const selectedSku = this.availableSizes[selectedIndex].sku
-    if (!selectedSku) {
+    const selectedID = this.availableSizes[selectedIndex].id
+    if (!selectedID) {
       throw new Error('no selectedSku found')
     }
 
-    const availableSkus: string[] = [selectedSku]
+    const availableSizeIDs: number[] = [selectedID]
 
-    if (selectedIndex > 0 && this.availableSizes[selectedIndex - 1]?.sku) {
-      availableSkus.push(this.availableSizes[selectedIndex - 1].sku)
+    if (selectedIndex > 0 && this.availableSizes[selectedIndex - 1]?.id) {
+      availableSizeIDs.push(this.availableSizes[selectedIndex - 1].id)
     }
-    if (selectedIndex < this.availableSizes.length - 1 && this.availableSizes[selectedIndex + 1]?.sku) {
-      availableSkus.push(this.availableSizes[selectedIndex + 1].sku)
+    if (selectedIndex < this.availableSizes.length - 1 && this.availableSizes[selectedIndex + 1]?.id) {
+      availableSizeIDs.push(this.availableSizes[selectedIndex + 1].id)
     }
 
-    return { selectedSku, availableSkus }
+    return { selectedID: selectedID, availableIDs: availableSizeIDs }
   }
 
   private bindEvents() {
@@ -274,8 +257,9 @@ export class SizeRecComponent {
 
     // Get the state and call the try-on callback with the selected SKU and available SKUs
     try {
-      const { selectedSku, availableSkus } = this.GetSizeRecommendationState()
-      this.onTryOnCallback(selectedSku, availableSkus)
+      const { selectedID, availableIDs } = this.GetSizeRecommendationState()
+      TODO: // convert the ids to associated colorway size assets in tfr.ts
+      this.onTryOnCallback(selectedID, availableIDs)
     } catch (error) {
       console.error('Error getting try-on state:', error)
       this.SetVTOLoading(false)
@@ -301,38 +285,34 @@ export class SizeRecComponent {
     this.redraw(selectedIndex)
   }
 
-  private renderSizeRec(recommended: string, sizes: RecommendedSize['sizes']) {
-    this.tfrSizeRecSize.innerHTML = `&nbsp;${recommended}`
+  private renderSizeRec(sizeMeasurementLocationFits: SizeMeasurementLocationFits[]) {
+    const selectedSizeIndex = sizeMeasurementLocationFits.findIndex((size) => size.isRecommended)
+    const selectedSizeLabel = sizeMeasurementLocationFits[selectedSizeIndex].label
+    this.tfrSizeRecSize.innerHTML = `&nbsp;${selectedSizeLabel}`
 
-    // Store available sizes for try-on operations
-    this.availableSizes = sizes
+    this.availableSizes = sizeMeasurementLocationFits
 
-    const selectedSizeIndex = sizes.findIndex(({ size }) => size === recommended)
-
-    this.redraw = (index: number) => this.renderSizeRecTable(sizes, index)
+    this.redraw = (index: number) => this.renderSizeRecTable(sizeMeasurementLocationFits, index)
 
     this.redraw(selectedSizeIndex)
-    this.renderSizeRecSelect(sizes, selectedSizeIndex)
+    this.renderSizeRecSelect(sizeMeasurementLocationFits, selectedSizeIndex)
   }
 
-  private renderSizeRecTable(sizes: RecommendedSize['sizes'], index: number) {
-    const { locations } = sizes[index]
-    const html = locations
-      .map(({ location, fit, isPerfect }) => this.renderSizeRecTableRow(location, fit, isPerfect))
-      .join('')
+  private renderSizeRecTable(sizeOptions: SizeMeasurementLocationFits[], index: number) {
+    const html = sizeOptions[index].measurementLocationFits
+      .map((measurementLoctionFit) => this.renderSizeRecTableRow(measurementLoctionFit)).join('')
 
     this.tfrSizeRecTable.innerHTML = html
   }
 
-  private renderSizeRecSelect(sizes: RecommendedSize['sizes'], index: number) {
-    const sizeNames = sizes.map(({ size }) => size)
-    const html = sizeNames
-      .map(
+  private renderSizeRecSelect(sizeMeasurementLocationFits: SizeMeasurementLocationFits[], index: number) {
+    const html =
+      sizeMeasurementLocationFits.map(
         (name, i) =>
-          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}" data-sku="${sizes[i].sku
+          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}"
           }">${name}</div>`,
       )
-      .join('')
+        .join('')
 
     this.tfrSizeRecSelect.innerHTML = html
   }
@@ -347,19 +327,35 @@ export class SizeRecComponent {
     this.tfrSizeRecSelect.innerHTML = html
   }
 
-  private renderSizeRecTableRow(location: string, fit: string, isPerfect: boolean = false) {
+
+  // TODO: move perfect fit logic to CSS fit attributes
+  private renderSizeRecTableRow(fit: MeasurementLocationFitWithPerfectFit) {
     return `<div class="tfr-size-rec-table-row">
-              <div class="tfr-size-rec-table-cell-left">${location}</div>
-              <div class="tfr-size-rec-table-cell-right ${isPerfect ? 'perfect' : ''}">
-                ${fit}
+              <div class="tfr-size-rec-table-cell-left">${fit.measurement_location}</div>
+              <div class="tfr-size-rec-table-cell-right ${fit.isPerfectFit ? 'perfect' : ''}">
+                ${fit.fit_label || this.fitToSentenceCase(fit.fit)}
               </div>
             </div>`
   }
 
-  private renderGarmentLocations(locations: string[]) {
-    const innerHtml = locations
-      .map((location, index) => this.renderSizeRecTableRow(location, this.randomFit(index), true))
-      .join('')
+  private renderGarmentLocations(locations: GarmentMeasurement[]) {
+    const fakeMeasurementLocationFitWithPerfectFit: MeasurementLocationFitWithPerfectFit[] = []
+    locations.forEach((location, index) => {
+      const fit = this.randomFit(index)
+      fakeMeasurementLocationFitWithPerfectFit.push({
+        measurement_location: location.measurement_location,
+        fit,
+        isPerfectFit: false,
+        sort_order: index,
+        fit_label: "",
+        group: "",
+        group_label: ""
+      })
+    })
+
+
+    const innerHtml = fakeMeasurementLocationFitWithPerfectFit
+      .map((fakeMeasurementLocationFitWithPerfectFit) => this.renderSizeRecTableRow(fakeMeasurementLocationFitWithPerfectFit)).join('')
     const html = `<div id="tfr-logged-out-overlay-container">
                     <div id="tfr-logged-out-overlay">
                       Login to reveal how this item will fit specifically at each area of your body in different sizes
@@ -372,8 +368,15 @@ export class SizeRecComponent {
     this.tfrSizeRecTable.innerHTML = html
   }
 
-  private randomFit(index: number) {
-    const choices = ['Slightly Tight', 'Perfect Fit', 'Perfect Fit', 'Slightly Loose', 'Perfect Fit']
+  private randomFit(index: number): Fit {
+    const choices: HorizontalFit[] = [
+      HorizontalFitTooTight,
+      HorizontalFitTight,
+      HorizontalFitSlightlyTight,
+      HorizontalFitPerfectFit,
+      HorizontalFitSlightlyLoose,
+      HorizontalFitLoose,
+      HorizontalFitOversized]
 
     return choices[index % choices.length]
   }
@@ -472,5 +475,12 @@ export class SizeRecComponent {
                   <div id="tfr-size-recommendation-error"></div>`
 
     sizeRecMainDiv.innerHTML = body
+  }
+
+  private fitToSentenceCase(fit: string): string {
+    return fit
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   }
 }

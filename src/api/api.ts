@@ -57,11 +57,11 @@ export class FittingRoomAPI {
     console.debug('calling /recommend', styleId)
     try {
       const res = await this.fetcher.Get(this.firebaseAuthUserController, `/styles/${String(styleId)}/recommendation`)
-      const data = (await res.json()) as SizeFitRecommendation
+      const sizeFitRecommendation = (await res.json()) as SizeFitRecommendation
 
-      if (!data?.fits?.length || !data?.recommended_size?.id) return null
-      console.debug('getRecommendedSizes', data.available_sizes)
-      return data
+      if (!sizeFitRecommendation?.fits?.length || !sizeFitRecommendation?.recommended_size?.id) return null
+      console.debug('getRecommendedSizes', sizeFitRecommendation.available_sizes)
+      return sizeFitRecommendation
     } catch (error) {
       if (error?.error === AvatarNotCreatedError) throw new AvatarNotCreatedError()
 
