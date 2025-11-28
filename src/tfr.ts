@@ -11,7 +11,7 @@ import { Config } from './api/helpers/config'
 import { FirebaseAuthUserController } from './api/helpers/firebase/FirebaseAuthUserController'
 import { FirestoreUserController } from './api/helpers/firebase/FirestoreUserController'
 import { FirestoreController } from './api/helpers/firebase/firestore'
-import { UserNotLoggedInError } from './api/helpers/errors'
+import { NoColorwaySizeAssetsFoundError, UserNotLoggedInError } from './api/helpers/errors'
 import { AvatarStatusCreated, AvatarStatusPending, AvatarStatusNotCreated, AvatarStatus } from './api/gen/enums'
 import { Avatar, GarmentMeasurement } from './api/gen/responses'
 
@@ -164,9 +164,20 @@ export class FittingRoomController {
   private selectedColorwaySizeAsset: FirestoreColorwaySizeAsset
 
   public async SetColorwaySizeAssetBySKU(activeSku: string, skipCache: boolean = false) {
-    console.debug("StartSizeRecommendation", activeSku, skipCache)
+    console.debug("SetColorwaySizeAssetBySKU", activeSku, skipCache)
     let cachedStyle = false;
-    let colorwaySizeAsset = await this.API.GetCachedColorwaySizeAssetFromSku(activeSku, skipCache)
+
+    let colorwaySizeAsset: FirestoreColorwaySizeAsset
+    try {
+      colorwaySizeAsset = await this.API.GetCachedColorwaySizeAssetFromSku(activeSku, skipCache)
+    } catch (e) {
+      if (e instanceof NoColorwaySizeAssetsFoundError) {
+        console.error(e)
+        this.SizeRecommendationController.Hide()
+        return
+      }
+    }
+
     this.selectedColorwaySizeAsset = colorwaySizeAsset
     if (this.style && this.style.id == colorwaySizeAsset.style_id && !skipCache) {
       console.debug("style and size_recommendation is precached")
@@ -177,7 +188,9 @@ export class FittingRoomController {
     }
 
     if (!this.style) {
+      console.error("no style found")
       this.SizeRecommendationController.Hide()
+      return // Added early return here
     }
 
     console.debug("is_published", this.style.is_published)

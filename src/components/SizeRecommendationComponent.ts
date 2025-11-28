@@ -258,7 +258,6 @@ export class SizeRecComponent {
     // Get the state and call the try-on callback with the selected SKU and available SKUs
     try {
       const { selectedID, availableIDs } = this.GetSizeRecommendationState()
-      TODO: // convert the ids to associated colorway size assets in tfr.ts
       this.onTryOnCallback(selectedID, availableIDs)
     } catch (error) {
       console.error('Error getting try-on state:', error)
