@@ -1,5 +1,6 @@
 import { FirestoreColorwaySizeAsset, Fit, FittingRoomAPI } from '../api'
 import { GarmentMeasurement, MeasurementLocationFit, Size } from '../api/gen/responses'
+import { SizeRecComponent } from './SizeRecommendationComponent'
 
 
 export interface MeasurementLocationFitWithPerfectFit extends MeasurementLocationFit {
@@ -50,6 +51,7 @@ export type TFRCssVariables = {
 
 export class SizeRecommendationController {
   private readonly sizeRecComponent: SizeRecComponent
+  // TODO move perfect fit logic to CSS fit attributes
   private readonly perfectFits = [Fit.PERFECT_FIT, Fit.SLIGHTLY_LOOSE, Fit.SLIGHTLY_TIGHT]
 
   constructor(

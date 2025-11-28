@@ -289,12 +289,12 @@ export class FittingRoomController {
       const batchResult = await this.API.PriorityTryOnWithMultiRequestCache(this.firestoreUserController, primarySKU, availableSKUs, this.forceFreshVTO)
       this.vtoComponent.onNewFramesReady(batchResult)
       console.log("calling HideVTOLoading after successful VTO")
-      this.SizeRecommendationController.HideVTOLoading()
+      this.SizeRecommendationController.SetVTOLoading(true)
       this.hasInitializedTryOn = true
     } catch (e) {
       this.tfrModal.onError(L.SomethingWentWrong)
       console.log("calling HideVTOLoading after VTO error")
-      this.SizeRecommendationController.HideVTOLoading()
+      this.SizeRecommendationController.SetVTOLoading(false)
       console.error(e)
     }
   }
