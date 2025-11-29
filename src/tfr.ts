@@ -116,11 +116,6 @@ export class FittingRoomController {
         if (!this.style.is_published) {
           this.SizeRecommendationController.Hide()
         }
-
-        console.debug("is_vto", this.style.is_vto)
-        if (this.style.is_vto) {
-          this.SizeRecommendationController.ShowTryOnButton()
-        }
       }
       const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
 
@@ -163,59 +158,24 @@ export class FittingRoomController {
 
   private selectedColorwaySizeAsset: FirestoreColorwaySizeAsset
 
+  // TODO: review this logic
   public async SetColorwaySizeAssetBySKU(activeSku: string, skipCache: boolean = false) {
     console.debug("SetColorwaySizeAssetBySKU", activeSku, skipCache)
-    let cachedStyle = false;
 
-    let colorwaySizeAsset: FirestoreColorwaySizeAsset
+    if (!this.style?.is_vto) {
+      console.warn("skipping SetColorwaySizeAssetBySKU due to disabled vto")
+      return
+    }
+
     try {
-      colorwaySizeAsset = await this.API.GetCachedColorwaySizeAssetFromSku(activeSku, skipCache)
+      // colorways are already cached at this point or something is wrong
+      this.selectedColorwaySizeAsset = await this.API.GetCachedColorwaySizeAssetFromSku(activeSku, skipCache)
     } catch (e) {
-      if (e instanceof NoColorwaySizeAssetsFoundError) {
-        console.error(e)
-        this.SizeRecommendationController.Hide()
-        return
-      }
-    }
-
-    this.selectedColorwaySizeAsset = colorwaySizeAsset
-    if (this.style && this.style.id == colorwaySizeAsset.style_id && !skipCache) {
-      console.debug("style and size_recommendation is precached")
-      cachedStyle = true
-    } else {
-      console.debug('fetching style for sku:', activeSku)
-      this.style = await this.API.GetStyleByID(colorwaySizeAsset.style_id)
-    }
-
-    if (!this.style) {
-      console.error("no style found")
       this.SizeRecommendationController.Hide()
-      return // Added early return here
+      throw e
     }
 
-    console.debug("is_published", this.style.is_published)
-    if (!this.style.is_published) {
-      this.SizeRecommendationController.Hide()
-    }
-
-    console.debug("is_vto", this.style.is_vto)
-    if (this.style.is_vto) {
-      this.SizeRecommendationController.ShowTryOnButton()
-    }
-
-    if (!cachedStyle) {
-      try {
-        await this.firebaseAuthUserController.GetUserOrNotLoggedIn()
-        this.SizeRecommendationController.GetSizeRecommendationByStyleID(this.style.id, this.API.GetCachedColorwaySizeAssets(), colorwaySizeAsset.colorway_id)
-      } catch (e) {
-        if (!(e instanceof UserNotLoggedInError)) {
-          throw e
-        }
-        const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
-        console.log("calling setLoggedOutStyleMeasurementLocations from GetSizeRecommendation catch block")
-        this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(styleMeasurementLocations)
-      }
-    }
+    this.SizeRecommendationController.ShowTryOnButton()
   }
 
   public close() {
@@ -360,7 +320,7 @@ export class FittingRoomController {
       case AvatarStatusPending:
         if (this.hooks?.onLoading) this.hooks.onLoading()
         console.log("calling DisableTryOnButton - avatar not ready")
-        this.SizeRecommendationController.DisableTryOnButton('Your avatar is not ready yet')
+        this.SizeRecommendationController.HideTryOnButton('Your avatar is not ready yet')
         break
       case AvatarStatusCreated:
         if (this.hooks?.onLoadingComplete) this.hooks.onLoadingComplete()
@@ -369,7 +329,7 @@ export class FittingRoomController {
         break
       default:
         console.log("calling DisableTryOnButton - fitting room unavailable")
-        this.SizeRecommendationController.DisableTryOnButton('The Fitting Room is currently unavailable.')
+        this.SizeRecommendationController.HideTryOnButton('The Fitting Room is currently unavailable.')
         throw new Error("no avatar status")
     }
   }

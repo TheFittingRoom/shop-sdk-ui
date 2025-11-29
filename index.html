@@ -173,9 +173,9 @@
         }
         const tfr = await initFittingRoom(config)
 
-        // if (sku) {
-        //   tfr.SizeRecommendationBySKU(sku, variantSKUs, true)
-        // }
+        if (sku) {
+          tfr.setColorwaySizeAssetBySKU(sku, variantSKUs, true)
+        }
 
         // Add event listeners for product selection changes
         const sizeSelect = document.querySelector('select[name="options[Size]"]')
@@ -185,7 +185,7 @@
           sizeSelect.addEventListener('change', () => {
             const newSku = getSku()
             if (newSku && tfr) {
-              tfr.setSku(newSku, variantSKUs, true)
+              tfr.setColorwaySizeAssetBySKU(newSku, false)
               console.debug('SKU updated to:', newSku)
             }
           })
@@ -194,7 +194,7 @@
           colorSelect.addEventListener('change', () => {
             const newSku = getSku()
             if (newSku && tfr) {
-              tfr.setSku(newSku, variantSKUs, true)
+              tfr.setColorwaySizeAssetBySKU(newSku, false)
               console.debug('SKU updated to:', newSku)
             }
           })
