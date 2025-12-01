@@ -1,4 +1,14 @@
-import { Fit, HorizontalFit, HorizontalFitLoose, HorizontalFitOversized, HorizontalFitPerfectFit, HorizontalFitSlightlyLoose, HorizontalFitSlightlyTight, HorizontalFitTight, HorizontalFitTooTight } from '../api/gen/enums'
+import {
+  Fit,
+  HorizontalFit,
+  HorizontalFitLoose,
+  HorizontalFitOversized,
+  HorizontalFitPerfectFit,
+  HorizontalFitSlightlyLoose,
+  HorizontalFitSlightlyTight,
+  HorizontalFitTight,
+  HorizontalFitTooTight,
+} from '../api/gen/enums'
 import { GarmentMeasurement } from '../api/gen/responses'
 import { infoIcon, tfrDoor, userIcon } from '../assets/svgs'
 import { MeasurementLocationFitWithPerfectFit, SizeMeasurementLocationFits } from './SizeRecommendationController'
@@ -266,7 +276,6 @@ export class SizeRecComponent {
   }
 
   private onSizeRecSelectClick(e: MouseEvent) {
-    console.debug('onSizeRecSelectClick')
 
     const target = e.target as HTMLDivElement
     if (!target.classList.contains('tfr-size-rec-select-button') || target.classList.contains('tfr-disabled')) return
@@ -275,6 +284,7 @@ export class SizeRecComponent {
 
     const selectedIndex = Number(target.getAttribute('data-index'))
     if (Number.isNaN(selectedIndex)) return
+
 
     const allButtons = this.sizeRecMainDiv.querySelectorAll('.tfr-size-rec-select-button')
 
@@ -299,19 +309,19 @@ export class SizeRecComponent {
 
   private renderSizeRecTable(sizeOptions: SizeMeasurementLocationFits[], index: number) {
     const html = sizeOptions[index].measurementLocationFits
-      .map((measurementLoctionFit) => this.renderSizeRecTableRow(measurementLoctionFit)).join('')
+      .map((measurementLoctionFit) => this.renderSizeRecTableRow(measurementLoctionFit))
+      .join('')
 
     this.tfrSizeRecTable.innerHTML = html
   }
 
   private renderSizeRecSelect(sizeMeasurementLocationFits: SizeMeasurementLocationFits[], index: number) {
-    const html =
-      sizeMeasurementLocationFits.map(
-        (name, i) =>
-          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}"
-          }">${name}</div>`,
+    const html = sizeMeasurementLocationFits
+      .map(
+        (size, i) =>
+          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}">${size.label}</div>`,
       )
-        .join('')
+      .join('')
 
     this.tfrSizeRecSelect.innerHTML = html
   }
@@ -325,7 +335,6 @@ export class SizeRecComponent {
 
     this.tfrSizeRecSelect.innerHTML = html
   }
-
 
   // TODO: move perfect fit logic to CSS fit attributes
   private renderSizeRecTableRow(fit: MeasurementLocationFitWithPerfectFit) {
@@ -346,15 +355,17 @@ export class SizeRecComponent {
         fit,
         isPerfectFit: false,
         sort_order: index,
-        fit_label: "",
-        group: "",
-        group_label: ""
+        fit_label: '',
+        group: '',
+        group_label: '',
       })
     })
 
-
     const innerHtml = fakeMeasurementLocationFitWithPerfectFit
-      .map((fakeMeasurementLocationFitWithPerfectFit) => this.renderSizeRecTableRow(fakeMeasurementLocationFitWithPerfectFit)).join('')
+      .map((fakeMeasurementLocationFitWithPerfectFit) =>
+        this.renderSizeRecTableRow(fakeMeasurementLocationFitWithPerfectFit),
+      )
+      .join('')
     const html = `<div id="tfr-logged-out-overlay-container">
                     <div id="tfr-logged-out-overlay">
                       Login to reveal how this item will fit specifically at each area of your body in different sizes
@@ -375,7 +386,8 @@ export class SizeRecComponent {
       HorizontalFitPerfectFit,
       HorizontalFitSlightlyLoose,
       HorizontalFitLoose,
-      HorizontalFitOversized]
+      HorizontalFitOversized,
+    ]
 
     return choices[index % choices.length]
   }
@@ -479,7 +491,7 @@ export class SizeRecComponent {
   private fitToSentenceCase(fit: string): string {
     return fit
       .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
   }
 }

@@ -1,19 +1,19 @@
-import { FirestoreStyle, TryOnFrames, FirestoreColorwaySizeAsset, FirestoreUser } from './api'
+import { FirestoreColorwaySizeAsset, FirestoreStyle, FirestoreUser, TryOnFrames } from './api'
+import { FittingRoomAPI } from './api/api'
+import { AvatarStatus, AvatarStatusCreated, AvatarStatusNotCreated, AvatarStatusPending } from './api/gen/enums'
+import { GarmentMeasurement } from './api/gen/responses'
+import { Config } from './api/helpers/config'
+import { UserNotLoggedInError } from './api/helpers/errors'
+import { FirebaseAuthUserController } from './api/helpers/firebase/FirebaseAuthUserController'
+import { FirestoreUserController } from './api/helpers/firebase/FirestoreUserController'
+import { FirestoreController } from './api/helpers/firebase/firestore'
+import { TFRModal } from './components/ModalController'
+import { SizeRecommendationController, TFRCssVariables } from './components/SizeRecommendationController'
 /// <reference types="vite/client" />
 
 import { VTOController } from './components/VirtualTryOnController'
 import { L } from './components/locale'
 import { validateEmail, validatePassword } from './helpers/validations'
-import { TFRModal } from './components/ModalController'
-import { SizeRecommendationController, TFRCssVariables } from './components/SizeRecommendationController'
-import { FittingRoomAPI } from './api/api'
-import { Config } from './api/helpers/config'
-import { FirebaseAuthUserController } from './api/helpers/firebase/FirebaseAuthUserController'
-import { FirestoreUserController } from './api/helpers/firebase/FirestoreUserController'
-import { FirestoreController } from './api/helpers/firebase/firestore'
-import { NoColorwaySizeAssetsFoundError, UserNotLoggedInError } from './api/helpers/errors'
-import { AvatarStatusCreated, AvatarStatusPending, AvatarStatusNotCreated, AvatarStatus } from './api/gen/enums'
-import { Avatar, GarmentMeasurement } from './api/gen/responses'
 
 export interface TFRHooks {
   onLoading?: () => void
@@ -57,9 +57,7 @@ export class FittingRoomController {
     const vtoMainDiv = document.getElementById(vtoMainDivId) as HTMLDivElement
     if (!modalDiv || !sizeRecMainDiv || !vtoMainDiv) {
       console.error(modalDiv, sizeRecMainDiv, vtoMainDiv)
-      throw new Error(
-        'The Fitting Room essential div id is missing',
-      )
+      throw new Error('The Fitting Room essential div id is missing')
     }
 
     this.config = new Config(env)
@@ -95,26 +93,25 @@ export class FittingRoomController {
   }
 
   public async Init(): Promise<void> {
+    console.debug('init')
     try {
       const measurementLocationsPromise = this.API.FetchCacheMeasurementLocations()
       const authUserPromise = this.firebaseAuthUserController.GetUserOrNotLoggedIn()
       const stylePromise = this.API.GetStyleByBrandStyleID(this.styleSKU)
-      await Promise.all([
-        authUserPromise,
-        stylePromise,
-        measurementLocationsPromise,
-      ])
-      console.debug("promise all ready")
+      await Promise.all([authUserPromise, stylePromise, measurementLocationsPromise])
+      console.debug('promise all ready')
 
       let cacheColorwaySizeAssetsPromise: Promise<void> = null
       const style = await stylePromise
       if (!style) {
-        throw new Error("style not found: " + this.styleSKU)
+        const errorMsg = L.StyleNotFound
+        if (this.hooks?.onError) this.hooks.onError(errorMsg)
+        throw new Error(errorMsg)
       }
       this.style = style
       cacheColorwaySizeAssetsPromise = this.API.FetchColorwaySizeAssetsFromStyleId(style.id)
 
-      console.debug("is_published", this.style.is_published)
+      console.debug('is_published', this.style.is_published)
       if (!this.style.is_published) {
         this.SizeRecommendationController.Hide()
       }
@@ -126,7 +123,8 @@ export class FittingRoomController {
         //init and prefetch user
         this.firestoreUserController = new FirestoreUserController(
           this.firestoreController,
-          this.firebaseAuthUserController)
+          this.firebaseAuthUserController,
+        )
       }
 
       if (cacheColorwaySizeAssetsPromise) {
@@ -139,18 +137,23 @@ export class FittingRoomController {
         this.SizeRecommendationController.Show()
         if (this.hooks?.onLogin) this.hooks.onLogin()
         // For logged-in users, start the size recommendation UI
-        console.log("calling StartSizeRecommendation from Init method for logged in user")
-        this.SizeRecommendationController.GetSizeRecommendationByStyleID(this.style.id, this.API.GetCachedColorwaySizeAssets())
+        console.debug('calling startsizerecommendation from init method for logged in user')
+        this.SizeRecommendationController.GetSizeRecommendationByStyleID(
+          this.style.id,
+          this.API.GetCachedColorwaySizeAssets(),
+        )
       } else {
-        console.log("calling setLoggedOutStyleMeasurementLocations from Init method")
+        console.debug('calling setloggedoutstylemeasurementlocations from init method')
         this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(styleMeasurementLocations)
       }
     } catch (e) {
-      console.debug("Init caught error:", e)
+      console.debug('init caught error:', e)
       if (e instanceof UserNotLoggedInError) {
-        console.debug("No user logged in during init")
+        console.debug('no user logged in during init')
         return
       }
+      const errorMsg = e.message || 'initialization failed'
+      if (this.hooks?.onError) this.hooks.onError(errorMsg)
       throw e
     }
   }
@@ -159,10 +162,10 @@ export class FittingRoomController {
 
   // TODO: review this logic
   public async SetColorwaySizeAssetBySKU(activeSku: string, skipCache: boolean = false) {
-    console.debug("SetColorwaySizeAssetBySKU", activeSku, skipCache)
+    console.debug('SetColorwaySizeAssetBySKU', activeSku, skipCache)
 
     if (!this.style?.is_vto) {
-      console.warn("skipping SetColorwaySizeAssetBySKU due to disabled vto")
+      console.warn('skipping SetColorwaySizeAssetBySKU due to disabled vto')
       return
     }
 
@@ -186,12 +189,18 @@ export class FittingRoomController {
 
     if (this.hooks?.onLogout) this.hooks.onLogout()
 
-    console.log("calling setLoggedOutStyleMeasurementLocations from logOutCallback")
-    this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(this.styleToGarmentMeasurementLocations(this.style))
+    console.log('calling setLoggedOutStyleMeasurementLocations from logOutCallback')
+    this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(
+      this.styleToGarmentMeasurementLocations(this.style),
+    )
     this.unsubscribeFromProfileChanges()
   }
 
-  public async signInClickModalCallback(username: string, password: string, validationError: (message: string) => void) {
+  public async signInClickModalCallback(
+    username: string,
+    password: string,
+    validationError: (message: string) => void,
+  ) {
     if (username.length == 0 || password.length == 0) return validationError(L.UsernameOrPasswordEmpty)
     if (!validateEmail(username)) return validationError(L.EmailError)
     if (!validatePassword(password)) return validationError(L.PasswordError)
@@ -203,7 +212,8 @@ export class FittingRoomController {
       if (!this.firestoreUserController) {
         this.firestoreUserController = new FirestoreUserController(
           this.firestoreController,
-          this.firebaseAuthUserController)
+          this.firebaseAuthUserController,
+        )
       }
 
       await this.firestoreUserController.WriteUserLogging(this.shopID)
@@ -212,8 +222,11 @@ export class FittingRoomController {
       if (this.hooks?.onLogin) this.hooks.onLogin()
 
       if (this.style) {
-        console.log("calling StartSizeRecommendation after successful login")
-        this.SizeRecommendationController.GetSizeRecommendationByStyleID(this.style.id, this.API.GetCachedColorwaySizeAssets())
+        console.log('calling StartSizeRecommendation after successful login')
+        this.SizeRecommendationController.GetSizeRecommendationByStyleID(
+          this.style.id,
+          this.API.GetCachedColorwaySizeAssets(),
+        )
       }
 
       const user = await this.firestoreUserController.GetUser(false)
@@ -262,32 +275,39 @@ export class FittingRoomController {
   // callback for SizeRecommendationController
   public async onTryOnCallback(selectedSizeID: number, availableSizeIDs: number[]) {
     if (!this.selectedColorwaySizeAsset) {
-      throw new Error("selectedColorwaySizeAsset is not set")
+      throw new Error('selectedColorwaySizeAsset is not set')
     }
-    console.log("tryOncallback", selectedSizeID, availableSizeIDs)
+    console.log('tryOncallback', selectedSizeID, availableSizeIDs)
     this.forceFreshVTO = this.hasInitializedTryOn && this.noCacheOnRetry
 
-    const selectedColorwaySizeAssetSKU = this.API.GetCachedColorwaySizeAssets().
-      filter(asset => asset.id == selectedSizeID &&
-        asset.colorway_id == this.selectedColorwaySizeAsset.colorway_id).map(asset => asset.sku)[0]
-    const availableColorwaySizeAssetSKUs = this.API.GetCachedColorwaySizeAssets().
-      filter(asset => availableSizeIDs.includes(asset.id)
-        && asset.colorway_id == this.selectedColorwaySizeAsset.colorway_id).map(asset => asset.sku)
+    const selectedColorwaySizeAssetSKU = this.API.GetCachedColorwaySizeAssets()
+      .filter((asset) => asset.id == selectedSizeID && asset.colorway_id == this.selectedColorwaySizeAsset.colorway_id)
+      .map((asset) => asset.sku)[0]
+    const availableColorwaySizeAssetSKUs = this.API.GetCachedColorwaySizeAssets()
+      .filter(
+        (asset) =>
+          availableSizeIDs.includes(asset.id) && asset.colorway_id == this.selectedColorwaySizeAsset.colorway_id,
+      )
+      .map((asset) => asset.sku)
 
     try {
-      const batchResult = await this.API.PriorityTryOnWithMultiRequestCache(this.firestoreUserController, selectedColorwaySizeAssetSKU, availableColorwaySizeAssetSKUs, this.forceFreshVTO)
+      const batchResult = await this.API.PriorityTryOnWithMultiRequestCache(
+        this.firestoreUserController,
+        selectedColorwaySizeAssetSKU,
+        availableColorwaySizeAssetSKUs,
+        this.forceFreshVTO,
+      )
       this.vtoComponent.onNewFramesReady(batchResult)
-      console.log("calling HideVTOLoading after successful VTO")
+      console.log('calling HideVTOLoading after successful VTO')
       this.SizeRecommendationController.SetVTOLoading(true)
       this.hasInitializedTryOn = true
     } catch (e) {
       this.tfrModal.onError(L.SomethingWentWrong)
-      console.log("calling HideVTOLoading after VTO error")
+      console.log('calling HideVTOLoading after VTO error')
       this.SizeRecommendationController.SetVTOLoading(false)
       console.error(e)
     }
   }
-
 
   // if the avatar state loaded from the initial new FirestoreUserController is NOT_CREATED use this listener
   private async avatarStatusChangeCallback(user: FirestoreUser): Promise<boolean> {
@@ -318,30 +338,29 @@ export class FittingRoomController {
         break
       case AvatarStatusPending:
         if (this.hooks?.onLoading) this.hooks.onLoading()
-        console.log("calling DisableTryOnButton - avatar not ready")
+        console.log('calling DisableTryOnButton - avatar not ready')
         this.SizeRecommendationController.HideTryOnButton('Your avatar is not ready yet')
         break
       case AvatarStatusCreated:
         if (this.hooks?.onLoadingComplete) this.hooks.onLoadingComplete()
-        console.log("calling EnableTryOnButton - avatar ready")
+        console.log('calling EnableTryOnButton - avatar ready')
         this.SizeRecommendationController.EnableTryOnButton()
         break
       default:
-        console.log("calling DisableTryOnButton - fitting room unavailable")
+        console.log('calling DisableTryOnButton - fitting room unavailable')
         this.SizeRecommendationController.HideTryOnButton('The Fitting Room is currently unavailable.')
-        throw new Error("no avatar status")
+        throw new Error('no avatar status')
     }
   }
 
   private unsubscribeFromProfileChanges() {
-    if (!this.unsubFirestoreUserCollection) return;
+    if (!this.unsubFirestoreUserCollection) return
 
-    this.unsubFirestoreUserCollection();
-    this.unsubFirestoreUserCollection = null;
+    this.unsubFirestoreUserCollection()
+    this.unsubFirestoreUserCollection = null
   }
 
   public styleToGarmentMeasurementLocations(style: FirestoreStyle): GarmentMeasurement[] {
     return style.sizes[0].garment_measurements
   }
-
 }

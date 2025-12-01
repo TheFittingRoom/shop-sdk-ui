@@ -1,7 +1,6 @@
-import { FirestoreColorwaySizeAsset, Fit, FittingRoomAPI } from '../api'
+import { Fit, FittingRoomAPI } from '../api'
 import { GarmentMeasurement, MeasurementLocationFit, Size } from '../api/gen/responses'
 import { SizeRecComponent } from './SizeRecommendationComponent'
-
 
 export interface MeasurementLocationFitWithPerfectFit extends MeasurementLocationFit {
   isPerfectFit: boolean
@@ -86,39 +85,41 @@ export class SizeRecommendationController {
     this.sizeRecComponent.Show()
   }
 
-  public async GetSizeRecommendationByStyleID(styleId: number, colorwaySizeAssets: FirestoreColorwaySizeAsset[], colorwayId?: number) {
-    console.debug('StartSizeRecommendation', styleId, colorwaySizeAssets, colorwayId)
+  /**
+   * Retrieves size recommendations for a given style ID and processes the data for display.
+   */
+  public async GetSizeRecommendationByStyleID(styleId: number) {
+    console.debug('start size recommendation', styleId)
     try {
       this.SetSizeRecommendationLoading(true)
 
       const sizeFitRecommendation = await this.FittingRoomAPI.GetRecommendedSizes(styleId)
 
-      let sizeMeasurementLocationFits: SizeMeasurementLocationFits[]
-      sizeFitRecommendation.available_sizes.forEach(size => {
-        const sizeMeasurementLocationFit: SizeMeasurementLocationFits = {
-          isRecommended: size.id == sizeFitRecommendation.recommended_size.id,
-          ...size,
-          measurementLocationFits: []
-        }
-        sizeFitRecommendation.fits.forEach(sizeFit => {
-          if (sizeFit.size_id === size.id) {
-            sizeFit.measurement_location_fits.forEach(measurementLocationFit => {
+      const sizeMeasurementLocationFits: SizeMeasurementLocationFits[] = sizeFitRecommendation.available_sizes.map(
+        (size) => {
+          const sizeMeasurementLocationFit: SizeMeasurementLocationFits = {
+            isRecommended: size.id === sizeFitRecommendation.recommended_size.id,
+            ...size,
+            measurementLocationFits: [],
+          }
+          const matchingFit = sizeFitRecommendation.fits.find((sizeFit) => sizeFit.size_id === size.id)
+          if (matchingFit) {
+            matchingFit.measurement_location_fits.forEach((measurementLocationFit) => {
               sizeMeasurementLocationFit.measurementLocationFits.push({
                 ...measurementLocationFit,
-                isPerfectFit: this.perfectFits.includes(measurementLocationFit.fit)
+                isPerfectFit: this.perfectFits.includes(measurementLocationFit.fit),
               })
             })
           }
-        })
-      })
-
+          return sizeMeasurementLocationFit
+        },
+      )
 
       this.sizeRecComponent.ShowLoggedIn()
       this.sizeRecComponent.Show()
-      // todo  
       this.sizeRecComponent.SetRecommendedSize(sizeMeasurementLocationFits)
-    } catch (e) {
-      console.error(e)
+    } catch (e: unknown) {
+      console.error('error in get size recommendation', e)
       this.sizeRecComponent.Hide()
     } finally {
       this.SetSizeRecommendationLoading(false)

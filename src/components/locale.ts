@@ -36,6 +36,7 @@ var L = {
   TheFittingRoom: 'The Fitting Room',
   UsernameOrPasswordEmpty: 'Username or password is empty.',
   UsernameOrPasswordIncorrect: 'Username or password is incorrect.',
+  StyleNotFound: 'style not found',
 
   // Modal
   ModalTagline: 'End size uncertainty with',
