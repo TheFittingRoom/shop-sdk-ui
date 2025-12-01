@@ -108,15 +108,17 @@ export class FittingRoomController {
 
       let cacheColorwaySizeAssetsPromise: Promise<void> = null
       const style = await stylePromise
-      if (style) {
-        this.style = style
-        cacheColorwaySizeAssetsPromise = this.API.FetchColorwaySizeAssetsFromStyleId(style.id)
-
-        console.debug("is_published", this.style.is_published)
-        if (!this.style.is_published) {
-          this.SizeRecommendationController.Hide()
-        }
+      if (!style) {
+        throw new Error("style not found: " + this.styleSKU)
       }
+      this.style = style
+      cacheColorwaySizeAssetsPromise = this.API.FetchColorwaySizeAssetsFromStyleId(style.id)
+
+      console.debug("is_published", this.style.is_published)
+      if (!this.style.is_published) {
+        this.SizeRecommendationController.Hide()
+      }
+
       const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
 
       const authUser = await authUserPromise
@@ -137,11 +139,8 @@ export class FittingRoomController {
         this.SizeRecommendationController.Show()
         if (this.hooks?.onLogin) this.hooks.onLogin()
         // For logged-in users, start the size recommendation UI
-        if (this.style) {
-          console.log("calling StartSizeRecommendation from Init method for logged in user")
-          this.SizeRecommendationController.GetSizeRecommendationByStyleID(this.style.id, this.API.GetCachedColorwaySizeAssets())
-        } else {
-        }
+        console.log("calling StartSizeRecommendation from Init method for logged in user")
+        this.SizeRecommendationController.GetSizeRecommendationByStyleID(this.style.id, this.API.GetCachedColorwaySizeAssets())
       } else {
         console.log("calling setLoggedOutStyleMeasurementLocations from Init method")
         this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(styleMeasurementLocations)
