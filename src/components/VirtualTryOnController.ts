@@ -52,6 +52,7 @@ export class VTOController {
   }
 
   public onNewFramesReady(frames: string[]) {
+    console.debug("onNewFramesReady", frames)
     if (!this.isShown) {
       this.show()
     }

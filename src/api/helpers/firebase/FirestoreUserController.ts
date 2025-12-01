@@ -76,7 +76,6 @@ export class FirestoreUserController {
               resolve(data as FirestoreUser)
             }
           } catch (error) {
-            console.error('watchUserProfileForChanges dataCallback error:', error)
             unsub?.()
             reject(error)
           }

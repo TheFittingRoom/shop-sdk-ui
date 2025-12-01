@@ -83,13 +83,6 @@ export class FittingRoomController {
       this.onFitInfoCallback.bind(this),
       this.onTryOnCallback.bind(this),
     )
-
-    // TODO: write a callback function that gets passed to the API state handlerss
-    // this.API.onAuthStateChange((isLoggedIn) => {
-    //   console.debug('Firebase auth state changed to:', isLoggedIn, 'updating UI')
-    //   this.isLoggedIn = isLoggedIn
-    //   this.tfrSizeRecommendationController.setIsLoggedIn(isLoggedIn)
-    // })
   }
 
   public async Init(): Promise<void> {
@@ -138,10 +131,7 @@ export class FittingRoomController {
         if (this.hooks?.onLogin) this.hooks.onLogin()
         // For logged-in users, start the size recommendation UI
         console.debug('calling startsizerecommendation from init method for logged in user')
-        this.SizeRecommendationController.GetSizeRecommendationByStyleID(
-          this.style.id,
-          this.API.GetCachedColorwaySizeAssets(),
-        )
+        this.SizeRecommendationController.GetSizeRecommendationByStyleID(this.style.id)
       } else {
         console.debug('calling setloggedoutstylemeasurementlocations from init method')
         this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(styleMeasurementLocations)
@@ -223,10 +213,7 @@ export class FittingRoomController {
 
       if (this.style) {
         console.log('calling StartSizeRecommendation after successful login')
-        this.SizeRecommendationController.GetSizeRecommendationByStyleID(
-          this.style.id,
-          this.API.GetCachedColorwaySizeAssets(),
-        )
+        this.SizeRecommendationController.GetSizeRecommendationByStyleID(this.style.id)
       }
 
       const user = await this.firestoreUserController.GetUser(false)
@@ -274,23 +261,29 @@ export class FittingRoomController {
 
   // callback for SizeRecommendationController
   public async onTryOnCallback(selectedSizeID: number, availableSizeIDs: number[]) {
-    if (!this.selectedColorwaySizeAsset) {
-      throw new Error('selectedColorwaySizeAsset is not set')
-    }
-    console.log('tryOncallback', selectedSizeID, availableSizeIDs)
-    this.forceFreshVTO = this.hasInitializedTryOn && this.noCacheOnRetry
-
-    const selectedColorwaySizeAssetSKU = this.API.GetCachedColorwaySizeAssets()
-      .filter((asset) => asset.id == selectedSizeID && asset.colorway_id == this.selectedColorwaySizeAsset.colorway_id)
-      .map((asset) => asset.sku)[0]
-    const availableColorwaySizeAssetSKUs = this.API.GetCachedColorwaySizeAssets()
-      .filter(
-        (asset) =>
-          availableSizeIDs.includes(asset.id) && asset.colorway_id == this.selectedColorwaySizeAsset.colorway_id,
-      )
-      .map((asset) => asset.sku)
-
     try {
+      if (!this.selectedColorwaySizeAsset) {
+        throw new Error('selectedColorwaySizeAsset is not set')
+      }
+      this.SizeRecommendationController.SetVTOLoading(true)
+
+      console.log('tryOncallback', selectedSizeID, availableSizeIDs)
+      this.forceFreshVTO = this.hasInitializedTryOn && this.noCacheOnRetry
+
+      const allCachedAssets = this.API.GetCachedColorwaySizeAssets()
+      const selectedAsset = allCachedAssets.find(
+        (asset) => asset.size_id === selectedSizeID && asset.colorway_id === this.selectedColorwaySizeAsset.colorway_id,
+      )
+      if (!selectedAsset) {
+        throw new Error('selected asset not found in cache')
+      }
+      const selectedColorwaySizeAssetSKU = selectedAsset.sku
+      const availableAssets = allCachedAssets.filter(
+        (asset) =>
+          availableSizeIDs.includes(asset.size_id) && asset.colorway_id === this.selectedColorwaySizeAsset.colorway_id,
+      )
+      const availableColorwaySizeAssetSKUs = availableAssets.map((asset) => asset.sku)
+
       const batchResult = await this.API.PriorityTryOnWithMultiRequestCache(
         this.firestoreUserController,
         selectedColorwaySizeAssetSKU,
@@ -298,8 +291,7 @@ export class FittingRoomController {
         this.forceFreshVTO,
       )
       this.vtoComponent.onNewFramesReady(batchResult)
-      console.log('calling HideVTOLoading after successful VTO')
-      this.SizeRecommendationController.SetVTOLoading(true)
+      this.SizeRecommendationController.SetVTOLoading(false)
       this.hasInitializedTryOn = true
     } catch (e) {
       this.tfrModal.onError(L.SomethingWentWrong)

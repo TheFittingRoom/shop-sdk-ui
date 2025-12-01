@@ -28,6 +28,7 @@ export class Fetcher {
     }
 
     const res = await fetch(url, config)
+    console.debug("fetch response:", res.status, res.url)
     if (res.ok) return res
     if (res.status === 500) throw new ServerUnavailableError(res.statusText)
     const errRes = await res.json() as ErrorResponse
