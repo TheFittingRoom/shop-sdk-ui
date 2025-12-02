@@ -70,7 +70,7 @@ export class FittingRoomController {
     )
     this.firestoreController = new FirestoreController(this.config)
     this.firebaseAuthUserController = new FirebaseAuthUserController(this.firestoreController.firestore.app)
-    this.API = new FittingRoomAPI(this.shopID, this.config, this.firestoreController)
+    this.API = new FittingRoomAPI(this.shopID, this.config, this.firestoreController, this.firebaseAuthUserController)
 
     if (vtoMainDivId) this.vtoComponent = new VTOController(vtoMainDiv)
 
