@@ -260,7 +260,7 @@ export class FittingRoomController {
   }
 
   // callback for SizeRecommendationController
-  public async onTryOnCallback(selectedSizeID: number, availableSizeIDs: number[]) {
+  public async onTryOnCallback(selectedSizeID: number, availableSizeIDs: number[], fromSizeRecSelect: boolean) {
     try {
       if (!this.selectedColorwaySizeAsset) {
         throw new Error('selectedColorwaySizeAsset is not set')
@@ -268,7 +268,7 @@ export class FittingRoomController {
       this.SizeRecommendationController.SetVTOLoading(true)
 
       console.log('tryOncallback', selectedSizeID, availableSizeIDs)
-      this.forceFreshVTO = this.hasInitializedTryOn && this.noCacheOnRetry
+      this.forceFreshVTO = !fromSizeRecSelect && this.hasInitializedTryOn && this.noCacheOnRetry
 
       const allCachedAssets = this.API.GetCachedColorwaySizeAssets()
       const selectedAsset = allCachedAssets.find(

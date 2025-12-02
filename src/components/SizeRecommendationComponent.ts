@@ -43,12 +43,14 @@ export class SizeRecComponent {
   private isCollapsed: boolean = false
   private redraw: (index: number) => void = null
 
+  private tryOnClicked: boolean = false
+
   private isLoggedIn: boolean = false
 
   constructor(
     sizeRecMainDiv: HTMLDivElement,
     private readonly onSignInClickCallback: () => void,
-    private readonly onTryOnCallback: (selectedSizeID: number, availableSizeIDs: number[]) => void,
+    private readonly onTryOnCallback: (selectedSizeID: number, availableSizeIDs: number[], fromSizeRecSelect: boolean) => void,
     private readonly onSignOutCallback: () => void,
     private readonly onFitInfoCallback: () => void,
   ) {
@@ -257,18 +259,22 @@ export class SizeRecComponent {
   private onTryOnClick(e: MouseEvent) {
     console.debug('onTryOnClick')
     e.preventDefault()
+    this.onTryOn(false)
+  }
 
+  private onTryOn(fromSizeRecSelect: boolean) {
     if (!this.isLoggedIn) {
       this.onSignInClick()
       return
     }
 
+    this.tryOnClicked = true
+
     this.SetVTOLoading(true)
 
-    // Get the state and call the try-on callback with the selected SKU and available SKUs
     try {
       const { selectedID, availableIDs } = this.GetSizeRecommendationState()
-      this.onTryOnCallback(selectedID, availableIDs)
+      this.onTryOnCallback(selectedID, availableIDs, fromSizeRecSelect)
     } catch (error) {
       console.error('Error getting try-on state:', error)
       this.SetVTOLoading(false)
@@ -276,7 +282,6 @@ export class SizeRecComponent {
   }
 
   private onSizeRecSelectClick(e: MouseEvent) {
-
     const target = e.target as HTMLDivElement
     if (!target.classList.contains('tfr-size-rec-select-button') || target.classList.contains('tfr-disabled')) return
 
@@ -285,6 +290,7 @@ export class SizeRecComponent {
     const selectedIndex = Number(target.getAttribute('data-index'))
     if (Number.isNaN(selectedIndex)) return
 
+    console.log('onSizeRecSelectClick', selectedIndex)
 
     const allButtons = this.sizeRecMainDiv.querySelectorAll('.tfr-size-rec-select-button')
 
@@ -292,6 +298,11 @@ export class SizeRecComponent {
     allButtons.item(selectedIndex).classList.add('active')
 
     this.redraw(selectedIndex)
+
+    // if the user already triggered a try on event then trigger a try on
+    if (this.tryOnClicked) {
+      this.onTryOn(true)
+    }
   }
 
   private renderSizeRec(sizeMeasurementLocationFits: SizeMeasurementLocationFits[]) {

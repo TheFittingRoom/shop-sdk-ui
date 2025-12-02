@@ -1,13 +1,13 @@
 import * as firebase from 'firebase/app'
 import {
-  User,
   Auth,
-  getAuth,
+  User,
   browserLocalPersistence,
-  signInWithEmailAndPassword,
-  sendPasswordResetEmail,
   confirmPasswordReset,
+  getAuth,
   onAuthStateChanged,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
 } from 'firebase/auth'
 
 import * as Errors from '../errors'
@@ -16,12 +16,12 @@ export class FirebaseAuthUserController {
   private readonly initializationPromise: Promise<User | null>
   private unsubscribeAuthStateChanged: (() => void) | null = null
   private readonly auth: Auth
+  private authStateChangeCallback?: (user: User | null) => void
 
-  constructor(
-    app: firebase.FirebaseApp,
-  ) {
+  constructor(app: firebase.FirebaseApp, authStateChangeCallback?: (user: User | null) => void) {
     this.auth = getAuth(app)
     this.auth.setPersistence(browserLocalPersistence)
+    this.authStateChangeCallback = authStateChangeCallback
     this.initializationPromise = this.setupAuthStateListener()
   }
 
@@ -31,12 +31,18 @@ export class FirebaseAuthUserController {
    */
   private setupAuthStateListener(): Promise<User | null> {
     console.debug('Setting up auth state change listener...')
+    let firstCall = true
     return new Promise<User | null>((resolve) => {
       this.unsubscribeAuthStateChanged = onAuthStateChanged(
         this.auth,
         (user) => {
           console.debug('Auth state changed:', user ? `User ${user.email} is logged in` : 'No user logged in')
-          resolve(user)
+          if (firstCall) {
+            firstCall = false
+            resolve(user)
+          } else if (this.authStateChangeCallback) {
+            this.authStateChangeCallback(user)
+          }
         },
         (error) => {
           console.error('Auth state listener error:', error)
@@ -57,10 +63,10 @@ export class FirebaseAuthUserController {
   public async GetUserOrNotLoggedIn(): Promise<User> {
     await this.waitForInitialization()
     const user = this.auth.currentUser
-    console.debug("GetUserOrNotLoggedIn:", Boolean(user))
+    console.debug('GetUserOrNotLoggedIn:', Boolean(user))
 
     if (!user) {
-      console.debug("Throwing UserNotLoggedInError")
+      console.debug('Throwing UserNotLoggedInError')
       throw new Errors.UserNotLoggedInError()
     }
 
@@ -74,9 +80,9 @@ export class FirebaseAuthUserController {
   }
 
   public async GetCurrentUser(): Promise<User | null> {
-    console.debug("GetCurrentUser called, waiting for initialization...")
+    console.debug('GetCurrentUser called, waiting for initialization...')
     const user = await this.waitForInitialization()
-    console.debug("GetCurrentUser initialization complete, user found:", user ? user.email : "No user")
+    console.debug('GetCurrentUser initialization complete, user found:', user ? user.email : 'No user')
     return user
   }
 
@@ -85,7 +91,7 @@ export class FirebaseAuthUserController {
 
     // Check if already logged in with same email
     if (this.auth.currentUser && this.auth.currentUser.email === email) {
-      console.debug("Skipping login since user is already logged in with same email")
+      console.debug('Skipping login since user is already logged in with same email')
       return
     }
 
@@ -96,9 +102,9 @@ export class FirebaseAuthUserController {
 
     try {
       const userCredential = await signInWithEmailAndPassword(this.auth, email, password)
-      console.debug("Login successful for user:", userCredential.user.email)
+      console.debug('Login successful for user:', userCredential.user.email)
     } catch (error) {
-      console.error("Login error:", error)
+      console.error('Login error:', error)
       throw error
     }
   }
@@ -108,9 +114,9 @@ export class FirebaseAuthUserController {
 
     try {
       await this.auth.signOut()
-      console.debug("Logout successful")
+      console.debug('Logout successful')
     } catch (error) {
-      console.error("Logout error:", error)
+      console.error('Logout error:', error)
       throw error
     }
   }
@@ -119,10 +125,7 @@ export class FirebaseAuthUserController {
     await sendPasswordResetEmail(this.auth, email)
   }
 
-  public async ConfirmPasswordReset(
-    code: string,
-    newPassword: string,
-  ): Promise<void> {
+  public async ConfirmPasswordReset(code: string, newPassword: string): Promise<void> {
     await confirmPasswordReset(this.auth, code, newPassword)
   }
 
@@ -136,5 +139,3 @@ export class FirebaseAuthUserController {
     }
   }
 }
-
-

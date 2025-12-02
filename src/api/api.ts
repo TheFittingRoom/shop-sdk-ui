@@ -33,15 +33,14 @@ export class FittingRoomAPI {
   private vtoFramesCache: Map<string, ColorwaySizeAssetFrameURLs> = new Map()
   private readonly fetcher: Fetcher
   private style: FirestoreStyle
-  private firebaseAuthUserController: FirebaseAuthUserController
 
   constructor(
     public readonly BrandID: number,
     config: Config,
     private readonly firebase: FirestoreController,
+    private readonly firebaseAuthUserController: FirebaseAuthUserController,
   ) {
     this.fetcher = new Fetcher(config)
-    this.firebaseAuthUserController = new FirebaseAuthUserController(this.firebase.firestore.app)
   }
 
   public async IsLoggedIn(): Promise<boolean> {

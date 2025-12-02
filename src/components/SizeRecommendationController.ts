@@ -56,21 +56,26 @@ export class SizeRecommendationController {
   constructor(
     sizeRecMainDiv: HTMLDivElement,
     cssVariables: TFRCssVariables,
-    private readonly FittingRoomAPI: FittingRoomAPI,
+    private readonly fittingRoomAPI: FittingRoomAPI,
     private readonly signInClickCallback: () => void,
     private readonly logoutCallback: () => void,
-    private readonly FitInfoCallback: () => void,
-    private readonly TryOnCallback: (selectedSizeID: number, availableSizeIDs: number[]) => Promise<void>,
+    private readonly fitInfoCallback: () => void,
+    private readonly tryOnCallback: (selectedSizeID: number, availableSizeIDs: number[]) => Promise<void>,
   ) {
     this.setCssVariables(sizeRecMainDiv, cssVariables)
 
     this.sizeRecComponent = new SizeRecComponent(
       sizeRecMainDiv,
       this.signInClickCallback,
-      this.TryOnCallback,
+      this.tryOnCallback,
       this.logoutCallback,
-      this.FitInfoCallback,
+      this.fitInfoCallback,
     )
+  }
+
+
+  private onSizeRecSelectCallback(sizeIndex: number) {
+    console.log('onSizeRecSelectCallback', sizeIndex)
   }
 
   public setLoggedOutStyleMeasurementLocations(garmentMeasurementLocations: GarmentMeasurement[] = []) {
@@ -93,7 +98,7 @@ export class SizeRecommendationController {
     try {
       this.SetSizeRecommendationLoading(true)
 
-      const sizeFitRecommendation = await this.FittingRoomAPI.GetRecommendedSizes(styleId)
+      const sizeFitRecommendation = await this.fittingRoomAPI.GetRecommendedSizes(styleId)
 
       const sizeMeasurementLocationFits: SizeMeasurementLocationFits[] = sizeFitRecommendation.available_sizes.map(
         (size) => {
