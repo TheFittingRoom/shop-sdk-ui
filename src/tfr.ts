@@ -1,3 +1,4 @@
+import { User } from 'firebase/auth'
 import { FirestoreColorwaySizeAsset, FirestoreStyle, FirestoreUser, TryOnFrames } from './api'
 import { FittingRoomAPI } from './api/api'
 import { AvatarStatus, AvatarStatusCreated, AvatarStatusNotCreated, AvatarStatusPending } from './api/gen/enums'
@@ -85,6 +86,17 @@ export class FittingRoomController {
     )
   }
 
+  private authStateChangeCallback(user: User | null) {
+    console.debug('auth state change callback', Boolean(user))
+    if (user) {
+      this.SizeRecommendationController.ShowLoggedIn()
+      if (this.hooks?.onLogin) this.hooks.onLogin()
+    } else {
+      this.SizeRecommendationController.ShowLoggedOut()
+      if (this.hooks?.onLogout) this.hooks.onLogout()
+    }
+  }
+
   public async Init(): Promise<void> {
     console.debug('init')
     try {
@@ -125,6 +137,7 @@ export class FittingRoomController {
         await cacheColorwaySizeAssetsPromise
       }
 
+      // should this be auth user or the firestore user? technically we can use the api request to determine if the user exists
       if (Boolean(authUser)) {
         this.SizeRecommendationController.ShowLoggedIn()
         this.SizeRecommendationController.Show()
@@ -136,6 +149,8 @@ export class FittingRoomController {
         console.debug('calling setloggedoutstylemeasurementlocations from init method')
         this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(styleMeasurementLocations)
       }
+
+      this.firebaseAuthUserController.ListenForAuthStateChange(this.authStateChangeCallback)
     } catch (e) {
       console.debug('init caught error:', e)
       if (e instanceof UserNotLoggedInError) {
@@ -150,7 +165,6 @@ export class FittingRoomController {
 
   private selectedColorwaySizeAsset: FirestoreColorwaySizeAsset
 
-  // TODO: review this logic
   public async SetColorwaySizeAssetBySKU(activeSku: string, skipCache: boolean = false) {
     console.debug('SetColorwaySizeAssetBySKU', activeSku, skipCache)
 

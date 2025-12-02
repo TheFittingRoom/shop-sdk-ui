@@ -16,52 +16,53 @@ export class FirebaseAuthUserController {
   private readonly initializationPromise: Promise<User | null>
   private unsubscribeAuthStateChanged: (() => void) | null = null
   private readonly auth: Auth
-  private authStateChangeCallback?: (user: User | null) => void
 
-  constructor(app: firebase.FirebaseApp, authStateChangeCallback?: (user: User | null) => void) {
+  constructor(app: firebase.FirebaseApp) {
     this.auth = getAuth(app)
     this.auth.setPersistence(browserLocalPersistence)
-    this.authStateChangeCallback = authStateChangeCallback
-    this.initializationPromise = this.setupAuthStateListener()
+    this.initializationPromise = this.resolveAuthStateChangeUser()
   }
 
-  /**
-   * Sets up the auth state change listener to track initialization.
-   * Returns a promise that resolves with the user once the initial state is known.
-   */
-  private setupAuthStateListener(): Promise<User | null> {
-    console.debug('Setting up auth state change listener...')
-    let firstCall = true
+  public ListenForAuthStateChange(
+    callback: (user: User | null) => void,
+    onError?: (error: Error) => void
+  ): () => void {
+    console.debug('listening for auth state changes...')
+    return onAuthStateChanged(
+      this.auth,
+      (user) => {
+        callback(user);
+      },
+      (error) => {
+        console.error('Auth state listener error:', error)
+        if (onError) {
+          onError(error);
+        }
+      },
+    )
+  }
+
+  private async resolveAuthStateChangeUser(): Promise<User | null> {
+    console.debug('Resolving initial auth state...')
     return new Promise<User | null>((resolve) => {
-      this.unsubscribeAuthStateChanged = onAuthStateChanged(
-        this.auth,
+      // Create a temporary listener just for the initial state
+      const unsubscribe = this.ListenForAuthStateChange(
         (user) => {
-          console.debug('Auth state changed:', user ? `User ${user.email} is logged in` : 'No user logged in')
-          if (firstCall) {
-            firstCall = false
-            resolve(user)
-          } else if (this.authStateChangeCallback) {
-            this.authStateChangeCallback(user)
-          }
+          unsubscribe();
+          resolve(user);
         },
         (error) => {
-          console.error('Auth state listener error:', error)
-          // Resolve with null to ensure initialization always completes
-          resolve(null)
-        },
-      )
-    })
+          console.error(error)
+          unsubscribe();
+          resolve(null);
+        }
+      );
+    });
   }
 
-  /**
-   * Waits for the auth state to be initialized
-   */
-  private waitForInitialization(): Promise<User | null> {
-    return this.initializationPromise
-  }
 
   public async GetUserOrNotLoggedIn(): Promise<User> {
-    await this.waitForInitialization()
+    await this.initializationPromise
     const user = this.auth.currentUser
     console.debug('GetUserOrNotLoggedIn:', Boolean(user))
 
@@ -81,13 +82,13 @@ export class FirebaseAuthUserController {
 
   public async GetCurrentUser(): Promise<User | null> {
     console.debug('GetCurrentUser called, waiting for initialization...')
-    const user = await this.waitForInitialization()
+    const user = await this.initializationPromise
     console.debug('GetCurrentUser initialization complete, user found:', user ? user.email : 'No user')
     return user
   }
 
   public async Login(email: string, password: string): Promise<void> {
-    await this.waitForInitialization()
+    await await this.initializationPromise
 
     // Check if already logged in with same email
     if (this.auth.currentUser && this.auth.currentUser.email === email) {
@@ -110,7 +111,7 @@ export class FirebaseAuthUserController {
   }
 
   public async Logout(): Promise<void> {
-    await this.waitForInitialization()
+    await this.initializationPromise
 
     try {
       await this.auth.signOut()
