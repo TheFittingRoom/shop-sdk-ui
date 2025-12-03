@@ -41,6 +41,9 @@ export class FittingRoomController {
   private firestoreUserController: FirestoreUserController
   private readonly API: FittingRoomAPI
   private unsubFirestoreUserCollection: () => void = null
+  private cacheColorwaySizeAssetsPromise: Promise<void>
+  private styleMeasurementLocations: GarmentMeasurement[]
+
 
   constructor(
     env: string,
@@ -100,13 +103,11 @@ export class FittingRoomController {
   public async Init(): Promise<void> {
     console.debug('init')
     try {
-      const measurementLocationsPromise = this.API.FetchCacheMeasurementLocations()
       const authUserPromise = this.firebaseAuthUserController.GetUserOrNotLoggedIn()
       const stylePromise = this.API.GetStyleByBrandStyleID(this.styleSKU)
-      await Promise.all([authUserPromise, stylePromise, measurementLocationsPromise])
+      await Promise.all([authUserPromise, stylePromise])
       console.debug('promise all ready')
 
-      let cacheColorwaySizeAssetsPromise: Promise<void> = null
       const style = await stylePromise
       if (!style) {
         const errorMsg = L.StyleNotFound
@@ -114,47 +115,38 @@ export class FittingRoomController {
         throw new Error(errorMsg)
       }
       this.style = style
-      cacheColorwaySizeAssetsPromise = this.API.FetchColorwaySizeAssetsFromStyleId(style.id)
+      this.cacheColorwaySizeAssetsPromise = this.API.FetchColorwaySizeAssetsFromStyleId(style.id)
 
       console.debug('is_published', this.style.is_published)
       if (!this.style.is_published) {
         this.SizeRecommendationController.Hide()
       }
 
-      const styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
+      this.styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
+
 
       const authUser = await authUserPromise
-      if (authUser) {
-        //init and prefetch user
-        this.firestoreUserController = new FirestoreUserController(
-          this.firestoreController,
-          this.firebaseAuthUserController,
-        )
+      this.firebaseAuthUserController.ListenForAuthStateChange(this.authStateChangeCallback.bind(this))
+      if (!authUser) {
+        throw UserNotLoggedInError
       }
 
-      if (cacheColorwaySizeAssetsPromise) {
-        // let cache finish before loading
-        await cacheColorwaySizeAssetsPromise
-      }
+      //init and prefetch user
+      this.firestoreUserController = new FirestoreUserController(
+        this.firestoreController,
+        this.firebaseAuthUserController,
+      )
 
-      // should this be auth user or the firestore user? technically we can use the api request to determine if the user exists
-      if (Boolean(authUser)) {
-        this.SizeRecommendationController.ShowLoggedIn()
-        this.SizeRecommendationController.Show()
-        if (this.hooks?.onLogin) this.hooks.onLogin()
-        // For logged-in users, start the size recommendation UI
-        console.debug('calling startsizerecommendation from init method for logged in user')
-        this.SizeRecommendationController.GetSizeRecommendationByStyleID(this.style.id)
-      } else {
-        console.debug('calling setloggedoutstylemeasurementlocations from init method')
-        this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(styleMeasurementLocations)
-      }
-
-      this.firebaseAuthUserController.ListenForAuthStateChange(this.authStateChangeCallback)
+      this.SizeRecommendationController.ShowLoggedIn()
+      this.SizeRecommendationController.Show()
+      if (this.hooks?.onLogin) this.hooks.onLogin()
+      // For logged-in users, start the size recommendation UI
+      console.debug('calling GetSizeRecommendationByStyleID from init method for logged in user')
+      this.SizeRecommendationController.GetSizeRecommendationByStyleID(this.style.id)
     } catch (e) {
-      console.debug('init caught error:', e)
-      if (e instanceof UserNotLoggedInError) {
+      if (e == UserNotLoggedInError) {
         console.debug('no user logged in during init')
+        this.SizeRecommendationController.setLoggedOutStyleMeasurementLocations(this.styleMeasurementLocations)
         return
       }
       const errorMsg = e.message || 'initialization failed'
@@ -166,6 +158,11 @@ export class FittingRoomController {
   private selectedColorwaySizeAsset: FirestoreColorwaySizeAsset
 
   public async SetColorwaySizeAssetBySKU(activeSku: string, skipCache: boolean = false) {
+    if (this.cacheColorwaySizeAssetsPromise) {
+      // let cache finish before loading
+      await this.cacheColorwaySizeAssetsPromise
+    }
+
     console.debug('SetColorwaySizeAssetBySKU', activeSku, skipCache)
 
     if (!this.style?.is_vto) {
@@ -233,7 +230,7 @@ export class FittingRoomController {
       const user = await this.firestoreUserController.GetUser(false)
       this.updateAvatarStatus(user)
 
-      this.firestoreUserController.WatchFirestoreUserChange(this.avatarStatusChangeCallback)
+      this.firestoreUserController.WatchFirestoreUserChange(this.avatarStatusChangeCallback.bind(this))
     } catch (e) {
       return validationError(L.UsernameOrPasswordIncorrect)
     }
@@ -260,11 +257,6 @@ export class FittingRoomController {
     this.tfrModal.toPasswordReset()
   }
 
-  public async getMeasurementLocations(skipCache: boolean) {
-    const user = await this.firestoreUserController.GetUser(skipCache)
-    return this.API.GetMeasurementLocations(user)
-  }
-
   public onSignInSizeRecommendationCallback() {
     this.tfrModal.toScan()
   }
@@ -279,6 +271,12 @@ export class FittingRoomController {
       if (!this.selectedColorwaySizeAsset) {
         throw new Error('selectedColorwaySizeAsset is not set')
       }
+
+      if (this.cacheColorwaySizeAssetsPromise) {
+        // let cache finish before loading
+        await this.cacheColorwaySizeAssetsPromise
+      }
+
       this.SizeRecommendationController.SetVTOLoading(true)
 
       console.log('tryOncallback', selectedSizeID, availableSizeIDs)

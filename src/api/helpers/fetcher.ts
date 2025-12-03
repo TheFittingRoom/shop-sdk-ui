@@ -30,7 +30,7 @@ export class Fetcher {
     const res = await fetch(url, config)
     console.debug("fetch response:", res.status, res.url)
     if (res.ok) return res
-    if (res.status === 500) throw new ServerUnavailableError(res.statusText)
+    if (res.status === 500) throw ServerUnavailableError
     const errRes = await res.json() as ErrorResponse
     throw errRes.error
   }
@@ -42,11 +42,15 @@ export class Fetcher {
   private async getHeaders(authUser: FirebaseAuthUserController, useToken: boolean): Promise<Record<string, string>> {
     if (!useToken) return { 'Content-Type': 'application/json' }
 
-    const token = await authUser.GetToken()
-    return {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    }
+    return authUser.GetToken().then((token: string) => {
+      return {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      }
+    }).catch((error: Error) => {
+      console.error(error)
+      throw error
+    })
   }
 
   async Get(user: FirebaseAuthUserController, endpointPath: string, useToken?: boolean): Promise<Response> {

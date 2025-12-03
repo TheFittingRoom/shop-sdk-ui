@@ -1,67 +1,14 @@
-export class AvatarNotCreatedError extends Error {
-  constructor() {
-    super('Avatar not created')
-    this.name = 'AvatarNotCreatedError'
-  }
-}
+const createError = (name: string, message: string) => {
+  const error = new Error(message);
+  error.name = name;
+  return error;
+};
 
-export class UserNotLoggedInError extends Error {
-  constructor() {
-    super('user not logged in')
-    this.name = 'UserNotLoggedInError'
-  }
-}
-
-export class UserNotFoundError extends Error {
-  constructor(userId?: string) {
-    super(`user not found${userId ? `: ${userId}` : ''}`)
-    this.name = 'UserNotFoundError'
-  }
-}
-
-export class NoColorwaySizeAssetsFoundError extends Error {
-  constructor() {
-    super('no colorway size assets found')
-    this.name = 'NoColorwaySizeAssetsFoundError'
-  }
-}
-
-export class NoFramesFoundError extends Error {
-  constructor() {
-    super('no frames found')
-    this.name = 'NoFramesFoundError'
-  }
-}
-
-export class RecommendedAvailableSizesError extends Error {
-  recommended_size: string
-  available_sizes: string[]
-
-  constructor(recommended_size: string, available_sizes: string[]) {
-    super('recommended available sizes error')
-    this.name = 'RecommendedAvailableSizesError'
-    this.recommended_size = recommended_size
-    this.available_sizes = available_sizes
-  }
-}
-
-export class NoStylesFoundError extends Error {
-  constructor() {
-    super('no styles found')
-    this.name = 'NoStylesFoundError'
-  }
-}
-
-export class ServerUnavailableError extends Error {
-  constructor(message: string = 'Server is unavailable or not running') {
-    super(message)
-    this.name = 'ServerUnavailableError'
-  }
-}
-
-export class TimeoutError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'TimeoutError'
-  }
-}
+export const AvatarNotCreatedError = createError('AvatarNotCreatedError', 'Avatar not created');
+export const UserNotLoggedInError = createError('UserNotLoggedInError', 'user not logged in');
+export const NoColorwaySizeAssetsFoundError = createError('NoColorwaySizeAssetsFoundError', 'no colorway size assets found');
+export const NoFramesFoundError = createError('NoFramesFoundError', 'no frames found');
+export const NoStylesFoundError = createError('NoStylesFoundError', 'no styles found');
+export const UserNotFoundError = createError('UserNotFoundError', 'user not found');
+export const ServerUnavailableError = createError('ServerUnavailableError', 'Server is unavailable or not running');
+export const TimeoutError = createError('TimeoutError', 'Virtual Try On has timed out');

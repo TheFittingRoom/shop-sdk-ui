@@ -9,8 +9,8 @@ import {
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
 } from 'firebase/auth'
+import { UserNotLoggedInError } from '../errors'
 
-import * as Errors from '../errors'
 
 export class FirebaseAuthUserController {
   private readonly initializationPromise: Promise<User | null>
@@ -63,21 +63,17 @@ export class FirebaseAuthUserController {
 
   public async GetUserOrNotLoggedIn(): Promise<User> {
     await this.initializationPromise
-    const user = this.auth.currentUser
-    console.debug('GetUserOrNotLoggedIn:', Boolean(user))
-
-    if (!user) {
-      console.debug('Throwing UserNotLoggedInError')
-      throw new Errors.UserNotLoggedInError()
-    }
-
-    return user
+    console.debug('GetUserOrNotLoggedIn:', Boolean(this.auth?.currentUser))
+    return this.auth?.currentUser
   }
 
-  public async GetToken(): Promise<string> {
-    const user = await this.GetUserOrNotLoggedIn()
-    // Force token refresh to ensure it's current
-    return user.getIdToken(true)
+  public async GetToken(): Promise<string | Error> {
+    return this.GetUserOrNotLoggedIn().then((user: User) => {
+      return user.getIdToken(true)
+    }).catch((error: Error) => {
+      console.error(error)
+      return Promise.reject(error)
+    })
   }
 
   public async GetCurrentUser(): Promise<User | null> {

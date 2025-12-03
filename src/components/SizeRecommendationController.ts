@@ -73,11 +73,6 @@ export class SizeRecommendationController {
     )
   }
 
-
-  private onSizeRecSelectCallback(sizeIndex: number) {
-    console.log('onSizeRecSelectCallback', sizeIndex)
-  }
-
   public setLoggedOutStyleMeasurementLocations(garmentMeasurementLocations: GarmentMeasurement[] = []) {
     if (garmentMeasurementLocations.length == 0) {
       throw new Error('filteredLocations passed to setGarmentLocations is 0')
