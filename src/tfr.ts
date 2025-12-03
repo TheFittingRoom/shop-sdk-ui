@@ -40,10 +40,9 @@ export class FittingRoomController {
   private firebaseAuthUserController: FirebaseAuthUserController
   private firestoreUserController: FirestoreUserController
   private readonly API: FittingRoomAPI
-  private unsubFirestoreUserCollection: () => void = null
+  private unsubFirestoreUserStateChange: () => void = null
   private cacheColorwaySizeAssetsPromise: Promise<void>
   private styleMeasurementLocations: GarmentMeasurement[]
-
 
   constructor(
     env: string,
@@ -89,10 +88,10 @@ export class FittingRoomController {
     )
   }
 
-  private authStateChangeCallback(user: User | null) {
+  private authStateChangeCallback(user: User | null, isInit: boolean) {
     console.debug('auth state change callback', Boolean(user))
-    if (user) {
-      this.SizeRecommendationController.ShowLoggedIn()
+    if (user && !isInit) {
+      this.Init()
       if (this.hooks?.onLogin) this.hooks.onLogin()
     } else {
       this.SizeRecommendationController.ShowLoggedOut()
@@ -126,7 +125,7 @@ export class FittingRoomController {
 
 
       const authUser = await authUserPromise
-      this.firebaseAuthUserController.ListenForAuthStateChange(this.authStateChangeCallback.bind(this))
+      this.unsubFirestoreUserStateChange = this.firebaseAuthUserController.ListenForAuthStateChange(true, this.authStateChangeCallback.bind(this))
       if (!authUser) {
         throw UserNotLoggedInError
       }
@@ -358,10 +357,10 @@ export class FittingRoomController {
   }
 
   private unsubscribeFromProfileChanges() {
-    if (!this.unsubFirestoreUserCollection) return
+    if (!this.unsubFirestoreUserStateChange) return
 
-    this.unsubFirestoreUserCollection()
-    this.unsubFirestoreUserCollection = null
+    this.unsubFirestoreUserStateChange()
+    this.unsubFirestoreUserStateChange = null
   }
 
   public styleToGarmentMeasurementLocations(style: FirestoreStyle): GarmentMeasurement[] {

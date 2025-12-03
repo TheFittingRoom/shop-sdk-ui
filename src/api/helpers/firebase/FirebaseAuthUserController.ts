@@ -9,29 +9,29 @@ import {
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
 } from 'firebase/auth'
-import { UserNotLoggedInError } from '../errors'
 
 
 export class FirebaseAuthUserController {
   private readonly initializationPromise: Promise<User | null>
-  private unsubscribeAuthStateChanged: (() => void) | null = null
   private readonly auth: Auth
 
-  constructor(app: firebase.FirebaseApp) {
+  constructor(app: firebase.FirebaseApp,
+  ) {
     this.auth = getAuth(app)
     this.auth.setPersistence(browserLocalPersistence)
     this.initializationPromise = this.resolveAuthStateChangeUser()
   }
 
   public ListenForAuthStateChange(
-    callback: (user: User | null) => void,
+    isInit: boolean,
+    callback: (user: User | null, isInit: boolean) => void,
     onError?: (error: Error) => void
   ): () => void {
     console.debug('listening for auth state changes...')
     return onAuthStateChanged(
       this.auth,
       (user) => {
-        callback(user);
+        callback(user, isInit);
       },
       (error) => {
         console.error('Auth state listener error:', error)
@@ -46,13 +46,13 @@ export class FirebaseAuthUserController {
     console.debug('Resolving initial auth state...')
     return new Promise<User | null>((resolve) => {
       // Create a temporary listener just for the initial state
-      const unsubscribe = this.ListenForAuthStateChange(
+      const unsubscribe = this.ListenForAuthStateChange(false,
         (user) => {
           unsubscribe();
           resolve(user);
         },
         (error) => {
-          console.error(error)
+          console.error("resolveAuthStateChangeUser error:", error)
           unsubscribe();
           resolve(null);
         }
@@ -111,7 +111,6 @@ export class FirebaseAuthUserController {
 
     try {
       await this.auth.signOut()
-      console.debug('Logout successful')
     } catch (error) {
       console.error('Logout error:', error)
       throw error
@@ -124,15 +123,5 @@ export class FirebaseAuthUserController {
 
   public async ConfirmPasswordReset(code: string, newPassword: string): Promise<void> {
     await confirmPasswordReset(this.auth, code, newPassword)
-  }
-
-  /**
-   * Cleans up the auth state listener to prevent memory leaks
-   */
-  public cleanup(): void {
-    if (this.unsubscribeAuthStateChanged) {
-      this.unsubscribeAuthStateChanged()
-      this.unsubscribeAuthStateChanged = null
-    }
   }
 }
