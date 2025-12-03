@@ -31,6 +31,7 @@ export class FittingRoomAPI {
   private cachedColorwaySizeAssets: Map<string, FirestoreColorwaySizeAsset> = new Map()
   private vtoFramesCache: Map<string, ColorwaySizeAssetFrameURLs> = new Map()
   private readonly fetcher: Fetcher
+  private lowPriorityPromises: Promise<TryOnFrames>[] = []
 
   constructor(
     public readonly BrandID: number,
@@ -271,10 +272,11 @@ export class FittingRoomAPI {
     const lowPrioritySkus = [...availableSKUs].filter((sku) => sku !== activeSKU)
     lowPrioritySkus.forEach((sku) => {
       // frames will be cached in the background
-      this.GetCachedOrRequestUserColorwaySizeAssetFrames(firestoreUserController, sku, skipCache)
+      // TODO: await these somewhere
+      this.lowPriorityPromises.push(this.GetCachedOrRequestUserColorwaySizeAssetFrames(firestoreUserController, sku, skipCache))
     })
 
-    return await priorityPromise
+    return priorityPromise
   }
 
   private async requestColorwaySizeAssetFramesByID(colorwaySizeAssetId: number): Promise<void> {
@@ -320,25 +322,20 @@ export class FittingRoomAPI {
       return true
     }
 
-    // Create a timeout promise that will reject after 300 seconds
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
         reject(TimeoutError)
-      }, 300000) // 300 seconds = 300,000 milliseconds
+      }, 300000)
     })
 
-    // Race between the Firestore watch and the timeout
     let firestoreUser: FirestoreUser
     try {
-      // Create the watch promise
       const watchPromise = firestoreUserController.WatchFirestoreUserChange(firestoreUserWatchCallback)
 
-      // Use Promise.race to implement timeout
       firestoreUser = await Promise.race([watchPromise, timeoutPromise])
     } catch (error) {
-      // If it's a timeout error, provide a more specific message
       if (error == TimeoutError) {
-        console.error(error.message)
+        console.error(error)
         throw TimeoutError
       }
 
