@@ -23,12 +23,20 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Build
-        run: |
-          envsubst < .env.production > .env
-          npm run build:prod
+       - name: Build
+         run: |
+           envsubst < .env.production > .env
+           npm run build:prod
 
-      - name: Upload Release Assets
+       - name: Verify Build
+         run: |
+           ls -la dist/
+           if [ ! -f dist/index.js ]; then
+             echo "index.js not found"
+             exit 1
+           fi
+
+       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.release.tag_name }}
