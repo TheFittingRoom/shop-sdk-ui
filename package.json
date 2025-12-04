@@ -4,6 +4,9 @@
   "description": "the fitting room UI library",
   "type": "module",
   "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "clean": "rm -rf dist",
     "clean:all": "rm -rf dist build",
