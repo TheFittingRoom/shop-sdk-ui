@@ -1,6 +1,6 @@
 import { DocumentData, QueryFieldFilterConstraint, where } from 'firebase/firestore'
 
-import { TryOnFrames as ColorwaySizeAssetFrameURLs, TryOnFrames } from '.'
+import { ColorwaySizeAssetFrameURLs } from '.'
 import {
   FirestoreColorwaySizeAsset,
   FirestoreGarmentCategory,
@@ -29,9 +29,8 @@ import { testImage } from './helpers/utils'
 export class FittingRoomAPI {
   public measurementLocations: Map<string, FirestoreMeasurementLocation> = new Map()
   private cachedColorwaySizeAssets: Map<string, FirestoreColorwaySizeAsset> = new Map()
-  private vtoFramesCache: Map<string, ColorwaySizeAssetFrameURLs> = new Map()
+  private vtoFramesPromiseCache: Map<string, Promise<ColorwaySizeAssetFrameURLs>> = new Map()
   private readonly fetcher: Fetcher
-  private lowPriorityPromises: Promise<TryOnFrames>[] = []
 
   constructor(
     public readonly BrandID: number,
@@ -256,7 +255,7 @@ export class FittingRoomAPI {
     activeSKU: string,
     availableSKUs: string[],
     skipCache: boolean = false,
-  ): Promise<TryOnFrames> {
+  ): Promise<ColorwaySizeAssetFrameURLs> {
     if (!activeSKU) throw new Error('activeSKU is required for PriorityTryOnWithMultiRequestCache')
     if (!availableSKUs) throw new Error('availableSKUs is required for PriorityTryOnWithMultiRequestCache')
 
@@ -273,10 +272,10 @@ export class FittingRoomAPI {
     lowPrioritySkus.forEach((sku) => {
       // frames will be cached in the background
       // TODO: await these somewhere
-      this.lowPriorityPromises.push(this.GetCachedOrRequestUserColorwaySizeAssetFrames(firestoreUserController, sku, skipCache))
+      this.GetCachedOrRequestUserColorwaySizeAssetFrames(firestoreUserController, sku, skipCache)
     })
 
-    return priorityPromise
+    return await priorityPromise
   }
 
   private async requestColorwaySizeAssetFramesByID(colorwaySizeAssetId: number): Promise<void> {
@@ -286,17 +285,17 @@ export class FittingRoomAPI {
     await this.fetcher.Post(this.firebaseAuthUserController, `/colorway-size-assets/${colorwaySizeAssetId}/frames`)
   }
 
-  private async WatchForTryOnFrames(
-    firestoreUserController: FirestoreUserController,
-    colorwaySizeAssetSKU: string,
-    skipFullSnapshot: boolean = false,
-  ): Promise<TryOnFrames> {
-    console.debug('WatchForTryOnFrames')
-    if (!this.IsLoggedIn) throw UserNotLoggedInError
+  private getVTOFramesFromUser(
+    firestoreUser: FirestoreUser,
+    colorwaySizeAssetSKU: string
+  ): ColorwaySizeAssetFrameURLs | undefined {
+    console.debug('getVTOFramesFromUser', colorwaySizeAssetSKU)
+    return firestoreUser.vto?.[this.BrandID]?.[colorwaySizeAssetSKU]?.frames as ColorwaySizeAssetFrameURLs | undefined;
+  }
 
+  private watchForFramesSnapshotCallback(skipFullSnapshot: boolean, colorwaySizeAssetSKU: string): (data: DocumentData) => Promise<boolean> {
     let firstSnapshotProcessed = false
-
-    const firestoreUserWatchCallback = async (data: DocumentData) => {
+    return async (data: DocumentData): Promise<boolean> => {
       if (skipFullSnapshot && !firstSnapshotProcessed) {
         console.debug('skipping first snapshot', colorwaySizeAssetSKU)
         firstSnapshotProcessed = true
@@ -306,9 +305,8 @@ export class FittingRoomAPI {
       console.debug('checking user for vto frames', colorwaySizeAssetSKU)
 
       const firestoreUser = data as FirestoreUser
-      const frames = firestoreUser.vto?.[this.BrandID]?.[colorwaySizeAssetSKU]?.frames
+      const frames = this.getVTOFramesFromUser(firestoreUser, colorwaySizeAssetSKU)
       if (!frames?.length) {
-        console.error('no frames found for SKU:', colorwaySizeAssetSKU)
         throw NoFramesFoundError
       }
 
@@ -321,6 +319,15 @@ export class FittingRoomAPI {
 
       return true
     }
+  }
+
+  private async watchForTryOnFrames(
+    firestoreUserController: FirestoreUserController,
+    colorwaySizeAssetSKU: string,
+    skipFullSnapshot: boolean,
+  ): Promise<ColorwaySizeAssetFrameURLs> {
+    console.debug('WatchForTryOnFrames', colorwaySizeAssetSKU, 'skipFullSnapshot:', skipFullSnapshot);
+    if (!this.IsLoggedIn) throw UserNotLoggedInError
 
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
@@ -330,9 +337,10 @@ export class FittingRoomAPI {
 
     let firestoreUser: FirestoreUser
     try {
-      const watchPromise = firestoreUserController.WatchFirestoreUserChange(firestoreUserWatchCallback)
+      const watchPromise = firestoreUserController.WatchFirestoreUserChange(this.watchForFramesSnapshotCallback(skipFullSnapshot, colorwaySizeAssetSKU))
 
       firestoreUser = await Promise.race([watchPromise, timeoutPromise])
+
     } catch (error) {
       if (error == TimeoutError) {
         console.error(error)
@@ -340,19 +348,17 @@ export class FittingRoomAPI {
       }
 
       if (error == NoFramesFoundError) {
-        console.debug(`No frames found for SKU: ${colorwaySizeAssetSKU}`)
         throw error
       }
       console.error(`Error watching for try-on frames for SKU: ${colorwaySizeAssetSKU}`, error)
       throw error
     }
 
-    const frames = firestoreUser.vto?.[this.BrandID]?.[colorwaySizeAssetSKU]?.frames
+    const frames = this.getVTOFramesFromUser(firestoreUser, colorwaySizeAssetSKU)
     if (!frames) {
       console.error(`Frames not found on final user object for SKU: ${colorwaySizeAssetSKU}`, firestoreUser)
       throw NoFramesFoundError
     }
-    this.vtoFramesCache.set(colorwaySizeAssetSKU, frames)
     return frames
   }
 
@@ -360,14 +366,14 @@ export class FittingRoomAPI {
     firestoreUserController: FirestoreUserController,
     colorwaySizeAssetSKU: string,
     skipCache: boolean,
-  ): Promise<TryOnFrames | null> {
+  ): Promise<ColorwaySizeAssetFrameURLs | null> {
     console.debug('GetCachedOrRequestUserColorwaySizeAssetFrames', colorwaySizeAssetSKU, 'skipCache:', skipCache);
 
     if (!skipCache) {
-      const cached = this.vtoFramesCache.get(colorwaySizeAssetSKU);
+      const cached = this.vtoFramesPromiseCache.get(colorwaySizeAssetSKU);
       if (cached) {
         console.debug('returning cached frames', colorwaySizeAssetSKU);
-        return cached;
+        return await cached;
       }
     }
 
@@ -378,30 +384,28 @@ export class FittingRoomAPI {
     }
     const colorwaySizeAssetID = colorwaySizeAsset.id;
 
-    let frames: TryOnFrames;
-
-    if (skipCache) {
-      await this.requestColorwaySizeAssetFramesByID(colorwaySizeAssetID);
-      console.debug('waiting for new vto');
-      frames = await this.WatchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, true);
-    } else {
-      try {
-        console.debug('waiting for full snapshot');
-        frames = await this.WatchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, false);
-      } catch (error) {
-        if (error == NoFramesFoundError) {
-          console.debug(`No frames found for SKU: ${colorwaySizeAssetSKU}, attempting to request fresh frames`);
-          await this.requestColorwaySizeAssetFramesByID(colorwaySizeAssetID);
-          console.debug('waiting for new vto after refresh request');
-          frames = await this.WatchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, true);
-        } else {
-          throw error;
-        }
+    let framesPromise: Promise<ColorwaySizeAssetFrameURLs>;
+    try {
+      let skipFullSnapshot = false;
+      if (skipCache) {
+        console.debug('skipping cache, requesting fresh frames');
+        await this.requestColorwaySizeAssetFramesByID(colorwaySizeAssetID);
+        skipFullSnapshot = true
       }
+      framesPromise = this.watchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, skipFullSnapshot);
+      await framesPromise;
+    } catch (error) {
+      if (error != NoFramesFoundError) {
+        throw error;
+      }
+      console.debug(`No frames found for SKU: ${colorwaySizeAssetSKU}, attempting to request fresh frames`);
+      await this.requestColorwaySizeAssetFramesByID(colorwaySizeAssetID);
+      console.debug('waiting for new vto after refresh request');
+      framesPromise = this.watchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, true);
     }
+    this.vtoFramesPromiseCache.set(colorwaySizeAssetSKU, framesPromise);
 
     console.debug('retrieved frames', frames);
-    this.vtoFramesCache.set(colorwaySizeAssetSKU, frames);
-    return frames;
+    return await framesPromise
   }
 }

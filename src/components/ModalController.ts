@@ -1,5 +1,5 @@
 import * as modals from '.'
-import { TryOnFrames } from '../api'
+import { ColorwaySizeAssetFrameURLs } from '../api'
 import * as types from './types'
 
 export class TFRModal {
@@ -69,7 +69,7 @@ export class TFRModal {
 
   public toPasswordReset() { }
 
-  public onTryOn(frames: TryOnFrames) {
+  public onTryOn(frames: ColorwaySizeAssetFrameURLs) {
     this.manager.open(
       modals.TryOnModal({
         frames,

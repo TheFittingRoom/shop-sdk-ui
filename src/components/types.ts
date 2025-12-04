@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { TryOnFrames } from '../api'
+import { ColorwaySizeAssetFrameURLs } from '../api'
 
 export interface ModalContent {
     Body: () => string
@@ -35,7 +35,7 @@ export interface LoadingAvatarModalProps extends ModalProps {
 }
 
 export interface TryOnModalProps extends ModalProps {
-    frames: TryOnFrames
+    frames: ColorwaySizeAssetFrameURLs
     onNavBack: () => void
     onClose: () => void
 }

@@ -3,7 +3,7 @@ import { AvatarStatusCreated, AvatarStatusNotCreated, AvatarStatusPending, Horiz
 export { FittingRoomAPI } from './api'
 export * from './measurement'
 
-export type TryOnFrames = string[]
+export type ColorwaySizeAssetFrameURLs = string[]
 
 export type {
   AvatarStatusCreated,

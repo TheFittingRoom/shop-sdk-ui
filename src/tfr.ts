@@ -1,5 +1,5 @@
 import { User } from 'firebase/auth'
-import { FirestoreColorwaySizeAsset, FirestoreStyle, FirestoreUser, TryOnFrames } from './api'
+import { FirestoreColorwaySizeAsset, FirestoreStyle, FirestoreUser, ColorwaySizeAssetFrameURLs } from './api'
 import { FittingRoomAPI } from './api/api'
 import { AvatarStatus, AvatarStatusCreated, AvatarStatusNotCreated, AvatarStatusPending } from './api/gen/enums'
 import { GarmentMeasurement } from './api/gen/responses'
@@ -20,7 +20,7 @@ export interface TFRHooks {
   onLoading?: () => void
   onLoadingComplete?: () => void
   onError?: (error: string) => void
-  onVtoReady?: (frames: TryOnFrames) => void
+  onVtoReady?: (frames: ColorwaySizeAssetFrameURLs) => void
   onLogin?: () => void
   onLogout?: () => void
 }
