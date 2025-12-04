@@ -4,6 +4,16 @@ on:
   pull_request_target:
     types:
       - closed
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: "Version type"
+        required: true
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
 
 permissions:
   id-token: write
@@ -14,9 +24,8 @@ jobs:
     if: github.event.pull_request.merged == true
     uses: ./.github/workflows/get-version-label.yaml
   build:
-    if: github.event.pull_request.merged == true && needs.get_version_label.outputs.version_label != 'chore'
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    needs: get_version_label
     steps:
       - uses: actions/checkout@v5
         with:
@@ -37,9 +46,19 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
+      - name: Determine Version Label
+        id: get_version_label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            if ('${{ github.event_name }}' === 'workflow_dispatch') {
+              core.setOutput('version_label', '${{ github.event.inputs.version_type }}');
+            } else {
+              core.setOutput('version_label', '${{ needs.get_version_label.outputs.version_label }}');
+            }
+
       - name: NPM Version
-        run: |
-          npm version "${{ needs.get_version_label.outputs.version_label }}"
+        run: npm version "${{ steps.get_version_label.outputs.version_label }}"
 
       - name: Get Version
         id: get_version
