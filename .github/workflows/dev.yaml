@@ -47,7 +47,7 @@ jobs:
 
       - name: Build
         run: |
-          envsubst < .env.dev > .env
+          envsubst < .env.development > .env
           npm run build:dev
 
       - name: Push Version

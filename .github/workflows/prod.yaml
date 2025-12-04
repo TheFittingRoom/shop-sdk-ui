@@ -24,7 +24,9 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build:prod
+        run: |
+          envsubst < .env.production > .env
+          npm run build:prod
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
@@ -32,3 +34,4 @@ jobs:
           tag_name: ${{ github.event.release.tag_name }}
           files: dist/*
           append_body: true
+          prerelease: false
