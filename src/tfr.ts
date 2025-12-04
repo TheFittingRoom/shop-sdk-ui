@@ -278,7 +278,7 @@ export class FittingRoomController {
 
       this.SizeRecommendationController.SetVTOLoading(true)
 
-      console.log('tryOncallback', selectedSizeID, availableSizeIDs)
+      console.log('tryOnCallback', selectedSizeID, availableSizeIDs)
       this.forceFreshVTO = !fromSizeRecSelect && this.hasInitializedTryOn && this.noCacheOnRetry
 
       const allCachedAssets = this.API.GetCachedColorwaySizeAssets()

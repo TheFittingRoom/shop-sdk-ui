@@ -162,7 +162,7 @@ export class SizeRecommendationController {
   }
 
   public SetVTOLoading(isLoading: boolean) {
-    console.debug(isLoading ? 'show vto loading' : 'hide vto loading')
+    console.debug("SetVTOLoading", isLoading)
     this.sizeRecComponent.SetVTOLoading(isLoading)
   }
 
