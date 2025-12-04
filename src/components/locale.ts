@@ -1,48 +1,12 @@
+import en from '../languages/en.json'
+import fr from '../languages/fr.json'
 import { createUIError } from './uiError'
 
 /// <reference types="vite/client" />
 
-var L = {
-  AssociatedEmail: 'If there is an account associated with that email, We have sent a link to reset your password.',
-  BackToSignIn: 'Back to sign in',
-  ClickHereToDownload: 'Click here to download the app',
-  DontHaveAcc: "Don't have an account?",
-  DontHaveAvatar: "Whoops! Looks like you don't have an avatar yet.",
-  EmailAddress: 'Email address',
-  EmailError: 'Please enter a valid email address.',
-  EnterEmailAddress: 'Enter your email address, we will send you a link to reset your password.',
-  EnterPhoneNumber: 'Enter your number for download link',
-  FailedToLoadLocale: 'Something went wrong when fetching another language.',
-  ForgotPasswordWithSymbol: 'Forgot password?',
-  GetVirtualTryOnFramesErrorText: 'The try-on request timed out. Please try again!',
-  HaveAcc: 'Have an account? Sign in',
-  Loading: 'Loading...',
-  LoadingAvatar: 'Your avatar is loading...',
-  NoSizeAvailable: 'Unfortunately, that size is not available for try on.',
-  OrSize: 'or',
-  Password: 'Password',
-  PasswordError: 'Please enter a valid password (at least 7 characters).',
-  PhoneNumber: 'Phone number',
-  ReturnToCatalogPage: 'Return to Catalog Page',
-  ReturnToProductPage: 'Return to Product Page',
-  ReturnToSite: 'Return to site',
-  ReturnToTFR: 'Please return to The Fitting Room app to create your avatar.',
-  ScanQrToDownload: 'Scan to download the app',
-  Send: 'Send',
-  SignBackIn: 'Sign back in',
-  SignIn: 'Sign in',
-  SomethingWentWrong: 'Something went wrong. Try again!',
-  SuccessfullyLoggedOut: 'You have successfully logged out!',
-  TheFittingRoom: 'The Fitting Room',
-  UsernameOrPasswordEmpty: 'Username or password is empty.',
-  UsernameOrPasswordIncorrect: 'Username or password is incorrect.',
-  StyleNotFound: 'style not found',
+const locales = { en, fr }
 
-  // Modal
-  ModalTagline: 'End size uncertainty with',
-  ModalText:
-    'Our technology captures your precise measurements, and considers things like fabric stretch and your individual physique to find your perfect fit every time.',
-}
+var L: any = en
 
 function findMissingLocales(defaultLocale: any, newLocale: any): { default: any; new: any } {
   const missingLocales = { default: {}, new: {} }
@@ -61,43 +25,20 @@ function findMissingLocales(defaultLocale: any, newLocale: any): { default: any;
 
 async function SetLocale(locale: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    fetch(`${import.meta.env.VITE_LANGUAGE_URL}/${locale}.json`)
-      .then((response) => {
-        if (response.ok) {
-          response
-            .json()
-            .then((data) => {
-              const missingLocales = findMissingLocales(L, data)
-              if (Object.keys(missingLocales.default).length > 0) {
-                console.warn(
-                  `The following locales are missing from the new locale: ${JSON.stringify(missingLocales.default)}`,
-                )
-              }
-              if (Object.keys(missingLocales.new).length > 0) {
-                console.warn(
-                  `The following locales are missing from the default locale: ${JSON.stringify(missingLocales.new)}`,
-                )
-              }
-              L = data
-              resolve()
-            })
-            .catch((error) => {
-              reject(createUIError(L.FailedToLoadLocale, error))
-            })
-        } else {
-          response
-            .text()
-            .then((bodyText) => {
-              reject(createUIError(L.FailedToLoadLocale, new Error(bodyText)))
-            })
-            .catch((error) => {
-              reject(createUIError(L.FailedToLoadLocale, error))
-            })
-        }
-      })
-      .catch((error) => {
-        reject(createUIError(L.FailedToLoadLocale, error))
-      })
+    const data = locales[locale as keyof typeof locales]
+    if (data) {
+      const missingLocales = findMissingLocales(L, data)
+      if (Object.keys(missingLocales.default).length > 0) {
+        console.warn(`The following locales are missing from the new locale: ${JSON.stringify(missingLocales.default)}`)
+      }
+      if (Object.keys(missingLocales.new).length > 0) {
+        console.warn(`The following locales are missing from the default locale: ${JSON.stringify(missingLocales.new)}`)
+      }
+      L = data
+      resolve()
+    } else {
+      reject(createUIError(L.FailedToLoadLocale, new Error(`Locale ${locale} not found`)))
+    }
   })
 }
 
