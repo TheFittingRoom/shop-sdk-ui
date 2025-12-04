@@ -1,17 +1,18 @@
 import '../styles'
-import ErrorModal from './Modals/ErrorModal'
-import FitModal from './Modals/FitModal'
-import ForgotPasswordModal from './Modals/ForgotPasswordModal'
-import LoadingAvatarModal from './Modals/LoadingAvatarModal'
-import LoggedOutModal from './Modals/LoggedOutModal'
-import { InitModalManager, ModalManager } from './Modals/ModalManager'
-import NoAvatarModal from './Modals/NoAvatarModal'
-import ResetLinkModal from './Modals/ResetLinkModal'
-import ScanCodeModal from './Modals/ScanCodeModal'
-import SignInModal from './Modals/SignInModal'
-import SizeErrorModal from './Modals/SizeErrorModal'
-import TryOnModal from './Modals/TryOnModal'
-import { InitImageSlider } from './slider'
+import ErrorModal from './modals/ErrorModal'
+import FitModal from './modals/FitModal'
+import ForgotPasswordModal from './modals/ForgotPasswordModal'
+import LoadingAvatarModal from './modals/LoadingAvatarModal'
+import LoggedOutModal from './modals/LoggedOutModal'
+import { InitModalManager } from './modals/ModalManager'
+import type { ModalManager } from './modals/ModalManager'
+import NoAvatarModal from './modals/NoAvatarModal'
+import ResetLinkModal from './modals/ResetLinkModal'
+import ScanCodeModal from './modals/ScanCodeModal'
+import SignInModal from './modals/SignInModal'
+import SizeErrorModal from './modals/SizeErrorModal'
+import TryOnModal from './modals/TryOnModal'
+import { InitImageSlider } from './virtualTryOnSlider'
 
 export {
   ErrorModal,
@@ -21,7 +22,6 @@ export {
   InitModalManager,
   LoadingAvatarModal,
   LoggedOutModal,
-  ModalManager,
   NoAvatarModal,
   ResetLinkModal,
   ScanCodeModal,
@@ -29,3 +29,6 @@ export {
   SizeErrorModal,
   TryOnModal,
 }
+
+export type { ModalManager }
+export * from './types'

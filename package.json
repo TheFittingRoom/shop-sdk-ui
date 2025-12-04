@@ -3,36 +3,31 @@
   "version": "3.2.3",
   "description": "the fitting room UI library",
   "type": "module",
-  "main": "./dist/esm/index.js",
+  "main": "./dist/index.js",
   "scripts": {
     "clean": "rm -rf dist",
-    "clean:all": "rm -rf dist build .rollup.cache",
-    "build:prod": "npm run clean && NODE_ENV=prod rollup --config",
-    "build:dev": "npm run clean && NODE_ENV=dev rollup --config",
-    "watch:prod": "npm run clean && NODE_ENV=prod rollup --config -w",
-    "watch:dev": "npm run clean && NODE_ENV=dev rollup --config -w",
-    "serve": "live-server --host=localhost --port=3030 --cors",
-    "pub": "npm run build:prod && npm publish --access public"
+    "clean:all": "rm -rf dist build",
+    "build:prod": "npm run clean && vite build --mode production",
+    "build:dev": "npm run clean && vite build --mode development",
+    "dev": "vite --mode development",
+    "watch:prod": "vite build --mode production --watch",
+    "watch:dev": "vite build --mode development --watch",
+    "serve": "vite preview",
+    "prune": "ts-prune"
   },
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
-    "@rollup/plugin-node-resolve": "^16.0.1",
-    "@rollup/plugin-terser": "^0.4.4",
-    "@rollup/plugin-typescript": "^12.1.4",
-    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
-    "live-server": "^1.2.0",
-    "postcss": "^8.5.6",
+    "@biomejs/biome": "2.3.5",
+    "@trivago/prettier-plugin-sort-imports": "^6.0.0",
     "prettier": "^3.6.2",
-    "rollup": "^4.18.1",
-    "rollup-plugin-dotenv": "^0.5.1",
-    "rollup-plugin-postcss": "^4.0.2",
-    "ts-node": "^10.9.2",
-    "tslib": "^2.6.3",
-    "typescript": "^5.5.4"
+    "ts-prune": "^0.10.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.2"
   },
   "dependencies": {
-    "@thefittingroom/sdk": "2.0.8"
+    "dayjs": "^1.11.19",
+    "firebase": "^12.5.0"
   }
 }

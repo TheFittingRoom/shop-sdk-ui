@@ -4,7 +4,7 @@
   margin: 20px;
 }
 
-.tfr-home-button-container > button {
+.tfr-home-button-container>button {
   height: 60px;
   width: 200px;
   margin: 20px;
@@ -12,7 +12,7 @@
   cursor: pointer;
 }
 
-.tfr-home-button-container > button:hover {
+.tfr-home-button-container>button:hover {
   background-color: rgb(230, 230, 230);
 }
 
@@ -243,11 +243,6 @@
 .tfr-door-icon,
 .tfr-user-icon {
   color: #209da7;
-}
-
-.tfr-logged-in,
-.tfr-toggle-closed {
-  display: none;
 }
 
 .tfr-flex {

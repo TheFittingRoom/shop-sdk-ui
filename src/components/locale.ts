@@ -1,9 +1,10 @@
 import { createUIError } from './uiError'
 
+/// <reference types="vite/client" />
+
 var L = {
   AssociatedEmail: 'If there is an account associated with that email, We have sent a link to reset your password.',
   BackToSignIn: 'Back to sign in',
-  BrandUserIdNotSet: 'User not logged in to brand site.',
   ClickHereToDownload: 'Click here to download the app',
   DontHaveAcc: "Don't have an account?",
   DontHaveAvatar: "Whoops! Looks like you don't have an avatar yet.",
@@ -25,7 +26,7 @@ var L = {
   ReturnToCatalogPage: 'Return to Catalog Page',
   ReturnToProductPage: 'Return to Product Page',
   ReturnToSite: 'Return to site',
-  ReturnToTfr: 'Please return to The Fitting Room app to create your avatar.',
+  ReturnToTFR: 'Please return to The Fitting Room app to create your avatar.',
   ScanQrToDownload: 'Scan to download the app',
   Send: 'Send',
   SignBackIn: 'Sign back in',
@@ -35,6 +36,7 @@ var L = {
   TheFittingRoom: 'The Fitting Room',
   UsernameOrPasswordEmpty: 'Username or password is empty.',
   UsernameOrPasswordIncorrect: 'Username or password is incorrect.',
+  StyleNotFound: 'style not found',
 
   // Modal
   ModalTagline: 'End size uncertainty with',
@@ -59,7 +61,7 @@ function findMissingLocales(defaultLocale: any, newLocale: any): { default: any;
 
 async function SetLocale(locale: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    fetch(`${process.env.LANGUAGE_URL}/${locale}.json`)
+    fetch(`${import.meta.env.VITE_LANGUAGE_URL}/${locale}.json`)
       .then((response) => {
         if (response.ok) {
           response
