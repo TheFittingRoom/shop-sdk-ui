@@ -47,7 +47,7 @@ export class FittingRoomController {
   constructor(
     env: string,
     private readonly shopID: number,
-    private readonly styleSKU: string,
+    private readonly externalID: string,
     private readonly noCacheOnRetry: boolean = false,
     modalDivId: string,
     sizeRecMainDivId: string,
@@ -103,7 +103,7 @@ export class FittingRoomController {
     console.debug('init')
     try {
       const authUserPromise = this.firebaseAuthUserController.GetUserOrNotLoggedIn()
-      const stylePromise = this.API.GetStyleByBrandStyleID(this.styleSKU)
+      const stylePromise = this.API.GetStyleByExernalID(this.externalID)
       await Promise.all([authUserPromise, stylePromise])
       console.debug('promise all ready')
 

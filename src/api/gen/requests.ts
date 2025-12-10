@@ -22,7 +22,7 @@ export interface Avatar {
 }
 export interface UpdateAvatarWebhook {
   error: string;
-  measurements: { [key: string]: number /* float64 */ };
+  measurements: { [key: string]: number /* float64 */};
   joints: Joint[];
   frames_storage_path: string;
   object_storage_path: string;
@@ -30,7 +30,7 @@ export interface UpdateAvatarWebhook {
 }
 export interface FakeAvatar {
   gender: string;
-  measurements: { [key: string]: number /* float64 */ };
+  measurements: { [key: string]: number /* float64 */};
 }
 
 //////////
@@ -251,7 +251,8 @@ export interface GarmentMeasurement {
   lay_flat: boolean;
 }
 export interface Style {
-  brand_style_id: string;
+  sku: string;
+  external_id: string;
   cycle_id: number /* int64 */;
   name: string;
   description: string;
@@ -265,7 +266,8 @@ export interface Style {
   is_vto: boolean;
 }
 export interface PutStyle {
-  brand_style_id: string;
+  sku: string;
+  external_id: string;
   name: string;
   description: string;
   sale_type: string;

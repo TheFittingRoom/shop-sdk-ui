@@ -140,21 +140,27 @@ export class FittingRoomAPI {
     return colorwaySizeAssets
   }
 
-  // BrandStyleID is the SKU of the style
-  public async GetStyleByBrandStyleID(styleSKU: string): Promise<FirestoreStyle | null> {
-    console.debug('getStyleByBrandStyleID:', styleSKU)
-    if (!styleSKU) throw new Error('styleSKU is required for GetStyleByBrandStyleID')
-    const isLoggedIn = await this.IsLoggedIn()
-    console.debug('isLoggedIn', isLoggedIn, 'BrandID:', this.BrandID)
+  public async GetStyleByExernalID(externalID: string): Promise<FirestoreStyle | null> {
+    if (!externalID) throw new Error('externalID is required for GetStyleByExernalID')
+    await this.IsLoggedIn()
     try {
       const constraints: QueryFieldFilterConstraint[] = [where('brand_id', '==', this.BrandID)]
-      constraints.push(where('brand_style_id', '==', styleSKU))
+      constraints.push(where('external_id', '==', externalID))
+      console.debug('Debug: Executing Firestore query with constraints:', {
+        brand_id: this.BrandID,
+        external_id: externalID
+      })
       const querySnapshot = await this.firebase.getDocs('styles', constraints)
+      console.debug('Debug: Firestore query result:', {
+        size: querySnapshot.size,
+        empty: querySnapshot.empty,
+        externalID: externalID
+      })
       const style = querySnapshot.docs?.[0]?.data() as FirestoreStyle
       console.debug('style fetched by brand id:', style)
       return style
     } catch (error) {
-      console.debug('getStyleByBrandStyleID error:', styleSKU, error)
+      console.debug('GetStyleByExernalID error:', externalID, error)
       return getFirebaseError(error)
     }
   }
