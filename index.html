@@ -93,8 +93,8 @@
 
     const brandID = 1
 
+    const externalID = '8744580415619'
 
-    const productSKU = 'TFR_FITTED-DRESS_178cm_BlackBa'
     const variantSKUs = [
       'TFR_Fitted-Dress_178_BlackBandana_2',
       'TFR_Fitted-Dress_178_BlackBandana_4',
@@ -156,15 +156,16 @@
       let tfr = null
 
       try {
+        console.log("productID", externalID)
 
         const config = {
           shopId: brandID,
-          styleSKU: productSKU,
+          externalID: externalID,
           modalDivId: 'thefittingroom-modal',
           sizeRecMainDivId: 'tfr-size-recommendation-main',
           vtoMainDivId: 'tfr-vto',
           noCacheOnRetry: true,
-          env: typeof ENV !== 'undefined' ? ENV : 'development',
+          env: typeof ENV !== 'undefined  ' ? ENV : 'development',
         }
 
         const sku = getSku()

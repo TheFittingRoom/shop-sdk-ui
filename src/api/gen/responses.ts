@@ -15,11 +15,11 @@ export interface Avatar {
   gender?: string;
   skin_tone_hex?: string;
   skin_tone_fac?: number /* float64 */;
-  body_measurements?: { [key: string]: number /* float64 */ };
+  body_measurements?: { [key: string]: number /* float64 */};
 }
 export interface FirestoreAvatar {
   gender: string;
-  measurements: { [key: string]: number /* float64 */ };
+  measurements: { [key: string]: number /* float64 */};
   created_at: any /* time.Time */;
   updated_at?: any /* time.Time */;
 }
@@ -566,7 +566,7 @@ export interface FirestoreSizeRecommendationDebug {
   style_id: number /* int */;
   avatar_id: number /* int */;
   size_id: number /* int */;
-  data: { [key: string]: any };
+  data: { [key: string]: any};
   is_debug: boolean;
   count: number /* int */;
   created_at: any /* time.Time */;
@@ -591,7 +591,7 @@ export interface FirestoreSizeSystem {
   name: string;
   is_horizontal: boolean;
   is_vertical: boolean;
-  size_values?: { [key: string]: any };
+  size_values?: { [key: string]: any};
 }
 
 //////////
@@ -640,7 +640,9 @@ export interface FirestoreSizingChart {
 export interface Style {
   id: number /* int64 */;
   brand_id: number /* int64 */;
-  brand_style_id: string;
+  brand_style_id: string; // DEPRICATED: use SKU instead
+  sku: string;
+  external_id: string;
   cycle_id: number /* int64 */;
   cycle?: Cycle;
   name: string;
@@ -668,6 +670,8 @@ export interface FirestoreStyle {
   id: number /* int */;
   name: string;
   brand_style_id: string;
+  sku: string;
+  external_id: string;
   sale_type: string;
   is_vto: boolean;
   measurement_unit: string;
@@ -738,7 +742,7 @@ export interface FirestoreStyleGarmentCategory {
   style_category_label: string;
   garment_category: string;
   garment_category_label: string;
-  measurement_locations: { [key: string]: string[] };
+  measurement_locations: { [key: string]: string[]};
 }
 
 //////////
@@ -758,7 +762,6 @@ export interface FirestoreVTOData {
   error: string;
   colorway_size_asset_id: number /* int64 */;
   frames: string[];
-  created_at: any /* time.Time */;
   updated_at: any /* time.Time */;
 }
 export interface FirestoreUser {
@@ -773,5 +776,5 @@ export interface FirestoreUser {
   updated_at?: any /* time.Time */;
   is_tos_accepted: boolean;
   is_gte_18: boolean;
-  vto: { [key: string]: { [key: string]: FirestoreVTOData } }; // brand_id and colorway_sku index
+  vto: { [key: string]: { [key: string]: FirestoreVTOData}}; // brand_id and colorway_sku index
 }
