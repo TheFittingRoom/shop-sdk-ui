@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: 20
           registry-url: "https://registry.npmjs.org"
-          cache: 'npm'
+          cache: "npm"
 
       - name: Require patch/minor/major label
         id: get_version_label
@@ -41,7 +41,7 @@ jobs:
               core.setFailed(`PR must contain one of the version labels: ${allowed.join(', ')}`);
             } else if (versionLabels.length > 1) {
               core.setFailed(`PR contains multiple version labels: ${versionLabels.join(', ')}. Only one of ${allowed.join(', ')} is allowed.`);
+            } else {
+              core.setOutput('version_label', versionLabels[0]);
+              core.info(`version_label: ${versionLabels[0]}`);
             }
-            core.setOutput('version_label', versionLabels[0]);
-            core.info(`version_label: ${versionLabels[0]}`);
-
