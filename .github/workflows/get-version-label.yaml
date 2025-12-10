@@ -5,10 +5,16 @@ on:
       - main
     types: [opened, edited, labeled, unlabeled, synchronize]
   workflow_call:
+    inputs:
+      workflow_dispatch_version_label:
+        description: "Version type"
+        required: true
+        type: string
     outputs:
       version_label:
         description: the major, minor or patch version label
         value: ${{ jobs.get_version_label.outputs.version_label }}
+
 permissions:
   contents: write
 
@@ -29,19 +35,25 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           cache: "npm"
 
-      - name: Require patch/minor/major label
+      - name: Determine version label
         id: get_version_label
         uses: actions/github-script@v7
         with:
           script: |
-            const allowed = ['patch', 'minor', 'major', 'chore'];
-            const versionLabels = context.payload.pull_request.labels.map(l => l.name.toLowerCase()).filter(label => allowed.includes(label));
-
-            if (versionLabels.length === 0) {
-              core.setFailed(`PR must contain one of the version labels: ${allowed.join(', ')}`);
-            } else if (versionLabels.length > 1) {
-              core.setFailed(`PR contains multiple version labels: ${versionLabels.join(', ')}. Only one of ${allowed.join(', ')} is allowed.`);
+            if (context.payload.inputs?.workflow_dispatch_version_label) {
+              core.setOutput('version_label', context.payload.inputs.workflow_dispatch_version_label.toLowerCase());
+              return;
+            }
+            if (context.payload.pull_request) {
+              const allowed = ['patch', 'minor', 'major', 'chore'];
+              const versionLabels = context.payload.pull_request.labels.map(l => l.name.toLowerCase()).filter(label => allowed.includes(label));
+              if (versionLabels.length === 0) {
+                core.setFailed(`PR must contain one of the version labels: ${allowed.join(', ')}`);
+              } else if (versionLabels.length > 1) {
+                core.setFailed(`PR contains multiple version labels: ${versionLabels.join(', ')}. Only one of ${allowed.join(', ')} is allowed.`);
+              } else {
+                core.setOutput('version_label', versionLabels[0]);
+              }
             } else {
-              core.setOutput('version_label', versionLabels[0]);
-              core.info(`version_label: ${versionLabels[0]}`);
+              core.setFailed('No version input provided and not triggered by a pull request');
             }

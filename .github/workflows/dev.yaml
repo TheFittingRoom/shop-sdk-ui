@@ -6,7 +6,7 @@ on:
       - closed
   workflow_dispatch:
     inputs:
-      version_type:
+      workflow_dispatch_version_label:
         description: "Version type"
         required: true
         type: choice
@@ -21,11 +21,12 @@ permissions:
 
 jobs:
   get_version_label:
-    if: github.event.pull_request.merged == true
     uses: ./.github/workflows/get-version-label.yaml
+    with:
+      workflow_dispatch_version_label: ${{ github.event.inputs.workflow_dispatch_version_label }}
   build:
     needs: [get_version_label]
-    if: (needs.get_version_label.result == 'skipped' && github.event_name == 'workflow_dispatch') || (needs.get_version_label.result == 'success' && github.event.pull_request.merged == true)
+    if: needs.get_version_label.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -47,16 +48,9 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-      - name: Determine Version Label
+      - name: Get Version Label
         id: get_version_label
-        uses: actions/github-script@v8
-        with:
-          script: |
-            if ('${{ github.event_name }}' === 'workflow_dispatch') {
-              core.setOutput('version_label', '${{ github.event.inputs.version_type }}');
-            } else {
-              core.setOutput('version_label', '${{ needs.get_version_label.outputs.version_label }}');
-            }
+        run: echo "version_label=${{ needs.get_version_label.outputs.version_label }}" >> $GITHUB_OUTPUT
 
       - name: NPM Version
         run: npm version "${{ steps.get_version_label.outputs.version_label }}"
@@ -68,8 +62,8 @@ jobs:
       - name: Build
         run: |
           echo "VERSION=${{ steps.get_version.outputs.version }}" >> $GITHUB_ENV
-           envsubst < .env.development > .env
-           npm run build:prod
+          envsubst < .env.development > .env
+          npm run build:prod
 
       - name: Push Version
         env:
