@@ -24,7 +24,8 @@ jobs:
     if: github.event.pull_request.merged == true
     uses: ./.github/workflows/get-version-label.yaml
   build:
-    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    needs: [get_version_label]
+    if: (needs.get_version_label.result == 'skipped' && github.event_name == 'workflow_dispatch') || (needs.get_version_label.result == 'success' && github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
