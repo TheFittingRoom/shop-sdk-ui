@@ -95,8 +95,8 @@ export class SizeRecommendationController {
 
       const sizeFitRecommendation = await this.fittingRoomAPI.GetRecommendedSizes(styleId)
 
-      const sizeMeasurementLocationFits: SizeMeasurementLocationFits[] = sizeFitRecommendation.available_sizes.map(
-        (size) => {
+      const sizeMeasurementLocationFits: SizeMeasurementLocationFits[] = sizeFitRecommendation.available_sizes
+        .map((size) => {
           const sizeMeasurementLocationFit: SizeMeasurementLocationFits = {
             isRecommended: size.id === sizeFitRecommendation.recommended_size.id,
             ...size,
@@ -112,8 +112,8 @@ export class SizeRecommendationController {
             })
           }
           return sizeMeasurementLocationFit
-        },
-      )
+        })
+        .sort((a, b) => (a.size_value?.id || 0) - (b.size_value?.id || 0))
 
       this.sizeRecComponent.ShowLoggedIn()
       this.sizeRecComponent.Show()
@@ -162,7 +162,7 @@ export class SizeRecommendationController {
   }
 
   public SetVTOLoading(isLoading: boolean) {
-    console.debug("SetVTOLoading", isLoading)
+    console.debug('SetVTOLoading', isLoading)
     this.sizeRecComponent.SetVTOLoading(isLoading)
   }
 

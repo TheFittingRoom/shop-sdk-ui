@@ -1,5 +1,5 @@
-import { ModalContent } from '../types'
 import { L } from '../locale'
+import { ModalContent } from '../types'
 
 interface ModalManager {
   open(content: ModalContent): void
@@ -38,20 +38,21 @@ const InitModalManager = (modalRoot: HTMLElement): ModalManager => {
     if (!useFullModalContent) return ''
 
     return `
-      <div class="tfr-modal-title-logo-container">
-          <div tfr-element="true" class="trf-logo-title tfr-title-font tfr-light-24-300 tfr-c-black tfr-mr-10">${L.ModalTagline}</div>
-          <div tfr-element="true" class="tfr-logo-container">
-            <div class="tfr-mr-15">
-              <svg width="26" height="47" viewBox="0 0 68 124" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0.911938 0L67.4819 17.09V106.49L0.911938 123.51V0Z" fill="#209DA7">
-                </path>
-                <path d="M52.8019 64.44C54.7791 64.44 56.3819 62.4387 56.3819 59.97C56.3819 57.5013 54.7791 55.5 52.8019 55.5C50.8248 55.5 49.2219 57.5013 49.2219 59.97C49.2219 62.4387 50.8248 64.44 52.8019 64.44Z" fill="white">
-                </path>
-              </svg>
-            </div>
-            <div tfr-element="true" class="tfr-title-font tfr-light-24-500 tfr-c-black tfr-mr-10">${L.TheFittingRoom}</div>
-          </div>
-      </div>
+       <div class="tfr-modal-title-logo-container">
+           <div tfr-element="true" class="trf-logo-title tfr-title-font tfr-light-24-300 tfr-c-black tfr-mr-10">${L.ModalTagline}</div>
+           <div tfr-element="true" class="tfr-logo-container">
+             <div class="tfr-mr-15">
+               <svg width="26" height="47" viewBox="0 0 68 124" fill="none" xmlns="http://www.w3.org/2000/svg">
+                 <path d="M0.911938 0L67.4819 17.09V106.49L0.911938 123.51V0Z" fill="#209DA7">
+                 </path>
+                 <path d="M52.8019 64.44C54.7791 64.44 56.3819 62.4387 56.3819 59.97C56.3819 57.5013 54.7791 55.5 52.8019 55.5C50.8248 55.5 49.2219 57.5013 49.2219 59.97C49.2219 62.4387 50.8248 64.44 52.8019 64.44Z" fill="white">
+                 </path>
+               </svg>
+             </div>
+             <div tfr-element="true" class="tfr-title-font tfr-light-24-500 tfr-c-black tfr-mr-10">${L.TheFittingRoom}</div>
+           </div>
+       </div>
+       <div tfr-element="true" class="tfr-modal-description tfr-body-font tfr-16-default tfr-c-black-o7 tfr-mt-15 tfr-max-w-600">${L.ModalDescription}</div>
     `
   }
 
