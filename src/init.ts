@@ -1,11 +1,11 @@
-import { FittingRoomController, TFRHooks } from './tfr'
 import { TFRCssVariables as TFRCSSVariables } from './components/SizeRecommendationController'
+import { FittingRoomController, TFRHooks } from './tfr'
 
 export type TFR = {
   env?: string
   shopId: number
-  externalID: string,
-  noCacheOnRetry?: boolean // Enable VTO retry with cache bypass
+  externalID: string
+  noCacheOnRetry: boolean // Enable VTO retry with cache bypass
   modalDivId: string
   sizeRecMainDivId: string
   vtoMainDivId: string
@@ -25,18 +25,20 @@ export const initFittingRoom = async ({
   cssVariables = {},
 }: TFR): Promise<FittingRoomController> => {
   try {
-    const tfr = new FittingRoomController(env,
+    const tfr = new FittingRoomController(
+      env,
       shopId,
-      externalID,
+      String(externalID),
       noCacheOnRetry,
       modalDivId,
       sizeRecMainDivId,
       vtoMainDivId,
       cssVariables,
-      hooks)
+      hooks,
+    )
     await tfr.Init()
     return tfr
   } catch (e) {
-    throw new Error("failed to init FittingRoom: " + e)
+    throw new Error('failed to init FittingRoom: ' + e)
   }
 }
