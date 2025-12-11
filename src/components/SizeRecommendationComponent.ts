@@ -440,13 +440,7 @@ export class SizeRecComponent {
                         <div class="tfr-flex tfr-gap tfr-mb-2 tfr-mobile-small-text">
                           <div>Uncertain&nbsp;of&nbsp;your&nbsp;size?</div>
                           
-                          <div class="tfr-toggle-closed">
-                            <div class="tfr-flex tfr-items-center">
-                              <div>Try</div>
-                              <div class="tfr-powered-by-logo">${tfrDoor}</div>
-                              <div class="tfr-powered-by-text-bold">The&nbsp;Fitting&nbsp;Room</div>
-                            </div>
-                          </div>
+          
 
                           <div class="tfr-toggle-open">
                             <div id="tfr-login-to-view" class="tfr-flex tfr-items-center">
