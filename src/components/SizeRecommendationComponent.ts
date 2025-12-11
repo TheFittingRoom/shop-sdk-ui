@@ -189,6 +189,7 @@ export class SizeRecComponent {
   private init(sizeRecMainDiv: HTMLDivElement) {
     if (!sizeRecMainDiv) throw new Error('Size rec main div not found')
     this.sizeRecMainDiv = sizeRecMainDiv
+    this.sizeRecMainDiv.classList.add('hide')
     this.render(sizeRecMainDiv)
     this.setElements(sizeRecMainDiv)
     this.bindEvents()
@@ -425,7 +426,7 @@ export class SizeRecComponent {
 
   private render(sizeRecMainDiv: HTMLDivElement) {
     const body = `<div id="tfr-size-recommendations">
-                    <div id="tfr-size-rec-loading">
+                    <div id="tfr-size-rec-loading" class="hide">
                       <div class="lds-ellipsis">
                         <div></div>
                         <div></div>
