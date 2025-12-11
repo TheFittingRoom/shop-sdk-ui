@@ -1,5 +1,6 @@
 import { User } from 'firebase/auth'
-import { FirestoreColorwaySizeAsset, FirestoreStyle, FirestoreUser, ColorwaySizeAssetFrameURLs } from './api'
+
+import { ColorwaySizeAssetFrameURLs, FirestoreColorwaySizeAsset, FirestoreStyle, FirestoreUser } from './api'
 import { FittingRoomAPI } from './api/api'
 import { AvatarStatus, AvatarStatusCreated, AvatarStatusNotCreated, AvatarStatusPending } from './api/gen/enums'
 import { GarmentMeasurement } from './api/gen/responses'
@@ -123,9 +124,11 @@ export class FittingRoomController {
 
       this.styleMeasurementLocations = this.styleToGarmentMeasurementLocations(this.style)
 
-
       const authUser = await authUserPromise
-      this.unsubFirestoreUserStateChange = this.firebaseAuthUserController.ListenForAuthStateChange(true, this.authStateChangeCallback.bind(this))
+      this.unsubFirestoreUserStateChange = this.firebaseAuthUserController.ListenForAuthStateChange(
+        true,
+        this.authStateChangeCallback.bind(this),
+      )
       if (!authUser) {
         throw UserNotLoggedInError
       }

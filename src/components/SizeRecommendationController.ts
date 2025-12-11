@@ -91,6 +91,7 @@ export class SizeRecommendationController {
   public async GetSizeRecommendationByStyleID(styleId: number) {
     console.debug('start size recommendation', styleId)
     try {
+      this.Show()
       this.SetSizeRecommendationLoading(true)
 
       const sizeFitRecommendation = await this.fittingRoomAPI.GetRecommendedSizes(styleId)
