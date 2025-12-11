@@ -12,7 +12,18 @@ import textCSS from './text.css?inline'
 import variablesCSS from './variables.css?inline'
 
 // Combine all CSS
-const allCSS = colorsCSS + fitModalCSS + generalCSS + inputCSS + loaderCSS + mediaCSS + sizeRecCSS + spacesCSS + telephoneCSS + textCSS + variablesCSS
+const allCSS =
+  variablesCSS +
+  colorsCSS +
+  fitModalCSS +
+  generalCSS +
+  inputCSS +
+  loaderCSS +
+  mediaCSS +
+  sizeRecCSS +
+  spacesCSS +
+  telephoneCSS +
+  textCSS
 
 // Inject CSS into the document head
 if (typeof document !== 'undefined') {

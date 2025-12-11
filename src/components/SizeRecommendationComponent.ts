@@ -50,7 +50,11 @@ export class SizeRecComponent {
   constructor(
     sizeRecMainDiv: HTMLDivElement,
     private readonly onSignInClickCallback: () => void,
-    private readonly onTryOnCallback: (selectedSizeID: number, availableSizeIDs: number[], fromSizeRecSelect: boolean) => void,
+    private readonly onTryOnCallback: (
+      selectedSizeID: number,
+      availableSizeIDs: number[],
+      fromSizeRecSelect: boolean,
+    ) => void,
     private readonly onSignOutCallback: () => void,
     private readonly onFitInfoCallback: () => void,
   ) {
@@ -350,9 +354,9 @@ export class SizeRecComponent {
   // TODO: move perfect fit logic to CSS fit attributes
   private renderSizeRecTableRow(fit: MeasurementLocationFitWithPerfectFit) {
     return `<div class="tfr-size-rec-table-row">
-              <div class="tfr-size-rec-table-cell-left">${fit.measurement_location}</div>
+              <div class="tfr-size-rec-table-cell-left">${this.fitToTitleCase(fit.measurement_location)}</div>
               <div class="tfr-size-rec-table-cell-right ${fit.isPerfectFit ? 'perfect' : ''}">
-                ${fit.fit_label || this.fitToSentenceCase(fit.fit)}
+                ${this.fitToTitleCase(fit.fit_label || fit.fit)}
               </div>
             </div>`
   }
@@ -499,10 +503,10 @@ export class SizeRecComponent {
     sizeRecMainDiv.innerHTML = body
   }
 
-  private fitToSentenceCase(fit: string): string {
+  private fitToTitleCase(fit: string): string {
     return fit
-      .split('_')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .split(/[_\s]+/)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ')
   }
 }

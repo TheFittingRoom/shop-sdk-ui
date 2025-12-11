@@ -1,5 +1,5 @@
-import { ModalContent, ScanCodeModalProps } from '../types'
 import { L } from '../locale'
+import { ModalContent, ScanCodeModalProps } from '../types'
 
 const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -40,7 +40,7 @@ const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
   const renderMobile = () =>
     !isMobile
       ? ``
-      : `<div tfr-element="true" class="tfr-title-font tfr-light-16-300 tfr-mt-10 tfr-max-w-600">${L.ClickHereToDownload}</div>
+      : `<div tfr-element="true" class="tfr-title-font tfr-light-16-300 tfr-mt-10 tfr-max-w-600">${L.ReturnToTFR}</div>
 
     <div tfr-element="true" class="tfr-flex tfr-space-above">
       <img class="tfr-mobile-logo" src="${imageBaseUrl}apple.png" id="tfr-app-store" />
@@ -54,7 +54,7 @@ const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
     isMobile
       ? ``
       : `<div id="tfr-qr-border-box">
-          <div tfr-element="true" class="tfr-title-font tfr-24-bold">${L.ScanQrToDownload}</div>
+          <div tfr-element="true" class="tfr-title-font tfr-18-bold">${L.CreateAvatarSc}</div>
     
           <img src="${imageBaseUrl}qr.png" class="tfr-qr-code" />
 
@@ -64,8 +64,7 @@ const ScanCodeModal = (props: ScanCodeModalProps): ModalContent => {
   const body = () => {
     return `
         <div tfr-element="true">
-          <div tfr-element="true" class="tfr-title-font tfr-light-16-300 tfr-mt-10">${L.ModalText}</div>
-          
+
         </div>
         <div tfr-element="true" class="tfr-logo-box">
           <video id="tfr-video" controls loop autoplay playsinline>
