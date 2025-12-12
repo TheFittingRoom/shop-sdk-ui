@@ -1,6 +1,6 @@
 {
   "name": "@thefittingroom/shop-ui",
-  "version": "4.3.2",
+  "version": "4.3.3",
   "description": "the fitting room UI library",
   "type": "module",
   "main": "./dist/index.js",
