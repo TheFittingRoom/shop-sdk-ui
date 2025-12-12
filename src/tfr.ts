@@ -160,18 +160,30 @@ export class FittingRoomController {
   private selectedColorwaySizeAsset: FirestoreColorwaySizeAsset
 
   public async SetColorwaySizeAssetBySKU(activeSku: string, skipCache: boolean = false) {
-    if (this.cacheColorwaySizeAssetsPromise) {
-      // let cache finish before loading
-      await this.cacheColorwaySizeAssetsPromise
-    }
-
-    console.debug('SetColorwaySizeAssetBySKU', activeSku, skipCache)
-
     if (!this.style?.is_vto) {
       console.warn('skipping SetColorwaySizeAssetBySKU due to disabled vto')
       return
     }
 
+    if (this.cacheColorwaySizeAssetsPromise) {
+      // let cache finish before loading
+      await this.cacheColorwaySizeAssetsPromise
+    }
+
+    const currentSizeRec = this.SizeRecommendationController.CurrentSizeRecommendation()
+    if (!currentSizeRec) {
+      console.warn('skipping SetColorwaySizeAssetBySKU due to no size recommendation promise')
+      return
+    }
+
+    const sizeFitRecommendation = await currentSizeRec
+    console.debug('SetColorwaySizeAssetBySKU: SizeFitRecommendation', sizeFitRecommendation)
+    if (!sizeFitRecommendation?.recommended_size?.id) {
+      console.warn('skipping SetColorwaySizeAssetBySKU due to no size recommendation')
+      return
+    }
+
+    console.debug('SetColorwaySizeAssetBySKU', activeSku, skipCache)
     try {
       // colorways are already cached at this point or something is wrong
       this.selectedColorwaySizeAsset = await this.API.GetCachedColorwaySizeAssetFromSku(activeSku, skipCache)
@@ -180,6 +192,7 @@ export class FittingRoomController {
       throw e
     }
 
+    // Only show try on button if size recommendation succeeded
     this.SizeRecommendationController.ShowTryOnButton()
   }
 
@@ -345,7 +358,7 @@ export class FittingRoomController {
       case AvatarStatusPending:
         if (this.hooks?.onLoading) this.hooks.onLoading()
         console.log('calling DisableTryOnButton - avatar not ready')
-        this.SizeRecommendationController.HideTryOnButton('Your avatar is not ready yet')
+        this.SizeRecommendationController.DisableTryOnButton('Your avatar is not ready yet')
         break
       case AvatarStatusCreated:
         if (this.hooks?.onLoadingComplete) this.hooks.onLoadingComplete()
@@ -354,7 +367,7 @@ export class FittingRoomController {
         break
       default:
         console.log('calling DisableTryOnButton - fitting room unavailable')
-        this.SizeRecommendationController.HideTryOnButton('The Fitting Room is currently unavailable.')
+        this.SizeRecommendationController.DisableTryOnButton('The Fitting Room is currently unavailable.')
         throw new Error('no avatar status')
     }
   }
