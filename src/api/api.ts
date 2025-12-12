@@ -276,8 +276,6 @@ export class FittingRoomAPI {
 
     const lowPrioritySkus = [...availableSKUs].filter((sku) => sku !== activeSKU)
     lowPrioritySkus.forEach((sku) => {
-      // frames will be cached in the background
-      // TODO: await these somewhere
       this.GetCachedOrRequestUserColorwaySizeAssetFrames(firestoreUserController, sku, skipCache)
     })
 
@@ -311,6 +309,18 @@ export class FittingRoomAPI {
       console.debug('checking user for vto frames', colorwaySizeAssetSKU)
 
       const firestoreUser = data as FirestoreUser
+      const colorwaySizeAssetEntry = firestoreUser.vto?.[this.BrandID]?.[colorwaySizeAssetSKU]
+      if (!colorwaySizeAssetEntry) {
+        console.debug('no vto entry for SKU, continue watching:', colorwaySizeAssetSKU)
+        return false
+      }
+      if (colorwaySizeAssetEntry.error) {
+        console.error('VTO error found for SKU:', colorwaySizeAssetSKU, colorwaySizeAssetEntry.error)
+        throw NoFramesFoundError
+      }
+
+      console.debug("cololrwaySizeAssetEntry", colorwaySizeAssetEntry)
+
       const frames = this.getVTOFramesFromUser(firestoreUser, colorwaySizeAssetSKU)
       if (!frames?.length) {
         throw NoFramesFoundError
@@ -356,6 +366,7 @@ export class FittingRoomAPI {
       if (error == NoFramesFoundError) {
         throw error
       }
+
       console.error(`Error watching for try-on frames for SKU: ${colorwaySizeAssetSKU}`, error)
       throw error
     }
@@ -411,7 +422,6 @@ export class FittingRoomAPI {
     }
     this.vtoFramesPromiseCache.set(colorwaySizeAssetSKU, framesPromise);
 
-    console.debug('retrieved frames', frames);
     return await framesPromise
   }
 }

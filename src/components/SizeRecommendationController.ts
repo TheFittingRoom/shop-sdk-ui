@@ -1,5 +1,5 @@
 import { Fit, FittingRoomAPI } from '../api'
-import { GarmentMeasurement, MeasurementLocationFit, Size } from '../api/gen/responses'
+import { GarmentMeasurement, MeasurementLocationFit, Size, SizeFitRecommendation } from '../api/gen/responses'
 import { SizeRecComponent } from './SizeRecommendationComponent'
 
 export interface MeasurementLocationFitWithPerfectFit extends MeasurementLocationFit {
@@ -52,6 +52,7 @@ export class SizeRecommendationController {
   private readonly sizeRecComponent: SizeRecComponent
   // TODO move perfect fit logic to CSS fit attributes
   private readonly perfectFits = [Fit.PERFECT_FIT, Fit.SLIGHTLY_LOOSE, Fit.SLIGHTLY_TIGHT]
+  private sizeFitRecommendationPromise: Promise<SizeFitRecommendation>
 
   constructor(
     sizeRecMainDiv: HTMLDivElement,
@@ -74,7 +75,7 @@ export class SizeRecommendationController {
   }
 
   public setLoggedOutStyleMeasurementLocations(garmentMeasurementLocations: GarmentMeasurement[] = []) {
-    if (garmentMeasurementLocations.length == 0) {
+    if (garmentMeasurementLocations.length === 0) {
       throw new Error('filteredLocations passed to setGarmentLocations is 0')
     }
     console.debug('filledLocations', garmentMeasurementLocations)
@@ -93,8 +94,16 @@ export class SizeRecommendationController {
     try {
       this.Show()
       this.SetSizeRecommendationLoading(true)
+      this.sizeFitRecommendationPromise = this.fittingRoomAPI.GetRecommendedSizes(styleId)
 
-      const sizeFitRecommendation = await this.fittingRoomAPI.GetRecommendedSizes(styleId)
+      const sizeFitRecommendation = await this.sizeFitRecommendationPromise
+
+      if (!sizeFitRecommendation?.recommended_size) {
+        this.sizeRecComponent.ShowLoggedIn()
+        this.sizeRecComponent.Show()
+        this.sizeRecComponent.ShowSizeRecommendationError('No sizes were recommended.')
+        return
+      }
 
       const sizeMeasurementLocationFits: SizeMeasurementLocationFits[] = sizeFitRecommendation.available_sizes
         .map((size) => {
@@ -118,6 +127,7 @@ export class SizeRecommendationController {
 
       this.sizeRecComponent.ShowLoggedIn()
       this.sizeRecComponent.Show()
+      this.sizeRecComponent.HideSizeRecommendationError()
       this.sizeRecComponent.SetRecommendedSize(sizeMeasurementLocationFits)
     } catch (e: unknown) {
       console.error('error in get size recommendation', e)
@@ -165,6 +175,10 @@ export class SizeRecommendationController {
   public SetVTOLoading(isLoading: boolean) {
     console.debug('SetVTOLoading', isLoading)
     this.sizeRecComponent.SetVTOLoading(isLoading)
+  }
+
+  public CurrentSizeRecommendation(): Promise<SizeFitRecommendation> | null {
+    return this.sizeFitRecommendationPromise
   }
 
   private setCssVariables(sizeRecMainDiv: HTMLDivElement, cssVariables: TFRCssVariables) {

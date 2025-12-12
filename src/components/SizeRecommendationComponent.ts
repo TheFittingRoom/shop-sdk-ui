@@ -144,6 +144,19 @@ export class SizeRecComponent {
     }
   }
 
+  public ShowSizeRecommendationError(message: string) {
+    console.debug('ShowSizeRecommendationError', message)
+    this.tfrSizeRecommendationError.innerHTML = message
+    this.tfrSizeRecommendationError.classList.remove('hide')
+    this.tfrSizeRecommendationsContainer.classList.add('hide')
+  }
+
+  public HideSizeRecommendationError() {
+    console.debug('HideSizeRecommendationError')
+    this.tfrSizeRecommendationError.classList.add('hide')
+    this.tfrSizeRecommendationsContainer.classList.remove('hide')
+  }
+
   public SetStyleMeasurementLocations(garmentMeasurementLocations: GarmentMeasurement[]) {
     if (!garmentMeasurementLocations || !garmentMeasurementLocations.length) {
       this.tfrSizeRecTitle.classList.add('hide')
@@ -172,6 +185,10 @@ export class SizeRecComponent {
 
   public showTryOnButton() {
     this.tfrTryOnButton.classList.remove('hide')
+  }
+
+  public hideTryOnButton() {
+    this.tfrTryOnButton.classList.add('hide')
   }
 
   public disableTryOnButton(message: string) {
@@ -312,7 +329,8 @@ export class SizeRecComponent {
 
   private renderSizeRec(sizeMeasurementLocationFits: SizeMeasurementLocationFits[]) {
     const selectedSizeIndex = sizeMeasurementLocationFits.findIndex((size) => size.isRecommended)
-    const selectedSizeLabel = sizeMeasurementLocationFits[selectedSizeIndex].label
+    const selectedSize = sizeMeasurementLocationFits[selectedSizeIndex]
+    const selectedSizeLabel = selectedSize.label || selectedSize.size_value?.name || selectedSize.id
     this.tfrSizeRecSize.innerHTML = `&nbsp;${selectedSizeLabel}`
 
     this.availableSizes = sizeMeasurementLocationFits
@@ -335,7 +353,7 @@ export class SizeRecComponent {
     const html = sizeMeasurementLocationFits
       .map(
         (size, i) =>
-          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}">${size.label}</div>`,
+          `<div class="tfr-size-rec-select-button ${i === index ? 'active' : ''}" data-index="${i}">${size.label || size.size_value?.name || size.id}</div>`,
       )
       .join('')
 
