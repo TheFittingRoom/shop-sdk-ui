@@ -159,7 +159,7 @@ export class SizeRecommendationController {
     this.sizeRecComponent.showTryOnButton()
   }
 
-  public HideTryOnButton(message: string) {
+  public DisableTryOnButton(message: string) {
     this.sizeRecComponent.disableTryOnButton(message)
   }
 

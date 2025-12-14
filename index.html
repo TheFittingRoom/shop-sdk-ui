@@ -93,24 +93,36 @@
 
     const brandID = 1
 
-    const externalID = '8744580415619'
+    const externalID = 'externalid'
 
     const variantSKUs = [
-      'TFR_Fitted-Dress_178_BlackBandana_2',
-      'TFR_Fitted-Dress_178_BlackBandana_4',
-      'TFR_Fitted-Dress_178_BlackBandana_6',
-      'TFR_Fitted-Dress_178_BlackBandana_8',
-      'TFR_Fitted-Dress_178_BlackBandana_10',
+      'Fitted_Dress_Ghingham_2',
+      'Fitted_Dress_BlackBandana_2',
+      'Fitted_Dress_Ghingham_4',
+      'Fitted_Dress_BlackBandana_4',
+      'Fitted_Dress_Ghingham_6',
+      'Fitted_Dress_BlackBandana_6',
+      'Fitted_Dress_Ghingham_8',
+      'Fitted_Dress_BlackBandana_8',
+      'Fitted_Dress_Ghingham_10',
+      'Fitted_Dress_BlackBandana_10',
     ]
 
     // Mock product variants for demonstration
     const productVariants = [
-      { option1: '2', option2: 'BlackBandana', sku: 'TFR_Fitted-Dress_178_BlackBandana_2' },
-      { option1: '4', option2: 'BlackBandana', sku: 'TFR_Fitted-Dress_178_BlackBandana_4' },
-      { option1: '6', option2: 'BlackBandana', sku: 'TFR_Fitted-Dress_178_BlackBandana_6' },
-      { option1: '8', option2: 'BlackBandana', sku: 'TFR_Fitted-Dress_178_BlackBandana_8' },
-      { option1: '10', option2: 'BlackBandana', sku: 'TFR_Fitted-Dress_178_BlackBandana_10' },
+      { option1: '2', option2: 'BlackBandana', sku: 'Fitted_Dress_BlackBandana_2' },
+      { option1: '4', option2: 'BlackBandana', sku: 'Fitted_Dress_BlackBandana_4' },
+      { option1: '6', option2: 'BlackBandana', sku: 'Fitted_Dress_BlackBandana_6' },
+      { option1: '8', option2: 'BlackBandana', sku: 'Fitted_Dress_BlackBandana_8' },
+      { option1: '10', option2: 'BlackBandana', sku: 'Fitted_Dress_BlackBandana_10' },
+      { option1: '2', option2: 'Ghingham', sku: 'Fitted_Dress_Ghingham_2' },
+      { option1: '4', option2: 'Ghingham', sku: 'Fitted_Dress_Ghingham_4' },
+      { option1: '6', option2: 'Ghingham', sku: 'Fitted_Dress_Ghingham_6' },
+      { option1: '8', option2: 'Ghingham', sku: 'Fitted_Dress_Ghingham_8' },
+      { option1: '10', option2: 'Ghingham', sku: 'Fitted_Dress_Ghingham_10' },
     ]
+
+    const variantSkus = productVariants.map((item) => item.sku)
 
     const getSku = () => {
       try {
@@ -175,7 +187,7 @@
         const tfr = await initFittingRoom(config)
 
         if (sku) {
-          tfr.SetColorwaySizeAssetBySKU(sku, variantSKUs, true)
+          tfr.SetColorwaySizeAssetBySKU(sku, true)
         }
 
         // Add event listeners for product selection changes
@@ -230,6 +242,7 @@
       <select name="options[Color]" id="color-select">
         <option value="">Select Color</option>
         <option value="BlackBandana">Black Bandana</option>
+        <option value="Ghingham">Ghingham</option>
       </select>
     </div>
 
