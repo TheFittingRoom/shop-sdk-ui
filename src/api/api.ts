@@ -89,7 +89,7 @@ export class FittingRoomAPI {
       }
     }
 
-    console.debug('using firestore colorwaySizeAsset for sku:', colorwaySizeAssetSku)
+    console.debug('colorwaySizeAsset sku not found in cache:', colorwaySizeAssetSku, Array.from(this.cachedColorwaySizeAssets.keys()))
 
     const constraints: QueryFieldFilterConstraint[] = [
       where('brand_id', '==', this.BrandID),

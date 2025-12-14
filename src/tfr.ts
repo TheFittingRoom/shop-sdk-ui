@@ -193,6 +193,7 @@ export class FittingRoomController {
     }
 
     // Only show try on button if size recommendation succeeded
+    this.SizeRecommendationController.Show()
     this.SizeRecommendationController.ShowTryOnButton()
   }
 
