@@ -310,6 +310,7 @@ export class FittingRoomController {
         (asset) =>
           availableSizeIDs.includes(asset.size_id) && asset.colorway_id === this.selectedColorwaySizeAsset.colorway_id,
       )
+      console.debug("availableAssets", availableAssets)
       const availableColorwaySizeAssetSKUs = availableAssets.map((asset) => asset.sku)
 
       const batchResult = await this.API.PriorityTryOnWithMultiRequestCache(
