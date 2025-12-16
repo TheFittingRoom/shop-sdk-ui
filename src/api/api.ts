@@ -210,15 +210,6 @@ export class FittingRoomAPI {
       }
     }
 
-    const copyOfCache = new Map<string, FirestoreColorwaySizeAsset>()
-    for (const sku of skus) {
-      const asset = this.cachedColorwaySizeAssets.get(sku)
-      if (asset) {
-        copyOfCache.set(sku, asset)
-      } else {
-        console.error(`no colorway asset found for SKU: ${sku}`)
-      }
-    }
     return this.cachedColorwaySizeAssets
   }
 
@@ -311,6 +302,10 @@ export class FittingRoomAPI {
       const firestoreUser = data as FirestoreUser
       const colorwaySizeAssetEntry = firestoreUser.vto?.[this.BrandID]?.[colorwaySizeAssetSKU]
       if (!colorwaySizeAssetEntry) {
+        if (!skipFullSnapshot) {
+          console.debug('no vto entry for full snapshot')
+          throw NoFramesFoundError
+        }
         console.debug('no vto entry for SKU, continue watching:', colorwaySizeAssetSKU)
         return false
       }
@@ -385,13 +380,13 @@ export class FittingRoomAPI {
     skipCache: boolean,
   ): Promise<ColorwaySizeAssetFrameURLs | null> {
     console.debug('GetCachedOrRequestUserColorwaySizeAssetFrames', colorwaySizeAssetSKU, 'skipCache:', skipCache);
-
     if (!skipCache) {
       const cached = this.vtoFramesPromiseCache.get(colorwaySizeAssetSKU);
       if (cached) {
         console.debug('returning cached frames', colorwaySizeAssetSKU);
         return await cached;
       }
+      console.debug('no local cache for colorwaySizeAssetSKU', colorwaySizeAssetSKU);
     }
 
     const colorwaySizeAsset = this.cachedColorwaySizeAssets.get(colorwaySizeAssetSKU);
@@ -403,25 +398,26 @@ export class FittingRoomAPI {
 
     let framesPromise: Promise<ColorwaySizeAssetFrameURLs>;
     try {
-      let skipFullSnapshot = false;
-      if (skipCache) {
-        console.debug('skipping cache, requesting fresh frames');
-        await this.requestColorwaySizeAssetFramesByID(colorwaySizeAssetID);
-        skipFullSnapshot = true
+      if (!skipCache) {
+        framesPromise = this.watchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, false);
+        this.vtoFramesPromiseCache.set(colorwaySizeAssetSKU, framesPromise);
+        return await framesPromise;
       }
-      framesPromise = this.watchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, skipFullSnapshot);
-      await framesPromise;
+      console.debug('no remote cache, requesting fresh frames', colorwaySizeAssetSKU);
+      await this.requestColorwaySizeAssetFramesByID(colorwaySizeAssetID);
+      framesPromise = this.watchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, true);
+      this.vtoFramesPromiseCache.set(colorwaySizeAssetSKU, framesPromise);
+      return await framesPromise;
     } catch (error) {
       if (error != NoFramesFoundError) {
         throw error;
       }
-      console.debug(`No frames found for SKU: ${colorwaySizeAssetSKU}, attempting to request fresh frames`);
+      console.debug(`catch: no frames found for SKU: ${colorwaySizeAssetSKU}, attempting to request fresh frames`);
       await this.requestColorwaySizeAssetFramesByID(colorwaySizeAssetID);
-      console.debug('waiting for new vto after refresh request');
+      console.debug('catch: waiting for new vto after refresh request');
       framesPromise = this.watchForTryOnFrames(firestoreUserController, colorwaySizeAssetSKU, true);
+      this.vtoFramesPromiseCache.set(colorwaySizeAssetSKU, framesPromise);
+      return await framesPromise
     }
-    this.vtoFramesPromiseCache.set(colorwaySizeAssetSKU, framesPromise);
-
-    return await framesPromise
   }
 }
