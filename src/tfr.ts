@@ -119,6 +119,7 @@ export class FittingRoomController {
 
       console.debug('is_published', this.style.is_published)
       if (!this.style.is_published) {
+        console.warn("hiding unpublished style")
         this.SizeRecommendationController.Hide()
       }
 
@@ -295,7 +296,8 @@ export class FittingRoomController {
 
       this.SizeRecommendationController.SetVTOLoading(true)
 
-      console.log('tryOnCallback', selectedSizeID, availableSizeIDs)
+      console.debug('tryOnCallback', selectedSizeID, availableSizeIDs, "sizeRecSelect")
+      console.debug("forceFreshVTO", this.hasInitializedTryOn, this.noCacheOnRetry, fromSizeRecSelect)
       this.forceFreshVTO = !fromSizeRecSelect && this.hasInitializedTryOn && this.noCacheOnRetry
 
       const allCachedAssets = this.API.GetCachedColorwaySizeAssets()
@@ -310,7 +312,7 @@ export class FittingRoomController {
         (asset) =>
           availableSizeIDs.includes(asset.size_id) && asset.colorway_id === this.selectedColorwaySizeAsset.colorway_id,
       )
-      console.debug("availableAssets", availableAssets)
+      console.debug('availableAssets', availableAssets)
       const availableColorwaySizeAssetSKUs = availableAssets.map((asset) => asset.sku)
 
       const batchResult = await this.API.PriorityTryOnWithMultiRequestCache(
