@@ -381,7 +381,12 @@ export class FittingRoomAPI {
     skipCache: boolean,
   ): Promise<ColorwaySizeAssetFrameURLs | null> {
     console.debug('GetCachedOrRequestUserColorwaySizeAssetFrames', colorwaySizeAssetSKU, 'skipCache:', skipCache);
-    if (!skipCache) {
+
+    // If skipCache is true, clear any existing promise for this SKU
+    if (skipCache) {
+      console.debug('clearing cache for fresh VTO request', colorwaySizeAssetSKU);
+      this.vtoFramesPromiseCache.delete(colorwaySizeAssetSKU);
+    } else {
       const cached = this.vtoFramesPromiseCache.get(colorwaySizeAssetSKU);
       if (cached) {
         console.debug('returning cached frames', colorwaySizeAssetSKU);
