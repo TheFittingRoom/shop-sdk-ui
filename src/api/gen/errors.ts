@@ -245,6 +245,7 @@ export const ErrMeasurementLocationGroupNotFound: Error = "measurement_location_
  */
 export const ErrShopifyStoreNotFound: Error = "shopify store not found";
 export const ErrSKUExists: Error = "sku exists";
+export const ErrExternalIDExists: Error = "external_id exists";
 export const ErrColorwaySKUExists: Error = "colorway sku exists";
 export const ErrEmailExists: Error = "email exists";
 export const ErrEmailNotVerifiedSES: Error = "email is not verified on dev SES";

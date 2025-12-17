@@ -315,7 +315,6 @@ export class FittingRoomAPI {
       }
 
       console.debug("cololrwaySizeAssetEntry", colorwaySizeAssetEntry)
-
       const frames = this.getVTOFramesFromUser(firestoreUser, colorwaySizeAssetSKU)
       if (!frames?.length) {
         throw NoFramesFoundError
@@ -343,15 +342,13 @@ export class FittingRoomAPI {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
         reject(TimeoutError)
-      }, 300000)
+      }, 1000 * 60 * 7)
     })
 
     let firestoreUser: FirestoreUser
     try {
       const watchPromise = firestoreUserController.WatchFirestoreUserChange(this.watchForFramesSnapshotCallback(skipFullSnapshot, colorwaySizeAssetSKU))
-
       firestoreUser = await Promise.race([watchPromise, timeoutPromise])
-
     } catch (error) {
       if (error == TimeoutError) {
         console.error(error)
@@ -371,6 +368,10 @@ export class FittingRoomAPI {
       console.error(`Frames not found on final user object for SKU: ${colorwaySizeAssetSKU}`, firestoreUser)
       throw NoFramesFoundError
     }
+
+    const timingMS = firestoreUser.vto?.[this.BrandID]?.[colorwaySizeAssetSKU]?.timing_ms
+    console.debug("vto timing", "colorway_size_asset", colorwaySizeAssetSKU, "timing_ms", timingMS)
+
     return frames
   }
 

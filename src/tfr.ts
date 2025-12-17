@@ -284,6 +284,7 @@ export class FittingRoomController {
 
   // callback for SizeRecommendationController
   public async onTryOnCallback(selectedSizeID: number, availableSizeIDs: number[], fromSizeRecSelect: boolean) {
+    const startTime = performance.now()
     try {
       if (!this.selectedColorwaySizeAsset) {
         throw new Error('selectedColorwaySizeAsset is not set')
@@ -324,6 +325,8 @@ export class FittingRoomController {
       this.vtoComponent.onNewFramesReady(batchResult)
       this.SizeRecommendationController.SetVTOLoading(false)
       this.hasInitializedTryOn = true
+      const endTime = performance.now()
+      console.debug("tryOnCallback", "timing", endTime - startTime)
     } catch (e) {
       this.tfrModal.onError(L.SomethingWentWrong)
       console.log('calling HideVTOLoading after VTO error')

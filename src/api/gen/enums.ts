@@ -24,6 +24,9 @@ export const Petabyte: number /* int64 */ = 1 << (10 * 5);
 //////////
 // source: cycle.go
 
+export type Cycle = string;
+export const CycleSeasonal: Cycle = "seasonal";
+export const CycleQuarterlyDrop: Cycle = "quarterly_drop";
 export type Season = string;
 export const SeasonSummer: Season = "summer";
 export const SeasonFall: Season = "fall";

@@ -158,7 +158,7 @@ export interface Cycle {
   id: number /* int64 */;
   division_id: number /* int64 */;
   division?: Division;
-  type: string;
+  type: any /* enums.Cycle */;
   brand_id: number /* int64 */;
   season?: string;
   quarter?: number /* int64 */;
@@ -763,6 +763,7 @@ export interface FirestoreVTOData {
   colorway_size_asset_id: number /* int64 */;
   frames: string[];
   updated_at: any /* time.Time */;
+  timing_ms: number /* int64 */;
 }
 export interface FirestoreUser {
   brand_id: number /* int */;
