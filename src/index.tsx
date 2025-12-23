@@ -1,7 +1,12 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { OverlayManager } from '@/components/overlay-manager'
 import { Widget } from '@/components/widget'
-// import { useTfrStore } from '@/lib/store'
+// import { useMainStore } from '@/lib/store'
+
+// Import styles
+// @ts-ignore
+import css from '@/style.css?inline'
 
 class TfrWidgetElement extends HTMLElement {
   connectedCallback() {
@@ -24,10 +29,33 @@ class TfrWidgetElement extends HTMLElement {
 
 export const TFR = {
   async init() {
+    // Inject styles
+    {
+      const styleEl = document.createElement('style')
+      styleEl.innerHTML = css
+      document.head.appendChild(styleEl)
+    }
+
+    // Hydrate widget elements
     customElements.define('tfr-widget', TfrWidgetElement)
+
+    // Inject overlay manager
+    {
+      const overlayManagerEl = document.createElement('div')
+      document.body.appendChild(overlayManagerEl)
+      const root = createRoot(overlayManagerEl)
+      root.render(
+        <StrictMode>
+          <OverlayManager />
+        </StrictMode>,
+      )
+    }
+
+    // Example of interacting with the store
     // setInterval(() => {
-    //   useTfrStore.getState().incrementCounter()
+    //   useMainStore.getState().incrementCounter()
     // }, 2000)
+
     console.log('TFR SDK initialized')
   },
 }

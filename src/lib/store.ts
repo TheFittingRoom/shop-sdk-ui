@@ -1,14 +1,20 @@
 import { create } from 'zustand'
+import { OverlayName } from './views'
 
-export interface TfrStoreState {
-  counter: number
-  incrementCounter: () => void
+export interface MainStoreState {
+  activeOverlay: OverlayName | null
+  openOverlay: (overlayName: OverlayName) => void
+  closeOverlay: () => void
 }
 
-export const useTfrStore = create<TfrStoreState>((set) => ({
-  counter: 0,
-  incrementCounter: () =>
-    set((state) => ({
-      counter: state.counter + 1,
+export const useMainStore = create<MainStoreState>((set) => ({
+  activeOverlay: null,
+  openOverlay: (overlayName: OverlayName) =>
+    set(() => ({
+      activeOverlay: overlayName,
+    })),
+  closeOverlay: () =>
+    set(() => ({
+      activeOverlay: null,
     })),
 }))
