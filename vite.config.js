@@ -9,8 +9,8 @@ export default defineConfig(({ mode, command }) => {
     build: {
       lib: {
         entry: resolve('src/index.tsx'),
-        name: 'TheFittingRoom',
         fileName: 'index',
+        formats: ['es'],
       },
       minify: false,
     },
