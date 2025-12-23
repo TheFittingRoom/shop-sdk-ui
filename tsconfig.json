@@ -7,12 +7,18 @@
     "rootDir": "src",
     "moduleResolution": "node",
     "module": "ESNext",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+    },
     "declaration": true,
     "sourceMap": true,
     "inlineSourceMap": false,
     "esModuleInterop": true /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */,
     "resolveJsonModule": true /* Include modules imported with .json extension. */,
-    // "strict": true /* Enable all strict type-checking options. */,
+    "strict": true /* Enable all strict type-checking options. */,
     /* Strict Type-Checking Options */
     // "noImplicitAny": true /* Raise error on expressions and declarations with an implied 'any' type. */,
     // "strictNullChecks": true /* Enable strict null checks. */,
@@ -33,6 +39,7 @@
     /* Experimental Options */
     // "experimentalDecorators": true /* Enables experimental support for ES7 decorators. */,
     // "emitDecoratorMetadata": true /* Enables experimental support for emitting type metadata for decorators. */,
+    "jsx": "preserve",
     "lib": [
       "es2017",
       "dom"
@@ -46,7 +53,8 @@
     ]
   },
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "src/**/*.tsx"
   ],
   "exclude": [
     "node_modules/**",

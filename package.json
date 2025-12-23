@@ -8,30 +8,31 @@
     "dist"
   ],
   "scripts": {
-    "clean": "rm -rf dist",
-    "clean:all": "rm -rf dist build",
-    "build:prod": "npm run clean && vite build --mode production",
-    "build:dev": "npm run clean && vite build --mode development",
-    "dev": "vite --mode development",
-    "watch:prod": "vite build --mode production --watch",
-    "watch:dev": "vite build --mode development --watch",
-    "serve": "serve . -p 5173 --cors",
-    "prune": "ts-prune"
+    "clean": "rm -rf dist build",
+    "build": "npm run clean && vite build --mode production",
+    "watch": "vite build --mode production --watch",
+    "serve": "serve . -p 5173 --cors"
   },
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.5",
-    "@trivago/prettier-plugin-sort-imports": "^6.0.0",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@types/react-modal": "^3.16.3",
+    "@vitejs/plugin-react": "^5.1.2",
     "prettier": "^3.6.2",
     "serve": "^14.2.5",
-    "ts-prune": "^0.10.3",
     "typescript": "^5.9.3",
-    "vite": "^7.2.2"
+    "vite": "^7.3.0"
   },
   "dependencies": {
     "dayjs": "^1.11.19",
-    "firebase": "^12.5.0"
+    "firebase": "^12.5.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-modal": "^3.16.3",
+    "zustand": "^5.0.9"
   }
 }
