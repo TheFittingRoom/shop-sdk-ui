@@ -1,10 +1,15 @@
 import { create } from 'zustand'
-import { OverlayName } from './views'
+import { UserProfile } from '@/lib/firebase'
+import { OverlayName } from '@/lib/views'
 
 export interface MainStoreState {
   activeOverlay: OverlayName | null
   openOverlay: (overlayName: OverlayName) => void
   closeOverlay: () => void
+  userIsLoggedIn: boolean
+  setUserIsLoggedIn: (isLoggedIn: boolean) => void
+  userProfile: UserProfile | null
+  setUserProfile: (userProfile: UserProfile | null) => void
 }
 
 export const useMainStore = create<MainStoreState>((set) => ({
@@ -17,4 +22,8 @@ export const useMainStore = create<MainStoreState>((set) => ({
     set(() => ({
       activeOverlay: null,
     })),
+  userIsLoggedIn: false,
+  setUserIsLoggedIn: (isLoggedIn: boolean) => set({ userIsLoggedIn: isLoggedIn }),
+  userProfile: null,
+  setUserProfile: (userProfile: UserProfile | null) => set({ userProfile }),
 }))

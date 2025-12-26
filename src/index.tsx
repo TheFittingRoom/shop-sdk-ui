@@ -2,7 +2,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { OverlayManager } from '@/components/overlay-manager'
 import { Widget } from '@/components/widget'
-// import { useMainStore } from '@/lib/store'
+import { EnvName } from '@/lib/config'
+import { _init as initFirebase, getAuthManager } from '@/lib/firebase'
+import { useMainStore } from '@/lib/store'
 
 // Import styles
 // @ts-ignore
@@ -27,35 +29,57 @@ class TfrWidgetElement extends HTMLElement {
   }
 }
 
+export interface InitParams {
+  brandId: number
+  environment: EnvName
+}
+
+export async function init({ brandId, environment }: InitParams) {
+  // Validate init params
+  if (!brandId || typeof brandId !== 'number' || isNaN(brandId) || brandId <= 0) {
+    throw new Error(`TFR: Invalid brandId "${brandId}"`)
+  }
+  if (!Object.values(EnvName).includes(environment)) {
+    throw new Error(`TFR: Invalid environment "${environment}"`)
+  }
+
+  // Inject styles
+  {
+    const styleEl = document.createElement('style')
+    styleEl.innerHTML = css
+    document.head.appendChild(styleEl)
+  }
+
+  // Hydrate widget elements
+  customElements.define('tfr-widget', TfrWidgetElement)
+
+  // Inject overlay manager
+  {
+    const overlayManagerEl = document.createElement('div')
+    document.body.appendChild(overlayManagerEl)
+    const root = createRoot(overlayManagerEl)
+    root.render(
+      <StrictMode>
+        <OverlayManager />
+      </StrictMode>,
+    )
+  }
+
+  // Initialize Firebase, Firestore, Auth
+  await initFirebase(environment, brandId)
+
+  // Publish user state to store
+  const authManager = getAuthManager()
+  authManager.addAuthStateChangeListener((authUser) => {
+    useMainStore.getState().setUserIsLoggedIn(!!authUser)
+  })
+  authManager.addUserProfileChangeListener((userProfile) => {
+    useMainStore.getState().setUserProfile(userProfile)
+  })
+
+  console.log('[TFR] SDK initialized')
+}
+
 export const TFR = {
-  async init() {
-    // Inject styles
-    {
-      const styleEl = document.createElement('style')
-      styleEl.innerHTML = css
-      document.head.appendChild(styleEl)
-    }
-
-    // Hydrate widget elements
-    customElements.define('tfr-widget', TfrWidgetElement)
-
-    // Inject overlay manager
-    {
-      const overlayManagerEl = document.createElement('div')
-      document.body.appendChild(overlayManagerEl)
-      const root = createRoot(overlayManagerEl)
-      root.render(
-        <StrictMode>
-          <OverlayManager />
-        </StrictMode>,
-      )
-    }
-
-    // Example of interacting with the store
-    // setInterval(() => {
-    //   useMainStore.getState().incrementCounter()
-    // }, 2000)
-
-    console.log('TFR SDK initialized')
-  },
+  init,
 }
