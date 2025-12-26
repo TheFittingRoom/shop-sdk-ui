@@ -4,6 +4,7 @@ import { OverlayManager } from '@/components/overlay-manager'
 import { Widget } from '@/components/widget'
 import { EnvName } from '@/lib/config'
 import { _init as initFirebase, getAuthManager } from '@/lib/firebase'
+import { i18n } from '@/lib/locale'
 import { useMainStore } from '@/lib/store'
 
 // Import styles
@@ -32,15 +33,21 @@ class TfrWidgetElement extends HTMLElement {
 export interface InitParams {
   brandId: number
   environment: EnvName
+  lang?: string
 }
 
-export async function init({ brandId, environment }: InitParams) {
+export async function init({ brandId, environment, lang }: InitParams) {
   // Validate init params
   if (!brandId || typeof brandId !== 'number' || isNaN(brandId) || brandId <= 0) {
     throw new Error(`TFR: Invalid brandId "${brandId}"`)
   }
   if (!Object.values(EnvName).includes(environment)) {
     throw new Error(`TFR: Invalid environment "${environment}"`)
+  }
+
+  // Set language
+  if (lang) {
+    await i18n.changeLanguage(lang)
   }
 
   // Inject styles
