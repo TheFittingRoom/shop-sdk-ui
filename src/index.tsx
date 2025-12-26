@@ -2,10 +2,11 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { OverlayManager } from '@/components/overlay-manager'
 import { Widget } from '@/components/widget'
+import { _init as initApi } from '@/lib/api'
 import { EnvName } from '@/lib/config'
 import { _init as initFirebase, getAuthManager } from '@/lib/firebase'
 import { i18n } from '@/lib/locale'
-import { useMainStore } from '@/lib/store'
+import { useMainStore, setStaticData } from '@/lib/store'
 
 // Import styles
 // @ts-ignore
@@ -32,14 +33,18 @@ class TfrWidgetElement extends HTMLElement {
 
 export interface InitParams {
   brandId: number
+  productExternalId: string | number
   environment: EnvName
   lang?: string
 }
 
-export async function init({ brandId, environment, lang }: InitParams) {
+export async function init({ brandId, productExternalId, environment, lang }: InitParams) {
   // Validate init params
   if (!brandId || typeof brandId !== 'number' || isNaN(brandId) || brandId <= 0) {
     throw new Error(`TFR: Invalid brandId "${brandId}"`)
+  }
+  if (!productExternalId || (typeof productExternalId !== 'string' && typeof productExternalId !== 'number')) {
+    throw new Error(`TFR: Invalid productExternalId "${productExternalId}"`)
   }
   if (!Object.values(EnvName).includes(environment)) {
     throw new Error(`TFR: Invalid environment "${environment}"`)
@@ -49,6 +54,13 @@ export async function init({ brandId, environment, lang }: InitParams) {
   if (lang) {
     await i18n.changeLanguage(lang)
   }
+
+  // Set static data
+  setStaticData({
+    brandId,
+    productExternalId: String(productExternalId),
+    environment,
+  })
 
   // Inject styles
   {
@@ -78,11 +90,14 @@ export async function init({ brandId, environment, lang }: InitParams) {
   // Publish user state to store
   const authManager = getAuthManager()
   authManager.addAuthStateChangeListener((authUser) => {
-    useMainStore.getState().setUserIsLoggedIn(!!authUser)
+    useMainStore.getState().setAuthUser(authUser)
   })
   authManager.addUserProfileChangeListener((userProfile) => {
     useMainStore.getState().setUserProfile(userProfile)
   })
+
+  // Initialize api
+  initApi(environment)
 
   console.log('[TFR] SDK initialized')
 }

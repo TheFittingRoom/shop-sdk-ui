@@ -1,14 +1,34 @@
 import { create } from 'zustand'
-import { UserProfile } from '@/lib/firebase'
+import { AuthUser, UserProfile } from '@/lib/firebase'
 import { OverlayName } from '@/lib/views'
+
+export interface StaticData {
+  brandId: number
+  productExternalId: string
+  environment: string
+}
+
+let staticData: StaticData | null = null
+
+export function setStaticData(data: StaticData) {
+  staticData = data
+}
+
+export function getStaticData(): StaticData {
+  if (!staticData) {
+    throw new Error('Static state not set. Call setStaticState first.')
+  }
+  return staticData
+}
 
 export interface MainStoreState {
   activeOverlay: OverlayName | null
   openOverlay: (overlayName: OverlayName) => void
   closeOverlay: () => void
   userIsLoggedIn: boolean
-  setUserIsLoggedIn: (isLoggedIn: boolean) => void
+  setAuthUser: (authUser: AuthUser | null) => void
   userProfile: UserProfile | null
+  userHasAvatar: boolean | null
   setUserProfile: (userProfile: UserProfile | null) => void
 }
 
@@ -23,7 +43,14 @@ export const useMainStore = create<MainStoreState>((set) => ({
       activeOverlay: null,
     })),
   userIsLoggedIn: false,
-  setUserIsLoggedIn: (isLoggedIn: boolean) => set({ userIsLoggedIn: isLoggedIn }),
+  setAuthUser: (authUser: AuthUser | null) => {
+    const isLoggedIn = !!authUser
+    set({ userIsLoggedIn: isLoggedIn })
+  },
   userProfile: null,
-  setUserProfile: (userProfile: UserProfile | null) => set({ userProfile }),
+  userHasAvatar: null,
+  setUserProfile: (userProfile: UserProfile | null) => {
+    const userHasAvatar = userProfile ? userProfile.avatar_status === 'CREATED' : null
+    set({ userProfile, userHasAvatar })
+  },
 }))

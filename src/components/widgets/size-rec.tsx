@@ -1,8 +1,14 @@
 import { useTranslation } from '@/lib/locale'
+import { useSizeRecommendation } from '@/lib/size-rec'
 import { WidgetProps } from '@/lib/views'
-// import { useMainStore } from '@/lib/store'
 
 export default function SizeRecWidget({}: WidgetProps) {
   const { t } = useTranslation()
-  return <div>{t('size_rec.recommend', { size: 'M' })}</div>
+  const recommendedSize = useSizeRecommendation()
+
+  if (!recommendedSize) {
+    return null
+  }
+
+  return <div>{t('size_rec.recommend', { size: recommendedSize })}</div>
 }

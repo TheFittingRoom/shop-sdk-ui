@@ -14,6 +14,7 @@ import {
   onSnapshot,
   query,
   setDoc,
+  where,
 } from 'firebase/firestore'
 import {
   Auth,
@@ -30,6 +31,8 @@ import { getConfig, EnvName } from '@/lib/config'
 
 export type AuthUser = User
 export type UserProfile = FirestoreUser
+
+export { where }
 
 export type FirebaseDate = {
   nanoseconds: number

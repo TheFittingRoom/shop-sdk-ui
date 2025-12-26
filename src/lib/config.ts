@@ -9,7 +9,7 @@ export type Config = {
     measurementId: string
   }
   api: {
-    baseEndpoint: string
+    baseUrl: string
     vtoTimeoutMs: number
     avatarTimeoutMs: number
   }
@@ -32,7 +32,7 @@ const configs: Record<EnvName, Config> = {
       measurementId: 'G-B7GDQ1Y9LL',
     },
     api: {
-      baseEndpoint: 'https://tfr.dev.thefittingroom.xyz',
+      baseUrl: 'https://tfr.dev.thefittingroom.xyz',
       vtoTimeoutMs: 120000,
       avatarTimeoutMs: 120000,
     },
@@ -48,7 +48,7 @@ const configs: Record<EnvName, Config> = {
       measurementId: 'G-XH9VV5N6EW',
     },
     api: {
-      baseEndpoint: 'https://tfr.p.thefittingroom.xyz',
+      baseUrl: 'https://tfr.p.thefittingroom.xyz',
       vtoTimeoutMs: 120000,
       avatarTimeoutMs: 120000,
     },
