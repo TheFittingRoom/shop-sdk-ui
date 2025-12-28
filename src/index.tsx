@@ -7,6 +7,7 @@ import { EnvName } from '@/lib/config'
 import { _init as initFirebase, getAuthManager } from '@/lib/firebase'
 import { i18n } from '@/lib/locale'
 import { useMainStore, setStaticData } from '@/lib/store'
+import { setThemeData, ThemeData } from '@/lib/theme'
 
 // Import styles
 // @ts-ignore
@@ -36,9 +37,10 @@ export interface InitParams {
   productExternalId: string | number
   environment: EnvName
   lang?: string
+  theme?: Partial<ThemeData>
 }
 
-export async function init({ brandId, productExternalId, environment, lang }: InitParams) {
+export async function init({ brandId, productExternalId, environment, lang, theme }: InitParams) {
   // Validate init params
   if (!brandId || typeof brandId !== 'number' || isNaN(brandId) || brandId <= 0) {
     throw new Error(`TFR: Invalid brandId "${brandId}"`)
@@ -61,6 +63,11 @@ export async function init({ brandId, productExternalId, environment, lang }: In
     productExternalId: String(productExternalId),
     environment,
   })
+
+  // Set theme data
+  if (theme) {
+    setThemeData(theme)
+  }
 
   // Inject styles
   {

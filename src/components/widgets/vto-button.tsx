@@ -1,9 +1,37 @@
-import TfrDoorSvg from '@/assets/tfr-door-brand.svg?react'
+import TfrIconSvg from '@/assets/tfr-icon.svg?react'
 import { useMainStore } from '@/lib/store'
+import { useStyles } from '@/lib/theme'
 import { OverlayName, WidgetProps } from '@/lib/views'
 
 export default function VtoButtonWidget({}: WidgetProps) {
   const openOverlay = useMainStore((state) => state.openOverlay)
+
+  const styles = useStyles((theme) => ({
+    button: {
+      marginTop: '10px',
+      marginBottom: '10px',
+      width: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '10px',
+      padding: '15px',
+      backgroundColor: 'white',
+      borderWidth: '1px',
+      borderColor: theme.color_fg_text,
+      borderStyle: 'solid',
+      borderRadius: '30px',
+      cursor: 'pointer',
+    },
+    icon: {
+      fill: theme.color_fg_text,
+    },
+    text: {
+      color: theme.color_fg_text,
+      fontSize: '14px',
+      textTransform: 'uppercase',
+    },
+  }))
 
   const openVto = () => {
     openOverlay(OverlayName.VTO_SINGLE)
@@ -13,17 +41,10 @@ export default function VtoButtonWidget({}: WidgetProps) {
     <button
       type="button"
       onClick={openVto}
-      style={{
-        padding: '10px 20px',
-        backgroundColor: '#0070f3',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: 'pointer',
-      }}
+      style={styles.button}
     >
-      <TfrDoorSvg width={30} height={30} />
-      Virtual Try-On
+      <TfrIconSvg style={styles.icon} />
+      <span style={styles.text}>Try It On</span>
     </button>
   )
 }
