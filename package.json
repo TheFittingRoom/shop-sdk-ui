@@ -11,7 +11,8 @@
     "clean": "rm -rf dist build",
     "build": "npm run clean && vite build --mode production",
     "watch": "vite build --mode production --watch",
-    "serve": "serve . -p 5173 --cors"
+    "serve": "serve . -p 5173 --cors",
+    "check": "tsc --noEmit"
   },
   "engines": {
     "node": ">=20"

@@ -1,4 +1,4 @@
-import TfrIconSvg from '@/assets/tfr-icon.svg?react'
+import { TfrIcon } from '@/lib/asset'
 import { useTranslation } from '@/lib/locale'
 import { useMainStore } from '@/lib/store'
 import { useStyles } from '@/lib/theme'
@@ -44,7 +44,7 @@ export default function VtoButtonWidget({}: WidgetProps) {
       onClick={openVto}
       style={styles.button}
     >
-      <TfrIconSvg style={styles.icon} />
+      <TfrIcon style={styles.icon} />
       <span style={styles.text}>{t('try_it_on')}</span>
     </button>
   )

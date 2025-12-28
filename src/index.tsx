@@ -4,6 +4,7 @@ import Bowser from 'bowser'
 import { OverlayManager } from '@/components/overlay-manager'
 import { Widget } from '@/components/widget'
 import { _init as initApi } from '@/lib/api'
+import { _init as initAsset } from '@/lib/asset'
 import { EnvName } from '@/lib/config'
 import { _init as initFirebase, getAuthManager } from '@/lib/firebase'
 import { i18n } from '@/lib/locale'
@@ -74,8 +75,11 @@ export async function init({ brandId, productExternalId, environment, lang = nul
     isMobileDevice,
   })
 
+  // Initialize asset manager
+  initAsset(environment)
+
   // Set theme data
-  initTheme(environment, theme)
+  initTheme(theme)
 
   // Publish device view to store
   {
