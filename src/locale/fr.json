@@ -1,6 +1,15 @@
 {
   "try_it_on": "Essayez-le",
+  "powered_by": "Alimenté par",
+  "the_fitting_room": "La cabine d'essayage",
   "size_rec": {
     "recommend": "Recommandation de taille : {{size}}"
+  },
+  "landing": {
+    "header": "Rencontrez votre mini-moi !",
+    "description": "Lâche à la taille mais serré aux hanches ? Nous allons vous montrer.",
+    "get_the_app": "Obtenez l'application",
+    "already_have_account": "Vous avez déjà un compte ?",
+    "sign_in": "Connectez-vous."
   }
 }
