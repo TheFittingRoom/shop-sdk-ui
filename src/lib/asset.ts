@@ -1,7 +1,8 @@
+import CloseIcon from '@/assets/close-icon.svg?react'
 import TfrIcon from '@/assets/tfr-icon.svg?react'
 import { EnvName, getConfig } from '@/lib/config'
 
-export { TfrIcon }
+export { CloseIcon, TfrIcon }
 
 let baseUrl: string
 

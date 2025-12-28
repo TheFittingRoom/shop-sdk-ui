@@ -15,7 +15,7 @@ export default function LandingOverlay() {
       fontSize: '14px',
     },
     contentContainer: {
-      width: '390px',
+      maxWidth: '390px',
       marginLeft: 'auto',
       marginRight: 'auto',
       display: 'flex',
@@ -158,6 +158,7 @@ interface GetAppProps {
 
 function GetAppView({ onSignInClick }: GetAppProps) {
   const { t } = useTranslation()
+  const deviceView = useMainStore((state) => state.deviceView)
   const styles = useStyles((_theme) => ({
     header: {
       fontFamily: 'Times New Roman, serif',
@@ -166,14 +167,23 @@ function GetAppView({ onSignInClick }: GetAppProps) {
     description: {
       fontSize: '14px',
     },
-    qrContainer: {
+    getAppQrContainer: {
       marginTop: '16px',
     },
-    qrImage: {
+    getAppQrImage: {
       width: '100%',
     },
-    signIn: {
+    getAppMobileContainer: {
       marginTop: '16px',
+      display: 'flex',
+      justifyContent: 'space-around',
+      gap: '16px',
+    },
+    getAppMobileImage: {
+      width: '150px',
+    },
+    signIn: {
+      marginTop: '32px',
       fontSize: '16px',
     },
     signInLink: {
@@ -182,14 +192,34 @@ function GetAppView({ onSignInClick }: GetAppProps) {
       fontSize: '16px',
     },
   }))
-  const scanImageUrl = getExternalAssetUrl('get-app-qr-code.png')
+  let getAppNode: ReactNode
+  switch (deviceView) {
+    case 'mobile': {
+      const appleStoreImageUrl = getExternalAssetUrl('get-app-apple-store.png')
+      const googlePlayImageUrl = getExternalAssetUrl('get-app-google-play.png')
+      getAppNode = (
+        <div style={styles.getAppMobileContainer}>
+          <img src={appleStoreImageUrl} alt="Apple Store" style={styles.getAppMobileImage} />
+          <img src={googlePlayImageUrl} alt="Google Play" style={styles.getAppMobileImage} />
+        </div>
+      )
+      break
+    }
+    default: {
+      const qrCodeImageUrl = getExternalAssetUrl('get-app-qr-code.png')
+      getAppNode = (
+        <div style={styles.getAppQrContainer}>
+          <img src={qrCodeImageUrl} alt="QR Code" style={styles.getAppQrImage} />
+        </div>
+      )
+      break
+    }
+  }
   return (
     <>
       <div style={styles.header}>{t('landing.get_the_app')}</div>
       <div style={styles.description}>{t('landing.description')}</div>
-      <div style={styles.qrContainer}>
-        <img src={scanImageUrl} alt="QR Code" style={styles.qrImage} />
-      </div>
+      {getAppNode}
       <div style={styles.signIn}>
         {t('landing.already_have_account')}{' '}
         <a onClick={onSignInClick} style={styles.signInLink}>
