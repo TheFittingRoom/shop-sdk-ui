@@ -15,7 +15,7 @@ export default function VtoButtonWidget({}: WidgetProps) {
       alignItems: 'center',
       justifyContent: 'center',
       gap: '10px',
-      padding: '15px',
+      padding: '13px',
       backgroundColor: 'white',
       borderWidth: '1px',
       borderColor: theme.color_fg_text,
