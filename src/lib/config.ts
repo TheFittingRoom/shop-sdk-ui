@@ -10,8 +10,11 @@ export type Config = {
   }
   api: {
     baseUrl: string
-    vtoTimeoutMs: number
-    avatarTimeoutMs: number
+    // vtoTimeoutMs: number
+    // avatarTimeoutMs: number
+  },
+  asset: {
+    baseUrl: string
   }
 }
 
@@ -33,8 +36,11 @@ const configs: Record<EnvName, Config> = {
     },
     api: {
       baseUrl: 'https://tfr.dev.thefittingroom.xyz',
-      vtoTimeoutMs: 120000,
-      avatarTimeoutMs: 120000,
+      // vtoTimeoutMs: 120000,
+      // avatarTimeoutMs: 120000,
+    },
+    asset: {
+      baseUrl: 'https://assets.dev.thefittingroom.xyz/shop-sdk/assets/v5',
     },
   },
   [EnvName.PRODUCTION]: {
@@ -49,8 +55,11 @@ const configs: Record<EnvName, Config> = {
     },
     api: {
       baseUrl: 'https://tfr.p.thefittingroom.xyz',
-      vtoTimeoutMs: 120000,
-      avatarTimeoutMs: 120000,
+      // vtoTimeoutMs: 120000,
+      // avatarTimeoutMs: 120000,
+    },
+    asset: {
+      baseUrl: 'https://assets.p.thefittingroom.xyz/shop-sdk/assets/v5',
     },
   },
 }

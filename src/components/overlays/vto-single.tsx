@@ -1,7 +1,5 @@
-import { Modal } from '@/components/modal'
-import { useMainStore } from '@/lib/store'
+import LandingOverlay from '@/components/overlays/landing'
 
 export default function VtoSingleOverlay() {
-  const closeOverlay = useMainStore((state) => state.closeOverlay)
-  return <Modal isOpen onRequestClose={closeOverlay}>This is the VTO single overlay.</Modal>
+  return <LandingOverlay/>
 }

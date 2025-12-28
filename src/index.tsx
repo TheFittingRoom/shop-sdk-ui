@@ -8,7 +8,7 @@ import { EnvName } from '@/lib/config'
 import { _init as initFirebase, getAuthManager } from '@/lib/firebase'
 import { i18n } from '@/lib/locale'
 import { useMainStore, setStaticData } from '@/lib/store'
-import { setThemeData, ThemeData } from '@/lib/theme'
+import { _init as initTheme, ThemeData } from '@/lib/theme'
 import { getDeviceView } from '@/lib/view'
 
 // Import styles
@@ -75,9 +75,7 @@ export async function init({ brandId, productExternalId, environment, lang = nul
   })
 
   // Set theme data
-  if (theme) {
-    setThemeData(theme)
-  }
+  initTheme(environment, theme)
 
   // Publish device view to store
   {
