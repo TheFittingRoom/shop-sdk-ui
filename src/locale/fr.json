@@ -1,4 +1,5 @@
 {
+  "try_it_on": "Essayez-le",
   "size_rec": {
     "recommend": "Recommandation de taille : {{size}}"
   }

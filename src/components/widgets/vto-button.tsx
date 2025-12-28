@@ -1,11 +1,12 @@
 import TfrIconSvg from '@/assets/tfr-icon.svg?react'
+import { useTranslation } from '@/lib/locale'
 import { useMainStore } from '@/lib/store'
 import { useStyles } from '@/lib/theme'
 import { OverlayName, WidgetProps } from '@/lib/views'
 
 export default function VtoButtonWidget({}: WidgetProps) {
   const openOverlay = useMainStore((state) => state.openOverlay)
-
+  const { t } = useTranslation()
   const styles = useStyles((theme) => ({
     button: {
       marginTop: '10px',
@@ -44,7 +45,7 @@ export default function VtoButtonWidget({}: WidgetProps) {
       style={styles.button}
     >
       <TfrIconSvg style={styles.icon} />
-      <span style={styles.text}>Try It On</span>
+      <span style={styles.text}>{t('try_it_on')}</span>
     </button>
   )
 }
