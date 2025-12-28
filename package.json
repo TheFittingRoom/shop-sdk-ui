@@ -29,6 +29,7 @@
     "vite-plugin-svgr": "^4.5.0"
   },
   "dependencies": {
+    "bowser": "^2.13.1",
     "dayjs": "^1.11.19",
     "firebase": "^12.5.0",
     "i18next": "^25.7.3",

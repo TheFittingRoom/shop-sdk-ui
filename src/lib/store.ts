@@ -1,11 +1,12 @@
 import { create } from 'zustand'
 import { AuthUser, UserProfile } from '@/lib/firebase'
-import { OverlayName } from '@/lib/views'
+import { DeviceView, OverlayName } from '@/lib/view'
 
 export interface StaticData {
   brandId: number
   productExternalId: string
   environment: string
+  isMobileDevice: boolean
 }
 
 let staticData: StaticData | null = null
@@ -22,6 +23,8 @@ export function getStaticData(): StaticData {
 }
 
 export interface MainStoreState {
+  deviceView: DeviceView
+  setDeviceView: (deviceView: DeviceView) => void
   activeOverlay: OverlayName | null
   openOverlay: (overlayName: OverlayName) => void
   closeOverlay: () => void
@@ -33,6 +36,8 @@ export interface MainStoreState {
 }
 
 export const useMainStore = create<MainStoreState>((set) => ({
+  deviceView: DeviceView.DESKTOP,
+  setDeviceView: (deviceView: DeviceView) => set({ deviceView }),
   activeOverlay: null,
   openOverlay: (overlayName: OverlayName) =>
     set(() => ({

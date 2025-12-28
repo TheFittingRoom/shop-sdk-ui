@@ -1,4 +1,4 @@
-import { WIDGETS, WidgetName, WidgetProps } from '@/lib/views'
+import { WIDGETS, WidgetName, WidgetProps } from '@/lib/view'
 
 export function Widget({ attributes }: WidgetProps) {
   const { widget: widgetName } = attributes

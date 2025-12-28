@@ -16,5 +16,5 @@ export function setThemeData(newThemeData: Partial<ThemeData>) {
 }
 
 export function useStyles<T extends Record<string, CSSProperties>>(callback: (themeData: ThemeData) => T) {
-  return useMemo(() => callback(themeData), [themeData])
+  return useMemo(() => callback(themeData), [])
 }

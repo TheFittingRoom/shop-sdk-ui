@@ -2,7 +2,7 @@ import TfrIconSvg from '@/assets/tfr-icon.svg?react'
 import { useTranslation } from '@/lib/locale'
 import { useMainStore } from '@/lib/store'
 import { useStyles } from '@/lib/theme'
-import { OverlayName, WidgetProps } from '@/lib/views'
+import { OverlayName, WidgetProps } from '@/lib/view'
 
 export default function VtoButtonWidget({}: WidgetProps) {
   const openOverlay = useMainStore((state) => state.openOverlay)

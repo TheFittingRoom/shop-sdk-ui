@@ -1,6 +1,6 @@
 import { useTranslation } from '@/lib/locale'
 import { useSizeRecommendation } from '@/lib/size-rec'
-import { WidgetProps } from '@/lib/views'
+import { WidgetProps } from '@/lib/view'
 
 export default function SizeRecWidget({}: WidgetProps) {
   const { t } = useTranslation()
