@@ -1,8 +1,7 @@
-import react from '@vitejs/plugin-react'
-
 import { resolve } from 'node:path'
-
 import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import svgr from "vite-plugin-svgr"
 
 export default defineConfig(({ mode, command }) => {
   return {
@@ -17,7 +16,7 @@ export default defineConfig(({ mode, command }) => {
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     },
-    plugins: [react()],
+    plugins: [react(), svgr()],
     resolve: {
       alias: {
         '@': resolve(__dirname, './src'),

@@ -45,12 +45,10 @@
       "dom"
     ],
     "types": [
-      "node"
+      "node",
+      "vite/client",
+      "vite-plugin-svgr/client"
     ],
-    "typeRoots": [
-      "node_modules/@types",
-      "src/types"
-    ]
   },
   "include": [
     "src/**/*.ts",
