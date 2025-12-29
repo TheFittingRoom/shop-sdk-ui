@@ -11,5 +11,16 @@
     "get_the_app": "Obtenez l'application",
     "already_have_account": "Vous avez déjà un compte ?",
     "sign_in": "Connectez-vous."
+  },
+  "sign-in": {
+    "email": "Email",
+    "password": "Mot de passe",
+    "forgot_password": "Mot de passe oublié ?",
+    "sign_in": "Se connecter",
+    "no_account": "Vous n'avez pas de compte ?",
+    "download_app": "Téléchargez l'application.",
+    "invalid_email": "Veuillez entrer une adresse e-mail valide.",
+    "missing_password": "Veuillez entrer votre mot de passe.",
+    "login_failed": "Email ou mot de passe incorrect."
   }
 }

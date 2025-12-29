@@ -11,5 +11,16 @@
     "get_the_app": "Get the app",
     "already_have_account": "Already have an account?",
     "sign_in": "Sign in."
+  },
+  "sign-in": {
+    "email": "Email",
+    "password": "Password",
+    "forgot_password": "Forgot password?",
+    "sign_in": "Sign in",
+    "no_account": "Don’t have an account?",
+    "download_app": "Download the app.",
+    "invalid_email": "Please enter a valid email address.",
+    "missing_password": "Please enter your password.",
+    "login_failed": "Incorrect email or password."
   }
 }

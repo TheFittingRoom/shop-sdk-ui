@@ -43,100 +43,115 @@ export interface InitParams {
   theme?: Partial<ThemeData> | null
 }
 
-export async function init({ brandId, productExternalId, environment, lang = null, theme = null }: InitParams) {
-  // Validate init params
-  if (!brandId || typeof brandId !== 'number' || isNaN(brandId) || brandId <= 0) {
-    throw new Error(`TFR: Invalid brandId "${brandId}"`)
-  }
-  if (!productExternalId || (typeof productExternalId !== 'string' && typeof productExternalId !== 'number')) {
-    throw new Error(`TFR: Invalid productExternalId "${productExternalId}"`)
-  }
-  if (!Object.values(EnvName).includes(environment)) {
-    throw new Error(`TFR: Invalid environment "${environment}"`)
-  }
-
-  // Get config
-  const config = getConfig(environment)
-
-  // Get device info
-  let isMobileDevice: boolean
-  {
-    const bowserParser = Bowser.getParser(window.navigator.userAgent)
-    isMobileDevice = bowserParser.getPlatformType(true) === 'mobile'
-  }
-
-  // Set language
-  if (lang) {
-    await i18n.changeLanguage(lang)
-  }
-
-  // Set static data
-  initStore({
-    brandId,
-    productExternalId: String(productExternalId),
-    environment,
-    isMobileDevice,
-    config,
-  })
-
-  // Initialize asset manager
-  initAsset()
-
-  // Set theme data
-  initTheme(theme)
-
-  // Publish device view to store
-  {
-    function updateDeviceView() {
-      const deviceView = getDeviceView(isMobileDevice)
-      useMainStore.getState().setDeviceView(deviceView)
+export async function init({ brandId, productExternalId, environment, lang = null, theme = null }: InitParams): Promise<boolean> {
+  try {
+    // Validate init params
+    if (!brandId || typeof brandId !== 'number' || isNaN(brandId) || brandId <= 0) {
+      throw new Error(`Invalid brandId "${brandId}"`)
     }
-    updateDeviceView()
-    window.addEventListener('resize', () => {
-      updateDeviceView()
+    if (!productExternalId || (typeof productExternalId !== 'string' && typeof productExternalId !== 'number')) {
+      throw new Error(`Invalid productExternalId "${productExternalId}"`)
+    }
+    if (!Object.values(EnvName).includes(environment)) {
+      throw new Error(`Invalid environment "${environment}"`)
+    }
+
+    // Get config
+    const config = getConfig(environment)
+
+    // Get device info
+    let isMobileDevice: boolean
+    {
+      const bowserParser = Bowser.getParser(window.navigator.userAgent)
+      isMobileDevice = bowserParser.getPlatformType(true) === 'mobile'
+    }
+
+    // Set language
+    if (lang) {
+      await i18n.changeLanguage(lang)
+    }
+
+    // Set static data
+    initStore({
+      brandId,
+      productExternalId: String(productExternalId),
+      environment,
+      isMobileDevice,
+      config,
     })
+
+    // Initialize asset manager
+    initAsset()
+
+    // Set theme data
+    initTheme(theme)
+
+    // Publish device view to store
+    {
+      function updateDeviceView() {
+        const deviceView = getDeviceView(isMobileDevice)
+        useMainStore.getState().setDeviceView(deviceView)
+      }
+      updateDeviceView()
+      window.addEventListener('resize', () => {
+        updateDeviceView()
+      })
+    }
+
+    // Initialize Firebase, Firestore, Auth
+    await initFirebase()
+
+    // Publish user state to store
+    const authManager = getAuthManager()
+    authManager.addAuthStateChangeListener((authUser) => {
+      useMainStore.getState().setAuthUser(authUser)
+    })
+    authManager.addUserProfileChangeListener((userProfile) => {
+      useMainStore.getState().setUserProfile(userProfile)
+    })
+
+    // Initialize api
+    initApi()
+
+    // Inject styles
+    {
+      const styleEl = document.createElement('style')
+      styleEl.innerHTML = css
+      document.head.appendChild(styleEl)
+    }
+
+    // Hydrate widget elements
+    customElements.define('tfr-widget', TfrWidgetElement)
+
+    // Inject overlay manager
+    {
+      const overlayManagerEl = document.createElement('div')
+      document.body.appendChild(overlayManagerEl)
+      const root = createRoot(overlayManagerEl)
+      root.render(
+        <StrictMode>
+          <OverlayManager />
+        </StrictMode>,
+      )
+    }
+
+    console.log('[TFR] SDK initialized')
+    return true
+  } catch (error) {
+    console.error('[TFR] SDK initialization failed:', error)
+    return false
   }
+}
 
-  // Initialize Firebase, Firestore, Auth
-  await initFirebase()
-
-  // Publish user state to store
+export async function logout() {
   const authManager = getAuthManager()
-  authManager.addAuthStateChangeListener((authUser) => {
-    useMainStore.getState().setAuthUser(authUser)
-  })
-  authManager.addUserProfileChangeListener((userProfile) => {
-    useMainStore.getState().setUserProfile(userProfile)
-  })
-
-  // Initialize api
-  initApi()
-
-  // Inject styles
-  {
-    const styleEl = document.createElement('style')
-    styleEl.innerHTML = css
-    document.head.appendChild(styleEl)
-  }
-
-  // Hydrate widget elements
-  customElements.define('tfr-widget', TfrWidgetElement)
-
-  // Inject overlay manager
-  {
-    const overlayManagerEl = document.createElement('div')
-    document.body.appendChild(overlayManagerEl)
-    const root = createRoot(overlayManagerEl)
-    root.render(
-      <StrictMode>
-        <OverlayManager />
-      </StrictMode>,
-    )
-  }
-
-  console.log('[TFR] SDK initialized')
+  await authManager.logout()
+  console.log('[TFR] User logged out')
 }
 
-export const TFR = {
+const TFR = {
   init,
+  logout,
 }
+
+export default TFR

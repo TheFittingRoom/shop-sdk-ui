@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { Button } from '@/components/button'
 import { ContentModal } from '@/components/modal'
 import { PoweredByFooter } from '@/components/content/powered-by-footer'
 import { getExternalAssetUrl } from '@/lib/asset'
@@ -28,18 +29,6 @@ export default function LandingOverlay() {
     buttonContainer: {
       marginTop: '16px',
       width: '100%',
-    },
-    primaryButton: {
-      display: 'block',
-      width: '100%',
-      backgroundColor: '#265A64',
-      color: '#FFFFFF',
-      border: 'none',
-      borderRadius: '25px',
-      padding: '16px 24px',
-      cursor: 'pointer',
-      fontSize: '16px',
-      fontWeight: 'bold',
     },
     signIn: {
       marginTop: '16px',
@@ -71,9 +60,9 @@ export default function LandingOverlay() {
         <img src={videoThumbnailUrl} alt="intro video thumbnail" style={styles.videoThumbnailImage} />
       </div>
       <div style={styles.buttonContainer}>
-        <button onClick={handleGetAppClick} style={styles.primaryButton}>
+        <Button onClick={handleGetAppClick} variant="primary">
           {t('landing.get_the_app')}
-        </button>
+        </Button>
       </div>
       <div style={styles.signIn}>
         {t('landing.already_have_account')}{' '}
