@@ -3,6 +3,7 @@ import { OVERLAYS, OverlayName } from '@/lib/view'
 
 export function OverlayManager() {
   const activeOverlay = useMainStore((state) => state.activeOverlay)
+  const activeOverlayProps = useMainStore((state) => state.activeOverlayProps)
   if (!activeOverlay) {
     return null
   }
@@ -10,5 +11,5 @@ export function OverlayManager() {
   if (!OverlayComponent) {
     return null
   }
-  return <OverlayComponent />
+  return <OverlayComponent {...activeOverlayProps} />
 }

@@ -28,7 +28,8 @@ export interface MainStoreState {
   deviceView: DeviceView
   setDeviceView: (deviceView: DeviceView) => void
   activeOverlay: OverlayName | null
-  openOverlay: (overlayName: OverlayName) => void
+  activeOverlayProps: Record<string, unknown> | null
+  openOverlay: (overlayName: OverlayName, props?: Record<string, unknown>) => void
   closeOverlay: () => void
   userIsLoggedIn: boolean
   setAuthUser: (authUser: AuthUser | null) => void
@@ -41,13 +42,16 @@ export const useMainStore = create<MainStoreState>((set) => ({
   deviceView: DeviceView.DESKTOP,
   setDeviceView: (deviceView: DeviceView) => set({ deviceView }),
   activeOverlay: null,
-  openOverlay: (overlayName: OverlayName) =>
+  activeOverlayProps: null,
+  openOverlay: (overlayName: OverlayName, props?: Record<string, unknown>) =>
     set(() => ({
       activeOverlay: overlayName,
+      activeOverlayProps: props || null,
     })),
   closeOverlay: () =>
     set(() => ({
       activeOverlay: null,
+      activeOverlayProps: null,
     })),
   userIsLoggedIn: false,
   setAuthUser: (authUser: AuthUser | null) => {

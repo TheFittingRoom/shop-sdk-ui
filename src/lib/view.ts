@@ -48,7 +48,9 @@ export enum OverlayName {
   VTO_SINGLE = 'vto-single',
 }
 
-export const OVERLAYS: Record<OverlayName, React.FC> = {
+export type OverlayProps = Record<string, unknown>
+
+export const OVERLAYS: Record<OverlayName, React.FC<OverlayProps>> = {
   [OverlayName.GET_APP]: GetAppOverlay,
   [OverlayName.LANDING]: LandingOverlay,
   [OverlayName.SIGN_IN]: SignInOverlay,
