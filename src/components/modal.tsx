@@ -91,3 +91,45 @@ export function Modal({ isOpen, onRequestClose, title, variant, children }: Moda
     </ModalBase>
   )
 }
+
+export interface ContentModalProps {
+  onRequestClose: () => void
+  title: ReactNode
+  children: ReactNode
+}
+
+export function ContentModal({ onRequestClose, title, children }: ContentModalProps) {
+  const styles = useStyles((_theme) => ({
+    title: {
+      textTransform: 'uppercase',
+      fontSize: '14px',
+    },
+    contentContainer: {
+      maxWidth: '390px',
+      marginLeft: 'auto',
+      marginRight: 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '0',
+      alignItems: 'center',
+    },
+  }))
+  let titleNode: ReactNode
+  if (typeof title === 'string') {
+    titleNode = <span style={styles.title}>{title}</span>
+  } else {
+    titleNode = title
+  }
+  return (
+    <Modal
+      isOpen
+      onRequestClose={onRequestClose}
+      variant="medium"
+      title={titleNode}
+    >
+      <div style={styles.contentContainer}>
+        {children}
+      </div>
+    </Modal>
+  )
+}

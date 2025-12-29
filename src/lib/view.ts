@@ -1,3 +1,6 @@
+import GetAppOverlay from '@/components/overlays/get-app'
+import LandingOverlay from '@/components/overlays/landing'
+import SignInOverlay from '@/components/overlays/sign-in'
 import VtoSingleOverlay from '@/components/overlays/vto-single'
 import SizeRecWidget from '@/components/widgets/size-rec'
 import VtoButtonWidget from '@/components/widgets/vto-button'
@@ -39,9 +42,15 @@ export const WIDGETS: Record<WidgetName, React.FC<WidgetProps>> = {
 }
 
 export enum OverlayName {
+  GET_APP = 'get-app',
+  LANDING = 'landing',
+  SIGN_IN = 'sign-in',
   VTO_SINGLE = 'vto-single',
 }
 
 export const OVERLAYS: Record<OverlayName, React.FC> = {
+  [OverlayName.GET_APP]: GetAppOverlay,
+  [OverlayName.LANDING]: LandingOverlay,
+  [OverlayName.SIGN_IN]: SignInOverlay,
   [OverlayName.VTO_SINGLE]: VtoSingleOverlay,
 }
