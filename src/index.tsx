@@ -5,10 +5,10 @@ import { OverlayManager } from '@/components/overlay-manager'
 import { Widget } from '@/components/widget'
 import { _init as initApi } from '@/lib/api'
 import { _init as initAsset } from '@/lib/asset'
-import { EnvName } from '@/lib/config'
+import { getConfig, EnvName } from '@/lib/config'
 import { _init as initFirebase, getAuthManager } from '@/lib/firebase'
 import { i18n } from '@/lib/locale'
-import { useMainStore, setStaticData } from '@/lib/store'
+import { _init as initStore, useMainStore } from '@/lib/store'
 import { _init as initTheme, ThemeData } from '@/lib/theme'
 import { getDeviceView } from '@/lib/view'
 
@@ -55,6 +55,9 @@ export async function init({ brandId, productExternalId, environment, lang = nul
     throw new Error(`TFR: Invalid environment "${environment}"`)
   }
 
+  // Get config
+  const config = getConfig(environment)
+
   // Get device info
   let isMobileDevice: boolean
   {
@@ -68,15 +71,16 @@ export async function init({ brandId, productExternalId, environment, lang = nul
   }
 
   // Set static data
-  setStaticData({
+  initStore({
     brandId,
     productExternalId: String(productExternalId),
     environment,
     isMobileDevice,
+    config,
   })
 
   // Initialize asset manager
-  initAsset(environment)
+  initAsset()
 
   // Set theme data
   initTheme(theme)
@@ -92,6 +96,21 @@ export async function init({ brandId, productExternalId, environment, lang = nul
       updateDeviceView()
     })
   }
+
+  // Initialize Firebase, Firestore, Auth
+  await initFirebase()
+
+  // Publish user state to store
+  const authManager = getAuthManager()
+  authManager.addAuthStateChangeListener((authUser) => {
+    useMainStore.getState().setAuthUser(authUser)
+  })
+  authManager.addUserProfileChangeListener((userProfile) => {
+    useMainStore.getState().setUserProfile(userProfile)
+  })
+
+  // Initialize api
+  initApi()
 
   // Inject styles
   {
@@ -114,21 +133,6 @@ export async function init({ brandId, productExternalId, environment, lang = nul
       </StrictMode>,
     )
   }
-
-  // Initialize Firebase, Firestore, Auth
-  await initFirebase(environment, brandId)
-
-  // Publish user state to store
-  const authManager = getAuthManager()
-  authManager.addAuthStateChangeListener((authUser) => {
-    useMainStore.getState().setAuthUser(authUser)
-  })
-  authManager.addUserProfileChangeListener((userProfile) => {
-    useMainStore.getState().setUserProfile(userProfile)
-  })
-
-  // Initialize api
-  initApi(environment)
 
   console.log('[TFR] SDK initialized')
 }

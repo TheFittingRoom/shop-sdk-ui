@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { Config } from '@/lib/config'
 import { AuthUser, UserProfile } from '@/lib/firebase'
 import { DeviceView, OverlayName } from '@/lib/view'
 
@@ -7,17 +8,18 @@ export interface StaticData {
   productExternalId: string
   environment: string
   isMobileDevice: boolean
+  config: Config
 }
 
 let staticData: StaticData | null = null
 
-export function setStaticData(data: StaticData) {
-  staticData = data
+export function _init(initStaticData: StaticData) {
+  staticData = initStaticData
 }
 
 export function getStaticData(): StaticData {
   if (!staticData) {
-    throw new Error('Static state not set. Call setStaticState first.')
+    throw new Error('Static state not set. Call _init first.')
   }
   return staticData
 }

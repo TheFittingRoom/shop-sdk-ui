@@ -2,7 +2,7 @@ import { ReactNode, useCallback, useState } from 'react'
 import { Modal } from '@/components/modal'
 import { getExternalAssetUrl, TfrIcon } from '@/lib/asset'
 import { useTranslation } from '@/lib/locale'
-import { useMainStore } from '@/lib/store'
+import { getStaticData, useMainStore } from '@/lib/store'
 import { useStyles } from '@/lib/theme'
 
 export default function LandingOverlay() {
@@ -179,6 +179,11 @@ function GetAppView({ onSignInClick }: GetAppProps) {
       justifyContent: 'space-around',
       gap: '16px',
     },
+    getAppMobileButton: {
+      backgroundColor: 'none',
+      border: 'none',
+      cursor: 'pointer',
+    },
     getAppMobileImage: {
       width: '150px',
     },
@@ -192,6 +197,14 @@ function GetAppView({ onSignInClick }: GetAppProps) {
       fontSize: '16px',
     },
   }))
+  const handleGetAppAppleClick = useCallback(() => {
+    const url = getStaticData().config.links.appAppleStoreUrl
+    window.open(url, '_blank')
+  }, [])
+  const handleGetAppGoogleClick = useCallback(() => {
+    const url = getStaticData().config.links.appGooglePlayUrl
+    window.open(url, '_blank')
+  }, [])
   let getAppNode: ReactNode
   switch (deviceView) {
     case 'mobile': {
@@ -199,8 +212,12 @@ function GetAppView({ onSignInClick }: GetAppProps) {
       const googlePlayImageUrl = getExternalAssetUrl('get-app-google-play.png')
       getAppNode = (
         <div style={styles.getAppMobileContainer}>
-          <img src={appleStoreImageUrl} alt="Apple Store" style={styles.getAppMobileImage} />
-          <img src={googlePlayImageUrl} alt="Google Play" style={styles.getAppMobileImage} />
+          <button style={styles.getAppMobileButton} onClick={handleGetAppAppleClick}>
+            <img src={appleStoreImageUrl} alt="Apple Store" style={styles.getAppMobileImage} />
+          </button>
+          <button style={styles.getAppMobileButton} onClick={handleGetAppGoogleClick}>
+            <img src={googlePlayImageUrl} alt="Google Play" style={styles.getAppMobileImage} />
+          </button>
         </div>
       )
       break

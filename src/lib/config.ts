@@ -1,4 +1,4 @@
-export type Config = {
+export interface Config {
   firebase: {
     apiKey: string
     authDomain: string
@@ -12,9 +12,13 @@ export type Config = {
     baseUrl: string
     // vtoTimeoutMs: number
     // avatarTimeoutMs: number
-  },
+  }
   asset: {
     baseUrl: string
+  }
+  links: {
+    appAppleStoreUrl: string
+    appGooglePlayUrl: string
   }
 }
 
@@ -42,6 +46,10 @@ const configs: Record<EnvName, Config> = {
     asset: {
       baseUrl: 'https://assets.dev.thefittingroom.xyz/shop-sdk/assets/v5',
     },
+    links: {
+      appAppleStoreUrl: 'https://apps.apple.com/us/app/the-fitting-room-3d-body-scan/id1577417373',
+      appGooglePlayUrl: 'https://play.google.com/store/apps/details?id=com.thefittingroom.marketplace',
+    },
   },
   [EnvName.PRODUCTION]: {
     firebase: {
@@ -60,6 +68,10 @@ const configs: Record<EnvName, Config> = {
     },
     asset: {
       baseUrl: 'https://assets.p.thefittingroom.xyz/shop-sdk/assets/v5',
+    },
+    links: {
+      appAppleStoreUrl: 'https://apps.apple.com/us/app/the-fitting-room-3d-body-scan/id1577417373',
+      appGooglePlayUrl: 'https://play.google.com/store/apps/details?id=com.thefittingroom.marketplace',
     },
   },
 }

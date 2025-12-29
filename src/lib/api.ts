@@ -8,15 +8,14 @@ import {
   // FirestoreUser,
   SizeFitRecommendation,
 } from '@/api/gen/responses'
-import { EnvName, getConfig } from '@/lib/config'
 import { getAuthManager } from '@/lib/firebase'
-import { useMainStore } from '@/lib/store'
+import { getStaticData, useMainStore } from '@/lib/store'
 
 let baseUrl: string
 let responseCache: { [key: string]: unknown } = {}
 
-export function _init(environment: EnvName) {
-  const config = getConfig(environment)
+export function _init() {
+  const { config } = getStaticData()
   baseUrl = config.api.baseUrl
 
   useMainStore.subscribe((state, prevState) => {

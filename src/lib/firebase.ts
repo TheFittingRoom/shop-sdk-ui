@@ -27,7 +27,7 @@ import {
   signInWithEmailAndPassword,
 } from 'firebase/auth'
 import { FirestoreUser } from '@/api/gen/responses'
-import { getConfig, EnvName } from '@/lib/config'
+import { getStaticData } from '@/lib/store'
 
 export type AuthUser = User
 export type UserProfile = FirestoreUser
@@ -277,10 +277,12 @@ export function getAuthManager(): AuthManager {
   return authManager
 }
 
-export async function _init(envName: EnvName, brandId: number) {
+export async function _init() {
+  const { brandId, config } = getStaticData()
+
   // Initialize Firebase App
   {
-    const { firebase: sdkFirebaseConfig } = getConfig(envName)
+    const { firebase: sdkFirebaseConfig } = config
     const firebaseConfig: FirebaseOptions = {
       apiKey: sdkFirebaseConfig.apiKey,
       authDomain: sdkFirebaseConfig.authDomain,
