@@ -1,5 +1,5 @@
 import { useTranslation } from '@/lib/locale'
-import { useSizeRecommendation } from '@/lib/size-rec'
+import { useSizeRecommendation } from '@/lib/api-hooks'
 import { WidgetProps } from '@/lib/view'
 
 export default function SizeRecWidget({}: WidgetProps) {
