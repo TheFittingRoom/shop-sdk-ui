@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { ContentModal } from '@/components/modal'
-import { PoweredByFooter } from '@/components/powered-by-footer'
+import { PoweredByFooter } from '@/components/content/powered-by-footer'
 import { getExternalAssetUrl } from '@/lib/asset'
 import { useTranslation } from '@/lib/locale'
 import { useMainStore } from '@/lib/store'
