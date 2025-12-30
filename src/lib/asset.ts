@@ -1,8 +1,9 @@
+import ArrowBackIcon from '@/assets/arrow-back.svg?react'
 import CloseIcon from '@/assets/close-icon.svg?react'
 import TfrIcon from '@/assets/tfr-icon.svg?react'
 import { getStaticData } from '@/lib/store'
 
-export { CloseIcon, TfrIcon }
+export { ArrowBackIcon, CloseIcon, TfrIcon }
 
 let baseUrl: string
 

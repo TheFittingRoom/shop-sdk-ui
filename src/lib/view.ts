@@ -1,3 +1,4 @@
+import ForgotPasswordOverlay from '@/components/overlays/forgot-password'
 import GetAppOverlay from '@/components/overlays/get-app'
 import LandingOverlay from '@/components/overlays/landing'
 import SignInOverlay from '@/components/overlays/sign-in'
@@ -42,6 +43,7 @@ export const WIDGETS: Record<WidgetName, React.FC<WidgetProps>> = {
 }
 
 export enum OverlayName {
+  FORGOT_PASSWORD = 'forgot-password',
   GET_APP = 'get-app',
   LANDING = 'landing',
   SIGN_IN = 'sign-in',
@@ -51,6 +53,7 @@ export enum OverlayName {
 export type OverlayProps = Record<string, unknown>
 
 export const OVERLAYS: Record<OverlayName, React.FC<OverlayProps>> = {
+  [OverlayName.FORGOT_PASSWORD]: ForgotPasswordOverlay,
   [OverlayName.GET_APP]: GetAppOverlay,
   [OverlayName.LANDING]: LandingOverlay,
   [OverlayName.SIGN_IN]: SignInOverlay,

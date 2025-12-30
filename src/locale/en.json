@@ -25,5 +25,13 @@
     "invalid_email": "Please enter a valid email address.",
     "missing_password": "Please enter your password.",
     "login_failed": "Incorrect email or password."
+  },
+  "forgot-password": {
+    "title": "Forgot password",
+    "description": "We’ll send you an email with a link to reset your password.",
+    "send_link": "Send link",
+    "link_sent": "Link sent! Please check your email.",
+    "need_help": "Need help?",
+    "contact_us": "Contact us."
   }
 }

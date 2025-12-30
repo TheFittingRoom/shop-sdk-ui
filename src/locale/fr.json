@@ -25,5 +25,13 @@
     "invalid_email": "Veuillez entrer une adresse e-mail valide.",
     "missing_password": "Veuillez entrer votre mot de passe.",
     "login_failed": "Email ou mot de passe incorrect."
+  },
+  "forgot-password": {
+    "title": "Mot de passe oublié",
+    "description": "Nous vous enverrons un e-mail avec un lien pour réinitialiser votre mot de passe.",
+    "send_link": "Envoyer le lien",
+    "link_sent": "Lien envoyé ! Veuillez vérifier votre e-mail.",
+    "need_help": "Besoin d'aide ?",
+    "contact_us": "Contactez-nous."
   }
 }

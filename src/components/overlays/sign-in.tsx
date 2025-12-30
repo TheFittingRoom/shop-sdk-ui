@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { TfrTitle } from '@/components/content/tfr-title'
 import { Button } from '@/components/button'
 import { ContentModal } from '@/components/modal'
@@ -16,8 +16,6 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
   const { t } = useTranslation()
   const closeOverlay = useMainStore((state) => state.closeOverlay)
   const openOverlay = useMainStore((state) => state.openOverlay)
-  const emailInputRef = useRef<HTMLInputElement>(null)
-  const passwordInputRef = useRef<HTMLInputElement>(null)
   const [emailError, setEmailError] = useState<string | null>(null)
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const css = useCss((theme) => ({
@@ -62,7 +60,7 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
       color: theme.color_fg_text,
       cursor: 'pointer !important',
       fontSize: '16px',
-      textDecoration: 'underline',     
+      textDecoration: 'underline',
     },
     signInButtonContainer: {
       marginTop: '28px',
@@ -82,83 +80,100 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
     },
   }))
 
-  const handleSubmit = useCallback((event: React.FormEvent) => {
-    async function loginUser(email: string, password: string) {
-      try {
-        const authManager = getAuthManager()
-        await authManager.login(email, password)
-        if (returnToOverlay) {
-          openOverlay(returnToOverlay)
-        } else {
-          closeOverlay()
+  const handleSubmit = useCallback(
+    (event: React.FormEvent) => {
+      async function loginUser(email: string, password: string) {
+        try {
+          const authManager = getAuthManager()
+          await authManager.login(email, password)
+          if (returnToOverlay) {
+            openOverlay(returnToOverlay)
+          } else {
+            closeOverlay()
+          }
+        } catch (error) {
+          console.error('[TFR] Login failed:', error)
+          setEmailError(' ')
+          setPasswordError(t('sign-in.login_failed'))
+          passwordEl.focus()
         }
-      } catch (error) {
-        console.error('[TFR] Login failed:', error)
-        setEmailError(' ')
-        setPasswordError(t('sign-in.login_failed'))
-        passwordEl.focus()
       }
-    }
-    event.preventDefault()
-    const formEl = event.target as HTMLFormElement
-    const emailEl = formEl.elements.namedItem('email') as HTMLInputElement
-    const passwordEl = formEl.elements.namedItem('password') as HTMLInputElement
-    let emailError: string | null = null
-    let passwordError: string | null = null
-    if (!emailEl.validity.valid) {
-      emailError = t('sign-in.invalid_email')
-    }
-    if (!passwordEl.validity.valid) {
-      passwordError = t('sign-in.missing_password')
-    }
-    setEmailError(emailError)
-    setPasswordError(passwordError)
-    if (emailError) {
-      emailEl.focus()
-      return
-    }
-    if (passwordError) {
-      passwordEl.focus()
-      return
-    }
+      event.preventDefault()
+      const formEl = event.target as HTMLFormElement
+      const emailEl = formEl.elements.namedItem('email') as HTMLInputElement
+      const passwordEl = formEl.elements.namedItem('password') as HTMLInputElement
+      let emailError: string | null = null
+      let passwordError: string | null = null
+      if (!emailEl.validity.valid) {
+        emailError = t('sign-in.invalid_email')
+      }
+      if (!passwordEl.validity.valid) {
+        passwordError = t('sign-in.missing_password')
+      }
+      setEmailError(emailError)
+      setPasswordError(passwordError)
+      if (emailError) {
+        emailEl.focus()
+        return
+      }
+      if (passwordError) {
+        passwordEl.focus()
+        return
+      }
 
-    const email = emailEl.value.trim()
-    const password = passwordEl.value
-    loginUser(email, password)
-  }, [returnToOverlay, closeOverlay, openOverlay, t])
+      const email = emailEl.value
+      const password = passwordEl.value
+      loginUser(email, password)
+    },
+    [returnToOverlay, closeOverlay, openOverlay, t],
+  )
   const handleForgotPasswordClick = useCallback(() => {
-    // Handle forgot password logic here
-  }, [])
+    openOverlay(OverlayName.FORGOT_PASSWORD, { returnToOverlay })
+  }, [returnToOverlay])
   const handleGetAppClick = useCallback(() => {
     openOverlay(OverlayName.GET_APP, { returnToOverlay })
   }, [returnToOverlay])
 
   return (
-    <ContentModal
-      onRequestClose={closeOverlay}
-      title={<TfrTitle />}
-    >
+    <ContentModal onRequestClose={closeOverlay} title={<TfrTitle />}>
       <form onSubmit={handleSubmit} css={css.form}>
         <div css={css.emailContainer}>
-          <input ref={emailInputRef} name="email" type="email" placeholder={t('sign-in.email')} required css={{ ...css.input, ...(emailError ? css.inputError : {}) }} />
+          <input
+            name="email"
+            type="email"
+            placeholder={t('sign-in.email')}
+            required
+            css={{ ...css.input, ...(emailError ? css.inputError : {}) }}
+          />
         </div>
-        <div css={css.emailErrorContainer}>
-          {emailError && <span css={css.inputErrorMessage}>{emailError}</span>}
-        </div>
+        <div css={css.emailErrorContainer}>{emailError && <span css={css.inputErrorMessage}>{emailError}</span>}</div>
         <div css={css.passwordContainer}>
-          <input ref={passwordInputRef} name="password" type="password" placeholder={t('sign-in.password')} required css={{ ...css.input, ...(passwordError ? css.inputError : {}) }} />
+          <input
+            name="password"
+            type="password"
+            placeholder={t('sign-in.password')}
+            required
+            css={{ ...css.input, ...(passwordError ? css.inputError : {}) }}
+          />
         </div>
         <div css={css.passwordErrorContainer}>
           {passwordError && <span css={css.inputErrorMessage}>{passwordError}</span>}
         </div>
         <div css={css.forgotPasswordContainer}>
-          <a onClick={handleForgotPasswordClick} css={css.forgotPasswordLink}>{t('sign-in.forgot_password')}</a>
+          <a onClick={handleForgotPasswordClick} css={css.forgotPasswordLink}>
+            {t('sign-in.forgot_password')}
+          </a>
         </div>
         <div css={css.signInButtonContainer}>
-          <Button type="submit" variant="primary">{t('sign-in.sign_in')}</Button>
+          <Button type="submit" variant="primary">
+            {t('sign-in.sign_in')}
+          </Button>
         </div>
         <div css={css.noAccountContainer}>
-          {t('sign-in.no_account')} <a onClick={handleGetAppClick} css={css.getAppLink}>{t('sign-in.download_app')}</a>
+          {t('sign-in.no_account')}{' '}
+          <a onClick={handleGetAppClick} css={css.getAppLink}>
+            {t('sign-in.download_app')}
+          </a>
         </div>
       </form>
     </ContentModal>

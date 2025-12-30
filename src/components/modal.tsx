@@ -1,6 +1,6 @@
 import { CSSProperties, ReactNode } from 'react'
 import ModalBase from 'react-modal'
-import { CloseIcon } from '@/lib/asset'
+import { ArrowBackIcon, CloseIcon } from '@/lib/asset'
 import { useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
 
@@ -11,6 +11,7 @@ export interface ModalProps {
   onRequestClose: () => void
   title: ReactNode
   variant: ModalVariant
+  onBackClick?: () => void
   children: ReactNode
 }
 
@@ -31,7 +32,7 @@ const VARIANT_FRAME_CONTENT_STYLES: Record<ModalVariant, CSSProperties> = {
   },
 }
 
-export function Modal({ isOpen, onRequestClose, title, variant, children }: ModalProps) {
+export function Modal({ isOpen, onRequestClose, title, variant, onBackClick, children }: ModalProps) {
   const deviceView = useMainStore((state) => state.deviceView)
   if (deviceView === 'mobile') {
     variant = 'full-screen'
@@ -57,6 +58,16 @@ export function Modal({ isOpen, onRequestClose, title, variant, children }: Moda
         justifyContent: 'space-between',
         alignItems: 'center',
       },
+      titlebarBackButton: {
+        background: 'none',
+        border: 'none',
+        padding: 0,
+        cursor: 'pointer',       
+      },
+      titlebarBackIcon: {
+        width: '24px',
+        height: '24px',
+      },
       titlebarContent: {},
       titlebarCloseButton: {
         background: 'none',
@@ -73,6 +84,16 @@ export function Modal({ isOpen, onRequestClose, title, variant, children }: Moda
       },
     }
   })
+  let backNode: ReactNode
+  if (onBackClick) {
+    backNode = (
+      <button onClick={onBackClick} aria-label="Back" css={css.titlebarBackButton}>
+        <ArrowBackIcon css={css.titlebarBackIcon} />
+      </button>
+    )
+  } else {
+    backNode = <div>&nbsp;</div>
+  }
   return (
     <ModalBase
       isOpen={isOpen}
@@ -81,7 +102,7 @@ export function Modal({ isOpen, onRequestClose, title, variant, children }: Moda
       bodyOpenClassName="tfr-modal-open"
     >
       <div css={css.titlebar}>
-        <div>&nbsp;</div>
+        {backNode}
         <div css={css.titlebarContent}>{title}</div>
         <button onClick={onRequestClose} aria-label="Close modal" css={css.titlebarCloseButton}>
           <CloseIcon css={css.titlebarCloseIcon} />
@@ -95,10 +116,11 @@ export function Modal({ isOpen, onRequestClose, title, variant, children }: Moda
 export interface ContentModalProps {
   onRequestClose: () => void
   title: ReactNode
+  onBackClick?: () => void
   children: ReactNode
 }
 
-export function ContentModal({ onRequestClose, title, children }: ContentModalProps) {
+export function ContentModal({ onRequestClose, title, onBackClick, children }: ContentModalProps) {
   const css = useCss((_theme) => ({
     title: {
       textTransform: 'uppercase',
@@ -125,6 +147,7 @@ export function ContentModal({ onRequestClose, title, children }: ContentModalPr
       isOpen
       onRequestClose={onRequestClose}
       variant="medium"
+      onBackClick={onBackClick}
       title={titleNode}
     >
       <div css={css.contentContainer}>
