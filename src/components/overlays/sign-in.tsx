@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { TfrTitle } from '@/components/content/tfr-title'
 import { Button } from '@/components/button'
+import { Link } from '@/components/link'
 import { ContentModal } from '@/components/modal'
 import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
@@ -18,7 +19,7 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
   const openOverlay = useMainStore((state) => state.openOverlay)
   const [emailError, setEmailError] = useState<string | null>(null)
   const [passwordError, setPasswordError] = useState<string | null>(null)
-  const css = useCss((theme) => ({
+  const css = useCss((_theme) => ({
     form: {
       width: '100%',
       display: 'flex',
@@ -57,10 +58,7 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
       marginTop: '36px',
     },
     forgotPasswordLink: {
-      color: theme.color_fg_text,
-      cursor: 'pointer !important',
       fontSize: '16px',
-      textDecoration: 'underline',
     },
     signInButtonContainer: {
       marginTop: '28px',
@@ -72,11 +70,7 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
       fontSize: '16px',
     },
     getAppLink: {
-      color: theme.color_fg_text,
-      cursor: 'pointer !important',
       fontSize: '16px',
-      fontWeight: '500',
-      textDecoration: 'none',
     },
   }))
 
@@ -160,9 +154,9 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
           {passwordError && <span css={css.inputErrorMessage}>{passwordError}</span>}
         </div>
         <div css={css.forgotPasswordContainer}>
-          <a onClick={handleForgotPasswordClick} css={css.forgotPasswordLink}>
+          <Link onClick={handleForgotPasswordClick} variant="underline" css={css.forgotPasswordLink}>
             {t('sign-in.forgot_password')}
-          </a>
+          </Link>
         </div>
         <div css={css.signInButtonContainer}>
           <Button type="submit" variant="primary">
@@ -171,9 +165,9 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
         </div>
         <div css={css.noAccountContainer}>
           {t('sign-in.no_account')}{' '}
-          <a onClick={handleGetAppClick} css={css.getAppLink}>
+          <Link onClick={handleGetAppClick} variant="semibold" css={css.getAppLink}>
             {t('sign-in.download_app')}
-          </a>
+          </Link>
         </div>
       </form>
     </ContentModal>

@@ -1,12 +1,14 @@
 import { forwardRef } from 'react'
+import { CSSObject } from '@emotion/react'
 
 export type ButtonVariant = 'primary'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant: ButtonVariant
+  css?: CSSObject
 }
 
-const VARIANT_STYLES: Record<ButtonVariant, React.CSSProperties> = {
+const VARIANT_CSS: Record<ButtonVariant, CSSObject> = {
   primary: {
     display: 'block',
     width: '100%',
@@ -22,9 +24,9 @@ const VARIANT_STYLES: Record<ButtonVariant, React.CSSProperties> = {
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ children, style, variant, ...props }, ref) => {
+  ({ children, variant, css, ...props }, ref) => {
     return (
-      <button ref={ref} css={{ ...VARIANT_STYLES[variant], ...style }} {...props}>
+      <button ref={ref} css={[VARIANT_CSS[variant], css]} {...props}>
         {children}
       </button>
     )

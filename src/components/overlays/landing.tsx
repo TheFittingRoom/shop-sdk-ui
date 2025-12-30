@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { Button } from '@/components/button'
+import { Link } from '@/components/link'
 import { ContentModal } from '@/components/modal'
 import { PoweredByFooter } from '@/components/content/powered-by-footer'
 import { getExternalAssetUrl } from '@/lib/asset'
@@ -40,7 +41,6 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
     },
     signInLink: {
       color: '#265A64',
-      cursor: 'pointer !important',
       fontSize: '16px',
     },
   }))
@@ -70,9 +70,9 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
       </div>
       <div css={css.signIn}>
         {t('landing.already_have_account')}{' '}
-        <a onClick={handleSignInClick} css={css.signInLink}>
+        <Link onClick={handleSignInClick} variant="base" css={css.signInLink}>
           {t('landing.sign_in')}
-        </a>
+        </Link>
       </div>
       <PoweredByFooter />
     </ContentModal>

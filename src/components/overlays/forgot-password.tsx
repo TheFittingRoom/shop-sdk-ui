@@ -1,5 +1,6 @@
 import { ReactNode, useCallback, useRef, useState } from 'react'
 import { Button } from '@/components/button'
+import { Link } from '@/components/link'
 import { ContentModal } from '@/components/modal'
 import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
@@ -18,7 +19,7 @@ export default function ForgotPasswordOverlay({ returnToOverlay }: ForgotPasswor
   const emailInputRef = useRef<HTMLInputElement>(null)
   const [emailError, setEmailError] = useState<string | null>(null)
   const [linkSent, setLinkSent] = useState(false)
-  const css = useCss((theme) => ({
+  const css = useCss((_theme) => ({
     title: {
       fontSize: '20px',
     },
@@ -66,13 +67,6 @@ export default function ForgotPasswordOverlay({ returnToOverlay }: ForgotPasswor
     contactContainer: {
       marginTop: '32px',
       fontSize: '14px',
-    },
-    contactUsLink: {
-      color: theme.color_fg_text,
-      cursor: 'pointer !important',
-      fontSize: '14px',
-      fontWeight: '500',
-      textDecoration: 'none',
     },
   }))
 
@@ -142,7 +136,7 @@ export default function ForgotPasswordOverlay({ returnToOverlay }: ForgotPasswor
         </div>
         <div css={css.contactContainer}>
           <span>{t('forgot-password.need_help')}</span>{' '}
-          <a css={css.contactUsLink} onClick={handleContactUsClick}>{t('forgot-password.contact_us')}</a>
+          <Link variant="semibold" onClick={handleContactUsClick}>{t('forgot-password.contact_us')}</Link>
         </div>
       </form>
     </ContentModal>
