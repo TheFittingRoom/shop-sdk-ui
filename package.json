@@ -30,6 +30,8 @@
     "vite-plugin-svgr": "^4.5.0"
   },
   "dependencies": {
+    "@emotion/babel-plugin": "^11.13.5",
+    "@emotion/react": "^11.14.0",
     "bowser": "^2.13.1",
     "dayjs": "^1.11.19",
     "firebase": "^12.5.0",

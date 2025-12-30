@@ -40,6 +40,7 @@
     // "experimentalDecorators": true /* Enables experimental support for ES7 decorators. */,
     // "emitDecoratorMetadata": true /* Enables experimental support for emitting type metadata for decorators. */,
     "jsx": "preserve",
+    "jsxImportSource": "@emotion/react",
     "lib": [
       "es2017",
       "dom"
@@ -47,7 +48,8 @@
     "types": [
       "node",
       "vite/client",
-      "vite-plugin-svgr/client"
+      "vite-plugin-svgr/client",
+      "@emotion/react/types/css-prop"
     ],
   },
   "include": [

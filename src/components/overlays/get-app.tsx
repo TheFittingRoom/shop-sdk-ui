@@ -4,7 +4,7 @@ import { PoweredByFooter } from '@/components/content/powered-by-footer'
 import { getExternalAssetUrl } from '@/lib/asset'
 import { useTranslation } from '@/lib/locale'
 import { getStaticData, useMainStore } from '@/lib/store'
-import { useStyles } from '@/lib/theme'
+import { useCss } from '@/lib/theme'
 import { OverlayName, OverlayProps } from '@/lib/view'
 
 export interface GetAppOverlayProps extends OverlayProps {
@@ -17,7 +17,7 @@ export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverl
   const closeOverlay = useMainStore((state) => state.closeOverlay)
   const openOverlay = useMainStore((state) => state.openOverlay)
   const deviceView = useMainStore((state) => state.deviceView)
-  const styles = useStyles((_theme) => ({
+  const css = useCss((_theme) => ({
     header: {
       fontFamily: 'Times New Roman, serif',
       fontSize: '32px',
@@ -51,7 +51,7 @@ export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverl
     },
     signInLink: {
       color: '#265A64',
-      cursor: 'pointer',
+      cursor: 'pointer !important',
       fontSize: '16px',
     },
   }))
@@ -74,12 +74,12 @@ export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverl
       const appleStoreImageUrl = getExternalAssetUrl('get-app-apple-store.png')
       const googlePlayImageUrl = getExternalAssetUrl('get-app-google-play.png')
       getAppNode = (
-        <div style={styles.getAppMobileContainer}>
-          <button style={styles.getAppMobileButton} onClick={handleGetAppAppleClick}>
-            <img src={appleStoreImageUrl} alt="Apple Store" style={styles.getAppMobileImage} />
+        <div css={css.getAppMobileContainer}>
+          <button css={css.getAppMobileButton} onClick={handleGetAppAppleClick}>
+            <img src={appleStoreImageUrl} alt="Apple Store" css={css.getAppMobileImage} />
           </button>
-          <button style={styles.getAppMobileButton} onClick={handleGetAppGoogleClick}>
-            <img src={googlePlayImageUrl} alt="Google Play" style={styles.getAppMobileImage} />
+          <button css={css.getAppMobileButton} onClick={handleGetAppGoogleClick}>
+            <img src={googlePlayImageUrl} alt="Google Play" css={css.getAppMobileImage} />
           </button>
         </div>
       )
@@ -88,8 +88,8 @@ export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverl
     default: {
       const qrCodeImageUrl = getExternalAssetUrl('get-app-qr-code.png')
       getAppNode = (
-        <div style={styles.getAppQrContainer}>
-          <img src={qrCodeImageUrl} alt="QR Code" style={styles.getAppQrImage} />
+        <div css={css.getAppQrContainer}>
+          <img src={qrCodeImageUrl} alt="QR Code" css={css.getAppQrImage} />
         </div>
       )
       break
@@ -100,12 +100,12 @@ export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverl
       onRequestClose={closeOverlay}
       title={t('try_it_on')}
     >
-      <div style={styles.header}>{noAvatar ? t('get-app.create_avatar') : t('landing.get_the_app')}</div>
-      <div style={styles.description}>{t('landing.description')}</div>
+      <div css={css.header}>{noAvatar ? t('get-app.create_avatar') : t('landing.get_the_app')}</div>
+      <div css={css.description}>{t('landing.description')}</div>
       {getAppNode}
-      <div style={styles.signIn}>
+      <div css={css.signIn}>
         {t('landing.already_have_account')}{' '}
-        <a onClick={handleSignInClick} style={styles.signInLink}>
+        <a onClick={handleSignInClick} css={css.signInLink}>
           {t('landing.sign_in')}
         </a>
       </div>

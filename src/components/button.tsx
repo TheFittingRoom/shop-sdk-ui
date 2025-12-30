@@ -24,7 +24,7 @@ const VARIANT_STYLES: Record<ButtonVariant, React.CSSProperties> = {
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ children, style, variant, ...props }, ref) => {
     return (
-      <button ref={ref} style={{ ...VARIANT_STYLES[variant], ...style }} {...props}>
+      <button ref={ref} css={{ ...VARIANT_STYLES[variant], ...style }} {...props}>
         {children}
       </button>
     )

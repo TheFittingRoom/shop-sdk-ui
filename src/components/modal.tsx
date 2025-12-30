@@ -2,7 +2,7 @@ import { CSSProperties, ReactNode } from 'react'
 import ModalBase from 'react-modal'
 import { CloseIcon } from '@/lib/asset'
 import { useMainStore } from '@/lib/store'
-import { useStyles } from '@/lib/theme'
+import { useCss } from '@/lib/theme'
 
 export type ModalVariant = 'medium' | 'large' | 'full-screen'
 
@@ -36,7 +36,7 @@ export function Modal({ isOpen, onRequestClose, title, variant, children }: Moda
   if (deviceView === 'mobile') {
     variant = 'full-screen'
   }
-  const styles = useStyles((theme) => {
+  const css = useCss((theme) => {
     const variantFrameContentStyles = VARIANT_FRAME_CONTENT_STYLES[variant]
     return {
       frameOverlay: {
@@ -77,17 +77,17 @@ export function Modal({ isOpen, onRequestClose, title, variant, children }: Moda
     <ModalBase
       isOpen={isOpen}
       onRequestClose={onRequestClose}
-      style={{ overlay: styles.frameOverlay, content: styles.frameContent }}
+      style={{ overlay: css.frameOverlay, content: css.frameContent }}
       bodyOpenClassName="tfr-modal-open"
     >
-      <div style={styles.titlebar}>
+      <div css={css.titlebar}>
         <div>&nbsp;</div>
-        <div style={styles.titlebarContent}>{title}</div>
-        <button onClick={onRequestClose} aria-label="Close modal" style={styles.titlebarCloseButton}>
-          <CloseIcon style={styles.titlebarCloseIcon} />
+        <div css={css.titlebarContent}>{title}</div>
+        <button onClick={onRequestClose} aria-label="Close modal" css={css.titlebarCloseButton}>
+          <CloseIcon css={css.titlebarCloseIcon} />
         </button>
       </div>
-      <div style={styles.body}>{children}</div>
+      <div css={css.body}>{children}</div>
     </ModalBase>
   )
 }
@@ -99,7 +99,7 @@ export interface ContentModalProps {
 }
 
 export function ContentModal({ onRequestClose, title, children }: ContentModalProps) {
-  const styles = useStyles((_theme) => ({
+  const css = useCss((_theme) => ({
     title: {
       textTransform: 'uppercase',
       fontSize: '14px',
@@ -116,7 +116,7 @@ export function ContentModal({ onRequestClose, title, children }: ContentModalPr
   }))
   let titleNode: ReactNode
   if (typeof title === 'string') {
-    titleNode = <span style={styles.title}>{title}</span>
+    titleNode = <span css={css.title}>{title}</span>
   } else {
     titleNode = title
   }
@@ -127,7 +127,7 @@ export function ContentModal({ onRequestClose, title, children }: ContentModalPr
       variant="medium"
       title={titleNode}
     >
-      <div style={styles.contentContainer}>
+      <div css={css.contentContainer}>
         {children}
       </div>
     </Modal>

@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { CSSProperties } from 'react'
+import { Interpolation, Theme } from '@emotion/react'
 
 export interface ThemeData {
   color_fg_text: string
@@ -23,5 +24,11 @@ export function getThemeData(): ThemeData {
 }
 
 export function useStyles<T extends Record<string, CSSProperties>>(callback: (themeData: ThemeData) => T) {
+  return useMemo(() => callback(themeData), [])
+}
+
+export type EmotionCssProperties = Interpolation<Theme>
+
+export function useCss<T extends Record<string, EmotionCssProperties>>(callback: (themeData: ThemeData) => T) {
   return useMemo(() => callback(themeData), [])
 }

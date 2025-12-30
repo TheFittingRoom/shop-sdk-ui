@@ -5,7 +5,7 @@ import { PoweredByFooter } from '@/components/content/powered-by-footer'
 import { getExternalAssetUrl } from '@/lib/asset'
 import { useTranslation } from '@/lib/locale'
 import { useMainStore } from '@/lib/store'
-import { useStyles } from '@/lib/theme'
+import { useCss } from '@/lib/theme'
 import { OverlayName, OverlayProps } from '@/lib/view'
 
 export interface LandingOverlayProps extends OverlayProps {
@@ -16,7 +16,7 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
   const { t } = useTranslation()
   const closeOverlay = useMainStore((state) => state.closeOverlay)
   const openOverlay = useMainStore((state) => state.openOverlay)
-  const styles = useStyles((_theme) => ({
+  const css = useCss((_theme) => ({
     header: {
       fontFamily: 'Times New Roman, serif',
       fontSize: '32px',
@@ -40,7 +40,7 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
     },
     signInLink: {
       color: '#265A64',
-      cursor: 'pointer',
+      cursor: 'pointer !important',
       fontSize: '16px',
     },
   }))
@@ -58,19 +58,19 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
       onRequestClose={closeOverlay}
       title={t('try_it_on')}
     >
-      <div style={styles.header}>{t('landing.header')}</div>
-      <div style={styles.description}>{t('landing.description')}</div>
-      <div style={styles.videoContainer}>
-        <img src={videoThumbnailUrl} alt="intro video thumbnail" style={styles.videoThumbnailImage} />
+      <div css={css.header}>{t('landing.header')}</div>
+      <div css={css.description}>{t('landing.description')}</div>
+      <div css={css.videoContainer}>
+        <img src={videoThumbnailUrl} alt="intro video thumbnail" css={css.videoThumbnailImage} />
       </div>
-      <div style={styles.buttonContainer}>
+      <div css={css.buttonContainer}>
         <Button onClick={handleGetAppClick} variant="primary">
           {t('landing.get_the_app')}
         </Button>
       </div>
-      <div style={styles.signIn}>
+      <div css={css.signIn}>
         {t('landing.already_have_account')}{' '}
-        <a onClick={handleSignInClick} style={styles.signInLink}>
+        <a onClick={handleSignInClick} css={css.signInLink}>
           {t('landing.sign_in')}
         </a>
       </div>

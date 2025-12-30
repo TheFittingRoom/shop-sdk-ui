@@ -5,7 +5,7 @@ import { ContentModal } from '@/components/modal'
 import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
 import { useMainStore } from '@/lib/store'
-import { useStyles } from '@/lib/theme'
+import { useCss } from '@/lib/theme'
 import { OverlayName, OverlayProps } from '@/lib/view'
 
 export interface SignInOverlayProps extends OverlayProps {
@@ -20,7 +20,7 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
   const passwordInputRef = useRef<HTMLInputElement>(null)
   const [emailError, setEmailError] = useState<string | null>(null)
   const [passwordError, setPasswordError] = useState<string | null>(null)
-  const styles = useStyles((theme) => ({
+  const css = useCss((theme) => ({
     form: {
       width: '100%',
       display: 'flex',
@@ -60,7 +60,7 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
     },
     forgotPasswordLink: {
       color: theme.color_fg_text,
-      cursor: 'pointer',
+      cursor: 'pointer !important',
       fontSize: '16px',
       textDecoration: 'underline',     
     },
@@ -75,7 +75,7 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
     },
     getAppLink: {
       color: theme.color_fg_text,
-      cursor: 'pointer',
+      cursor: 'pointer !important',
       fontSize: '16px',
       fontWeight: '500',
       textDecoration: 'none',
@@ -138,27 +138,27 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
       onRequestClose={closeOverlay}
       title={<TfrTitle />}
     >
-      <form onSubmit={handleSubmit} style={styles.form}>
-        <div style={styles.emailContainer}>
-          <input ref={emailInputRef} name="email" type="email" placeholder={t('sign-in.email')} required style={{ ...styles.input, ...(emailError ? styles.inputError : {}) }} />
+      <form onSubmit={handleSubmit} css={css.form}>
+        <div css={css.emailContainer}>
+          <input ref={emailInputRef} name="email" type="email" placeholder={t('sign-in.email')} required css={{ ...css.input, ...(emailError ? css.inputError : {}) }} />
         </div>
-        <div style={styles.emailErrorContainer}>
-          {emailError && <span style={styles.inputErrorMessage}>{emailError}</span>}
+        <div css={css.emailErrorContainer}>
+          {emailError && <span css={css.inputErrorMessage}>{emailError}</span>}
         </div>
-        <div style={styles.passwordContainer}>
-          <input ref={passwordInputRef} name="password" type="password" placeholder={t('sign-in.password')} required style={{ ...styles.input, ...(passwordError ? styles.inputError : {}) }} />
+        <div css={css.passwordContainer}>
+          <input ref={passwordInputRef} name="password" type="password" placeholder={t('sign-in.password')} required css={{ ...css.input, ...(passwordError ? css.inputError : {}) }} />
         </div>
-        <div style={styles.passwordErrorContainer}>
-          {passwordError && <span style={styles.inputErrorMessage}>{passwordError}</span>}
+        <div css={css.passwordErrorContainer}>
+          {passwordError && <span css={css.inputErrorMessage}>{passwordError}</span>}
         </div>
-        <div style={styles.forgotPasswordContainer}>
-          <a href="#" onClick={handleForgotPasswordClick} style={styles.forgotPasswordLink}>{t('sign-in.forgot_password')}</a>
+        <div css={css.forgotPasswordContainer}>
+          <a onClick={handleForgotPasswordClick} css={css.forgotPasswordLink}>{t('sign-in.forgot_password')}</a>
         </div>
-        <div style={styles.signInButtonContainer}>
+        <div css={css.signInButtonContainer}>
           <Button type="submit" variant="primary">{t('sign-in.sign_in')}</Button>
         </div>
-        <div style={styles.noAccountContainer}>
-          {t('sign-in.no_account')} <a href="#" onClick={handleGetAppClick} style={styles.getAppLink}>{t('sign-in.download_app')}</a>
+        <div css={css.noAccountContainer}>
+          {t('sign-in.no_account')} <a onClick={handleGetAppClick} css={css.getAppLink}>{t('sign-in.download_app')}</a>
         </div>
       </form>
     </ContentModal>

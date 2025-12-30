@@ -1,10 +1,10 @@
 import { TfrIcon } from '@/lib/asset'
 import { useTranslation } from '@/lib/locale'
-import { useStyles } from '@/lib/theme'
+import { useCss } from '@/lib/theme'
 
 export function TfrTitle() {
   const { t } = useTranslation()
-  const styles = useStyles((_theme) => ({
+  const css = useCss((_theme) => ({
     container: {
       display: 'flex',
       alignItems: 'center',
@@ -22,9 +22,9 @@ export function TfrTitle() {
     },
   }))
   return (
-    <div style={styles.container}>
-      <TfrIcon style={styles.icon} />
-      <span style={styles.title}>{t('the_fitting_room')}</span>
+    <div css={css.container}>
+      <TfrIcon css={css.icon} />
+      <span css={css.title}>{t('the_fitting_room')}</span>
     </div>
   )
 }
