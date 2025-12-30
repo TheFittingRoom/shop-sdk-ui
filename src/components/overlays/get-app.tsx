@@ -5,9 +5,14 @@ import { getExternalAssetUrl } from '@/lib/asset'
 import { useTranslation } from '@/lib/locale'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { useStyles } from '@/lib/theme'
-import { OverlayName } from '@/lib/view'
+import { OverlayName, OverlayProps } from '@/lib/view'
 
-export default function GetAppOverlay() {
+export interface GetAppOverlayProps extends OverlayProps {
+  returnToOverlay?: OverlayName
+  noAvatar?: boolean
+}
+
+export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverlayProps) {
   const { t } = useTranslation()
   const closeOverlay = useMainStore((state) => state.closeOverlay)
   const openOverlay = useMainStore((state) => state.openOverlay)
@@ -52,8 +57,8 @@ export default function GetAppOverlay() {
   }))
 
   const handleSignInClick = useCallback(() => {
-    openOverlay(OverlayName.SIGN_IN)
-  }, [])
+    openOverlay(OverlayName.SIGN_IN, { returnToOverlay })
+  }, [returnToOverlay])
   const handleGetAppAppleClick = useCallback(() => {
     const url = getStaticData().config.links.appAppleStoreUrl
     window.open(url, '_blank')
@@ -95,7 +100,7 @@ export default function GetAppOverlay() {
       onRequestClose={closeOverlay}
       title={t('try_it_on')}
     >
-      <div style={styles.header}>{t('landing.get_the_app')}</div>
+      <div style={styles.header}>{noAvatar ? t('get-app.create_avatar') : t('landing.get_the_app')}</div>
       <div style={styles.description}>{t('landing.description')}</div>
       {getAppNode}
       <div style={styles.signIn}>

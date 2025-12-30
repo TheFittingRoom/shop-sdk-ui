@@ -12,6 +12,9 @@
     "already_have_account": "Already have an account?",
     "sign_in": "Sign in."
   },
+  "get-app": {
+    "create_avatar": "Create your avatar"
+  },
   "sign-in": {
     "email": "Email",
     "password": "Password",

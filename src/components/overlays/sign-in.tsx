@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { TfrTitle } from '@/components/content/tfr-title'
 import { Button } from '@/components/button'
 import { ContentModal } from '@/components/modal'
@@ -6,9 +6,13 @@ import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
 import { useMainStore } from '@/lib/store'
 import { useStyles } from '@/lib/theme'
-import { OverlayName } from '@/lib/view'
+import { OverlayName, OverlayProps } from '@/lib/view'
 
-export default function SignInOverlay() {
+export interface SignInOverlayProps extends OverlayProps {
+  returnToOverlay?: OverlayName
+}
+
+export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
   const { t } = useTranslation()
   const closeOverlay = useMainStore((state) => state.closeOverlay)
   const openOverlay = useMainStore((state) => state.openOverlay)
@@ -78,12 +82,16 @@ export default function SignInOverlay() {
     },
   }))
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = useCallback((event: React.FormEvent) => {
     async function loginUser(email: string, password: string) {
       try {
         const authManager = getAuthManager()
         await authManager.login(email, password)
-        closeOverlay()
+        if (returnToOverlay) {
+          openOverlay(returnToOverlay)
+        } else {
+          closeOverlay()
+        }
       } catch (error) {
         console.error('[TFR] Login failed:', error)
         setEmailError(' ')
@@ -117,13 +125,13 @@ export default function SignInOverlay() {
     const email = emailEl.value.trim()
     const password = passwordEl.value
     loginUser(email, password)
-  }
-  const handleForgotPasswordClick = () => {
+  }, [returnToOverlay, closeOverlay, openOverlay, t])
+  const handleForgotPasswordClick = useCallback(() => {
     // Handle forgot password logic here
-  }
-  const handleGetAppClick = () => {
-    openOverlay(OverlayName.GET_APP)
-  }
+  }, [])
+  const handleGetAppClick = useCallback(() => {
+    openOverlay(OverlayName.GET_APP, { returnToOverlay })
+  }, [returnToOverlay])
 
   return (
     <ContentModal

@@ -6,9 +6,13 @@ import { getExternalAssetUrl } from '@/lib/asset'
 import { useTranslation } from '@/lib/locale'
 import { useMainStore } from '@/lib/store'
 import { useStyles } from '@/lib/theme'
-import { OverlayName } from '@/lib/view'
+import { OverlayName, OverlayProps } from '@/lib/view'
 
-export default function LandingOverlay() {
+export interface LandingOverlayProps extends OverlayProps {
+  returnToOverlay?: OverlayName
+}
+
+export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps) {
   const { t } = useTranslation()
   const closeOverlay = useMainStore((state) => state.closeOverlay)
   const openOverlay = useMainStore((state) => state.openOverlay)
@@ -43,11 +47,11 @@ export default function LandingOverlay() {
   const videoThumbnailUrl = getExternalAssetUrl('intro-video-thumbnail.png')
 
   const handleGetAppClick = useCallback(() => {
-    openOverlay(OverlayName.GET_APP)
-  }, [])
+    openOverlay(OverlayName.GET_APP, { returnToOverlay })
+  }, [returnToOverlay])
   const handleSignInClick = useCallback(() => {
-    openOverlay(OverlayName.SIGN_IN)
-  }, [])
+    openOverlay(OverlayName.SIGN_IN, { returnToOverlay })
+  }, [returnToOverlay])
 
   return (
     <ContentModal
