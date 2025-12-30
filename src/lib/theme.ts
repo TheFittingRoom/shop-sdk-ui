@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Interpolation, Theme } from '@emotion/react'
+import { CSSObject } from '@emotion/react'
 
 export interface ThemeData {
   color_fg_text: string
@@ -22,16 +22,16 @@ export function getThemeData(): ThemeData {
   return themeData
 }
 
-export type EmotionCssProperties = Interpolation<Theme>
+export type CssProperties = CSSObject
 
-export function useCss<T extends Record<string, EmotionCssProperties>>(callback: (themeData: ThemeData) => T): T {
+export function useCss<T extends Record<string, CssProperties>>(callback: (themeData: ThemeData) => T): T {
   return useMemo(() => callback(themeData), [])
 }
 
-export function useVariantCss<T extends string, U extends Record<T, EmotionCssProperties> = Record<T, EmotionCssProperties>>(
+export function useVariantCss<T extends string, U extends Record<T, CssProperties> = Record<T, CssProperties>>(
   variant: T,
   callback: (themeData: ThemeData) => U,
-): EmotionCssProperties {
+): CssProperties {
   return useMemo(() => {
     const variants = callback(themeData)
     return variants[variant]

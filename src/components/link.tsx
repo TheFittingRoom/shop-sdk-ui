@@ -1,12 +1,11 @@
 import { forwardRef } from 'react'
-import { CSSObject } from '@emotion/react'
-import { useVariantCss } from '@/lib/theme'
+import { CssProperties, useVariantCss } from '@/lib/theme'
 
 export type LinkVariant = 'base' | 'brand' | 'underline' | 'semibold'
 
 export interface LinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   variant: LinkVariant
-  css?: CSSObject
+  css?: CssProperties
 }
 
 export const Link = forwardRef<HTMLAnchorElement, LinkProps>(({ children, variant, css, ...props }, ref) => {
