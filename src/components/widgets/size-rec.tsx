@@ -1,13 +1,12 @@
-import { useTranslation } from '@/lib/locale'
+import { TextT } from '@/components/text'
 import { useSizeRecommendation } from '@/lib/api-hooks'
 import { useCss } from '@/lib/theme'
 import { WidgetProps } from '@/lib/view'
 
 export default function SizeRecWidget({}: WidgetProps) {
-  const { t } = useTranslation()
   const recommendedSize = useSizeRecommendation()
   const css = useCss((_theme) => ({
-    container: {
+    text: {
       textDecoration: 'underline',
     },
   }))
@@ -16,5 +15,5 @@ export default function SizeRecWidget({}: WidgetProps) {
     return null
   }
 
-  return <div css={css.container}>{t('size_rec.recommend', { size: recommendedSize })}</div>
+  return <TextT variant="brand" css={css.text} t="size_rec.recommend" vars={{ size: recommendedSize }} />
 }

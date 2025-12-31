@@ -19,7 +19,7 @@ export default function ForgotPasswordOverlay({ returnToOverlay }: ForgotPasswor
   const emailInputRef = useRef<HTMLInputElement>(null)
   const [emailError, setEmailError] = useState<string | null>(null)
   const [linkSent, setLinkSent] = useState(false)
-  const css = useCss((_theme) => ({
+  const css = useCss((theme) => ({
     title: {
       fontSize: '20px',
     },
@@ -37,10 +37,10 @@ export default function ForgotPasswordOverlay({ returnToOverlay }: ForgotPasswor
       fontSize: '16px',
     },
     inputError: {
-      border: '1px solid #900B09',
+      border: `1px solid ${theme.color_danger}`,
     },
     inputErrorMessage: {
-      color: '#900B09',
+      color: theme.color_danger,
       fontSize: '14px',
     },
     descriptionContainer: {
@@ -51,7 +51,7 @@ export default function ForgotPasswordOverlay({ returnToOverlay }: ForgotPasswor
       marginTop: '48px',
       height: '48px',
       padding: '8px 16px',
-      color: '#265A64',
+      color: theme.color_tfr_800,
       boxShadow: '0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)',
     },
     emailContainer: {

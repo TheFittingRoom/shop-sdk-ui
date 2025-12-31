@@ -46,8 +46,8 @@ export function Modal({ isOpen, onRequestClose, title, variant, onBackClick, chi
       frameContent: {
         marginLeft: 'auto',
         marginRight: 'auto',
-        backgroundColor: theme.color_modal_bg,
-        borderColor: theme.color_modal_border,
+        backgroundColor: '#FFFFFF',
+        borderColor: theme.color_tfr_800,
         borderStyle: 'solid',
         borderWidth: '1px',
         padding: '16px',

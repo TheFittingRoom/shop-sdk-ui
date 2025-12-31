@@ -1,9 +1,8 @@
+import { TextT } from '@/components/text'
 import { TfrNameSvg } from '@/lib/asset'
-import { useTranslation } from '@/lib/locale'
 import { useCss } from '@/lib/theme'
 
 export function PoweredByFooter() {
-  const { t } = useTranslation()
   const css = useCss((_theme) => ({
     footer: {
       position: 'absolute',
@@ -27,7 +26,9 @@ export function PoweredByFooter() {
   }))
   return (
     <div css={css.footer}>
-      <span css={css.poweredBy}>{t('powered_by')}</span>&nbsp;<TfrNameSvg css={css.nameIcon} />
+      <TextT variant="base" css={css.poweredBy} t="powered_by" />
+      &nbsp;
+      <TfrNameSvg css={css.nameIcon} />
     </div>
   )
 }

@@ -2,14 +2,16 @@ import { useMemo } from 'react'
 import { CSSObject } from '@emotion/react'
 
 export interface ThemeData {
+  brand_font_family: string
+  color_danger: string
   color_fg_text: string
-  color_modal_bg: string
-  color_modal_border: string
+  color_tfr_800: string
 }
 export const themeData: ThemeData = {
+  brand_font_family: 'Assistant, sans-serif',
+  color_danger: '#900B09',
   color_fg_text: '#21201F',
-  color_modal_bg: '#FFFFFF',
-  color_modal_border: '#265A64',
+  color_tfr_800: '#265A64',
 }
 
 export function _init(initThemeData: Partial<ThemeData> | null) {

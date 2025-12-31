@@ -17,7 +17,7 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
   const { t } = useTranslation()
   const closeOverlay = useMainStore((state) => state.closeOverlay)
   const openOverlay = useMainStore((state) => state.openOverlay)
-  const css = useCss((_theme) => ({
+  const css = useCss((theme) => ({
     header: {
       fontFamily: 'Times New Roman, serif',
       fontSize: '32px',
@@ -40,7 +40,7 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
       fontSize: '16px',
     },
     signInLink: {
-      color: '#265A64',
+      color: theme.color_tfr_800,
       fontSize: '16px',
     },
   }))

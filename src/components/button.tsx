@@ -10,11 +10,11 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ children, variant, css, ...props }, ref) => {
-    const variantCss = useVariantCss<ButtonVariant>(variant, (_theme) => ({
+    const variantCss = useVariantCss<ButtonVariant>(variant, (theme) => ({
       primary: {
         display: 'block',
         width: '100%',
-        backgroundColor: '#265A64',
+        backgroundColor: theme.color_tfr_800,
         color: '#FFFFFF',
         border: 'none',
         borderRadius: '25px',

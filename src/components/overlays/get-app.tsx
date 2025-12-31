@@ -18,7 +18,7 @@ export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverl
   const closeOverlay = useMainStore((state) => state.closeOverlay)
   const openOverlay = useMainStore((state) => state.openOverlay)
   const deviceView = useMainStore((state) => state.deviceView)
-  const css = useCss((_theme) => ({
+  const css = useCss((theme) => ({
     header: {
       fontFamily: 'Times New Roman, serif',
       fontSize: '32px',
@@ -51,7 +51,7 @@ export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverl
       fontSize: '16px',
     },
     signInLink: {
-      color: '#265A64',
+      color: theme.color_tfr_800,
       fontSize: '16px',
     },
   }))

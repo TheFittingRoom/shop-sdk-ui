@@ -1,12 +1,11 @@
+import { TextT } from '@/components/text'
 import { TfrIcon } from '@/lib/asset'
-import { useTranslation } from '@/lib/locale'
 import { useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
 import { OverlayName, WidgetProps } from '@/lib/view'
 
 export default function VtoButtonWidget({}: WidgetProps) {
   const openOverlay = useMainStore((state) => state.openOverlay)
-  const { t } = useTranslation()
   const css = useCss((theme) => ({
     button: {
       marginTop: '10px',
@@ -28,7 +27,6 @@ export default function VtoButtonWidget({}: WidgetProps) {
       fill: theme.color_fg_text,
     },
     text: {
-      color: theme.color_fg_text,
       fontSize: '14px',
       textTransform: 'uppercase',
     },
@@ -45,7 +43,7 @@ export default function VtoButtonWidget({}: WidgetProps) {
       css={css.button}
     >
       <TfrIcon css={css.icon} />
-      <span css={css.text}>{t('try_it_on')}</span>
+      <TextT variant="brand" css={css.text} t="try_it_on" />
     </button>
   )
 }
