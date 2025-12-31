@@ -18,7 +18,7 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
   const { t } = useTranslation()
   const closeOverlay = useMainStore((state) => state.closeOverlay)
   const openOverlay = useMainStore((state) => state.openOverlay)
-  const css = useCss((theme) => ({
+  const css = useCss((_theme) => ({
     titleText: {
       textTransform: 'uppercase',
     },
@@ -38,13 +38,8 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
       marginTop: '16px',
       width: '100%',
     },
-    signIn: {
+    signInContainer: {
       marginTop: '16px',
-      fontSize: '16px',
-    },
-    signInLink: {
-      color: theme.color_tfr_800,
-      fontSize: '16px',
     },
   }))
   const videoThumbnailUrl = getExternalAssetUrl('intro-video-thumbnail.png')
@@ -70,10 +65,10 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
       <div css={css.buttonContainer}>
         <ButtonT onClick={handleGetAppClick} variant="primary" t="landing.get_the_app" />
       </div>
-      <div css={css.signIn}>
+      <div css={css.signInContainer}>
         <TextT variant="base" t={t('landing.already_have_account')} />
         &nbsp;
-        <LinkT onClick={handleSignInClick} variant="base" css={css.signInLink} t="landing.sign_in" />
+        <LinkT onClick={handleSignInClick} variant="semibold" t="landing.sign_in" />
       </div>
       <PoweredByFooter />
     </ContentModal>
