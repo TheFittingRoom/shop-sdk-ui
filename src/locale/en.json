@@ -1,7 +1,6 @@
 {
   "try_it_on": "Try It On",
   "powered_by": "Powered by",
-  "the_fitting_room": "The Fitting Room",
   "size_rec": {
     "recommend": "Recommended Size: {{size}}"
   },

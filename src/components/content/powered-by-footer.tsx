@@ -1,4 +1,4 @@
-import { TfrIcon } from '@/lib/asset'
+import { TfrNameSvg } from '@/lib/asset'
 import { useTranslation } from '@/lib/locale'
 import { useCss } from '@/lib/theme'
 
@@ -17,22 +17,17 @@ export function PoweredByFooter() {
       marginTop: '24px',
       fontSize: '12px',
     },
-    footerPoweredBy: {
+    poweredBy: {
       fontSize: '12px',
     },
-    footerIcon: {
-      width: '20px',
-      height: '20px',
-    },
-    footerTfr: {
-      fontSize: '12px',
+    nameIcon: {
+      width: '120px',
+      height: '24px',
     },
   }))
   return (
     <div css={css.footer}>
-      <span css={css.footerPoweredBy}>{t('powered_by')}</span>
-      <TfrIcon css={css.footerIcon} />
-      <span css={css.footerTfr}>{t('the_fitting_room')}</span>
+      <span css={css.poweredBy}>{t('powered_by')}</span>&nbsp;<TfrNameSvg css={css.nameIcon} />
     </div>
   )
 }

@@ -1,30 +1,21 @@
-import { TfrIcon } from '@/lib/asset'
-import { useTranslation } from '@/lib/locale'
+import { TfrNameSvg } from '@/lib/asset'
 import { useCss } from '@/lib/theme'
 
 export function TfrTitle() {
-  const { t } = useTranslation()
   const css = useCss((_theme) => ({
     container: {
       display: 'flex',
       alignItems: 'center',
       gap: '0',
     },
-    icon: {
-      width: '24px',
+    nameIcon: {
+      width: '156px',
       height: '24px',
-      fill: '#265A64',
-    },
-    title: {
-      fontSize: '20px',
-      fontWeight: '600',
-      color: '#265A64',
     },
   }))
   return (
     <div css={css.container}>
-      <TfrIcon css={css.icon} />
-      <span css={css.title}>{t('the_fitting_room')}</span>
+      <TfrNameSvg css={css.nameIcon} />
     </div>
   )
 }
