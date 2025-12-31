@@ -1,12 +1,15 @@
 import { ReactNode, useCallback, useRef, useState } from 'react'
-import { Button } from '@/components/button'
-import { Link } from '@/components/link'
+import { ButtonT } from '@/components/button'
+import { LinkT } from '@/components/link'
 import { ContentModal } from '@/components/modal'
+import { Text, TextT } from '@/components/text'
 import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
 import { useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
 import { OverlayName, OverlayProps } from '@/lib/view'
+
+const CONTACT_US_LINK = 'mailto:info@thefittingroom.tech?subject=Forgot%20Password%20Assistance'
 
 export interface ForgotPasswordOverlayProps extends OverlayProps {
   returnToOverlay?: OverlayName
@@ -20,7 +23,7 @@ export default function ForgotPasswordOverlay({ returnToOverlay }: ForgotPasswor
   const [emailError, setEmailError] = useState<string | null>(null)
   const [linkSent, setLinkSent] = useState(false)
   const css = useCss((theme) => ({
-    title: {
+    titleText: {
       fontSize: '20px',
     },
     form: {
@@ -39,10 +42,6 @@ export default function ForgotPasswordOverlay({ returnToOverlay }: ForgotPasswor
     inputError: {
       border: `1px solid ${theme.color_danger}`,
     },
-    inputErrorMessage: {
-      color: theme.color_danger,
-      fontSize: '14px',
-    },
     descriptionContainer: {
       marginTop: '48px',
       textAlign: 'center',
@@ -51,8 +50,10 @@ export default function ForgotPasswordOverlay({ returnToOverlay }: ForgotPasswor
       marginTop: '48px',
       height: '48px',
       padding: '8px 16px',
-      color: theme.color_tfr_800,
       boxShadow: '0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)',
+    },
+    linkSentText: {
+      color: theme.color_tfr_800,
     },
     emailContainer: {
       marginTop: '48px',
@@ -66,7 +67,6 @@ export default function ForgotPasswordOverlay({ returnToOverlay }: ForgotPasswor
     },
     contactContainer: {
       marginTop: '32px',
-      fontSize: '14px',
     },
   }))
 
@@ -103,15 +103,23 @@ export default function ForgotPasswordOverlay({ returnToOverlay }: ForgotPasswor
     openOverlay(OverlayName.SIGN_IN, { returnToOverlay })
   }, [returnToOverlay, openOverlay])
   const handleContactUsClick = useCallback(() => {
-    window.open('mailto:info@thefittingroom.tech?subject=Forgot%20Password%20Assistance')
+    window.open(CONTACT_US_LINK, '_blank')
   }, [])
 
-  const titleNode = <span css={css.title}>{t('forgot-password.title')}</span>
+  const titleNode = <TextT variant="base" css={css.titleText} t="forgot-password.title" />
   let descriptionNode: ReactNode
   if (linkSent) {
-    descriptionNode = <div css={css.linkSentContainer}>{t('forgot-password.link_sent')}</div>
+    descriptionNode = (
+      <div css={css.linkSentContainer}>
+        <TextT variant="base" css={css.linkSentText} t="forgot-password.link_sent" />
+      </div>
+    )
   } else {
-    descriptionNode = <div css={css.descriptionContainer}>{t('forgot-password.description')}</div>
+    descriptionNode = (
+      <div css={css.descriptionContainer}>
+        <TextT variant="base" t="forgot-password.description" />
+      </div>
+    )
   }
 
   return (
@@ -128,15 +136,14 @@ export default function ForgotPasswordOverlay({ returnToOverlay }: ForgotPasswor
             css={[css.input, emailError ? css.inputError : null]}
           />
         </div>
-        <div css={css.emailErrorContainer}>{emailError && <span css={css.inputErrorMessage}>{emailError}</span>}</div>
+        <div css={css.emailErrorContainer}>{emailError && <Text variant="error">{emailError}</Text>}</div>
         <div css={css.submitButtonContainer}>
-          <Button type="submit" variant="primary">
-            {t('forgot-password.send_link')}
-          </Button>
+          <ButtonT type="submit" variant="primary" t="forgot-password.send_link" />
         </div>
         <div css={css.contactContainer}>
-          <span>{t('forgot-password.need_help')}</span>{' '}
-          <Link variant="semibold" onClick={handleContactUsClick}>{t('forgot-password.contact_us')}</Link>
+          <TextT variant="base" t="forgot-password.need_help" />
+          &nbsp;
+          <LinkT variant="semibold" t="forgot-password.contact_us" onClick={handleContactUsClick} />
         </div>
       </form>
     </ContentModal>

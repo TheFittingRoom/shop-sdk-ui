@@ -1,9 +1,10 @@
 import { ReactNode, useCallback } from 'react'
-import { Link } from '@/components/link'
+import { Button } from '@/components/button'
+import { LinkT } from '@/components/link'
 import { ContentModal } from '@/components/modal'
+import { TextT } from '@/components/text'
 import { PoweredByFooter } from '@/components/content/powered-by-footer'
 import { getExternalAssetUrl } from '@/lib/asset'
-import { useTranslation } from '@/lib/locale'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
 import { OverlayName, OverlayProps } from '@/lib/view'
@@ -14,17 +15,15 @@ export interface GetAppOverlayProps extends OverlayProps {
 }
 
 export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverlayProps) {
-  const { t } = useTranslation()
   const closeOverlay = useMainStore((state) => state.closeOverlay)
   const openOverlay = useMainStore((state) => state.openOverlay)
   const deviceView = useMainStore((state) => state.deviceView)
   const css = useCss((theme) => ({
-    header: {
-      fontFamily: 'Times New Roman, serif',
-      fontSize: '32px',
+    titleText: {
+      textTransform: 'uppercase',
     },
-    description: {
-      fontSize: '14px',
+    headerText: {
+      fontSize: '32px',
     },
     getAppQrContainer: {
       marginTop: '16px',
@@ -38,16 +37,13 @@ export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverl
       justifyContent: 'space-around',
       gap: '16px',
     },
-    getAppMobileButton: {
-      backgroundColor: 'none',
-      border: 'none',
-      cursor: 'pointer',
-    },
     getAppMobileImage: {
       width: '150px',
     },
-    signIn: {
+    signInContainer: {
       marginTop: '32px',
+    },
+    signInText: {
       fontSize: '16px',
     },
     signInLink: {
@@ -70,46 +66,41 @@ export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverl
 
   let getAppNode: ReactNode
   switch (deviceView) {
-    case 'mobile': {
-      const appleStoreImageUrl = getExternalAssetUrl('get-app-apple-store.png')
-      const googlePlayImageUrl = getExternalAssetUrl('get-app-google-play.png')
+    case 'mobile':
       getAppNode = (
         <div css={css.getAppMobileContainer}>
-          <button css={css.getAppMobileButton} onClick={handleGetAppAppleClick}>
-            <img src={appleStoreImageUrl} alt="Apple Store" css={css.getAppMobileImage} />
-          </button>
-          <button css={css.getAppMobileButton} onClick={handleGetAppGoogleClick}>
-            <img src={googlePlayImageUrl} alt="Google Play" css={css.getAppMobileImage} />
-          </button>
+          <Button variant="base" onClick={handleGetAppAppleClick}>
+            <img src={getExternalAssetUrl('get-app-apple-store.png')} alt="Apple Store" css={css.getAppMobileImage} />
+          </Button>
+          <Button variant="base" onClick={handleGetAppGoogleClick}>
+            <img src={getExternalAssetUrl('get-app-google-play.png')} alt="Google Play" css={css.getAppMobileImage} />
+          </Button>
         </div>
       )
       break
-    }
-    default: {
-      const qrCodeImageUrl = getExternalAssetUrl('get-app-qr-code.png')
+    default:
       getAppNode = (
         <div css={css.getAppQrContainer}>
-          <img src={qrCodeImageUrl} alt="QR Code" css={css.getAppQrImage} />
+          <img src={getExternalAssetUrl('get-app-qr-code.png')} alt="QR Code" css={css.getAppQrImage} />
         </div>
       )
       break
-    }
   }
   return (
-    <ContentModal
-      onRequestClose={closeOverlay}
-      title={t('try_it_on')}
-    >
-      <div css={css.header}>{noAvatar ? t('get-app.create_avatar') : t('landing.get_the_app')}</div>
-      <div css={css.description}>{t('landing.description')}</div>
-      {getAppNode}
-      <div css={css.signIn}>
-        {t('landing.already_have_account')}{' '}
-        <Link onClick={handleSignInClick} variant="base" css={css.signInLink}>
-          {t('landing.sign_in')}
-        </Link>
+    <ContentModal onRequestClose={closeOverlay} title={<TextT variant="brand" css={css.titleText} t="try_it_on" />}>
+      <div>
+        <TextT variant="brand" css={css.headerText} t={noAvatar ? 'get-app.create_avatar' : 'landing.get_the_app'} />
       </div>
-      <PoweredByFooter/>
+      <div>
+        <TextT variant="base" t="landing.description" />
+      </div>
+      {getAppNode}
+      <div css={css.signInContainer}>
+        <TextT variant="base" css={css.signInText} t="landing.already_have_account" />
+        &nbsp;
+        <LinkT onClick={handleSignInClick} variant="base" css={css.signInLink} t="landing.sign_in" />
+      </div>
+      <PoweredByFooter />
     </ContentModal>
   )
 }

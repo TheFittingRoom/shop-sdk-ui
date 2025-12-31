@@ -1,7 +1,8 @@
 import { useCallback } from 'react'
-import { Button } from '@/components/button'
-import { Link } from '@/components/link'
+import { ButtonT } from '@/components/button'
+import { LinkT } from '@/components/link'
 import { ContentModal } from '@/components/modal'
+import { TextT } from '@/components/text'
 import { PoweredByFooter } from '@/components/content/powered-by-footer'
 import { getExternalAssetUrl } from '@/lib/asset'
 import { useTranslation } from '@/lib/locale'
@@ -18,8 +19,10 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
   const closeOverlay = useMainStore((state) => state.closeOverlay)
   const openOverlay = useMainStore((state) => state.openOverlay)
   const css = useCss((theme) => ({
-    header: {
-      fontFamily: 'Times New Roman, serif',
+    titleText: {
+      textTransform: 'uppercase',
+    },
+    headerText: {
       fontSize: '32px',
     },
     description: {
@@ -54,25 +57,23 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
   }, [returnToOverlay])
 
   return (
-    <ContentModal
-      onRequestClose={closeOverlay}
-      title={t('try_it_on')}
-    >
-      <div css={css.header}>{t('landing.header')}</div>
-      <div css={css.description}>{t('landing.description')}</div>
+    <ContentModal onRequestClose={closeOverlay} title={<TextT variant="brand" css={css.titleText} t="try_it_on" />}>
+      <div css={css.headerText}>
+        <TextT variant="brand" css={css.headerText} t={t('landing.header')} />
+      </div>
+      <div css={css.description}>
+        <TextT variant="base" t={t('landing.description')} />
+      </div>
       <div css={css.videoContainer}>
         <img src={videoThumbnailUrl} alt="intro video thumbnail" css={css.videoThumbnailImage} />
       </div>
       <div css={css.buttonContainer}>
-        <Button onClick={handleGetAppClick} variant="primary">
-          {t('landing.get_the_app')}
-        </Button>
+        <ButtonT onClick={handleGetAppClick} variant="primary" t="landing.get_the_app" />
       </div>
       <div css={css.signIn}>
-        {t('landing.already_have_account')}{' '}
-        <Link onClick={handleSignInClick} variant="base" css={css.signInLink}>
-          {t('landing.sign_in')}
-        </Link>
+        <TextT variant="base" t={t('landing.already_have_account')} />
+        &nbsp;
+        <LinkT onClick={handleSignInClick} variant="base" css={css.signInLink} t="landing.sign_in" />
       </div>
       <PoweredByFooter />
     </ContentModal>

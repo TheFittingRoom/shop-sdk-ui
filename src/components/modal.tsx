@@ -1,5 +1,6 @@
 import { CSSProperties, ReactNode } from 'react'
 import ModalBase from 'react-modal'
+import { Text } from '@/components/text'
 import { ArrowBackIcon, CloseIcon } from '@/lib/asset'
 import { useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
@@ -124,7 +125,6 @@ export function ContentModal({ onRequestClose, title, onBackClick, children }: C
   const css = useCss((_theme) => ({
     title: {
       textTransform: 'uppercase',
-      fontSize: '14px',
     },
     contentContainer: {
       maxWidth: '390px',
@@ -138,7 +138,7 @@ export function ContentModal({ onRequestClose, title, onBackClick, children }: C
   }))
   let titleNode: ReactNode
   if (typeof title === 'string') {
-    titleNode = <span css={css.title}>{title}</span>
+    titleNode = <Text variant="base" css={css.title}>{title}</Text>
   } else {
     titleNode = title
   }

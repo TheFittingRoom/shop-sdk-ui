@@ -1,4 +1,5 @@
 import { forwardRef } from 'react'
+import { useTranslation } from '@/lib/locale'
 import { CssProperties, useVariantCss } from '@/lib/theme'
 
 export type LinkVariant = 'base' | 'brand' | 'underline' | 'semibold'
@@ -43,3 +44,18 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(({ children, varian
   )
 })
 Link.displayName = 'Link'
+
+export interface LinkTProps extends Omit<LinkProps, 'children'> {
+  t: string
+  vars?: Record<string, string | number>
+}
+
+export function LinkT({ t, vars, ...props }: LinkTProps) {
+  const { t: translate } = useTranslation()
+  const translatedText = translate(t, vars)
+  return (
+    <Link {...props}>
+      {translatedText}
+    </Link>
+  )
+}

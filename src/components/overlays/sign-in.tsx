@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react'
 import { TfrTitle } from '@/components/content/tfr-title'
-import { Button } from '@/components/button'
-import { Link } from '@/components/link'
+import { ButtonT } from '@/components/button'
+import { LinkT } from '@/components/link'
 import { ContentModal } from '@/components/modal'
+import { Text, TextT } from '@/components/text'
 import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
 import { useMainStore } from '@/lib/store'
@@ -19,7 +20,7 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
   const openOverlay = useMainStore((state) => state.openOverlay)
   const [emailError, setEmailError] = useState<string | null>(null)
   const [passwordError, setPasswordError] = useState<string | null>(null)
-  const css = useCss((_theme) => ({
+  const css = useCss((theme) => ({
     form: {
       width: '100%',
       display: 'flex',
@@ -34,11 +35,7 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
       fontSize: '16px',
     },
     inputError: {
-      border: '1px solid #900B09',
-    },
-    inputErrorMessage: {
-      color: '#900B09',
-      fontSize: '14px',
+      border: `1px solid ${theme.color_danger}`,
     },
     emailContainer: {
       marginTop: '104px',
@@ -67,6 +64,8 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
       marginTop: '24px',
       marginLeft: 'auto',
       marginRight: 'auto',
+    },
+    noAccountText: {
       fontSize: '16px',
     },
     getAppLink: {
@@ -140,7 +139,7 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
             css={{ ...css.input, ...(emailError ? css.inputError : {}) }}
           />
         </div>
-        <div css={css.emailErrorContainer}>{emailError && <span css={css.inputErrorMessage}>{emailError}</span>}</div>
+        <div css={css.emailErrorContainer}>{emailError && <Text variant="error">{emailError}</Text>}</div>
         <div css={css.passwordContainer}>
           <input
             name="password"
@@ -151,23 +150,18 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
           />
         </div>
         <div css={css.passwordErrorContainer}>
-          {passwordError && <span css={css.inputErrorMessage}>{passwordError}</span>}
+          {passwordError && <Text variant="error">{passwordError}</Text>}
         </div>
         <div css={css.forgotPasswordContainer}>
-          <Link onClick={handleForgotPasswordClick} variant="underline" css={css.forgotPasswordLink}>
-            {t('sign-in.forgot_password')}
-          </Link>
+          <LinkT onClick={handleForgotPasswordClick} variant="underline" css={css.forgotPasswordLink} t="sign-in.forgot_password" />
         </div>
         <div css={css.signInButtonContainer}>
-          <Button type="submit" variant="primary">
-            {t('sign-in.sign_in')}
-          </Button>
+          <ButtonT type="submit" variant="primary" t="sign-in.sign_in" />
         </div>
         <div css={css.noAccountContainer}>
-          {t('sign-in.no_account')}{' '}
-          <Link onClick={handleGetAppClick} variant="semibold" css={css.getAppLink}>
-            {t('sign-in.download_app')}
-          </Link>
+          <TextT variant="base" css={css.noAccountText} t="sign-in.no_account" />
+          &nbsp;
+          <LinkT onClick={handleGetAppClick} variant="semibold" css={css.getAppLink} t="sign-in.download_app" />
         </div>
       </form>
     </ContentModal>

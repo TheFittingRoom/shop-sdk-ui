@@ -2,7 +2,7 @@ import { forwardRef } from 'react'
 import { useTranslation } from '@/lib/locale'
 import { CssProperties, useVariantCss } from '@/lib/theme'
 
-export type TextVariant = 'base' | 'brand'
+export type TextVariant = 'base' | 'brand' | 'error'
 
 export interface TextProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant: TextVariant
@@ -19,6 +19,10 @@ export const Text = forwardRef<HTMLSpanElement, TextProps>(({ children, variant,
     brand: {
       color: theme.color_fg_text,
       fontFamily: theme.brand_font_family,
+      fontSize: '14px',
+    },
+    error: {
+      color: theme.color_danger,
       fontSize: '14px',
     },
   }))
