@@ -1,13 +1,34 @@
 import { useEffect } from 'react'
-import { ContentModal } from '@/components/modal'
+import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
+import { useTranslation } from '@/lib/locale'
 import { useMainStore } from '@/lib/store'
+import { useCss } from '@/lib/theme'
 import { OverlayName } from '@/lib/view'
 
 export default function VtoSingleOverlay() {
+  const { t } = useTranslation()
   const userIsLoggedIn = useMainStore((state) => state.userIsLoggedIn)
   const userHasAvatar = useMainStore((state) => state.userHasAvatar)
   const openOverlay = useMainStore((state) => state.openOverlay)
   const closeOverlay = useMainStore((state) => state.closeOverlay)
+  const css = useCss((_theme) => ({
+    mainContainer: {
+      display: 'flex',
+      height: '100%',
+    },
+    leftContainer: {
+      width: '50%',
+    },
+    rightContainer: {
+      width: '50%',
+      padding: '16px',
+    },
+    contentContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+    },
+  }))
+
   useEffect(() => {
     if (!userIsLoggedIn) {
       openOverlay(OverlayName.LANDING, { returnToOverlay: OverlayName.VTO_SINGLE })
@@ -23,8 +44,14 @@ export default function VtoSingleOverlay() {
     return null
   }
   return (
-    <ContentModal onRequestClose={closeOverlay} title="Virtual Try-On">
-      vto-single content
-    </ContentModal>
+    <SidecarModalFrame onRequestClose={closeOverlay}>
+      <div css={css.mainContainer}>
+        <div css={css.leftContainer}>left</div>
+        <div css={css.rightContainer}>
+          <ModalTitlebar title={t('try_it_on')} onCloseClick={closeOverlay} />
+          <div css={css.contentContainer}>content</div>
+        </div>
+      </div>
+    </SidecarModalFrame>
   )
 }

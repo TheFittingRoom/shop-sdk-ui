@@ -54,35 +54,6 @@ export function ContentModal({ onRequestClose, title, onBackClick, children }: C
       backgroundColor: '#FFFFFF',
       padding: '16px',
     },
-    titlebar: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    titlebarBackButton: {
-      background: 'none',
-      border: 'none',
-      padding: 0,
-      cursor: 'pointer',
-    },
-    titlebarBackIcon: {
-      width: '24px',
-      height: '24px',
-    },
-    titlebarContent: {},
-    titlebarCloseButton: {
-      background: 'none',
-      border: 'none',
-      padding: 0,
-      cursor: 'pointer',
-    },
-    titlebarCloseIcon: {
-      width: '16px',
-      height: '16px',
-    },
-    titleText: {
-      textTransform: 'uppercase',
-    },
     body: {
       margin: '16px',
     },
@@ -94,6 +65,58 @@ export function ContentModal({ onRequestClose, title, onBackClick, children }: C
       flexDirection: 'column',
       gap: '0',
       alignItems: 'center',
+    },
+  }))
+
+  return (
+    <ModalFrame
+      isOpen
+      onRequestClose={onRequestClose}
+      contentStyle={deviceView === 'mobile' ? css.frameContentFullScreen : css.frameContentBase}
+    >
+      <ModalTitlebar title={title} onBackClick={onBackClick} onCloseClick={onRequestClose} />
+      <div css={css.body}>
+        <div css={css.contentContainer}>{children}</div>
+      </div>
+    </ModalFrame>
+  )
+}
+
+export interface ModalTitlebarProps {
+  title: ReactNode
+  onBackClick?: () => void
+  onCloseClick: () => void
+}
+
+export function ModalTitlebar({ title, onBackClick, onCloseClick }: ModalTitlebarProps) {
+  const css = useCss((_theme) => ({
+    container: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    backButton: {
+      background: 'none',
+      border: 'none',
+      padding: 0,
+      cursor: 'pointer',
+    },
+    backIcon: {
+      width: '24px',
+      height: '24px',
+    },
+    closeButton: {
+      background: 'none',
+      border: 'none',
+      padding: 0,
+      cursor: 'pointer',
+    },
+    closeIcon: {
+      width: '16px',
+      height: '16px',
+    },
+    titleText: {
+      textTransform: 'uppercase',
     },
   }))
 
@@ -110,8 +133,8 @@ export function ContentModal({ onRequestClose, title, onBackClick, children }: C
   let backNode: ReactNode
   if (onBackClick) {
     backNode = (
-      <button onClick={onBackClick} aria-label="Back" css={css.titlebarBackButton}>
-        <ArrowBackIcon css={css.titlebarBackIcon} />
+      <button onClick={onBackClick} aria-label="Back" css={css.backButton}>
+        <ArrowBackIcon css={css.backIcon} />
       </button>
     )
   } else {
@@ -119,21 +142,49 @@ export function ContentModal({ onRequestClose, title, onBackClick, children }: C
   }
 
   return (
+    <div css={css.container}>
+      {backNode}
+      <div>{titleNode}</div>
+      <button onClick={onCloseClick} aria-label="Close modal" css={css.closeButton}>
+        <CloseIcon css={css.closeIcon} />
+      </button>
+    </div>
+  )
+}
+
+export interface SidecarModalFrameProps {
+  onRequestClose: () => void
+  children: ReactNode
+}
+
+export function SidecarModalFrame({ onRequestClose, children }: SidecarModalFrameProps) {
+  const deviceView = useMainStore((state) => state.deviceView)
+  const css = useCss((_theme) => ({
+    frameContentBase: {
+      position: 'absolute',
+      inset: '0 0 auto auto',
+      width: 'min(1100px, 100vw)',
+      height: '100vh',
+      margin: 0,
+      padding: 0,
+      border: 'none',
+      backgroundColor: '#FFFFFF',
+    },
+    frameContentFullScreen: {
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      backgroundColor: '#FFFFFF',
+    },
+  }))
+  return (
     <ModalFrame
       isOpen
       onRequestClose={onRequestClose}
       contentStyle={deviceView === 'mobile' ? css.frameContentFullScreen : css.frameContentBase}
     >
-      <div css={css.titlebar}>
-        {backNode}
-        <div css={css.titlebarContent}>{title}</div>
-        <button onClick={onRequestClose} aria-label="Close modal" css={css.titlebarCloseButton}>
-          <CloseIcon css={css.titlebarCloseIcon} />
-        </button>
-      </div>
-      <div css={css.body}>
-        <div css={css.contentContainer}>{children}</div>
-      </div>
+      {children}
     </ModalFrame>
   )
 }

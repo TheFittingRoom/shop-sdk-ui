@@ -11,6 +11,7 @@ export default function VtoButtonWidget({}: WidgetProps) {
       marginTop: '10px',
       marginBottom: '10px',
       width: '100%',
+      maxWidth: '440px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
