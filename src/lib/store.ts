@@ -25,34 +25,31 @@ export function getStaticData(): StaticData {
 }
 
 export interface MainStoreState {
+  // Device info:
   deviceView: DeviceView
   setDeviceView: (deviceView: DeviceView) => void
-  activeOverlay: OverlayName | null
-  activeOverlayProps: Record<string, unknown> | null
-  openOverlay: (overlayName: OverlayName, props?: Record<string, unknown>) => void
-  closeOverlay: () => void
+
+  // User data:
   userIsLoggedIn: boolean
   setAuthUser: (authUser: AuthUser | null) => void
   userProfile: UserProfile | null
   userHasAvatar: boolean | null
   setUserProfile: (userProfile: UserProfile | null) => void
+
+  // UI state:
+  activeOverlay: OverlayName | null
+  activeOverlayProps: Record<string, unknown> | null
+  openOverlay: (overlayName: OverlayName, props?: Record<string, unknown>) => void
+  closeOverlay: () => void
+  openedOverlays: OverlayName[]
 }
 
 export const useMainStore = create<MainStoreState>((set) => ({
+  // Device info:
   deviceView: DeviceView.DESKTOP,
   setDeviceView: (deviceView: DeviceView) => set({ deviceView }),
-  activeOverlay: null,
-  activeOverlayProps: null,
-  openOverlay: (overlayName: OverlayName, props?: Record<string, unknown>) =>
-    set(() => ({
-      activeOverlay: overlayName,
-      activeOverlayProps: props || null,
-    })),
-  closeOverlay: () =>
-    set(() => ({
-      activeOverlay: null,
-      activeOverlayProps: null,
-    })),
+
+  // User data:
   userIsLoggedIn: false,
   setAuthUser: (authUser: AuthUser | null) => {
     const isLoggedIn = !!authUser
@@ -64,4 +61,25 @@ export const useMainStore = create<MainStoreState>((set) => ({
     const userHasAvatar = userProfile ? userProfile.avatar_status === 'CREATED' : null
     set({ userProfile, userHasAvatar })
   },
+
+  // UI state:
+  activeOverlay: null,
+  activeOverlayProps: null,
+  openOverlay: (overlayName: OverlayName, props?: Record<string, unknown>) =>
+    set((prevState) => {
+      const updateState: Partial<MainStoreState> = {
+        activeOverlay: overlayName,
+        activeOverlayProps: props || null,
+      }
+      if (!prevState.openedOverlays.includes(overlayName)) {
+        updateState.openedOverlays = [...prevState.openedOverlays, overlayName]
+      }
+      return updateState
+    }),
+  closeOverlay: () =>
+    set({
+      activeOverlay: null,
+      activeOverlayProps: null,
+    }),
+  openedOverlays: [],
 }))

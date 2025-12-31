@@ -3,15 +3,19 @@ import { CSSObject } from '@emotion/react'
 
 export interface ThemeData {
   brand_font_family: string
+  brand_link_text_decoration: string
   color_danger: string
   color_fg_text: string
   color_tfr_800: string
+  font_family: string
 }
 export const themeData: ThemeData = {
   brand_font_family: 'Assistant, sans-serif',
+  brand_link_text_decoration: 'underline',
   color_danger: '#900B09',
   color_fg_text: '#21201F',
   color_tfr_800: '#265A64',
+  font_family: 'sans-serif',
 }
 
 export function _init(initThemeData: Partial<ThemeData> | null) {

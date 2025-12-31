@@ -1,19 +1,21 @@
-import { TextT } from '@/components/text'
+import { useCallback } from 'react'
+import { LinkT } from '@/components/link'
 import { useSizeRecommendation } from '@/lib/api-hooks'
-import { useCss } from '@/lib/theme'
-import { WidgetProps } from '@/lib/view'
+import { useMainStore } from '@/lib/store'
+import { OverlayName, WidgetProps } from '@/lib/view'
 
 export default function SizeRecWidget({}: WidgetProps) {
+  const openOverlay = useMainStore((state) => state.openOverlay)
+  const openedOverlays = useMainStore((state) => state.openedOverlays)
   const recommendedSize = useSizeRecommendation()
-  const css = useCss((_theme) => ({
-    text: {
-      textDecoration: 'underline',
-    },
-  }))
+  const handleLinkClick = useCallback(() => {
+    openOverlay(OverlayName.VTO_SINGLE)
+  }, [])
 
-  if (!recommendedSize) {
+  const hasOpenedVtoSingleOverlay = openedOverlays.includes(OverlayName.VTO_SINGLE)
+  if (!recommendedSize || !hasOpenedVtoSingleOverlay) {
     return null
   }
 
-  return <TextT variant="brand" css={css.text} t="size_rec.recommend" vars={{ size: recommendedSize }} />
+  return <LinkT onClick={handleLinkClick} variant="brand" t="size_rec.recommend" vars={{ size: recommendedSize }} />
 }
