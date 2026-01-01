@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
+import { getStyleByExternalId, getColorwaySizeAssetsByStyleId } from '@/lib/database'
 import { useTranslation } from '@/lib/locale'
-import { useMainStore } from '@/lib/store'
+import { getStaticData, useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
 import { OverlayName } from '@/lib/view'
 
@@ -29,6 +30,7 @@ export default function VtoSingleOverlay() {
     },
   }))
 
+  // Redirect if not logged in or no avatar
   useEffect(() => {
     if (!userIsLoggedIn) {
       openOverlay(OverlayName.LANDING, { returnToOverlay: OverlayName.VTO_SINGLE })
@@ -40,7 +42,26 @@ export default function VtoSingleOverlay() {
     }
   }, [userIsLoggedIn, userHasAvatar, openOverlay])
 
-  if (!userIsLoggedIn) {
+  // api testing
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const { brandId, productExternalId } = getStaticData()
+        const style = await getStyleByExternalId(brandId, productExternalId)
+        if (!style) {
+          console.log('No style found for', productExternalId)
+          return
+        }
+        const colorwaySizeAssets = await getColorwaySizeAssetsByStyleId(brandId, style.id)
+        console.log('Fetched style and colorway size assets:', style, colorwaySizeAssets)
+      } catch (error) {
+        console.error('Error fetching VTO data:', error)
+      }
+    }
+    fetchData()
+  }, [userIsLoggedIn, userHasAvatar])
+
+  if (!userIsLoggedIn || !userHasAvatar) {
     return null
   }
 
