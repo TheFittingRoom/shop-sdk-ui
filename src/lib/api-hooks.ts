@@ -1,20 +1,24 @@
 import { useEffect, useState } from 'react'
-import { getSizeRecommendation as fetchSizeRecommendation } from '@/lib/api'
+import { getSizeRecommendation as apiGetSizeRecommendation, SizeFitRecommendation } from '@/lib/api'
 import { getStyleByExternalId } from '@/lib/database'
 import { getStaticData, useMainStore } from '@/lib/store'
 
-export async function getSizeRecommendation(brandId: number, productExternalId: string): Promise<string | null> {
+export type { SizeFitRecommendation }
+
+export async function getSizeRecommendation(
+  brandId: number,
+  productExternalId: string,
+): Promise<SizeFitRecommendation | null> {
   const style = await getStyleByExternalId(brandId, productExternalId)
+  console.log('Fetched style for size recommendation:', style)
   if (!style) {
     return null
   }
-  const styleId = style.id
-  const recommendation = await fetchSizeRecommendation(styleId)
-  return recommendation.recommended_size.label
+  return await apiGetSizeRecommendation(style.id)
 }
 
-export function useSizeRecommendation(): string | null {
-  const [recommendedSize, setRecommendedSize] = useState<string | null>(null)
+export function useSizeRecommendation(): SizeFitRecommendation | null {
+  const [recommendedSize, setRecommendedSize] = useState<SizeFitRecommendation | null>(null)
   const { brandId, productExternalId } = getStaticData()
   const { userHasAvatar } = useMainStore()
 
@@ -24,8 +28,8 @@ export function useSizeRecommendation(): string | null {
     }
     async function fetchSizeRec() {
       try {
-        const size = await getSizeRecommendation(brandId, productExternalId)
-        setRecommendedSize(size)
+        const sizeRecommendation = await getSizeRecommendation(brandId, productExternalId)
+        setRecommendedSize(sizeRecommendation)
       } catch (error) {
         console.error('[TFR] Error fetching size recommendation:', error)
         setRecommendedSize(null)

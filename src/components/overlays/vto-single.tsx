@@ -43,6 +43,7 @@ export default function VtoSingleOverlay() {
   if (!userIsLoggedIn) {
     return null
   }
+
   return (
     <SidecarModalFrame onRequestClose={closeOverlay}>
       <div css={css.mainContainer}>

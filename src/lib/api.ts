@@ -11,6 +11,8 @@ import {
 import { getAuthManager } from '@/lib/firebase'
 import { getStaticData, useMainStore } from '@/lib/store'
 
+export type { SizeFitRecommendation }
+
 let baseUrl: string
 let responseCache: { [key: string]: unknown } = {}
 
