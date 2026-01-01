@@ -10,20 +10,19 @@ export async function getSizeRecommendation(
   productExternalId: string,
 ): Promise<SizeFitRecommendation | null> {
   const style = await getStyleByExternalId(brandId, productExternalId)
-  console.log('Fetched style for size recommendation:', style)
   if (!style) {
     return null
   }
   return await apiGetSizeRecommendation(style.id)
 }
 
-export function useSizeRecommendation(): SizeFitRecommendation | null {
+export function useSizeRecommendation(load: boolean): SizeFitRecommendation | null {
   const [recommendedSize, setRecommendedSize] = useState<SizeFitRecommendation | null>(null)
   const { brandId, productExternalId } = getStaticData()
   const { userHasAvatar } = useMainStore()
 
   useEffect(() => {
-    if (!userHasAvatar) {
+    if (!load || !userHasAvatar) {
       return
     }
     async function fetchSizeRec() {
@@ -36,7 +35,7 @@ export function useSizeRecommendation(): SizeFitRecommendation | null {
       }
     }
     fetchSizeRec()
-  }, [brandId, productExternalId, userHasAvatar])
+  }, [load, brandId, productExternalId, userHasAvatar])
 
   return recommendedSize
 }

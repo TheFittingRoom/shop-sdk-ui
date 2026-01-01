@@ -7,12 +7,12 @@ import { OverlayName, WidgetProps } from '@/lib/view'
 export default function SizeRecWidget({}: WidgetProps) {
   const openOverlay = useMainStore((state) => state.openOverlay)
   const openedOverlays = useMainStore((state) => state.openedOverlays)
-  const sizeRecommendation = useSizeRecommendation()
+  const hasOpenedVtoSingleOverlay = openedOverlays.includes(OverlayName.VTO_SINGLE)
+  const sizeRecommendation = useSizeRecommendation(hasOpenedVtoSingleOverlay)
   const handleLinkClick = useCallback(() => {
     openOverlay(OverlayName.VTO_SINGLE)
   }, [])
 
-  const hasOpenedVtoSingleOverlay = openedOverlays.includes(OverlayName.VTO_SINGLE)
   if (!sizeRecommendation || !hasOpenedVtoSingleOverlay) {
     return null
   }
