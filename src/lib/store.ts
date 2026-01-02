@@ -3,9 +3,26 @@ import { Config } from '@/lib/config'
 import { AuthUser, UserProfile } from '@/lib/firebase'
 import { DeviceView, OverlayName } from '@/lib/view'
 
+export interface ExternalProductVariant {
+  sku: string
+  size: string
+  color: string
+  fullName: string
+  skuName: string
+}
+
+export interface ExternalProduct {
+  externalId: string
+  variants: ExternalProductVariant[]
+  getSelectedColor: () => string | null
+  setSelectedColor: (value: string) => void
+  getSelectedSize: () => string | null
+  setSelectedSize: (value: string) => void
+}
+
 export interface StaticData {
   brandId: number
-  productExternalId: string
+  currentProduct: ExternalProduct
   environment: string
   isMobileDevice: boolean
   config: Config

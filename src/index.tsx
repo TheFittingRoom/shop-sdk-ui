@@ -8,7 +8,7 @@ import { _init as initAsset } from '@/lib/asset'
 import { getConfig, EnvName } from '@/lib/config'
 import { _init as initFirebase, getAuthManager } from '@/lib/firebase'
 import { i18n } from '@/lib/locale'
-import { _init as initStore, useMainStore } from '@/lib/store'
+import { _init as initStore, useMainStore, ExternalProduct } from '@/lib/store'
 import { _init as initTheme, ThemeData } from '@/lib/theme'
 import { getDeviceView } from '@/lib/view'
 
@@ -37,20 +37,26 @@ class TfrWidgetElement extends HTMLElement {
 
 export interface InitParams {
   brandId: number
-  productExternalId: string | number
+  currentProduct: ExternalProduct
   environment: EnvName
   lang?: string | null
   theme?: Partial<ThemeData> | null
 }
 
-export async function init({ brandId, productExternalId, environment, lang = null, theme = null }: InitParams): Promise<boolean> {
+export async function init({
+  brandId,
+  currentProduct,
+  environment,
+  lang = null,
+  theme = null,
+}: InitParams): Promise<boolean> {
   try {
     // Validate init params
     if (!brandId || typeof brandId !== 'number' || isNaN(brandId) || brandId <= 0) {
       throw new Error(`Invalid brandId "${brandId}"`)
     }
-    if (!productExternalId || (typeof productExternalId !== 'string' && typeof productExternalId !== 'number')) {
-      throw new Error(`Invalid productExternalId "${productExternalId}"`)
+    if (!currentProduct || typeof currentProduct.externalId !== 'string') {
+      throw new Error('Invalid currentProduct')
     }
     if (!Object.values(EnvName).includes(environment)) {
       throw new Error(`Invalid environment "${environment}"`)
@@ -74,7 +80,7 @@ export async function init({ brandId, productExternalId, environment, lang = nul
     // Set static data
     initStore({
       brandId,
-      productExternalId: String(productExternalId),
+      currentProduct,
       environment,
       isMobileDevice,
       config,

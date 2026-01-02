@@ -26,25 +26,22 @@ export async function getStyleByExternalId(brandId: number, externalId: string):
   return record
 }
 
-export async function getColorwaySizeAssetsByStyleId(
-  brandId: number,
-  styleId: number,
-): Promise<FirestoreColorwaySizeAsset[]> {
-  const cacheKey = `getColorwaySizeAssetsByStyleId/${brandId}/${styleId}`
-  if (recordCache[cacheKey]) {
-    return recordCache[cacheKey] as FirestoreColorwaySizeAsset[]
-  }
+// currently unused
+// export async function getColorwaySizeAssetsByStyleId(styleId: number): Promise<FirestoreColorwaySizeAsset[]> {
+//   const cacheKey = `getColorwaySizeAssetsByStyleId/${styleId}`
+//   if (recordCache[cacheKey]) {
+//     return recordCache[cacheKey] as FirestoreColorwaySizeAsset[]
+//   }
 
-  const firestore = getFirestoreManager()
-  const querySnapshot = await firestore.queryDocs<FirestoreColorwaySizeAsset>('colorway_size_assets', [
-    where('brand_id', '==', brandId),
-    where('style_id', '==', styleId),
-  ])
+//   const firestore = getFirestoreManager()
+//   const querySnapshot = await firestore.queryDocs<FirestoreColorwaySizeAsset>('colorway_size_assets', [
+//     where('style_id', '==', styleId),
+//   ])
 
-  const records: FirestoreColorwaySizeAsset[] = []
-  querySnapshot.forEach((doc) => {
-    records.push(doc.data())
-  })
-  recordCache[cacheKey] = records
-  return records
-}
+//   const records: FirestoreColorwaySizeAsset[] = []
+//   querySnapshot.forEach((doc) => {
+//     records.push(doc.data())
+//   })
+//   recordCache[cacheKey] = records
+//   return records
+// }

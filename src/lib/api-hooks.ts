@@ -18,7 +18,7 @@ export async function getSizeRecommendation(
 
 export function useSizeRecommendation(load: boolean): SizeFitRecommendation | null {
   const [recommendedSize, setRecommendedSize] = useState<SizeFitRecommendation | null>(null)
-  const { brandId, productExternalId } = getStaticData()
+  const { brandId, currentProduct } = getStaticData()
   const { userHasAvatar } = useMainStore()
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export function useSizeRecommendation(load: boolean): SizeFitRecommendation | nu
     }
     async function fetchSizeRec() {
       try {
-        const sizeRecommendation = await getSizeRecommendation(brandId, productExternalId)
+        const sizeRecommendation = await getSizeRecommendation(brandId, currentProduct.externalId)
         setRecommendedSize(sizeRecommendation)
       } catch (error) {
         console.error('[TFR] Error fetching size recommendation:', error)
@@ -35,7 +35,7 @@ export function useSizeRecommendation(load: boolean): SizeFitRecommendation | nu
       }
     }
     fetchSizeRec()
-  }, [load, brandId, productExternalId, userHasAvatar])
+  }, [load, brandId, currentProduct, userHasAvatar])
 
   return recommendedSize
 }

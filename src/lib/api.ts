@@ -6,12 +6,14 @@ import {
   // FirestoreStyleCategory,
   // FirestoreStyleGarmentCategory,
   // FirestoreUser,
+  ColorwaySizeAsset,
+  Size,
   SizeFitRecommendation,
 } from '@/api/gen/responses'
 import { getAuthManager } from '@/lib/firebase'
 import { getStaticData, useMainStore } from '@/lib/store'
 
-export type { SizeFitRecommendation }
+export type { ColorwaySizeAsset, Size, SizeFitRecommendation }
 
 let baseUrl: string
 let responseCache: { [key: string]: unknown } = {}
@@ -78,10 +80,19 @@ async function execApiRequest<T>(params: ApiRequestParams): Promise<T> {
 }
 
 export async function getSizeRecommendation(styleId: number): Promise<SizeFitRecommendation> {
-  return execApiRequest<SizeFitRecommendation>({
+  return await execApiRequest<SizeFitRecommendation>({
     useCache: true,
     useToken: true,
     method: 'GET',
     endpoint: `/v1/styles/${styleId}/recommendation`,
+  })
+}
+
+export async function requestVtoSingle(colorwaySizeAssetId: number) {
+  await execApiRequest<{}>({
+    useCache: true, // although this is a POST, we only want to send it once
+    useToken: true,
+    method: 'POST',
+    endpoint: `/v1/colorway-size-assets/${colorwaySizeAssetId}/frames`,
   })
 }
