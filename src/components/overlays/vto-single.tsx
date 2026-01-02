@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
+import { TextT } from '@/components/text'
 import { getSizeRecommendation, requestVtoSingle, Size } from '@/lib/api'
+import { ChevronLeftIcon, ChevronRightIcon } from '@/lib/asset'
 import { getStyleByExternalId } from '@/lib/database'
 import { useTranslation } from '@/lib/locale'
 import { getStaticData, useMainStore } from '@/lib/store'
@@ -168,7 +170,22 @@ export default function VtoSingleOverlay() {
     if (!userProfile || !selectedColorSizeRec) {
       return null
     }
-    return userProfile.vto?.[brandId]?.[selectedColorSizeRec.sku] ?? null
+
+    // Lookup VTO data from user profile
+    const vtoData = userProfile.vto?.[brandId]?.[selectedColorSizeRec.sku]
+    if (!vtoData) {
+      return null
+    }
+
+    // Preload frame images
+    if (vtoData.frames) {
+      vtoData.frames.forEach((frameUrl) => {
+        const img = new Image()
+        img.src = frameUrl
+      })
+    }
+
+    return vtoData
   }, [selectedColorSizeRec, userProfile])
   const frameUrls = vtoData?.frames ?? null
 
@@ -199,24 +216,70 @@ interface VtoAvatarViewProps {
 
 function VtoAvatarView({ frameUrls }: VtoAvatarViewProps) {
   const [selectedFrameIndex, setSelectedFrameIndex] = useState<number>(0)
-  const css = useCss((_theme) => ({
-    container: {
+  const css = useCss((theme) => ({
+    topContainer: {
       width: '100%',
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'start',
       backgroundColor: '#f0f0f0',
     },
+    imageContainer: {
+      display: 'flex',
+      position: 'absolute',
+    },
     image: {
-      maxWidth: '100%',
-      maxHeight: 'calc(100% - 64px)',
+      width: '100%',
+      height: 'auto',
+    },
+    chevronLeftContainer: {
+      position: 'absolute',
+      top: '50%',
+      left: '16px',
+      transform: 'translateY(-50%)',
+      cursor: 'pointer',
+    },
+    chevronRightContainer: {
+      position: 'absolute',
+      top: '50%',
+      right: '16px',
+      transform: 'translateY(-50%)',
+      cursor: 'pointer',
+    },
+    chevronIcon: {
+      width: '48px',
+      height: '48px',
     },
     sliderContainer: {
-      height: '64px',
+      position: 'absolute',
+      bottom: '0px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingBottom: '32px',
+    },
+    sliderInput: {
+      width: '300px',
+      accentColor: theme.color_tfr_800,
+    },
+    sliderText: {
+      color: '#303030',
     }
   }))
+
+  const rotateLeft = useCallback(() => {
+    setSelectedFrameIndex((prevIndex) =>
+      prevIndex === 0 ? (frameUrls ? frameUrls.length - 1 : 0) : prevIndex - 1
+    )
+  }, [frameUrls])
+  const rotateRight = useCallback(() => {
+    setSelectedFrameIndex((prevIndex) =>
+      prevIndex === (frameUrls ? frameUrls.length - 1 : 0) ? 0 : prevIndex + 1
+    )
+  }, [frameUrls])
 
   // RENDERING:
 
@@ -224,8 +287,16 @@ function VtoAvatarView({ frameUrls }: VtoAvatarViewProps) {
     return <div>loading</div>
   }
   return (
-    <div css={css.container}>
-      <img src={frameUrls[selectedFrameIndex!]} css={css.image} />
+    <div css={css.topContainer}>
+      <div css={css.imageContainer}>
+        <img src={frameUrls[selectedFrameIndex]} css={css.image} />
+        <div css={css.chevronLeftContainer} onClick={rotateLeft}>
+          <ChevronLeftIcon css={css.chevronIcon} />
+        </div>
+        <div css={css.chevronRightContainer} onClick={rotateRight}>
+          <ChevronRightIcon css={css.chevronIcon} />
+        </div>
+      </div>
       <div css={css.sliderContainer}>
         <input
           type="range"
@@ -234,7 +305,9 @@ function VtoAvatarView({ frameUrls }: VtoAvatarViewProps) {
           step={1}
           value={selectedFrameIndex}
           onChange={(e) => setSelectedFrameIndex(Number(e.target.value))}
+          css={css.sliderInput}
         />
+        <TextT variant="base" t="vto-single.slide_to_rotate" css={css.sliderText} />
       </div>
     </div>
   )

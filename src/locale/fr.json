@@ -32,5 +32,8 @@
     "link_sent": "Lien envoyé ! Veuillez vérifier votre e-mail.",
     "need_help": "Besoin d'aide ?",
     "contact_us": "Contactez-nous."
+  },
+  "vto-single": {
+    "slide_to_rotate": "Faites glisser pour faire pivoter"
   }
 }
