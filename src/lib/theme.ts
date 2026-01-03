@@ -4,6 +4,8 @@ import { CSSObject } from '@emotion/react'
 export interface ThemeData {
   brand_font_family: string
   brand_link_text_decoration: string
+  brand_button_background_color: string
+  brand_button_text_color: string
   color_danger: string
   color_fg_text: string
   color_tfr_800: string
@@ -12,6 +14,8 @@ export interface ThemeData {
 export const themeData: ThemeData = {
   brand_font_family: 'Assistant, sans-serif',
   brand_link_text_decoration: 'underline',
+  brand_button_background_color: '#21201F',
+  brand_button_text_color: '#FFFFFF',
   color_danger: '#900B09',
   color_fg_text: '#21201F',
   color_tfr_800: '#265A64',

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ButtonT } from '@/components/button'
 import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
 import { LinkT } from '@/components/link'
 import { Text, TextT } from '@/components/text'
@@ -72,7 +73,7 @@ export default function VtoSingleOverlay() {
       flexGrow: 1,
       display: 'flex',
       flexDirection: 'column',
-      padding: '16px 32px',
+      padding: '16px 48px',
     },
     productNameContainer: {},
     productNameText: {
@@ -103,7 +104,7 @@ export default function VtoSingleOverlay() {
       marginTop: '16px',
     },
     descriptionContainer: {
-      marginTop: '16px',
+      marginTop: '32px',
     },
     descriptionText: {
       fontSize: '12px',
@@ -271,6 +272,13 @@ export default function VtoSingleOverlay() {
       logger.logError('Error during logout:', error)
     })
   }, [closeOverlay, openOverlay])
+  const handleColorSelectChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newColorLabel = e.target.value || null
+    setSelectedColorLabel(newColorLabel)
+  }, [])
+  const handleAddToCartClick = useCallback(() => {
+    console.log('Add to cart clicked')
+  }, [])
 
   // RENDERING:
 
@@ -304,11 +312,7 @@ export default function VtoSingleOverlay() {
             <div css={css.colorContainer}>
               <label>
                 <TextT variant="base" css={css.colorLabelText} t="vto-single.color_label" />
-                <select
-                  value={selectedColorLabel ?? ''}
-                  onChange={(e) => setSelectedColorLabel(e.target.value || null)}
-                  css={css.colorSelect}
-                >
+                <select value={selectedColorLabel ?? ''} onChange={handleColorSelectChange} css={css.colorSelect}>
                   {availableColorLabels.map((colorLabel) => (
                     <option key={colorLabel} value={colorLabel}>
                       {colorLabel}
@@ -318,9 +322,13 @@ export default function VtoSingleOverlay() {
               </label>
             </div>
             <div css={css.sizeRecContainer}>size-rec</div>
-            <div css={css.buttonContainer}>buttons</div>
+            <div css={css.buttonContainer}>
+              <ButtonT variant="brand" t="vto-single.add_to_cart" onClick={handleAddToCartClick} />
+            </div>
             <div css={css.descriptionContainer}>
-              <Text variant="base" css={css.descriptionText}><span dangerouslySetInnerHTML={{ __html: loadedProductData.productDescriptionHtml }} /></Text>
+              <Text variant="base" css={css.descriptionText}>
+                <span dangerouslySetInnerHTML={{ __html: loadedProductData.productDescriptionHtml }} />
+              </Text>
             </div>
           </div>
           <div css={css.footerContainer}>

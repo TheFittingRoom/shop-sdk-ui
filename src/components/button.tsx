@@ -2,7 +2,7 @@ import { forwardRef } from 'react'
 import { useTranslation } from '@/lib/locale'
 import { CssProperties, useVariantCss } from '@/lib/theme'
 
-export type ButtonVariant = 'base' | 'primary'
+export type ButtonVariant = 'base' | 'primary' | 'brand'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant: ButtonVariant
@@ -22,6 +22,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         width: '100%',
         backgroundColor: theme.color_tfr_800,
         color: '#FFFFFF',
+        border: 'none',
+        borderRadius: '25px',
+        padding: '16px 24px',
+        cursor: 'pointer',
+        fontSize: '16px',
+        fontWeight: 'bold',
+      },
+      brand: {
+        display: 'block',
+        width: '100%',
+        backgroundColor: theme.brand_button_background_color,
+        color: theme.brand_button_text_color,
         border: 'none',
         borderRadius: '25px',
         padding: '16px 24px',
