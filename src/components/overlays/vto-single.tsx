@@ -27,6 +27,7 @@ interface LoadedSizeData {
 
 interface LoadedProductData {
   productName: string
+  productDescriptionHtml: string
   recommendedSizeId: number
   recommendedSizeLabel: string
   sizes: LoadedSizeData[]
@@ -80,9 +81,30 @@ export default function VtoSingleOverlay() {
     priceText: {
       fontSize: '18px',
     },
-    colorSelectContainer: {},
-    sizeRecContainer: {},
-    buttonContainer: {},
+    colorContainer: {
+      marginTop: '16px',
+    },
+    colorLabelText: {
+      fontSize: '12px',
+    },
+    colorSelect: {
+      border: 'none',
+      color: theme.color_fg_text,
+      fontFamily: theme.font_family,
+      fontSize: '12px',
+    },
+    sizeRecContainer: {
+      marginTop: '16px',
+    },
+    buttonContainer: {
+      marginTop: '16px',
+    },
+    descriptionContainer: {
+      marginTop: '16px',
+    },
+    descriptionText: {
+      fontSize: '12px',
+    },
     footerContainer: {
       width: '50%',
       position: 'absolute',
@@ -123,7 +145,7 @@ export default function VtoSingleOverlay() {
         const { currentProduct } = getStaticData()
 
         // Get external product data and user selections
-        const { productName, variants } = currentProduct
+        const { productName, productDescriptionHtml, variants } = currentProduct
         const selectedColor = currentProduct.getSelectedColor()
 
         // Fetch style and size recommendation
@@ -132,14 +154,14 @@ export default function VtoSingleOverlay() {
           console.error('[TFR] Style not found for externalId:', currentProduct.externalId)
           return
         }
-        const sizeRecommendationRec = await getSizeRecommendation(styleRec.id)
+        const sizeRecommendationRecord = await getSizeRecommendation(styleRec.id)
 
         // Assemble loaded product data
         let productData: LoadedProductData
-        const recommendedSizeLabel = getSizeLabelFromSize(sizeRecommendationRec.recommended_size)
+        const recommendedSizeLabel = getSizeLabelFromSize(sizeRecommendationRecord.recommended_size)
         {
-          const recommendedSizeId = sizeRecommendationRec.recommended_size.id
-          const sizes: LoadedSizeData[] = sizeRecommendationRec.available_sizes.map((sizeRec) => {
+          const recommendedSizeId = sizeRecommendationRecord.recommended_size.id
+          const sizes: LoadedSizeData[] = sizeRecommendationRecord.available_sizes.map((sizeRec) => {
             const sizeId = sizeRec.id
             const sizeLabel = getSizeLabelFromSize(sizeRec)
             const isRecommended = sizeRec.id === recommendedSizeId
@@ -169,6 +191,7 @@ export default function VtoSingleOverlay() {
           })
           productData = {
             productName,
+            productDescriptionHtml,
             recommendedSizeId,
             recommendedSizeLabel,
             sizes,
@@ -176,12 +199,12 @@ export default function VtoSingleOverlay() {
         }
         let recommendedColorLabel: string
         {
-          const recommendedSizeRec = productData.sizes.find((s) => s.isRecommended)!
-          const recommendedColorRec =
-            recommendedSizeRec.colors.find((c) => {
+          const recommendedSizeRecord = productData.sizes.find((s) => s.isRecommended)!
+          const recommendedColorRecord =
+            recommendedSizeRecord.colors.find((c) => {
               return c.colorLabel === selectedColor
-            }) || recommendedSizeRec.colors[0]
-          recommendedColorLabel = recommendedColorRec.colorLabel
+            }) || recommendedSizeRecord.colors[0]
+          recommendedColorLabel = recommendedColorRecord.colorLabel
         }
         setLoadedProductData(productData)
         setSelectedSizeLabel(recommendedSizeLabel)
@@ -194,32 +217,34 @@ export default function VtoSingleOverlay() {
   }, [userIsLoggedIn, userHasAvatar])
 
   // Derive selected color/size data from selections
-  const selectedColorSizeRec = useMemo<LoadedSizeColorData | null>(() => {
+  const { sizeColorRecord: selectedColorSizeRecord, availableColorLabels } = useMemo(() => {
     if (!loadedProductData) {
-      return null
+      return { sizeColorRecord: null, availableColorLabels: [] }
     }
-    const sizeRec = loadedProductData.sizes.find((s) => s.sizeLabel === selectedSizeLabel)
-    if (!sizeRec) {
-      return null
+    const sizeRecord = loadedProductData.sizes.find((s) => s.sizeLabel === selectedSizeLabel)
+    if (!sizeRecord) {
+      return { sizeColorRecord: null, availableColorLabels: [] }
     }
-    return sizeRec.colors.find((c) => c.colorLabel === selectedColorLabel) ?? null
+    const sizeColorRecord = sizeRecord.colors.find((c) => c.colorLabel === selectedColorLabel) ?? null
+    const availableColorLabels = sizeRecord.colors.map((c) => c.colorLabel)
+    return { sizeColorRecord, availableColorLabels }
   }, [loadedProductData, selectedSizeLabel, selectedColorLabel])
 
   // Trigger VTO request when size/color selection changes
   useEffect(() => {
-    if (selectedColorSizeRec) {
-      requestVtoSingle(selectedColorSizeRec.colorwaySizeAssetId)
+    if (selectedColorSizeRecord) {
+      requestVtoSingle(selectedColorSizeRecord.colorwaySizeAssetId)
     }
-  }, [selectedColorSizeRec])
+  }, [selectedColorSizeRecord])
 
   // Lookup VTO frames when user profile changes
   const vtoData = useMemo(() => {
-    if (!userProfile || !selectedColorSizeRec) {
+    if (!userProfile || !selectedColorSizeRecord) {
       return null
     }
 
     // Lookup VTO data from user profile
-    const vtoData = userProfile.vto?.[brandId]?.[selectedColorSizeRec.sku]
+    const vtoData = userProfile.vto?.[brandId]?.[selectedColorSizeRecord.sku]
     if (!vtoData) {
       return null
     }
@@ -233,7 +258,7 @@ export default function VtoSingleOverlay() {
     }
 
     return vtoData
-  }, [selectedColorSizeRec, userProfile])
+  }, [selectedColorSizeRecord, userProfile])
   const frameUrls = vtoData?.frames ?? null
 
   const handleSignOutClick = useCallback(() => {
@@ -246,7 +271,7 @@ export default function VtoSingleOverlay() {
 
   // RENDERING:
 
-  if (!userIsLoggedIn || !userHasAvatar || !loadedProductData || !selectedColorSizeRec) {
+  if (!userIsLoggedIn || !userHasAvatar || !loadedProductData || !selectedColorSizeRecord) {
     return (
       <SidecarModalFrame onRequestClose={closeOverlay}>
         <div>loading</div>
@@ -270,12 +295,30 @@ export default function VtoSingleOverlay() {
             </div>
             <div css={css.priceContainer}>
               <Text variant="base" css={css.priceText}>
-                {selectedColorSizeRec.priceFormatted}
+                {selectedColorSizeRecord.priceFormatted}
               </Text>
             </div>
-            <div css={css.colorSelectContainer}>color-select</div>
+            <div css={css.colorContainer}>
+              <label>
+                <TextT variant="base" css={css.colorLabelText} t="vto-single.color_label" />
+                <select
+                  value={selectedColorLabel ?? ''}
+                  onChange={(e) => setSelectedColorLabel(e.target.value || null)}
+                  css={css.colorSelect}
+                >
+                  {availableColorLabels.map((colorLabel) => (
+                    <option key={colorLabel} value={colorLabel}>
+                      {colorLabel}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
             <div css={css.sizeRecContainer}>size-rec</div>
             <div css={css.buttonContainer}>buttons</div>
+            <div css={css.descriptionContainer}>
+              <Text variant="base" css={css.descriptionText}><span dangerouslySetInnerHTML={{ __html: loadedProductData.productDescriptionHtml }} /></Text>
+            </div>
           </div>
           <div css={css.footerContainer}>
             <LinkT

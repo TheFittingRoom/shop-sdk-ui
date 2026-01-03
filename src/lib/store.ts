@@ -14,6 +14,7 @@ export interface ExternalProductVariant {
 
 export interface ExternalProduct {
   productName: string
+  productDescriptionHtml: string
   externalId: string
   variants: ExternalProductVariant[]
   getSelectedColor: () => string | null

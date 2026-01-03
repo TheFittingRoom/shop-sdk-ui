@@ -37,6 +37,7 @@
   },
   "vto-single": {
     "slide_to_rotate": "Slide to rotate",
-    "sign_out": "Sign out"
+    "sign_out": "Sign out",
+    "color_label": "Color:"
   }
 }
