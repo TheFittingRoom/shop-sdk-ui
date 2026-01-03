@@ -21,7 +21,7 @@ export default function SizeRecWidget({}: WidgetProps) {
     <LinkT
       onClick={handleLinkClick}
       variant="brand"
-      t="size_rec.recommend"
+      t="widget.size_rec.recommend"
       vars={{ size: sizeRecommendation.recommended_size.label }}
     />
   )

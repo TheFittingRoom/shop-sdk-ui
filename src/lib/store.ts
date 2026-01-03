@@ -9,9 +9,11 @@ export interface ExternalProductVariant {
   color: string
   fullName: string
   skuName: string
+  priceFormatted: string
 }
 
 export interface ExternalProduct {
+  productName: string
   externalId: string
   variants: ExternalProductVariant[]
   getSelectedColor: () => string | null

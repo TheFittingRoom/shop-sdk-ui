@@ -70,7 +70,12 @@ async function execApiRequest<T>(params: ApiRequestParams): Promise<T> {
   if (!response.ok) {
     throw new Error(`API request failed with status ${response.status}`)
   }
-  const data = (await response.json()) as T
+  let data: T
+  if (response.status === 204) {
+    data = { noResponse: true } as T
+  } else {
+    data = (await response.json()) as T
+  }
 
   if (useCache) {
     responseCache[url] = data
@@ -89,7 +94,7 @@ export async function getSizeRecommendation(styleId: number): Promise<SizeFitRec
 }
 
 export async function requestVtoSingle(colorwaySizeAssetId: number) {
-  await execApiRequest<{}>({
+  await execApiRequest<void>({
     useCache: true, // although this is a POST, we only want to send it once
     useToken: true,
     method: 'POST',

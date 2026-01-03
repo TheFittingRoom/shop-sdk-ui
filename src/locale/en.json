@@ -1,8 +1,10 @@
 {
   "try_it_on": "Try It On",
   "powered_by": "Powered by",
-  "size_rec": {
-    "recommend": "Recommended Size: {{size}}"
+  "widget": {
+    "size_rec": {
+      "recommend": "Recommended Size: {{size}}"
+    }
   },
   "landing": {
     "header": "Meet your mini me!",
@@ -34,6 +36,7 @@
     "contact_us": "Contact us."
   },
   "vto-single": {
-    "slide_to_rotate": "Slide to rotate"
+    "slide_to_rotate": "Slide to rotate",
+    "sign_out": "Sign out"
   }
 }

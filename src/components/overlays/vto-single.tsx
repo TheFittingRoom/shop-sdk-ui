@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
-import { TextT } from '@/components/text'
+import { LinkT } from '@/components/link'
+import { Text, TextT } from '@/components/text'
 import { getSizeRecommendation, requestVtoSingle, Size } from '@/lib/api'
-import { ChevronLeftIcon, ChevronRightIcon } from '@/lib/asset'
+import { ChevronLeftIcon, ChevronRightIcon, TfrNameSvg } from '@/lib/asset'
 import { getStyleByExternalId } from '@/lib/database'
+import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
@@ -13,6 +15,7 @@ interface LoadedSizeColorData {
   colorwaySizeAssetId: number
   colorLabel: string
   sku: string
+  priceFormatted: string
 }
 
 interface LoadedSizeData {
@@ -23,6 +26,7 @@ interface LoadedSizeData {
 }
 
 interface LoadedProductData {
+  productName: string
   recommendedSizeId: number
   recommendedSizeLabel: string
   sizes: LoadedSizeData[]
@@ -46,7 +50,7 @@ export default function VtoSingleOverlay() {
   const [loadedProductData, setLoadedProductData] = useState<LoadedProductData | null>(null)
   const [selectedSizeLabel, setSelectedSizeLabel] = useState<string | null>(null)
   const [selectedColorLabel, setSelectedColorLabel] = useState<string | null>(null)
-  const css = useCss((_theme) => ({
+  const css = useCss((theme) => ({
     mainContainer: {
       display: 'flex',
       height: '100%',
@@ -57,10 +61,46 @@ export default function VtoSingleOverlay() {
     rightContainer: {
       width: '50%',
       padding: '16px',
-    },
-    contentContainer: {
       display: 'flex',
       flexDirection: 'column',
+    },
+    contentContainer: {
+      flexGrow: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      padding: '16px 32px',
+    },
+    productNameContainer: {},
+    productNameText: {
+      fontSize: '32px',
+    },
+    priceContainer: {
+      marginTop: '8px',
+    },
+    priceText: {
+      fontSize: '18px',
+    },
+    colorSelectContainer: {},
+    sizeRecContainer: {},
+    buttonContainer: {},
+    footerContainer: {
+      width: '50%',
+      position: 'absolute',
+      bottom: '16px',
+      marginLeft: 'auto',
+      marginRight: 'auto',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: '4px',
+    },
+    footerSignOutLink: {
+      fontSize: '10px',
+      color: theme.color_tfr_800,
+    },
+    footerTfrIcon: {
+      width: '100px',
+      height: '24px',
     },
   }))
 
@@ -83,7 +123,7 @@ export default function VtoSingleOverlay() {
         const { currentProduct } = getStaticData()
 
         // Get external product data and user selections
-        const variants = currentProduct.variants
+        const { productName, variants } = currentProduct
         const selectedColor = currentProduct.getSelectedColor()
 
         // Fetch style and size recommendation
@@ -103,17 +143,23 @@ export default function VtoSingleOverlay() {
             const sizeId = sizeRec.id
             const sizeLabel = getSizeLabelFromSize(sizeRec)
             const isRecommended = sizeRec.id === recommendedSizeId
-            const colors: LoadedSizeColorData[] = sizeRec.colorway_size_assets.map((csaRec) => {
+            const colors: LoadedSizeColorData[] = []
+            for (const csaRec of sizeRec.colorway_size_assets) {
               const colorwaySizeAssetId = csaRec.id
               const sku = csaRec.sku
               const variant = variants.find((v) => v.sku === sku)
-              const colorLabel = (variant ? variant.color : csaRec.colorway_name) || '(unknown color)'
-              return {
+              if (!variant) {
+                continue
+              }
+              const colorLabel = variant.color
+              const priceFormatted = variant.priceFormatted
+              colors.push({
                 colorwaySizeAssetId,
                 colorLabel,
                 sku,
-              }
-            })
+                priceFormatted,
+              })
+            }
             return {
               sizeId,
               sizeLabel,
@@ -122,6 +168,7 @@ export default function VtoSingleOverlay() {
             }
           })
           productData = {
+            productName,
             recommendedSizeId,
             recommendedSizeLabel,
             sizes,
@@ -189,10 +236,22 @@ export default function VtoSingleOverlay() {
   }, [selectedColorSizeRec, userProfile])
   const frameUrls = vtoData?.frames ?? null
 
+  const handleSignOutClick = useCallback(() => {
+    closeOverlay()
+    const authManager = getAuthManager()
+    authManager.logout().catch((error) => {
+      console.error('[TFR] Error during logout:', error)
+    })
+  }, [closeOverlay, openOverlay])
+
   // RENDERING:
 
-  if (!userIsLoggedIn || !userHasAvatar) {
-    return null
+  if (!userIsLoggedIn || !userHasAvatar || !loadedProductData || !selectedColorSizeRec) {
+    return (
+      <SidecarModalFrame onRequestClose={closeOverlay}>
+        <div>loading</div>
+      </SidecarModalFrame>
+    )
   }
 
   return (
@@ -203,7 +262,30 @@ export default function VtoSingleOverlay() {
         </div>
         <div css={css.rightContainer}>
           <ModalTitlebar title={t('try_it_on')} onCloseClick={closeOverlay} />
-          <div css={css.contentContainer}>content</div>
+          <div css={css.contentContainer}>
+            <div css={css.productNameContainer}>
+              <Text variant="brand" css={css.productNameText}>
+                {loadedProductData.productName}
+              </Text>
+            </div>
+            <div css={css.priceContainer}>
+              <Text variant="base" css={css.priceText}>
+                {selectedColorSizeRec.priceFormatted}
+              </Text>
+            </div>
+            <div css={css.colorSelectContainer}>color-select</div>
+            <div css={css.sizeRecContainer}>size-rec</div>
+            <div css={css.buttonContainer}>buttons</div>
+          </div>
+          <div css={css.footerContainer}>
+            <LinkT
+              variant="underline"
+              css={css.footerSignOutLink}
+              onClick={handleSignOutClick}
+              t="vto-single.sign_out"
+            />
+            <TfrNameSvg css={css.footerTfrIcon} />
+          </div>
         </div>
       </div>
     </SidecarModalFrame>
@@ -233,6 +315,7 @@ function VtoAvatarView({ frameUrls }: VtoAvatarViewProps) {
     image: {
       width: '100%',
       height: 'auto',
+      cursor: 'grab',
     },
     chevronLeftContainer: {
       position: 'absolute',
@@ -267,19 +350,42 @@ function VtoAvatarView({ frameUrls }: VtoAvatarViewProps) {
     },
     sliderText: {
       color: '#303030',
-    }
+    },
   }))
 
   const rotateLeft = useCallback(() => {
-    setSelectedFrameIndex((prevIndex) =>
-      prevIndex === 0 ? (frameUrls ? frameUrls.length - 1 : 0) : prevIndex - 1
-    )
+    setSelectedFrameIndex((prevIndex) => (prevIndex === 0 ? (frameUrls ? frameUrls.length - 1 : 0) : prevIndex - 1))
   }, [frameUrls])
   const rotateRight = useCallback(() => {
-    setSelectedFrameIndex((prevIndex) =>
-      prevIndex === (frameUrls ? frameUrls.length - 1 : 0) ? 0 : prevIndex + 1
-    )
+    setSelectedFrameIndex((prevIndex) => (prevIndex === (frameUrls ? frameUrls.length - 1 : 0) ? 0 : prevIndex + 1))
   }, [frameUrls])
+  const handleImageDrag = useCallback(
+    (e: React.MouseEvent<HTMLImageElement, MouseEvent>) => {
+      e.preventDefault()
+      let startX = e.clientX
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        const deltaX = moveEvent.clientX - startX
+        if (Math.abs(deltaX) >= 50) {
+          if (deltaX > 0) {
+            rotateRight()
+          } else {
+            rotateLeft()
+          }
+          startX = moveEvent.clientX
+        }
+      }
+
+      const onMouseUp = () => {
+        window.removeEventListener('mousemove', onMouseMove)
+        window.removeEventListener('mouseup', onMouseUp)
+      }
+
+      window.addEventListener('mousemove', onMouseMove)
+      window.addEventListener('mouseup', onMouseUp)
+    },
+    [rotateLeft, rotateRight],
+  )
 
   // RENDERING:
 
@@ -289,7 +395,7 @@ function VtoAvatarView({ frameUrls }: VtoAvatarViewProps) {
   return (
     <div css={css.topContainer}>
       <div css={css.imageContainer}>
-        <img src={frameUrls[selectedFrameIndex]} css={css.image} />
+        <img src={frameUrls[selectedFrameIndex]} css={css.image} onMouseDown={handleImageDrag} />
         <div css={css.chevronLeftContainer} onClick={rotateLeft}>
           <ChevronLeftIcon css={css.chevronIcon} />
         </div>
