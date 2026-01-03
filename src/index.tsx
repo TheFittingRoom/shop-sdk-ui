@@ -45,16 +45,11 @@ export interface InitParams {
   debug: boolean | string | string[] | RegExp
 }
 
-export async function init({
-  brandId,
-  currentProduct,
-  environment,
-  lang = null,
-  theme = null,
-  debug = false,
-}: InitParams): Promise<boolean> {
+export async function init(initParams: InitParams): Promise<boolean> {
   const logger = getLogger('init')
   try {
+    const { brandId, currentProduct, environment, lang = null, theme = null, debug } = initParams
+
     // Validate init params
     if (!brandId || typeof brandId !== 'number' || isNaN(brandId) || brandId <= 0) {
       throw new Error(`Invalid brandId "${brandId}"`)
@@ -68,6 +63,7 @@ export async function init({
 
     // Initialize logger
     initLogger(debug)
+    logger.logDebug('Received initParams:', initParams)
 
     // Get config
     const config = getConfig(environment)
@@ -148,7 +144,7 @@ export async function init({
       )
     }
 
-    logger.logInfo('SDK initialized')
+    logger.logDebug('SDK initialized')
     return true
   } catch (error) {
     logger.logError('SDK initialization failed:', error)
