@@ -8,6 +8,7 @@ import { _init as initAsset } from '@/lib/asset'
 import { getConfig, EnvName } from '@/lib/config'
 import { _init as initFirebase, getAuthManager } from '@/lib/firebase'
 import { i18n } from '@/lib/locale'
+import { _init as initLogger } from '@/lib/logger'
 import { _init as initStore, useMainStore, ExternalProduct } from '@/lib/store'
 import { _init as initTheme, ThemeData } from '@/lib/theme'
 import { getDeviceView } from '@/lib/view'
@@ -41,6 +42,7 @@ export interface InitParams {
   environment: EnvName
   lang?: string | null
   theme?: Partial<ThemeData> | null
+  debug: boolean | string | string[] | RegExp
 }
 
 export async function init({
@@ -49,6 +51,7 @@ export async function init({
   environment,
   lang = null,
   theme = null,
+  debug = false,
 }: InitParams): Promise<boolean> {
   try {
     // Validate init params
@@ -61,6 +64,9 @@ export async function init({
     if (!Object.values(EnvName).includes(environment)) {
       throw new Error(`Invalid environment "${environment}"`)
     }
+
+    // Initialize logger
+    initLogger(debug)
 
     // Get config
     const config = getConfig(environment)
