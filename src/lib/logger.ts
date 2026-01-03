@@ -83,19 +83,19 @@ export class Logger {
     this.source = source
   }
 
-  error(message: string, ...data: unknown[]): void {
+  logError(message: string, ...data: unknown[]): void {
     logError(this.source, message, ...data)
   }
 
-  warn(message: string, ...data: unknown[]): void {
+  logWarn(message: string, ...data: unknown[]): void {
     logWarn(this.source, message, ...data)
   }
 
-  info(message: string, ...data: unknown[]): void {
+  logInfo(message: string, ...data: unknown[]): void {
     logInfo(this.source, message, ...data)
   }
 
-  debug(message: string, ...data: unknown[]): void {
+  logDebug(message: string, ...data: unknown[]): void {
     logDebug(this.source, message, ...data)
   }
 }

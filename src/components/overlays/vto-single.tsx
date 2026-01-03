@@ -7,6 +7,7 @@ import { ChevronLeftIcon, ChevronRightIcon, TfrNameSvg } from '@/lib/asset'
 import { getStyleByExternalId } from '@/lib/database'
 import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
+import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
 import { OverlayName } from '@/lib/view'
@@ -39,6 +40,8 @@ function getSizeLabelFromSize(size: Size): string {
   }
   return size.size_value?.name ?? '(unknown size)'
 }
+
+const logger = getLogger('vto-single')
 
 export default function VtoSingleOverlay() {
   const { t } = useTranslation()
@@ -151,7 +154,7 @@ export default function VtoSingleOverlay() {
         // Fetch style and size recommendation
         const styleRec = await getStyleByExternalId(brandId, currentProduct.externalId)
         if (!styleRec) {
-          console.error('[TFR] Style not found for externalId:', currentProduct.externalId)
+          logger.logError('Style not found for externalId:', currentProduct.externalId)
           return
         }
         const sizeRecommendationRecord = await getSizeRecommendation(styleRec.id)
@@ -210,7 +213,7 @@ export default function VtoSingleOverlay() {
         setSelectedSizeLabel(recommendedSizeLabel)
         setSelectedColorLabel(recommendedColorLabel)
       } catch (error) {
-        console.error('[TFR] Error fetching VTO data:', error)
+        logger.logError('Error fetching VTO data:', error)
       }
     }
     fetchInitialData()
@@ -265,7 +268,7 @@ export default function VtoSingleOverlay() {
     closeOverlay()
     const authManager = getAuthManager()
     authManager.logout().catch((error) => {
-      console.error('[TFR] Error during logout:', error)
+      logger.logError('Error during logout:', error)
     })
   }, [closeOverlay, openOverlay])
 

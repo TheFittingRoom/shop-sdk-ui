@@ -6,6 +6,7 @@ import { ContentModal } from '@/components/modal'
 import { Text, TextT } from '@/components/text'
 import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
+import { getLogger } from '@/lib/logger'
 import { useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
 import { OverlayName, OverlayProps } from '@/lib/view'
@@ -13,6 +14,8 @@ import { OverlayName, OverlayProps } from '@/lib/view'
 export interface SignInOverlayProps extends OverlayProps {
   returnToOverlay?: OverlayName
 }
+
+const logger = getLogger('sign-in')
 
 export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
   const { t } = useTranslation()
@@ -85,7 +88,7 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
             closeOverlay()
           }
         } catch (error) {
-          console.error('[TFR] Login failed:', error)
+          logger.logError('Login failed:', error)
           setEmailError(' ')
           setPasswordError(t('sign-in.login_failed'))
           passwordEl.focus()

@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { getSizeRecommendation as apiGetSizeRecommendation, SizeFitRecommendation } from '@/lib/api'
 import { getStyleByExternalId } from '@/lib/database'
+import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 
 export type { SizeFitRecommendation }
+
+const logger = getLogger('api-hooks')
 
 export async function getSizeRecommendation(
   brandId: number,
@@ -30,7 +33,7 @@ export function useSizeRecommendation(load: boolean): SizeFitRecommendation | nu
         const sizeRecommendation = await getSizeRecommendation(brandId, currentProduct.externalId)
         setRecommendedSize(sizeRecommendation)
       } catch (error) {
-        console.error('[TFR] Error fetching size recommendation:', error)
+        logger.logError('Error fetching size recommendation:', error)
         setRecommendedSize(null)
       }
     }

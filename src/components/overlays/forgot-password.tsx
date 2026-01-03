@@ -5,6 +5,7 @@ import { ContentModal } from '@/components/modal'
 import { Text, TextT } from '@/components/text'
 import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
+import { getLogger } from '@/lib/logger'
 import { useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
 import { OverlayName, OverlayProps } from '@/lib/view'
@@ -14,6 +15,8 @@ const CONTACT_US_LINK = 'mailto:info@thefittingroom.tech?subject=Forgot%20Passwo
 export interface ForgotPasswordOverlayProps extends OverlayProps {
   returnToOverlay?: OverlayName
 }
+
+const logger = getLogger('forgot-password')
 
 export default function ForgotPasswordOverlay({ returnToOverlay }: ForgotPasswordOverlayProps) {
   const { t } = useTranslation()
@@ -78,7 +81,7 @@ export default function ForgotPasswordOverlay({ returnToOverlay }: ForgotPasswor
           await authManager.sendPasswordResetEmail(email)
           setLinkSent(true)
         } catch (error) {
-          console.error('[TFR] Error sending password reset email:', error)
+          logger.logError('Error sending password reset email:', error)
         }
       }
       event.preventDefault()

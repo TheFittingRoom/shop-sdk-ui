@@ -27,6 +27,7 @@ import {
   signInWithEmailAndPassword,
 } from 'firebase/auth'
 import { FirestoreUser } from '@/api/gen/responses'
+import { getLogger } from '@/lib/logger'
 import { getStaticData } from '@/lib/store'
 
 export type AuthUser = User
@@ -44,6 +45,8 @@ export const firebaseDateToDayjs = (date: FirebaseDate) => {
 }
 
 const LOGIN_TRACKING_PERIOD_SECONDS = 1800 // 30 minutes
+
+const logger = getLogger('firebase')
 
 let firebaseApp: FirebaseApp | null = null
 
@@ -257,7 +260,7 @@ export class AuthManager {
             await firestore.mergeDocData('user_logging', userLoggingDocId, userLoggingData)
           }
         } catch (error) {
-          console.error('[TFR] Error logging user login activity:', error)
+          logger.logError('Error logging user login activity:', error)
         }
       })()
     } else {

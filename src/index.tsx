@@ -8,7 +8,7 @@ import { _init as initAsset } from '@/lib/asset'
 import { getConfig, EnvName } from '@/lib/config'
 import { _init as initFirebase, getAuthManager } from '@/lib/firebase'
 import { i18n } from '@/lib/locale'
-import { _init as initLogger } from '@/lib/logger'
+import { _init as initLogger, getLogger, logInfo } from '@/lib/logger'
 import { _init as initStore, useMainStore, ExternalProduct } from '@/lib/store'
 import { _init as initTheme, ThemeData } from '@/lib/theme'
 import { getDeviceView } from '@/lib/view'
@@ -53,6 +53,7 @@ export async function init({
   theme = null,
   debug = false,
 }: InitParams): Promise<boolean> {
+  const logger = getLogger('init')
   try {
     // Validate init params
     if (!brandId || typeof brandId !== 'number' || isNaN(brandId) || brandId <= 0) {
@@ -147,10 +148,10 @@ export async function init({
       )
     }
 
-    console.log('[TFR] SDK initialized')
+    logger.logInfo('SDK initialized')
     return true
   } catch (error) {
-    console.error('[TFR] SDK initialization failed:', error)
+    logger.logError('SDK initialization failed:', error)
     return false
   }
 }
@@ -158,7 +159,7 @@ export async function init({
 export async function logout() {
   const authManager = getAuthManager()
   await authManager.logout()
-  console.log('[TFR] User logged out')
+  logInfo('logout', 'User logged out')
 }
 
 const TFR = {
