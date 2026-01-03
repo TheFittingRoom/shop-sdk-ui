@@ -21,6 +21,7 @@ export interface ExternalProduct {
   setSelectedColor: (value: string) => void
   getSelectedSize: () => string | null
   setSelectedSize: (value: string) => void
+  addToCart: () => void | Promise<void>
 }
 
 export interface StaticData {

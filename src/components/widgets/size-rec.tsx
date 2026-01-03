@@ -16,13 +16,10 @@ export default function SizeRecWidget({}: WidgetProps) {
   if (!sizeRecommendation || !hasOpenedVtoSingleOverlay) {
     return null
   }
+  const sizeLabel = sizeRecommendation.recommended_size.label || sizeRecommendation.recommended_size.size_value?.name
+  if (!sizeLabel) {
+    return null
+  }
 
-  return (
-    <LinkT
-      onClick={handleLinkClick}
-      variant="brand"
-      t="widget.size_rec.recommend"
-      vars={{ size: sizeRecommendation.recommended_size.label }}
-    />
-  )
+  return <LinkT onClick={handleLinkClick} variant="brand" t="widget.size_rec.recommend" vars={{ size: sizeLabel }} />
 }

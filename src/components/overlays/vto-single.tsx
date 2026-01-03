@@ -276,9 +276,20 @@ export default function VtoSingleOverlay() {
     const newColorLabel = e.target.value || null
     setSelectedColorLabel(newColorLabel)
   }, [])
-  const handleAddToCartClick = useCallback(() => {
-    console.log('Add to cart clicked')
-  }, [])
+  const handleAddToCartClick = useCallback(async () => {
+    try {
+      if (!selectedColorLabel || !selectedSizeLabel) {
+        return
+      }
+      const { currentProduct } = getStaticData()
+      currentProduct.setSelectedColor(selectedColorLabel)
+      currentProduct.setSelectedSize(selectedSizeLabel)
+      await currentProduct.addToCart()
+      closeOverlay()
+    } catch (error) {
+      logger.logError('Error adding to cart:', error)
+    }
+  }, [selectedColorLabel, selectedSizeLabel])
 
   // RENDERING:
 
