@@ -2,16 +2,18 @@ import { useEffect, useState } from 'react'
 import { MeasurementLocationFit, SizeFit, SizeFitRecommendation } from '@/api/gen/responses'
 import { getSizeRecommendation } from '@/lib/api'
 import { getStyleByExternalId } from '@/lib/database'
-import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 
 export type { MeasurementLocationFit, SizeFit, SizeFitRecommendation }
 
-const logger = getLogger('size-rec')
-
-export function useSizeRecommendation(load: boolean): SizeFitRecommendation | null {
-  const [recommendedSize, setRecommendedSize] = useState<SizeFitRecommendation | null>(null)
-  const { brandId, currentProduct } = getStaticData()
+export function useSizeRecommendation(load: boolean): {
+  record: SizeFitRecommendation | null
+  isLoading: boolean
+  error: Error | null
+} {
+  const [record, setRecord] = useState<SizeFitRecommendation | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
   const { userHasAvatar } = useMainStore()
 
   useEffect(() => {
@@ -19,20 +21,26 @@ export function useSizeRecommendation(load: boolean): SizeFitRecommendation | nu
       return
     }
     async function fetchSizeRec() {
+      const { brandId, currentProduct } = getStaticData()
       try {
+        setRecord(null)
+        setIsLoading(true)
+        setError(null)
         const style = await getStyleByExternalId(brandId, currentProduct.externalId)
         if (!style) {
           throw new Error('Style not found')
         }
         const sizeRecommendationRecord = await getSizeRecommendation(style.id)
-        setRecommendedSize(sizeRecommendationRecord)
+        setRecord(sizeRecommendationRecord)
       } catch (error) {
-        logger.logError('Error fetching size recommendation:', error)
-        setRecommendedSize(null)
+        // logger.logError('Error fetching size recommendation:', error)
+        setError(error as Error)
+      } finally {
+        setIsLoading(false)
       }
     }
     fetchSizeRec()
-  }, [load, brandId, currentProduct, userHasAvatar])
+  }, [load, userHasAvatar])
 
-  return recommendedSize
+  return { record, isLoading, error }
 }
