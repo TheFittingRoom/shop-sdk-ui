@@ -3,7 +3,7 @@ import { ButtonT } from '@/components/button'
 import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
 import { LinkT } from '@/components/link'
 import { Text, TextT } from '@/components/text'
-import { getSizeRecommendation, requestVtoSingle, Size } from '@/lib/api'
+import { getSizeRecommendation, getSizeLabelFromSize, requestVtoSingle } from '@/lib/api'
 import { ChevronLeftIcon, ChevronRightIcon, TfrNameSvg } from '@/lib/asset'
 import { getStyleByExternalId } from '@/lib/database'
 import { getAuthManager } from '@/lib/firebase'
@@ -33,13 +33,6 @@ interface LoadedProductData {
   recommendedSizeId: number
   recommendedSizeLabel: string
   sizes: LoadedSizeData[]
-}
-
-function getSizeLabelFromSize(size: Size): string {
-  if (size.label) {
-    return size.label
-  }
-  return size.size_value?.name ?? '(unknown size)'
 }
 
 const logger = getLogger('vto-single')
@@ -162,12 +155,12 @@ export default function VtoSingleOverlay() {
 
         // Assemble loaded product data
         let productData: LoadedProductData
-        const recommendedSizeLabel = getSizeLabelFromSize(sizeRecommendationRecord.recommended_size)
+        const recommendedSizeLabel = getSizeLabelFromSize(sizeRecommendationRecord.recommended_size) ?? '(unknown)'
         {
           const recommendedSizeId = sizeRecommendationRecord.recommended_size.id
           const sizes: LoadedSizeData[] = sizeRecommendationRecord.available_sizes.map((sizeRec) => {
             const sizeId = sizeRec.id
-            const sizeLabel = getSizeLabelFromSize(sizeRec)
+            const sizeLabel = getSizeLabelFromSize(sizeRec) ?? '(unknown)'
             const isRecommended = sizeRec.id === recommendedSizeId
             const colors: LoadedSizeColorData[] = []
             for (const csaRec of sizeRec.colorway_size_assets) {

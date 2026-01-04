@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { LinkT } from '@/components/link'
+import { getSizeLabelFromSize } from '@/lib/api'
 import { useSizeRecommendation } from '@/lib/api-hooks'
 import { useMainStore } from '@/lib/store'
 import { OverlayName, WidgetProps } from '@/lib/view'
@@ -16,7 +17,7 @@ export default function SizeRecWidget({}: WidgetProps) {
   if (!sizeRecommendation || !hasOpenedVtoSingleOverlay) {
     return null
   }
-  const sizeLabel = sizeRecommendation.recommended_size.label || sizeRecommendation.recommended_size.size_value?.name
+  const sizeLabel = getSizeLabelFromSize(sizeRecommendation.recommended_size)
   if (!sizeLabel) {
     return null
   }
