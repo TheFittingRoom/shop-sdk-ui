@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { LinkT } from '@/components/link'
 import { getSizeLabelFromSize } from '@/lib/api'
-import { useSizeRecommendation } from '@/lib/api-hooks'
+import { useSizeRecommendation } from '@/lib/size-rec'
 import { useMainStore } from '@/lib/store'
 import { OverlayName, WidgetProps } from '@/lib/view'
 
