@@ -18,10 +18,8 @@ export interface ExternalProduct {
   externalId: string
   variants: ExternalProductVariant[]
   getSelectedColor: () => string | null
-  setSelectedColor: (value: string) => void
   getSelectedSize: () => string | null
-  setSelectedSize: (value: string) => void
-  addToCart: () => void | Promise<void>
+  addToCart: (params: { size: string, color: string }) => void | Promise<void>
 }
 
 export interface StaticData {

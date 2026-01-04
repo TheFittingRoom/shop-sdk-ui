@@ -275,10 +275,9 @@ export default function VtoSingleOverlay() {
         return
       }
       const { currentProduct } = getStaticData()
-      currentProduct.setSelectedColor(selectedColorLabel)
-      currentProduct.setSelectedSize(selectedSizeLabel)
-      await currentProduct.addToCart()
+
       closeOverlay()
+      await currentProduct.addToCart({ size: selectedSizeLabel, color: selectedColorLabel })
     } catch (error) {
       logger.logError('Error adding to cart:', error)
     }
