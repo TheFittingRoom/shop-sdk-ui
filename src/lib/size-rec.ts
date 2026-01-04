@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
-import { MeasurementLocationFit, SizeFit, SizeFitRecommendation } from '@/api/gen/responses'
-import { getSizeRecommendation } from '@/lib/api'
+import { getSizeRecommendation, FitClassification, MeasurementLocationFit, SizeFit, SizeFitRecommendation } from '@/lib/api'
 import { getStyleByExternalId } from '@/lib/database'
 import { getStaticData, useMainStore } from '@/lib/store'
 
-export type { MeasurementLocationFit, SizeFit, SizeFitRecommendation }
+export type { FitClassification, MeasurementLocationFit, SizeFit, SizeFitRecommendation }
 
 export function useSizeRecommendation(load: boolean): {
   record: SizeFitRecommendation | null

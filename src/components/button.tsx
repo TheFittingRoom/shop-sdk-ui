@@ -13,9 +13,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ children, variant, css, ...props }, ref) => {
     const variantCss = useVariantCss<ButtonVariant>(variant, (theme) => ({
       base: {
-        backgroundColor: 'none',
+        background: 'none',
         border: 'none',
         cursor: 'pointer',
+        textAlign: 'center',
       },
       primary: {
         display: 'block',
@@ -28,6 +29,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         cursor: 'pointer',
         fontSize: '16px',
         fontWeight: 'bold',
+        textAlign: 'center',
       },
       brand: {
         display: 'block',
@@ -40,6 +42,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         cursor: 'pointer',
         fontSize: '16px',
         fontWeight: 'bold',
+        textAlign: 'center',
       },
     }))
     return (

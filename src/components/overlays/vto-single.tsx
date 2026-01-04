@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ButtonT } from '@/components/button'
+import { Button, ButtonT } from '@/components/button'
+import { Loading } from '@/components/content/loading'
 import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
 import { LinkT } from '@/components/link'
 import { Text, TextT } from '@/components/text'
-import { getSizeRecommendation, getSizeLabelFromSize, requestVtoSingle } from '@/lib/api'
-import { ChevronLeftIcon, ChevronRightIcon, TfrNameSvg } from '@/lib/asset'
+import { getSizeRecommendation, getSizeLabelFromSize, requestVtoSingle, FitClassification, SizeFit } from '@/lib/api'
+import { CheckCircleIcon, ChevronLeftIcon, ChevronRightIcon, InfoIcon, TfrNameSvg } from '@/lib/asset'
 import { getStyleByExternalId } from '@/lib/database'
 import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
@@ -24,12 +25,14 @@ interface LoadedSizeData {
   sizeId: number
   sizeLabel: string
   isRecommended: boolean
+  fit: SizeFit
   colors: LoadedSizeColorData[]
 }
 
 interface LoadedProductData {
   productName: string
   productDescriptionHtml: string
+  fitClassification: FitClassification
   recommendedSizeId: number
   recommendedSizeLabel: string
   sizes: LoadedSizeData[]
@@ -94,7 +97,7 @@ export default function VtoSingleOverlay() {
       marginTop: '16px',
     },
     buttonContainer: {
-      marginTop: '16px',
+      marginTop: '24px',
     },
     descriptionContainer: {
       marginTop: '32px',
@@ -157,11 +160,17 @@ export default function VtoSingleOverlay() {
         let productData: LoadedProductData
         const recommendedSizeLabel = getSizeLabelFromSize(sizeRecommendationRecord.recommended_size) ?? '(unknown)'
         {
+          const fitClassification = sizeRecommendationRecord.fit_classification
           const recommendedSizeId = sizeRecommendationRecord.recommended_size.id
-          const sizes: LoadedSizeData[] = sizeRecommendationRecord.available_sizes.map((sizeRec) => {
+          const sizes: LoadedSizeData[] = []
+          for (const sizeRec of sizeRecommendationRecord.available_sizes) {
             const sizeId = sizeRec.id
             const sizeLabel = getSizeLabelFromSize(sizeRec) ?? '(unknown)'
             const isRecommended = sizeRec.id === recommendedSizeId
+            const fit = sizeRecommendationRecord.fits.find((f) => f.size_id === sizeRec.id)
+            if (!fit) {
+              continue
+            }
             const colors: LoadedSizeColorData[] = []
             for (const csaRec of sizeRec.colorway_size_assets) {
               const colorwaySizeAssetId = csaRec.id
@@ -179,16 +188,18 @@ export default function VtoSingleOverlay() {
                 priceFormatted,
               })
             }
-            return {
+            sizes.push({
               sizeId,
               sizeLabel,
               isRecommended,
+              fit,
               colors,
-            }
-          })
+            })
+          }
           productData = {
             productName,
             productDescriptionHtml,
+            fitClassification,
             recommendedSizeId,
             recommendedSizeLabel,
             sizes,
@@ -201,7 +212,7 @@ export default function VtoSingleOverlay() {
             recommendedSizeRecord.colors.find((c) => {
               return c.colorLabel === selectedColor
             }) || recommendedSizeRecord.colors[0]
-          
+
           recommendedColorLabel = recommendedSizeColorRecord.colorLabel
         }
         setLoadedProductData(productData)
@@ -234,7 +245,7 @@ export default function VtoSingleOverlay() {
       requestVtoSingle(selectedColorSizeRecord.colorwaySizeAssetId)
     }
   }, [selectedColorSizeRecord])
-  
+
   // Trigger VTO requests for all recommended sizes when color selection changes
   useEffect(() => {
     if (!loadedProductData) {
@@ -300,7 +311,7 @@ export default function VtoSingleOverlay() {
   if (!userIsLoggedIn || !userHasAvatar || !loadedProductData || !selectedColorSizeRecord) {
     return (
       <SidecarModalFrame onRequestClose={closeOverlay}>
-        <div>loading</div>
+        <Loading />
       </SidecarModalFrame>
     )
   }
@@ -309,7 +320,7 @@ export default function VtoSingleOverlay() {
     <SidecarModalFrame onRequestClose={closeOverlay}>
       <div css={css.mainContainer}>
         <div css={css.leftContainer}>
-          <VtoAvatarView frameUrls={frameUrls} />
+          <VtoAvatar frameUrls={frameUrls} />
         </div>
         <div css={css.rightContainer}>
           <ModalTitlebar title={t('try_it_on')} onCloseClick={closeOverlay} />
@@ -336,7 +347,13 @@ export default function VtoSingleOverlay() {
                 </select>
               </label>
             </div>
-            <div css={css.sizeRecContainer}>size-rec</div>
+            <div css={css.sizeRecContainer}>
+              <SizeRecommendation
+                loadedProductData={loadedProductData}
+                selectedSizeLabel={selectedSizeLabel}
+                onChangeSize={setSelectedSizeLabel}
+              />
+            </div>
             <div css={css.buttonContainer}>
               <ButtonT variant="brand" t="vto-single.add_to_cart" onClick={handleAddToCartClick} />
             </div>
@@ -361,11 +378,11 @@ export default function VtoSingleOverlay() {
   )
 }
 
-interface VtoAvatarViewProps {
+interface VtoAvatarProps {
   frameUrls: string[] | null
 }
 
-function VtoAvatarView({ frameUrls }: VtoAvatarViewProps) {
+function VtoAvatar({ frameUrls }: VtoAvatarProps) {
   const [selectedFrameIndex, setSelectedFrameIndex] = useState<number>(0)
   const css = useCss((theme) => ({
     topContainer: {
@@ -459,7 +476,7 @@ function VtoAvatarView({ frameUrls }: VtoAvatarViewProps) {
   // RENDERING:
 
   if (!frameUrls || frameUrls.length === 0) {
-    return <div>loading</div>
+    return <Loading />
   }
   return (
     <div css={css.topContainer}>
@@ -484,6 +501,163 @@ function VtoAvatarView({ frameUrls }: VtoAvatarViewProps) {
         />
         <TextT variant="base" t="vto-single.slide_to_rotate" css={css.sliderText} />
       </div>
+    </div>
+  )
+}
+
+interface SizeRecommendationProps {
+  loadedProductData: LoadedProductData
+  selectedSizeLabel: string | null
+  onChangeSize: (newSizeLabel: string) => void
+}
+
+function SizeRecommendation({ loadedProductData, selectedSizeLabel, onChangeSize }: SizeRecommendationProps) {
+  const { t } = useTranslation()
+  const css = useCss((_theme) => ({
+    frame: {
+      display: 'flex',
+      flexDirection: 'column',
+      border: '1px solid rgba(33, 32, 31, 0.2)',
+      padding: '32px 56px',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    recommendedSizeContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      lineHeight: 'normal',
+    },
+    recommendedSizeText: {
+      fontWeight: '600',
+    },
+    itemFitContainer: {
+      marginTop: '8px',
+      lineHeight: 'normal',
+    },
+    itemFitText: {},
+    selectSizeLabelContainer: {
+      lineHeight: 'normal',
+    },
+    selectSizeLabelText: {},
+    sizeSelectorContainer: {
+      marginTop: '24px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+    },
+    sizeSelectorButton: {
+      width: '54px',
+      height: '44px',
+      border: '1px solid rgba(33, 32, 31, 0.2)',
+      padding: '9px 17px',
+    },
+    sizeSelectorButtonSelected: {
+      border: '1px solid rgb(33, 32, 31)',
+      cursor: 'default',
+    },
+    fitContainer: {
+      marginTop: '24px',
+      width: '100%',
+    },
+    fitLine: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: '8px',
+      marginTop: '4px',
+      borderTop: '1px solid rgb(33, 32, 31)',
+      paddingTop: '4px',
+    },
+    fitFirstLine: {
+      borderTop: 'none',
+      marginTop: '0px',
+      paddingTop: '0px',
+    },
+    fitDetail: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+    },
+  }))
+
+  const sizeSelectorNodeList = useMemo(
+    () =>
+      loadedProductData.sizes.map((sizeRecord) => {
+        const isSelected = sizeRecord.sizeLabel === selectedSizeLabel
+        return (
+          <Button
+            key={sizeRecord.sizeLabel}
+            variant="base"
+            css={{ ...css.sizeSelectorButton, ...(isSelected && css.sizeSelectorButtonSelected) }}
+            onClick={() => {
+              if (isSelected) {
+                return
+              }
+              onChangeSize(sizeRecord.sizeLabel)
+            }}
+          >
+            {sizeRecord.sizeLabel}
+          </Button>
+        )
+      }),
+    [loadedProductData.sizes, selectedSizeLabel, onChangeSize],
+  )
+
+  const fitLineNodeList = useMemo(() => {
+    const selectedSizeRecord = loadedProductData.sizes.find((s) => s.sizeLabel === selectedSizeLabel)
+    if (!selectedSizeRecord) {
+      return null
+    }
+    return selectedSizeRecord.fit.measurement_location_fits.map((mlf, index) => {
+      const locationLabel = t(`size-rec.measurementLocation.${mlf.measurement_location}`) || mlf.measurement_location
+      const fit = mlf.fit
+      const fitLabel = t(`size-rec.fit.${fit}`) || fit
+      return (
+        <div key={index} css={[css.fitLine, index === 0 && css.fitFirstLine]}>
+          <div css={css.fitDetail}>{locationLabel}</div>
+          <div css={css.fitDetail}>
+            {fit === 'perfect_fit' ? (
+              <>
+                <CheckCircleIcon /> {fitLabel}
+              </>
+            ) : (
+              fitLabel
+            )}
+          </div>
+        </div>
+      )
+    })
+  }, [loadedProductData, selectedSizeLabel])
+
+  return (
+    <div css={css.frame}>
+      <div css={css.recommendedSizeContainer}>
+        <InfoIcon />
+        <TextT
+          variant="base"
+          css={css.recommendedSizeText}
+          t="size-rec.recommended_size"
+          vars={{ size: loadedProductData.recommendedSizeLabel }}
+        />
+      </div>
+      <div css={css.itemFitContainer}>
+        <TextT
+          variant="base"
+          css={css.itemFitText}
+          t="size-rec.item_fit"
+          vars={{
+            fit:
+              t(`size-rec.fitClassification.${loadedProductData.fitClassification}`) ||
+              loadedProductData.fitClassification,
+          }}
+        />
+      </div>
+      <div css={css.selectSizeLabelContainer}>
+        <TextT variant="base" css={css.selectSizeLabelText} t="size-rec.select_size" />
+      </div>
+      <div css={css.sizeSelectorContainer}>{sizeSelectorNodeList}</div>
+      <div css={css.fitContainer}>{fitLineNodeList}</div>
     </div>
   )
 }
