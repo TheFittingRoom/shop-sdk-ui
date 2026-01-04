@@ -197,11 +197,12 @@ export default function VtoSingleOverlay() {
         let recommendedColorLabel: string
         {
           const recommendedSizeRecord = productData.sizes.find((s) => s.isRecommended)!
-          const recommendedColorRecord =
+          const recommendedSizeColorRecord =
             recommendedSizeRecord.colors.find((c) => {
               return c.colorLabel === selectedColor
             }) || recommendedSizeRecord.colors[0]
-          recommendedColorLabel = recommendedColorRecord.colorLabel
+          
+          recommendedColorLabel = recommendedSizeColorRecord.colorLabel
         }
         setLoadedProductData(productData)
         setSelectedSizeLabel(recommendedSizeLabel)
@@ -222,17 +223,28 @@ export default function VtoSingleOverlay() {
     if (!sizeRecord) {
       return { sizeColorRecord: null, availableColorLabels: [] }
     }
-    const sizeColorRecord = sizeRecord.colors.find((c) => c.colorLabel === selectedColorLabel) ?? null
+    const sizeColorRecord = sizeRecord.colors.find((c) => c.colorLabel === selectedColorLabel) ?? sizeRecord.colors[0]
     const availableColorLabels = sizeRecord.colors.map((c) => c.colorLabel)
     return { sizeColorRecord, availableColorLabels }
   }, [loadedProductData, selectedSizeLabel, selectedColorLabel])
 
-  // Trigger VTO request when size/color selection changes
+  // Trigger priority VTO request when size/color selection changes
   useEffect(() => {
     if (selectedColorSizeRecord) {
       requestVtoSingle(selectedColorSizeRecord.colorwaySizeAssetId)
     }
   }, [selectedColorSizeRecord])
+  
+  // Trigger VTO requests for all recommended sizes when color selection changes
+  useEffect(() => {
+    if (!loadedProductData) {
+      return
+    }
+    for (const sizeRecord of loadedProductData.sizes) {
+      const sizeColorRecord = sizeRecord.colors.find((c) => c.colorLabel === selectedColorLabel) ?? sizeRecord.colors[0]
+      requestVtoSingle(sizeColorRecord.colorwaySizeAssetId)
+    }
+  }, [loadedProductData, selectedColorLabel])
 
   // Lookup VTO frames when user profile changes
   const vtoData = useMemo(() => {
