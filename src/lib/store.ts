@@ -12,14 +12,18 @@ export interface ExternalProductVariant {
   priceFormatted: string
 }
 
+export interface ExternalProductOptionSelection {
+  size: string
+  color: string | null
+}
+
 export interface ExternalProduct {
   productName: string
   productDescriptionHtml: string
   externalId: string
   variants: ExternalProductVariant[]
-  getSelectedColor: () => string | null
-  getSelectedSize: () => string | null
-  addToCart: (params: { size: string, color: string }) => void | Promise<void>
+  getSelectedOptions: () => ExternalProductOptionSelection | Promise<ExternalProductOptionSelection>
+  addToCart: (options: ExternalProductOptionSelection) => void | Promise<void>
 }
 
 export interface StaticData {

@@ -146,7 +146,7 @@ export default function VtoSingleOverlay() {
 
         // Get external product data and user selections
         const { productName, productDescriptionHtml, variants } = currentProduct
-        const selectedColor = currentProduct.getSelectedColor()
+        const { color: selectedColor } = await currentProduct.getSelectedOptions()
 
         // Fetch style and size recommendation
         const styleRec = await getStyleByExternalId(brandId, currentProduct.externalId)
@@ -294,7 +294,7 @@ export default function VtoSingleOverlay() {
   }, [])
   const handleAddToCartClick = useCallback(async () => {
     try {
-      if (!selectedColorLabel || !selectedSizeLabel) {
+      if (!selectedSizeLabel) {
         return
       }
       const { currentProduct } = getStaticData()
@@ -335,18 +335,20 @@ export default function VtoSingleOverlay() {
                 {selectedColorSizeRecord.priceFormatted}
               </Text>
             </div>
-            <div css={css.colorContainer}>
-              <label>
-                <TextT variant="base" css={css.colorLabelText} t="vto-single.color_label" />
-                <select value={selectedColorLabel ?? ''} onChange={handleColorSelectChange} css={css.colorSelect}>
-                  {availableColorLabels.map((colorLabel) => (
-                    <option key={colorLabel} value={colorLabel}>
-                      {colorLabel}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
+            {availableColorLabels.length >= 2 && (
+              <div css={css.colorContainer}>
+                <label>
+                  <TextT variant="base" css={css.colorLabelText} t="vto-single.color_label" />
+                  <select value={selectedColorLabel ?? ''} onChange={handleColorSelectChange} css={css.colorSelect}>
+                    {availableColorLabels.map((colorLabel) => (
+                      <option key={colorLabel} value={colorLabel}>
+                        {colorLabel}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            )}
             <div css={css.sizeRecContainer}>
               <SizeRecommendation
                 loadedProductData={loadedProductData}
@@ -550,7 +552,7 @@ function SizeRecommendation({ loadedProductData, selectedSizeLabel, onChangeSize
       width: '54px',
       height: '44px',
       border: '1px solid rgba(33, 32, 31, 0.2)',
-      padding: '9px 17px',
+      padding: '9px 5px',
     },
     sizeSelectorButtonSelected: {
       border: '1px solid rgb(33, 32, 31)',
