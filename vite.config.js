@@ -1,9 +1,13 @@
+import { execSync } from 'node:child_process'
 import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import svgr from 'vite-plugin-svgr'
+import packageJson from './package.json'
 
-export default defineConfig(({ mode, command }) => {
+const BUILD_COMMIT_HASH = execSync('git rev-parse --short HEAD').toString().trim()
+
+export default defineConfig(() => {
   return {
     build: {
       lib: {
@@ -15,6 +19,9 @@ export default defineConfig(({ mode, command }) => {
     },
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+      'process.env.BUILD_VERSION': JSON.stringify(packageJson.version),
+      'process.env.BUILD_COMMIT_HASH': JSON.stringify(BUILD_COMMIT_HASH),
+      'process.env.BUILD_DATE': JSON.stringify(new Date().toISOString()),
     },
     plugins: [
       react({

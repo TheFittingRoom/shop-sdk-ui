@@ -20,6 +20,10 @@ export interface Config {
     appAppleStoreUrl: string
     appGooglePlayUrl: string
   }
+  build: {
+    version: string
+    commitHash: string
+  }
 }
 
 export enum EnvName {
@@ -27,7 +31,19 @@ export enum EnvName {
   PRODUCTION = 'production',
 }
 
-const configs: Record<EnvName, Config> = {
+const SHARED_CONFIG = {
+  links: {
+    appAppleStoreUrl: 'https://apps.apple.com/us/app/the-fitting-room-3d-body-scan/id1577417373',
+    appGooglePlayUrl: 'https://play.google.com/store/apps/details?id=com.thefittingroom.marketplace',
+  },
+  build: {
+    version: `${process.env.BUILD_VERSION}`,
+    commitHash: `${process.env.BUILD_COMMIT_HASH}`,
+    date: `${process.env.BUILD_DATE}`,
+  },
+} as const
+
+const CONFIGS: Record<EnvName, Config> = {
   [EnvName.DEVELOPMENT]: {
     firebase: {
       apiKey: 'AIzaSyDfjBWzpmzb-mhGN8VSURxzLg6nkzmKUD8',
@@ -40,16 +56,11 @@ const configs: Record<EnvName, Config> = {
     },
     api: {
       baseUrl: 'https://tfr.dev.thefittingroom.xyz',
-      // vtoTimeoutMs: 120000,
-      // avatarTimeoutMs: 120000,
     },
     asset: {
       baseUrl: 'https://assets.dev.thefittingroom.xyz/shop-sdk/assets/v5',
     },
-    links: {
-      appAppleStoreUrl: 'https://apps.apple.com/us/app/the-fitting-room-3d-body-scan/id1577417373',
-      appGooglePlayUrl: 'https://play.google.com/store/apps/details?id=com.thefittingroom.marketplace',
-    },
+    ...SHARED_CONFIG,
   },
   [EnvName.PRODUCTION]: {
     firebase: {
@@ -63,19 +74,14 @@ const configs: Record<EnvName, Config> = {
     },
     api: {
       baseUrl: 'https://tfr.p.thefittingroom.xyz',
-      // vtoTimeoutMs: 120000,
-      // avatarTimeoutMs: 120000,
     },
     asset: {
       baseUrl: 'https://assets.p.thefittingroom.xyz/shop-sdk/assets/v5',
     },
-    links: {
-      appAppleStoreUrl: 'https://apps.apple.com/us/app/the-fitting-room-3d-body-scan/id1577417373',
-      appGooglePlayUrl: 'https://play.google.com/store/apps/details?id=com.thefittingroom.marketplace',
-    },
+    ...SHARED_CONFIG,
   },
 }
 
 export const getConfig = (envName: EnvName): Config => {
-  return configs[envName]
+  return CONFIGS[envName]
 }

@@ -144,7 +144,7 @@ export async function init(initParams: InitParams): Promise<boolean> {
       )
     }
 
-    logger.logDebug('SDK initialized')
+    logger.logInfo('SDK initialized', config.build)
     return true
   } catch (error) {
     logger.logError('SDK initialization failed:', error)
