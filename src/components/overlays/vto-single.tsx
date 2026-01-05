@@ -397,27 +397,34 @@ function VtoAvatar({ frameUrls }: VtoAvatarProps) {
       backgroundColor: '#f0f0f0',
     },
     imageContainer: {
-      display: 'flex',
       position: 'absolute',
+      display: 'flex',
+      maxHeight: 'calc(100% - 100px)',
     },
     image: {
       width: '100%',
-      height: 'auto',
+      objectFit: 'contain',
       cursor: 'grab',
     },
     chevronLeftContainer: {
       position: 'absolute',
       top: '50%',
-      left: '16px',
+      left: '0',
       transform: 'translateY(-50%)',
       cursor: 'pointer',
+      '@media screen and (min-width: 1024px)': {
+        left: '32px',
+      },
     },
     chevronRightContainer: {
       position: 'absolute',
       top: '50%',
-      right: '16px',
+      right: '0',
       transform: 'translateY(-50%)',
       cursor: 'pointer',
+      '@media screen and (min-width: 1024px)': {
+        right: '32px',
+      },
     },
     chevronIcon: {
       width: '48px',
