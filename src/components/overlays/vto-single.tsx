@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button, ButtonT } from '@/components/button'
 import { Loading } from '@/components/content/loading'
 import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
 import { LinkT } from '@/components/link'
 import { Text, TextT } from '@/components/text'
 import { getSizeRecommendation, getSizeLabelFromSize, requestVtoSingle, FitClassification, SizeFit } from '@/lib/api'
-import { CheckCircleIcon, ChevronLeftIcon, ChevronRightIcon, InfoIcon, TfrNameSvg } from '@/lib/asset'
+import { AvatarBottomBackgroundUrl, CheckCircleIcon, ChevronLeftIcon, ChevronRightIcon, InfoIcon, TfrNameSvg } from '@/lib/asset'
 import { getStyleByExternalId } from '@/lib/database'
 import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
@@ -56,11 +56,8 @@ export default function VtoSingleOverlay() {
       display: 'flex',
       height: '100%',
     },
-    leftContainer: {
-      width: '50%',
-    },
     rightContainer: {
-      width: '50%',
+      flexGrow: 1,
       padding: '16px',
       display: 'flex',
       flexDirection: 'column',
@@ -319,9 +316,7 @@ export default function VtoSingleOverlay() {
   return (
     <SidecarModalFrame onRequestClose={closeOverlay}>
       <div css={css.mainContainer}>
-        <div css={css.leftContainer}>
-          <VtoAvatar frameUrls={frameUrls} />
-        </div>
+        <VtoAvatar frameUrls={frameUrls} />
         <div css={css.rightContainer}>
           <ModalTitlebar title={t('try_it_on')} onCloseClick={closeOverlay} />
           <div css={css.contentContainer}>
@@ -384,25 +379,21 @@ interface VtoAvatarProps {
   frameUrls: string[] | null
 }
 
+const AVATAR_CONTROLS_HEIGHT_PX = 100
+
 function VtoAvatar({ frameUrls }: VtoAvatarProps) {
+  const [containerHeightPx, setContainerHeightPx] = useState<number>(window.innerHeight)
+  const topContainerRef = useRef<HTMLDivElement>(null)
   const [selectedFrameIndex, setSelectedFrameIndex] = useState<number>(0)
   const css = useCss((theme) => ({
     topContainer: {
-      width: '100%',
+      flex: 'none',
       height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'start',
-      backgroundColor: '#f0f0f0',
     },
     imageContainer: {
       position: 'absolute',
-      display: 'flex',
-      maxHeight: 'calc(100% - 100px)',
     },
     image: {
-      width: '100%',
       objectFit: 'contain',
       cursor: 'grab',
     },
@@ -412,9 +403,9 @@ function VtoAvatar({ frameUrls }: VtoAvatarProps) {
       left: '0',
       transform: 'translateY(-50%)',
       cursor: 'pointer',
-      '@media screen and (min-width: 1024px)': {
-        left: '32px',
-      },
+      // '@media screen and (min-width: 1024px)': {
+      //   left: '32px',
+      // },
     },
     chevronRightContainer: {
       position: 'absolute',
@@ -422,22 +413,27 @@ function VtoAvatar({ frameUrls }: VtoAvatarProps) {
       right: '0',
       transform: 'translateY(-50%)',
       cursor: 'pointer',
-      '@media screen and (min-width: 1024px)': {
-        right: '32px',
-      },
+      // '@media screen and (min-width: 1024px)': {
+      //   right: '32px',
+      // },
     },
     chevronIcon: {
       width: '48px',
       height: '48px',
     },
-    sliderContainer: {
+    controlsContainer: {
       position: 'absolute',
-      bottom: '0px',
+      bottom: '0',
+      height: AVATAR_CONTROLS_HEIGHT_PX + 'px',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
       paddingBottom: '32px',
+      backgroundColor: '#FFFFFF',
+      backgroundImage: `url(${AvatarBottomBackgroundUrl})`,
+      backgroundSize: 'contain',
+      backgroundRepeat: 'repeat-y',
     },
     sliderInput: {
       width: '300px',
@@ -447,6 +443,22 @@ function VtoAvatar({ frameUrls }: VtoAvatarProps) {
       color: '#303030',
     },
   }))
+
+  // Determine container height on mount and resize
+  useEffect(() => {
+    const handleResize = () => {
+      setContainerHeightPx(topContainerRef.current?.clientHeight ?? window.innerHeight)
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
+
+  // Determmine image dimensions based on container height
+  const imageHeightPx = containerHeightPx - AVATAR_CONTROLS_HEIGHT_PX
+  const imageWidthPx = Math.floor(imageHeightPx / 1.5)
 
   const rotateLeft = useCallback(() => {
     setSelectedFrameIndex((prevIndex) => (prevIndex === 0 ? (frameUrls ? frameUrls.length - 1 : 0) : prevIndex - 1))
@@ -488,9 +500,14 @@ function VtoAvatar({ frameUrls }: VtoAvatarProps) {
     return <Loading />
   }
   return (
-    <div css={css.topContainer}>
-      <div css={css.imageContainer}>
-        <img src={frameUrls[selectedFrameIndex]} css={css.image} onMouseDown={handleImageDrag} />
+    <div ref={topContainerRef} css={css.topContainer} style={{ width: imageWidthPx + 'px' }}>
+      <div css={css.imageContainer} style={{ width: imageWidthPx + 'px', height: imageHeightPx + 'px' }}>
+        <img
+          src={frameUrls[selectedFrameIndex]}
+          css={css.image}
+          style={{ width: imageWidthPx + 'px', height: imageHeightPx + 'px' }}
+          onMouseDown={handleImageDrag}
+        />
         <div css={css.chevronLeftContainer} onClick={rotateLeft}>
           <ChevronLeftIcon css={css.chevronIcon} />
         </div>
@@ -498,7 +515,7 @@ function VtoAvatar({ frameUrls }: VtoAvatarProps) {
           <ChevronRightIcon css={css.chevronIcon} />
         </div>
       </div>
-      <div css={css.sliderContainer}>
+      <div css={css.controlsContainer} style={{ width: imageWidthPx + 'px' }}>
         <input
           type="range"
           min={0}
