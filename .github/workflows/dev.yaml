@@ -63,7 +63,7 @@ jobs:
         run: |
           echo "VERSION=${{ steps.get_version.outputs.version }}" >> $GITHUB_ENV
           envsubst < .env.development > .env
-          npm run build:prod
+          npm run build
 
       - name: Push Version
         env:

@@ -1,0 +1,85 @@
+{
+  "try_it_on": "Essayez-le",
+  "powered_by": "Alimenté par",
+  "loading": "Chargement...",
+  "landing": {
+    "header": "Rencontrez votre mini-moi !",
+    "description": "Lâche à la taille mais serré aux hanches ? Nous allons vous montrer.",
+    "get_the_app": "Obtenez l'application",
+    "already_have_account": "Vous avez déjà un compte ?",
+    "sign_in": "Connectez-vous."
+  },
+  "get-app": {
+    "create_avatar": "Créez votre avatar"
+  },
+  "sign-in": {
+    "email": "Email",
+    "password": "Mot de passe",
+    "forgot_password": "Mot de passe oublié ?",
+    "sign_in": "Se connecter",
+    "no_account": "Vous n'avez pas de compte ?",
+    "download_app": "Téléchargez l'application.",
+    "invalid_email": "Veuillez entrer une adresse e-mail valide.",
+    "missing_password": "Veuillez entrer votre mot de passe.",
+    "login_failed": "Email ou mot de passe incorrect."
+  },
+  "forgot-password": {
+    "title": "Mot de passe oublié",
+    "description": "Nous vous enverrons un e-mail avec un lien pour réinitialiser votre mot de passe.",
+    "send_link": "Envoyer le lien",
+    "link_sent": "Lien envoyé ! Veuillez vérifier votre e-mail.",
+    "need_help": "Besoin d'aide ?",
+    "contact_us": "Contactez-nous."
+  },
+  "vto-single": {
+    "avatar_loading": "Trouver votre ajustement parfait...",
+    "slide_to_rotate": "Faites glisser pour faire pivoter",
+    "sign_out": "Se déconnecter",
+    "color_label": "Couleur :",
+    "add_to_cart": "Ajouter au panier"
+  },
+  "size-rec": {
+    "recommended_size": "Taille recommandée : {{size}}",
+    "item_fit": "Cet article est {{fit}}",
+    "select_size": "Sélectionnez une taille pour voir comment elle s'adapte",
+    "fitClassification": {
+      "form_fitting": "Ajusté",
+      "slim_fit": "Coupe slim",
+      "regular_fit": "Coupe régulière",
+      "relaxed_fit": "Coupe décontractée",
+      "oversized_fit": "Coupe oversize"
+    },
+    "measurementLocation": {
+      "neck_base": "Cou",
+      "across_shoulder": "Épaules",
+      "cb_neck_to_wrist": "Cou jusqu'au poignet",
+      "sleeve_length_from_shoulder_point": "Manche",
+      "bust": "Buste",
+      "waist": "Taille",
+      "low_waist": "Bas de la taille",
+      "low_hip": "Bas des hanches",
+      "high_hip": "Haut des hanches",
+      "thigh": "Cuisse",
+      "inseam": "Entrejambe",
+      "hsp_to_low_hip": "HSP au bas des hanches",
+      "hsp_to_crotch": "HSP à l'entrejambe",
+      "low_hip_bottoms": "Bas des hanches (bas)",
+      "high_hip_bottoms": "Haut des hanches (bas)"
+    },
+    "fit": {
+      "too_tight": "Trop serré",
+      "tight": "Serré",
+      "slightly_tight": "Légèrement serré",
+      "perfect_fit": "Parfait",
+      "slightly_loose": "Légèrement ample",
+      "loose": "Ample",
+      "oversized": "Oversize",
+      "too_short": "Trop court",
+      "short": "Court",
+      "slightly_short": "Légèrement court",
+      "slightly_long": "Légèrement long",
+      "long": "Long",
+      "too_long": "Trop long"
+    }
+  }
+}

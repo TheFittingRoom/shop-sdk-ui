@@ -1,0 +1,85 @@
+{
+  "try_it_on": "Try It On",
+  "powered_by": "Powered by",
+  "loading": "Loading...",
+  "landing": {
+    "header": "Meet your mini me!",
+    "description": "Loose on your waist but tight on your hips? We’ll show you.",
+    "get_the_app": "Get the app",
+    "already_have_account": "Already have an account?",
+    "sign_in": "Sign in."
+  },
+  "get-app": {
+    "create_avatar": "Create your avatar"
+  },
+  "sign-in": {
+    "email": "Email",
+    "password": "Password",
+    "forgot_password": "Forgot password?",
+    "sign_in": "Sign in",
+    "no_account": "Don’t have an account?",
+    "download_app": "Download the app.",
+    "invalid_email": "Please enter a valid email address.",
+    "missing_password": "Please enter your password.",
+    "login_failed": "Incorrect email or password."
+  },
+  "forgot-password": {
+    "title": "Forgot password",
+    "description": "We’ll send you an email with a link to reset your password.",
+    "send_link": "Send link",
+    "link_sent": "Link sent! Please check your email.",
+    "need_help": "Need help?",
+    "contact_us": "Contact us."
+  },
+  "vto-single": {
+    "avatar_loading": "Finding your perfect fit...",
+    "slide_to_rotate": "Slide to rotate",
+    "sign_out": "Sign out",
+    "color_label": "Color:",
+    "add_to_cart": "Add to cart"
+  },
+  "size-rec": {
+    "recommended_size": "Recommended Size: {{size}}",
+    "item_fit": "This item is {{fit}}",
+    "select_size": "Select a size to see how it fits",
+    "fitClassification": {
+      "form_fitting": "Form Fitting",
+      "slim_fit": "Slim Fit",
+      "regular_fit": "Regular Fit",
+      "relaxed_fit": "Relaxed Fit",
+      "oversized_fit": "Oversized Fit"
+    },
+    "measurementLocation": {
+      "neck_base": "Neck",
+      "across_shoulder": "Shoulders",
+      "cb_neck_to_wrist": "Neck to Wrist",
+      "sleeve_length_from_shoulder_point": "Sleeve",
+      "bust": "Bust",
+      "waist": "Waist",
+      "low_waist": "Low Waist",
+      "low_hip": "Low Hip",
+      "high_hip": "High Hip",
+      "thigh": "Thigh",
+      "inseam": "Inseam",
+      "hsp_to_low_hip": "HSP to Low Hip",
+      "hsp_to_crotch": "HSP to Crotch",
+      "low_hip_bottoms": "Low Hip (Bottoms)",
+      "high_hip_bottoms": "High Hip (Bottoms)"
+    },
+    "fit": {
+      "too_tight": "Too Tight",
+      "tight": "Tight",
+      "slightly_tight": "Slightly Tight",
+      "perfect_fit": "Perfect Fit",
+      "slightly_loose": "Slightly Loose",
+      "loose": "Loose",
+      "oversized": "Oversized",
+      "too_short": "Too Short",
+      "short": "Short",
+      "slightly_short": "Slightly Short",
+      "slightly_long": "Slightly Long",
+      "long": "Long",
+      "too_long": "Too Long"
+    }
+  }
+}
