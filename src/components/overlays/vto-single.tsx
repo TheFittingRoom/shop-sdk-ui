@@ -5,7 +5,14 @@ import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
 import { LinkT } from '@/components/link'
 import { Text, TextT } from '@/components/text'
 import { getSizeRecommendation, getSizeLabelFromSize, requestVtoSingle, FitClassification, SizeFit } from '@/lib/api'
-import { AvatarBottomBackgroundUrl, CheckCircleIcon, ChevronLeftIcon, ChevronRightIcon, InfoIcon, TfrNameSvg } from '@/lib/asset'
+import {
+  AvatarBottomBackgroundUrl,
+  CheckCircleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  InfoIcon,
+  TfrNameSvg,
+} from '@/lib/asset'
 import { getStyleByExternalId } from '@/lib/database'
 import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
@@ -66,7 +73,9 @@ export default function VtoSingleOverlay() {
       flexGrow: 1,
       display: 'flex',
       flexDirection: 'column',
+      margin: '8px 0px',
       padding: '16px 48px',
+      overflowY: 'auto',
     },
     productNameContainer: {},
     productNameText: {
@@ -103,11 +112,9 @@ export default function VtoSingleOverlay() {
       fontSize: '12px',
     },
     footerContainer: {
-      width: '50%',
-      position: 'absolute',
-      bottom: '16px',
       marginLeft: 'auto',
       marginRight: 'auto',
+      paddingBottom: '16px',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
@@ -384,7 +391,7 @@ const AVATAR_CONTROLS_HEIGHT_PX = 100
 function VtoAvatar({ frameUrls }: VtoAvatarProps) {
   const [containerHeightPx, setContainerHeightPx] = useState<number>(window.innerHeight)
   const topContainerRef = useRef<HTMLDivElement>(null)
-  const [selectedFrameIndex, setSelectedFrameIndex] = useState<number>(0)
+  const [selectedFrameIndex, setSelectedFrameIndex] = useState<number | null>(null)
   const css = useCss((theme) => ({
     topContainer: {
       flex: 'none',
@@ -403,9 +410,6 @@ function VtoAvatar({ frameUrls }: VtoAvatarProps) {
       left: '0',
       transform: 'translateY(-50%)',
       cursor: 'pointer',
-      // '@media screen and (min-width: 1024px)': {
-      //   left: '32px',
-      // },
     },
     chevronRightContainer: {
       position: 'absolute',
@@ -413,9 +417,6 @@ function VtoAvatar({ frameUrls }: VtoAvatarProps) {
       right: '0',
       transform: 'translateY(-50%)',
       cursor: 'pointer',
-      // '@media screen and (min-width: 1024px)': {
-      //   right: '32px',
-      // },
     },
     chevronIcon: {
       width: '48px',
@@ -456,15 +457,41 @@ function VtoAvatar({ frameUrls }: VtoAvatarProps) {
     }
   }, [])
 
+  // Auto-rotate avatar on initial frame load
+  useEffect(() => {
+    if (frameUrls && frameUrls.length > 0 && selectedFrameIndex == null) {
+      // let currentFrameIndex = Math.ceil(frameUrls.length / 2)
+      let currentFrameIndex = 0
+      setSelectedFrameIndex(currentFrameIndex)
+      const intervalId = setInterval(() => {
+        currentFrameIndex = (currentFrameIndex + 1) % frameUrls.length
+        setSelectedFrameIndex(currentFrameIndex)
+        if (currentFrameIndex === 0) {
+          clearInterval(intervalId)
+        }
+      }, 200)
+    }
+  }, [frameUrls, selectedFrameIndex])
+
   // Determmine image dimensions based on container height
   const imageHeightPx = containerHeightPx - AVATAR_CONTROLS_HEIGHT_PX
   const imageWidthPx = Math.floor(imageHeightPx / 1.5)
 
   const rotateLeft = useCallback(() => {
-    setSelectedFrameIndex((prevIndex) => (prevIndex === 0 ? (frameUrls ? frameUrls.length - 1 : 0) : prevIndex - 1))
+    setSelectedFrameIndex((prevIndex) => {
+      if (prevIndex == null) {
+        return null
+      }
+      return prevIndex === 0 ? (frameUrls ? frameUrls.length - 1 : 0) : prevIndex - 1
+    })
   }, [frameUrls])
   const rotateRight = useCallback(() => {
-    setSelectedFrameIndex((prevIndex) => (prevIndex === (frameUrls ? frameUrls.length - 1 : 0) ? 0 : prevIndex + 1))
+    setSelectedFrameIndex((prevIndex) => {
+      if (prevIndex == null) {
+        return null
+      }
+      return prevIndex === (frameUrls ? frameUrls.length - 1 : 0) ? 0 : prevIndex + 1
+    })
   }, [frameUrls])
   const handleImageDrag = useCallback(
     (e: React.MouseEvent<HTMLImageElement, MouseEvent>) => {
@@ -496,7 +523,7 @@ function VtoAvatar({ frameUrls }: VtoAvatarProps) {
 
   // RENDERING:
 
-  if (!frameUrls || frameUrls.length === 0) {
+  if (!frameUrls || selectedFrameIndex == null) {
     return <Loading />
   }
   return (
