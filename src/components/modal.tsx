@@ -46,6 +46,10 @@ export function ContentModal({ onRequestClose, title, onBackClick, children }: C
       borderStyle: 'solid',
       borderWidth: '1px',
       padding: '16px',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
     },
     frameContentFullScreen: {
       top: 0,
@@ -54,9 +58,14 @@ export function ContentModal({ onRequestClose, title, onBackClick, children }: C
       height: '100vh',
       backgroundColor: '#FFFFFF',
       padding: '16px',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
     },
     body: {
       margin: '16px',
+      overflowY: 'auto',
     },
     contentContainer: {
       maxWidth: '390px',

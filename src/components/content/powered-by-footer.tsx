@@ -13,7 +13,7 @@ export function PoweredByFooter() {
       display: 'flex',
       alignItems: 'center',
       gap: '2px',
-      marginTop: '24px',
+      paddingTop: '24px',
       fontSize: '12px',
     },
     poweredBy: {
