@@ -1,6 +1,7 @@
 {
   "try_it_on": "Essayez-le",
   "powered_by": "Alimenté par",
+  "loading": "Chargement...",
   "landing": {
     "header": "Rencontrez votre mini-moi !",
     "description": "Lâche à la taille mais serré aux hanches ? Nous allons vous montrer.",
@@ -31,6 +32,7 @@
     "contact_us": "Contactez-nous."
   },
   "vto-single": {
+    "avatar_loading": "Trouver votre ajustement parfait...",
     "slide_to_rotate": "Faites glisser pour faire pivoter",
     "sign_out": "Se déconnecter",
     "color_label": "Couleur :",

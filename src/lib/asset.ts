@@ -5,6 +5,7 @@ import ChevronLeftIcon from '@/assets/chevron-left.svg?react'
 import ChevronRightIcon from '@/assets/chevron-right.svg?react'
 import CloseIcon from '@/assets/close-icon.svg?react'
 import InfoIcon from '@/assets/info-icon.svg?react'
+import LoadingCircleIcon from '@/assets/loading-circle.svg?react'
 import TfrIcon from '@/assets/tfr-icon.svg?react'
 import TfrNameSvg from '@/assets/tfr-name.svg?react'
 import { getStaticData } from '@/lib/store'
@@ -17,6 +18,7 @@ export {
   ChevronRightIcon,
   CloseIcon,
   InfoIcon,
+  LoadingCircleIcon,
   TfrIcon,
   TfrNameSvg,
 }

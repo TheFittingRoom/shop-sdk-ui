@@ -1,6 +1,7 @@
 {
   "try_it_on": "Try It On",
   "powered_by": "Powered by",
+  "loading": "Loading...",
   "landing": {
     "header": "Meet your mini me!",
     "description": "Loose on your waist but tight on your hips? We’ll show you.",
@@ -31,6 +32,7 @@
     "contact_us": "Contact us."
   },
   "vto-single": {
+    "avatar_loading": "Finding your perfect fit...",
     "slide_to_rotate": "Slide to rotate",
     "sign_out": "Sign out",
     "color_label": "Color:",

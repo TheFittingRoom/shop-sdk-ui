@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from 'react'
 import { Button, ButtonT } from '@/components/button'
 import { Loading } from '@/components/content/loading'
 import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
@@ -523,37 +523,44 @@ function VtoAvatar({ frameUrls }: VtoAvatarProps) {
 
   // RENDERING:
 
-  if (!frameUrls || selectedFrameIndex == null) {
-    return <Loading />
+  let contentNode: ReactNode
+  if (frameUrls && selectedFrameIndex != null) {
+    contentNode = (
+      <>
+        <div css={css.imageContainer} style={{ width: imageWidthPx + 'px', height: imageHeightPx + 'px' }}>
+          <img
+            src={frameUrls[selectedFrameIndex]}
+            css={css.image}
+            style={{ width: imageWidthPx + 'px', height: imageHeightPx + 'px' }}
+            onMouseDown={handleImageDrag}
+          />
+          <div css={css.chevronLeftContainer} onClick={rotateLeft}>
+            <ChevronLeftIcon css={css.chevronIcon} />
+          </div>
+          <div css={css.chevronRightContainer} onClick={rotateRight}>
+            <ChevronRightIcon css={css.chevronIcon} />
+          </div>
+        </div>
+        <div css={css.controlsContainer} style={{ width: imageWidthPx + 'px' }}>
+          <input
+            type="range"
+            min={0}
+            max={frameUrls.length - 1}
+            step={1}
+            value={selectedFrameIndex}
+            onChange={(e) => setSelectedFrameIndex(Number(e.target.value))}
+            css={css.sliderInput}
+          />
+          <TextT variant="base" t="vto-single.slide_to_rotate" css={css.sliderText} />
+        </div>
+      </>
+    )
+  } else {
+    contentNode = <Loading t="vto-single.avatar_loading" />
   }
   return (
     <div ref={topContainerRef} css={css.topContainer} style={{ width: imageWidthPx + 'px' }}>
-      <div css={css.imageContainer} style={{ width: imageWidthPx + 'px', height: imageHeightPx + 'px' }}>
-        <img
-          src={frameUrls[selectedFrameIndex]}
-          css={css.image}
-          style={{ width: imageWidthPx + 'px', height: imageHeightPx + 'px' }}
-          onMouseDown={handleImageDrag}
-        />
-        <div css={css.chevronLeftContainer} onClick={rotateLeft}>
-          <ChevronLeftIcon css={css.chevronIcon} />
-        </div>
-        <div css={css.chevronRightContainer} onClick={rotateRight}>
-          <ChevronRightIcon css={css.chevronIcon} />
-        </div>
-      </div>
-      <div css={css.controlsContainer} style={{ width: imageWidthPx + 'px' }}>
-        <input
-          type="range"
-          min={0}
-          max={frameUrls.length - 1}
-          step={1}
-          value={selectedFrameIndex}
-          onChange={(e) => setSelectedFrameIndex(Number(e.target.value))}
-          css={css.sliderInput}
-        />
-        <TextT variant="base" t="vto-single.slide_to_rotate" css={css.sliderText} />
-      </div>
+      {contentNode}
     </div>
   )
 }

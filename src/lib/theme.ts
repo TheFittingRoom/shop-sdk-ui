@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { CSSObject } from '@emotion/react'
+import { keyframes, CSSObject } from '@emotion/react'
 
 export interface ThemeData {
   brand_font_family: string
@@ -33,6 +33,8 @@ export function getThemeData(): ThemeData {
 }
 
 export type CssProperties = CSSObject
+
+export { keyframes }
 
 export function useCss<T extends Record<string, CssProperties>>(callback: (themeData: ThemeData) => T): T {
   return useMemo(() => callback(themeData), [])
