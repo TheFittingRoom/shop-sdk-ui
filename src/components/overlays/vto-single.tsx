@@ -226,7 +226,9 @@ export default function VtoSingleOverlay() {
         logger.logError('Error fetching VTO data:', error)
       }
     }
-    fetchInitialData()
+    if (userIsLoggedIn && userHasAvatar) {
+      fetchInitialData()
+    }
   }, [userIsLoggedIn, userHasAvatar])
 
   // Derive selected color/size data from selections
