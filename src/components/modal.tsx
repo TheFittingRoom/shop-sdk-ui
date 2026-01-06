@@ -4,6 +4,7 @@ import { Text } from '@/components/text'
 import { ArrowBackIcon, CloseIcon } from '@/lib/asset'
 import { useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
+import { DeviceLayout } from '@/lib/view'
 
 export interface ModalFrameProps {
   isOpen: boolean
@@ -34,7 +35,7 @@ export interface ContentModalProps {
 }
 
 export function ContentModal({ onRequestClose, title, onBackClick, children }: ContentModalProps) {
-  const deviceView = useMainStore((state) => state.deviceView)
+  const deviceLayout = useMainStore((state) => state.deviceLayout)
   const css = useCss((theme) => ({
     frameContentBase: {
       width: '540px',
@@ -72,7 +73,7 @@ export function ContentModal({ onRequestClose, title, onBackClick, children }: C
     <ModalFrame
       isOpen
       onRequestClose={onRequestClose}
-      contentStyle={deviceView === 'mobile' ? css.frameContentFullScreen : css.frameContentBase}
+      contentStyle={deviceLayout === DeviceLayout.MOBILE_PORTRAIT ? css.frameContentFullScreen : css.frameContentBase}
     >
       <ModalTitlebar title={title} onBackClick={onBackClick} onCloseClick={onRequestClose} />
       <div css={css.body}>
@@ -158,7 +159,7 @@ export interface SidecarModalFrameProps {
 }
 
 export function SidecarModalFrame({ onRequestClose, children }: SidecarModalFrameProps) {
-  const deviceView = useMainStore((state) => state.deviceView)
+  const deviceLayout = useMainStore((state) => state.deviceLayout)
   const css = useCss((_theme) => ({
     frameContentBase: {
       position: 'absolute',
@@ -182,7 +183,7 @@ export function SidecarModalFrame({ onRequestClose, children }: SidecarModalFram
     <ModalFrame
       isOpen
       onRequestClose={onRequestClose}
-      contentStyle={deviceView === 'mobile' ? css.frameContentFullScreen : css.frameContentBase}
+      contentStyle={deviceLayout === DeviceLayout.MOBILE_PORTRAIT ? css.frameContentFullScreen : css.frameContentBase}
     >
       {children}
     </ModalFrame>

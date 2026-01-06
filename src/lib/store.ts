@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { Config } from '@/lib/config'
 import { AuthUser, UserProfile } from '@/lib/firebase'
-import { DeviceView, OverlayName } from '@/lib/view'
+import { DeviceLayout, OverlayName } from '@/lib/view'
 
 export interface ExternalProductVariant {
   sku: string
@@ -30,7 +30,6 @@ export interface StaticData {
   brandId: number
   currentProduct: ExternalProduct
   environment: string
-  isMobileDevice: boolean
   config: Config
 }
 
@@ -49,8 +48,9 @@ export function getStaticData(): StaticData {
 
 export interface MainStoreState {
   // Device info:
-  deviceView: DeviceView
-  setDeviceView: (deviceView: DeviceView) => void
+  isMobileDevice: boolean
+  deviceLayout: DeviceLayout
+  setDevice: (params: { isMobileDevice: boolean; deviceLayout: DeviceLayout }) => void
 
   // User data:
   userIsLoggedIn: boolean
@@ -69,8 +69,10 @@ export interface MainStoreState {
 
 export const useMainStore = create<MainStoreState>((set) => ({
   // Device info:
-  deviceView: DeviceView.DESKTOP,
-  setDeviceView: (deviceView: DeviceView) => set({ deviceView }),
+  isMobileDevice: false,
+  deviceLayout: DeviceLayout.DESKTOP,
+  setDevice: ({ isMobileDevice, deviceLayout }: { isMobileDevice: boolean; deviceLayout: DeviceLayout }) =>
+    set({ isMobileDevice, deviceLayout }),
 
   // User data:
   userIsLoggedIn: false,

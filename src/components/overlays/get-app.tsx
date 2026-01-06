@@ -17,7 +17,7 @@ export interface GetAppOverlayProps extends OverlayProps {
 export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverlayProps) {
   const closeOverlay = useMainStore((state) => state.closeOverlay)
   const openOverlay = useMainStore((state) => state.openOverlay)
-  const deviceView = useMainStore((state) => state.deviceView)
+  const isMobileDevice = useMainStore((state) => state.isMobileDevice)
   const css = useCss((theme) => ({
     titleText: {
       textTransform: 'uppercase',
@@ -65,26 +65,23 @@ export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverl
   }, [])
 
   let getAppNode: ReactNode
-  switch (deviceView) {
-    case 'mobile':
-      getAppNode = (
-        <div css={css.getAppMobileContainer}>
-          <Button variant="base" onClick={handleGetAppAppleClick}>
-            <img src={getExternalAssetUrl('get-app-apple-store.png')} alt="Apple Store" css={css.getAppMobileImage} />
-          </Button>
-          <Button variant="base" onClick={handleGetAppGoogleClick}>
-            <img src={getExternalAssetUrl('get-app-google-play.png')} alt="Google Play" css={css.getAppMobileImage} />
-          </Button>
-        </div>
-      )
-      break
-    default:
-      getAppNode = (
-        <div css={css.getAppQrContainer}>
-          <img src={getExternalAssetUrl('get-app-qr-code.png')} alt="QR Code" css={css.getAppQrImage} />
-        </div>
-      )
-      break
+  if (isMobileDevice) {
+    getAppNode = (
+      <div css={css.getAppMobileContainer}>
+        <Button variant="base" onClick={handleGetAppAppleClick}>
+          <img src={getExternalAssetUrl('get-app-apple-store.png')} alt="Apple Store" css={css.getAppMobileImage} />
+        </Button>
+        <Button variant="base" onClick={handleGetAppGoogleClick}>
+          <img src={getExternalAssetUrl('get-app-google-play.png')} alt="Google Play" css={css.getAppMobileImage} />
+        </Button>
+      </div>
+    )
+  } else {
+    getAppNode = (
+      <div css={css.getAppQrContainer}>
+        <img src={getExternalAssetUrl('get-app-qr-code.png')} alt="QR Code" css={css.getAppQrImage} />
+      </div>
+    )
   }
   return (
     <ContentModal onRequestClose={closeOverlay} title={<TextT variant="brand" css={css.titleText} t="try_it_on" />}>

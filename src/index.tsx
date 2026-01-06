@@ -1,6 +1,5 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import Bowser from 'bowser'
 import { OverlayManager } from '@/components/overlay-manager'
 import { Widget } from '@/components/widget'
 import { _init as initApi } from '@/lib/api'
@@ -11,7 +10,7 @@ import { i18n } from '@/lib/locale'
 import { _init as initLogger, getLogger, logInfo } from '@/lib/logger'
 import { _init as initStore, useMainStore, ExternalProduct } from '@/lib/store'
 import { _init as initTheme, ThemeData } from '@/lib/theme'
-import { getDeviceView } from '@/lib/view'
+import { _init as initView } from '@/lib/view'
 
 // Import styles
 // @ts-ignore
@@ -68,13 +67,6 @@ export async function init(initParams: InitParams): Promise<boolean> {
     // Get config
     const config = getConfig(environment)
 
-    // Get device info
-    let isMobileDevice: boolean
-    {
-      const bowserParser = Bowser.getParser(window.navigator.userAgent)
-      isMobileDevice = bowserParser.getPlatformType(true) === 'mobile'
-    }
-
     // Set language
     if (lang) {
       await i18n.changeLanguage(lang)
@@ -85,7 +77,6 @@ export async function init(initParams: InitParams): Promise<boolean> {
       brandId,
       currentProduct,
       environment,
-      isMobileDevice,
       config,
     })
 
@@ -95,17 +86,8 @@ export async function init(initParams: InitParams): Promise<boolean> {
     // Set theme data
     initTheme(theme)
 
-    // Publish device view to store
-    {
-      function updateDeviceView() {
-        const deviceView = getDeviceView(isMobileDevice)
-        useMainStore.getState().setDeviceView(deviceView)
-      }
-      updateDeviceView()
-      window.addEventListener('resize', () => {
-        updateDeviceView()
-      })
-    }
+    // Set device view
+    initView()
 
     // Initialize Firebase, Firestore, Auth
     await initFirebase()

@@ -1,3 +1,4 @@
+import Bowser from 'bowser'
 import ForgotPasswordOverlay from '@/components/overlays/forgot-password'
 import GetAppOverlay from '@/components/overlays/get-app'
 import LandingOverlay from '@/components/overlays/landing'
@@ -5,27 +6,45 @@ import SignInOverlay from '@/components/overlays/sign-in'
 import VtoSingleOverlay from '@/components/overlays/vto-single'
 import SizeRecWidget from '@/components/widgets/size-rec'
 import VtoButtonWidget from '@/components/widgets/vto-button'
+import { useMainStore } from '@/lib/store'
 
-export enum DeviceView {
-  MOBILE = 'mobile',
+export enum DeviceLayout {
+  MOBILE_PORTRAIT = 'mobile-portrait',
+  MOBILE_LANDSCAPE = 'mobile-landscape',
   TABLET_LANDSCAPE = 'tablet-landscape',
   TABLET_PORTRAIT = 'tablet-portrait',
   DESKTOP = 'desktop',
 }
 
-export function getDeviceView(isMobileDevice: boolean): DeviceView {
-  if (isMobileDevice) {
-    return DeviceView.MOBILE
-  }
-  const { width, height } = window.screen
-  const hasTouch = window.navigator.maxTouchPoints > 0
-  if (hasTouch && width < 1400) {
-    if (width > height) {
-      return DeviceView.TABLET_LANDSCAPE
+export function _init() {
+  function getDeviceData() {
+    const bowserParser = Bowser.getParser(window.navigator.userAgent)
+    const { width, height } = window.screen
+
+    const isMobileDevice = bowserParser.getPlatformType(true) === 'mobile'
+    const isTouch = window.navigator.maxTouchPoints > 0
+    const isPortrait = height >= width
+    const isWide = width >= 1400
+
+    if (isWide) {
+      return { isMobileDevice, deviceLayout: DeviceLayout.DESKTOP }
     }
-    return DeviceView.TABLET_PORTRAIT
+    if (isTouch) {
+      if (isMobileDevice) {
+        return { isMobileDevice, deviceLayout: isPortrait ? DeviceLayout.MOBILE_PORTRAIT : DeviceLayout.MOBILE_LANDSCAPE }
+      }
+      return { isMobileDevice, deviceLayout: isPortrait ? DeviceLayout.TABLET_PORTRAIT : DeviceLayout.TABLET_LANDSCAPE }
+    }
+    return { isMobileDevice, deviceLayout: DeviceLayout.DESKTOP }
   }
-  return DeviceView.DESKTOP
+  function updateDeviceView() {
+    const { isMobileDevice, deviceLayout } = getDeviceData()
+    useMainStore.getState().setDevice({ isMobileDevice, deviceLayout })
+  }
+  updateDeviceView()
+  window.addEventListener('resize', () => {
+    updateDeviceView()
+  })
 }
 
 export interface WidgetProps {
