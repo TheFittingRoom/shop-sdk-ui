@@ -12,7 +12,8 @@
     "build": "npm run clean && vite build --mode production",
     "watch": "vite build --mode production --watch",
     "serve": "serve . -p 5173 --cors",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "manual-release": "run() { npm check && npm build && npm version $1 && git push && git push --tags && echo 'Now run `npm publish`' }; run ${1:-patch}"
   },
   "engines": {
     "node": ">=20"
