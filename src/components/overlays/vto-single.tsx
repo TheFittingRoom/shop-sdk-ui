@@ -63,7 +63,7 @@ export default function VtoSingleOverlay() {
   const [loadedProductData, setLoadedProductData] = useState<LoadedProductData | null>(null)
   const [selectedSizeLabel, setSelectedSizeLabel] = useState<string | null>(null)
   const [selectedColorLabel, setSelectedColorLabel] = useState<string | null>(null)
-  const css = useCss((theme) => ({
+  const css = useCss((_theme) => ({
     mainContainer: {
       display: 'flex',
       height: '100%',
@@ -134,26 +134,6 @@ export default function VtoSingleOverlay() {
     },
     descriptionContainer: {
       marginTop: '32px',
-    },
-    descriptionText: {
-      fontSize: '12px',
-    },
-    footerContainer: {
-      marginLeft: 'auto',
-      marginRight: 'auto',
-      paddingBottom: '16px',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: '4px',
-    },
-    footerSignOutLink: {
-      fontSize: '10px',
-      color: theme.color_tfr_800,
-    },
-    footerTfrIcon: {
-      width: '100px',
-      height: '24px',
     },
   }))
 
@@ -392,23 +372,13 @@ export default function VtoSingleOverlay() {
               </div>
             </div>
             <div css={css.buttonContainer}>
-              <ButtonT variant="brand" t="vto-single.add_to_cart" onClick={handleAddToCartClick} />
+              <AddToCartButton onClick={handleAddToCartClick} />
             </div>
             <div css={css.descriptionContainer}>
-              <Text variant="base" css={css.descriptionText}>
-                <span dangerouslySetInnerHTML={{ __html: loadedProductData.productDescriptionHtml }} />
-              </Text>
+              <ProductDescriptionText loadedProductData={loadedProductData} />
             </div>
           </div>
-          <div css={css.footerContainer}>
-            <LinkT
-              variant="underline"
-              css={css.footerSignOutLink}
-              onClick={handleSignOutClick}
-              t="vto-single.sign_out"
-            />
-            <TfrNameSvg css={css.footerTfrIcon} />
-          </div>
+          <Footer onSignOutClick={handleSignOutClick} />
         </div>
       </div>
     </SidecarModalFrame>
@@ -811,4 +781,62 @@ function ItemFitDetails({ loadedProductData, selectedSizeLabel }: ItemFitDetails
   }, [loadedProductData, selectedSizeLabel])
 
   return <div css={css.container}>{fitLineNodeList}</div>
+}
+
+interface AddToCartButtonProps {
+  onClick: () => void
+}
+
+function AddToCartButton({ onClick }: AddToCartButtonProps) {
+  return <ButtonT variant="brand" t="vto-single.add_to_cart" onClick={onClick} />
+}
+
+interface ProductDescriptionTextProps {
+  loadedProductData: LoadedProductData
+}
+
+function ProductDescriptionText({ loadedProductData }: ProductDescriptionTextProps) {
+  const css = useCss((_theme) => ({
+    descriptionText: {
+      fontSize: '12px',
+    },
+  }))
+  return (
+    <Text variant="base" css={css.descriptionText}>
+      <span dangerouslySetInnerHTML={{ __html: loadedProductData.productDescriptionHtml }} />
+    </Text>
+  )
+}
+
+interface FooterProps {
+  onSignOutClick: () => void
+}
+
+function Footer({ onSignOutClick }: FooterProps) {
+  const css = useCss((theme) => ({
+    container: {
+      marginLeft: 'auto',
+      marginRight: 'auto',
+      paddingBottom: '16px',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: '4px',
+    },
+    signOutLink: {
+      fontSize: '10px',
+      color: theme.color_tfr_800,
+    },
+    tfrIcon: {
+      width: '100px',
+      height: '24px',
+    },
+  }))
+
+  return (
+    <div css={css.container}>
+      <LinkT variant="underline" css={css.signOutLink} onClick={onSignOutClick} t="vto-single.sign_out" />
+      <TfrNameSvg css={css.tfrIcon} />
+    </div>
+  )
 }
