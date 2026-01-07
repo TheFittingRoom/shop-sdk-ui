@@ -137,8 +137,10 @@ export function ModalTitlebar({ title, onBackClick, onCloseClick }: ModalTitleba
         {title}
       </Text>
     )
-  } else {
+  } else if (title) {
     titleNode = title
+  } else {
+    titleNode = <div>&nbsp;</div>
   }
   let backNode: ReactNode
   if (onBackClick) {
@@ -169,6 +171,7 @@ export interface SidecarModalFrameProps {
 
 export function SidecarModalFrame({ onRequestClose, children }: SidecarModalFrameProps) {
   const deviceLayout = useMainStore((state) => state.deviceLayout)
+  const isMobileLayout = deviceLayout === DeviceLayout.MOBILE_PORTRAIT || deviceLayout === DeviceLayout.TABLET_PORTRAIT
   const css = useCss((_theme) => ({
     frameContentBase: {
       position: 'absolute',
@@ -195,7 +198,7 @@ export function SidecarModalFrame({ onRequestClose, children }: SidecarModalFram
     <ModalFrame
       isOpen
       onRequestClose={onRequestClose}
-      contentStyle={deviceLayout === DeviceLayout.MOBILE_PORTRAIT ? css.frameContentFullScreen : css.frameContentBase}
+      contentStyle={isMobileLayout ? css.frameContentFullScreen : css.frameContentBase}
     >
       {children}
     </ModalFrame>

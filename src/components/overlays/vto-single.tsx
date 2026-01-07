@@ -10,6 +10,7 @@ import {
   CheckCircleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  CloseIcon,
   InfoIcon,
   TfrNameSvg,
 } from '@/lib/asset'
@@ -302,7 +303,7 @@ function MobileLayout({
   // selectedColorLabel,
   // selectedSizeLabel,
   frameUrls,
-  // onClose,
+  onClose,
   // onChangeColor,
   // onChangeSize,
   // onAddToCart,
@@ -314,10 +315,30 @@ function MobileLayout({
       width: '100%',
       height: '100%',
     },
+    closeButton: {
+      position: 'absolute',
+      top: '10px',
+      right: '10px',
+      width: '30px',
+      height: '30px',
+      border: 'none',
+      borderRadius: '15px',
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    closeIcon: {
+      width: '16px',
+      height: '16px',
+    },
   }))
   return (
     <div css={css.mainContainer}>
       <Avatar frameUrls={frameUrls} />
+      <button onClick={onClose} aria-label="Close modal" css={css.closeButton}>
+        <CloseIcon css={css.closeIcon} />
+      </button>
     </div>
   )
 }
