@@ -17,6 +17,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         border: 'none',
         cursor: 'pointer',
         textAlign: 'center',
+        fontFamily: theme.font_family,
       },
       primary: {
         display: 'block',
@@ -27,6 +28,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         borderRadius: '25px',
         padding: '16px 24px',
         cursor: 'pointer',
+        fontFamily: theme.font_family,
         fontSize: '16px',
         fontWeight: 'bold',
         textAlign: 'center',
@@ -40,9 +42,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         borderRadius: '25px',
         padding: '16px 24px',
         cursor: 'pointer',
-        fontSize: '16px',
+        fontFamily: theme.font_family,
+        fontSize: '14px',
         fontWeight: '500',
         textAlign: 'center',
+        textTransform: 'uppercase',
+        letterSpacing: '0.75px',
       },
     }))
     return (
