@@ -6,7 +6,7 @@ import { LinkT } from '@/components/link'
 import { Text, TextT } from '@/components/text'
 import { getSizeRecommendation, getSizeLabelFromSize, requestVtoSingle, FitClassification, SizeFit } from '@/lib/api'
 import {
-  AvatarBottomBackgroundUrl,
+  AVATAR_BOTTOM_BACKGROUND_URL,
   CheckCircleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -18,7 +18,7 @@ import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
-import { useCss } from '@/lib/theme'
+import { useCss, CssProperties } from '@/lib/theme'
 import { OverlayName } from '@/lib/view'
 
 interface LoadedSizeColorData {
@@ -43,6 +43,11 @@ interface LoadedProductData {
   recommendedSizeId: number
   recommendedSizeLabel: string
   sizes: LoadedSizeData[]
+}
+
+interface ElementSize {
+  width: number
+  height: number
 }
 
 const logger = getLogger('vto-single')
@@ -90,17 +95,39 @@ export default function VtoSingleOverlay() {
     colorContainer: {
       marginTop: '16px',
     },
-    colorLabelText: {
-      fontSize: '12px',
-    },
-    colorSelect: {
-      border: 'none',
-      color: theme.color_fg_text,
-      fontFamily: theme.font_family,
-      fontSize: '12px',
-    },
-    sizeRecContainer: {
+    sizeRecommendationContainer: {
       marginTop: '16px',
+      display: 'flex',
+      flexDirection: 'column',
+      border: '1px solid rgba(33, 32, 31, 0.2)',
+      padding: '32px 56px',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    recommendedSizeContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      lineHeight: 'normal',
+    },
+    recommendedSizeText: {
+      fontWeight: '600',
+    },
+    itemFitContainer: {
+      marginTop: '8px',
+      lineHeight: 'normal',
+    },
+    itemFitText: {},
+    selectSizeLabelContainer: {
+      lineHeight: 'normal',
+    },
+    selectSizeLabelText: {},
+    sizeSelectorContainer: {
+      marginTop: '24px',
+    },
+    itemFitDetailsContainer: {
+      marginTop: '24px',
+      width: '100%',
     },
     buttonContainer: {
       marginTop: '24px',
@@ -294,10 +321,6 @@ export default function VtoSingleOverlay() {
       logger.logError('Error during logout:', error)
     })
   }, [closeOverlay, openOverlay])
-  const handleColorSelectChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newColorLabel = e.target.value || null
-    setSelectedColorLabel(newColorLabel)
-  }, [])
   const handleAddToCartClick = useCallback(async () => {
     try {
       if (!selectedSizeLabel) {
@@ -325,7 +348,7 @@ export default function VtoSingleOverlay() {
   return (
     <SidecarModalFrame onRequestClose={closeOverlay}>
       <div css={css.mainContainer}>
-        <VtoAvatar frameUrls={frameUrls} />
+        <Avatar frameUrls={frameUrls} />
         <div css={css.rightContainer}>
           <ModalTitlebar title={t('try_it_on')} onCloseClick={closeOverlay} />
           <div css={css.contentContainer}>
@@ -339,26 +362,34 @@ export default function VtoSingleOverlay() {
                 {selectedColorSizeRecord.priceFormatted}
               </Text>
             </div>
-            {availableColorLabels.length >= 2 && (
-              <div css={css.colorContainer}>
-                <label>
-                  <TextT variant="base" css={css.colorLabelText} t="vto-single.color_label" />
-                  <select value={selectedColorLabel ?? ''} onChange={handleColorSelectChange} css={css.colorSelect}>
-                    {availableColorLabels.map((colorLabel) => (
-                      <option key={colorLabel} value={colorLabel}>
-                        {colorLabel}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            )}
-            <div css={css.sizeRecContainer}>
-              <SizeRecommendation
-                loadedProductData={loadedProductData}
-                selectedSizeLabel={selectedSizeLabel}
-                onChangeSize={setSelectedSizeLabel}
+            <div css={css.colorContainer}>
+              <ColorSelector
+                availableColorLabels={availableColorLabels}
+                selectedColorLabel={selectedColorLabel}
+                onChangeColor={setSelectedColorLabel}
               />
+            </div>
+            <div css={css.sizeRecommendationContainer}>
+              <div css={css.recommendedSizeContainer}>
+                <InfoIcon />
+                <RecommendedSizeText loadedProductData={loadedProductData} css={css.recommendedSizeText} />
+              </div>
+              <div css={css.itemFitContainer}>
+                <ItemFitText loadedProductData={loadedProductData} css={css.itemFitText} />
+              </div>
+              <div css={css.selectSizeLabelContainer}>
+                <TextT variant="base" css={css.selectSizeLabelText} t="size-rec.select_size" />
+              </div>
+              <div css={css.sizeSelectorContainer}>
+                <SizeSelector
+                  loadedProductData={loadedProductData}
+                  selectedSizeLabel={selectedSizeLabel}
+                  onChangeSize={setSelectedSizeLabel}
+                />
+              </div>
+              <div css={css.itemFitDetailsContainer}>
+                <ItemFitDetails loadedProductData={loadedProductData} selectedSizeLabel={selectedSizeLabel} />
+              </div>
             </div>
             <div css={css.buttonContainer}>
               <ButtonT variant="brand" t="vto-single.add_to_cart" onClick={handleAddToCartClick} />
@@ -384,14 +415,17 @@ export default function VtoSingleOverlay() {
   )
 }
 
-interface VtoAvatarProps {
+interface AvatarProps {
   frameUrls: string[] | null
 }
 
-const AVATAR_CONTROLS_HEIGHT_PX = 100
+const AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX = 100
 
-function VtoAvatar({ frameUrls }: VtoAvatarProps) {
-  const [containerHeightPx, setContainerHeightPx] = useState<number>(window.innerHeight)
+function Avatar({ frameUrls }: AvatarProps) {
+  const [containerSize, setContainerSize] = useState<ElementSize>({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  })
   const topContainerRef = useRef<HTMLDivElement>(null)
   const [selectedFrameIndex, setSelectedFrameIndex] = useState<number | null>(null)
   const css = useCss((theme) => ({
@@ -424,17 +458,17 @@ function VtoAvatar({ frameUrls }: VtoAvatarProps) {
       width: '48px',
       height: '48px',
     },
-    controlsContainer: {
+    bottomContainer: {
       position: 'absolute',
       bottom: '0',
-      height: AVATAR_CONTROLS_HEIGHT_PX + 'px',
+      height: '50px',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
       paddingBottom: '32px',
       backgroundColor: '#FFFFFF',
-      backgroundImage: `url(${AvatarBottomBackgroundUrl})`,
+      backgroundImage: `url(${AVATAR_BOTTOM_BACKGROUND_URL})`,
       backgroundSize: 'contain',
       backgroundRepeat: 'repeat-y',
     },
@@ -450,7 +484,17 @@ function VtoAvatar({ frameUrls }: VtoAvatarProps) {
   // Determine container height on mount and resize
   useEffect(() => {
     const handleResize = () => {
-      setContainerHeightPx(topContainerRef.current?.clientHeight ?? window.innerHeight)
+      const containerEl = topContainerRef.current
+      const size: ElementSize = containerEl
+        ? {
+            width: containerEl.clientWidth,
+            height: containerEl.clientHeight,
+          }
+        : {
+            width: window.innerWidth,
+            height: window.innerHeight,
+          }
+      setContainerSize(size)
     }
     handleResize()
     window.addEventListener('resize', handleResize)
@@ -475,9 +519,19 @@ function VtoAvatar({ frameUrls }: VtoAvatarProps) {
     }
   }, [frameUrls, selectedFrameIndex])
 
-  // Determmine image dimensions based on container height
-  const imageHeightPx = containerHeightPx - AVATAR_CONTROLS_HEIGHT_PX
-  const imageWidthPx = Math.floor(imageHeightPx / 1.5)
+  // Determmine element dimensions based on container size
+  const { imageSize, bottomContainerSize } = useMemo(() => {
+    let imageSize: ElementSize
+    let bottomContainerSize: ElementSize
+
+    const imageHeightPx = containerSize.height - AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX
+    const imageWidthPx = Math.floor(imageHeightPx / 1.5)
+    const bottomContainerHeightPx = AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX
+    imageSize = { width: imageWidthPx, height: imageHeightPx }
+    bottomContainerSize = { width: imageWidthPx, height: bottomContainerHeightPx }
+
+    return { imageSize, bottomContainerSize }
+  }, [containerSize])
 
   const rotateLeft = useCallback(() => {
     setSelectedFrameIndex((prevIndex) => {
@@ -529,11 +583,11 @@ function VtoAvatar({ frameUrls }: VtoAvatarProps) {
   if (frameUrls && selectedFrameIndex != null) {
     contentNode = (
       <>
-        <div css={css.imageContainer} style={{ width: imageWidthPx + 'px', height: imageHeightPx + 'px' }}>
+        <div css={css.imageContainer} style={{ width: imageSize.width + 'px', height: imageSize.height + 'px' }}>
           <img
             src={frameUrls[selectedFrameIndex]}
             css={css.image}
-            style={{ width: imageWidthPx + 'px', height: imageHeightPx + 'px' }}
+            style={{ width: imageSize.width + 'px', height: imageSize.height + 'px' }}
             onMouseDown={handleImageDrag}
           />
           <div css={css.chevronLeftContainer} onClick={rotateLeft}>
@@ -543,7 +597,10 @@ function VtoAvatar({ frameUrls }: VtoAvatarProps) {
             <ChevronRightIcon css={css.chevronIcon} />
           </div>
         </div>
-        <div css={css.controlsContainer} style={{ width: imageWidthPx + 'px' }}>
+        <div
+          css={css.bottomContainer}
+          style={{ width: bottomContainerSize.width + 'px', height: bottomContainerSize.height + 'px' }}
+        >
           <input
             type="range"
             min={0}
@@ -561,88 +618,80 @@ function VtoAvatar({ frameUrls }: VtoAvatarProps) {
     contentNode = <Loading t="vto-single.avatar_loading" />
   }
   return (
-    <div ref={topContainerRef} css={css.topContainer} style={{ width: imageWidthPx + 'px' }}>
+    <div ref={topContainerRef} css={css.topContainer} style={{ width: imageSize.width + 'px' }}>
       {contentNode}
     </div>
   )
 }
 
-interface SizeRecommendationProps {
+interface ColorSelectorProps {
+  availableColorLabels: string[]
+  selectedColorLabel: string | null
+  onChangeColor: (newColorLabel: string | null) => void
+}
+
+function ColorSelector({ availableColorLabels, selectedColorLabel, onChangeColor }: ColorSelectorProps) {
+  const css = useCss((theme) => ({
+    colorContainer: {},
+    colorLabelText: {
+      fontSize: '12px',
+    },
+    colorSelect: {
+      border: 'none',
+      color: theme.color_fg_text,
+      fontFamily: theme.font_family,
+      fontSize: '12px',
+    },
+  }))
+
+  const handleColorSelectChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newColorLabel = e.target.value || null
+    onChangeColor(newColorLabel)
+  }, [])
+
+  if (availableColorLabels.length < 2) {
+    return null
+  }
+  return (
+    <div css={css.colorContainer}>
+      <label>
+        <TextT variant="base" css={css.colorLabelText} t="vto-single.color_label" />
+        <select value={selectedColorLabel ?? ''} onChange={handleColorSelectChange} css={css.colorSelect}>
+          {availableColorLabels.map((colorLabel) => (
+            <option key={colorLabel} value={colorLabel}>
+              {colorLabel}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+  )
+}
+
+interface SizeSelectorProps {
   loadedProductData: LoadedProductData
   selectedSizeLabel: string | null
   onChangeSize: (newSizeLabel: string) => void
 }
 
-function SizeRecommendation({ loadedProductData, selectedSizeLabel, onChangeSize }: SizeRecommendationProps) {
-  const { t } = useTranslation()
+function SizeSelector({ loadedProductData, selectedSizeLabel, onChangeSize }: SizeSelectorProps) {
   const css = useCss((_theme) => ({
-    frame: {
-      display: 'flex',
-      flexDirection: 'column',
-      border: '1px solid rgba(33, 32, 31, 0.2)',
-      padding: '32px 56px',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    recommendedSizeContainer: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      lineHeight: 'normal',
-    },
-    recommendedSizeText: {
-      fontWeight: '600',
-    },
-    itemFitContainer: {
-      marginTop: '8px',
-      lineHeight: 'normal',
-    },
-    itemFitText: {},
-    selectSizeLabelContainer: {
-      lineHeight: 'normal',
-    },
-    selectSizeLabelText: {},
-    sizeSelectorContainer: {
-      marginTop: '24px',
+    container: {
       display: 'flex',
       alignItems: 'center',
       gap: '12px',
     },
-    sizeSelectorButton: {
+    button: {
       width: '54px',
       height: '44px',
       border: '1px solid rgba(33, 32, 31, 0.2)',
       padding: '9px 5px',
     },
-    sizeSelectorButtonSelected: {
+    selectedButton: {
       border: '1px solid rgb(33, 32, 31)',
       cursor: 'default',
     },
-    fitContainer: {
-      marginTop: '24px',
-      width: '100%',
-    },
-    fitLine: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      gap: '8px',
-      marginTop: '4px',
-      borderTop: '1px solid rgb(33, 32, 31)',
-      paddingTop: '4px',
-    },
-    fitFirstLine: {
-      borderTop: 'none',
-      marginTop: '0px',
-      paddingTop: '0px',
-    },
-    fitDetail: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-    },
   }))
-
   const sizeSelectorNodeList = useMemo(
     () =>
       loadedProductData.sizes.map((sizeRecord) => {
@@ -651,7 +700,7 @@ function SizeRecommendation({ loadedProductData, selectedSizeLabel, onChangeSize
           <Button
             key={sizeRecord.sizeLabel}
             variant="base"
-            css={{ ...css.sizeSelectorButton, ...(isSelected && css.sizeSelectorButtonSelected) }}
+            css={{ ...css.button, ...(isSelected && css.selectedButton) }}
             onClick={() => {
               if (isSelected) {
                 return
@@ -665,7 +714,76 @@ function SizeRecommendation({ loadedProductData, selectedSizeLabel, onChangeSize
       }),
     [loadedProductData.sizes, selectedSizeLabel, onChangeSize],
   )
+  return <div css={css.container}>{sizeSelectorNodeList}</div>
+}
 
+interface RecommendedSizeTextProps {
+  loadedProductData: LoadedProductData
+  css?: CssProperties
+}
+
+function RecommendedSizeText({ loadedProductData, css }: RecommendedSizeTextProps) {
+  return (
+    <TextT
+      variant="base"
+      css={css}
+      t="size-rec.recommended_size"
+      vars={{ size: loadedProductData.recommendedSizeLabel }}
+    />
+  )
+}
+
+interface ItemFitTextProps {
+  loadedProductData: LoadedProductData
+  css?: CssProperties
+}
+
+function ItemFitText({ loadedProductData, css }: ItemFitTextProps) {
+  const { t } = useTranslation()
+  return (
+    <TextT
+      variant="base"
+      css={css}
+      t="size-rec.item_fit"
+      vars={{
+        fit:
+          t(`size-rec.fitClassification.${loadedProductData.fitClassification}`) || loadedProductData.fitClassification,
+      }}
+    />
+  )
+}
+
+interface ItemFitDetailsProps {
+  loadedProductData: LoadedProductData
+  selectedSizeLabel: string | null
+}
+
+function ItemFitDetails({ loadedProductData, selectedSizeLabel }: ItemFitDetailsProps) {
+  const { t } = useTranslation()
+  const css = useCss((_theme) => ({
+    container: {
+      width: '100%',
+    },
+    line: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: '8px',
+      marginTop: '4px',
+      borderTop: '1px solid rgb(33, 32, 31)',
+      paddingTop: '4px',
+    },
+    firstLine: {
+      borderTop: 'none',
+      marginTop: '0px',
+      paddingTop: '0px',
+    },
+    detailCell: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+    },
+  }))
   const fitLineNodeList = useMemo(() => {
     const selectedSizeRecord = loadedProductData.sizes.find((s) => s.sizeLabel === selectedSizeLabel)
     if (!selectedSizeRecord) {
@@ -676,9 +794,9 @@ function SizeRecommendation({ loadedProductData, selectedSizeLabel, onChangeSize
       const fit = mlf.fit
       const fitLabel = t(`size-rec.fit.${fit}`) || fit
       return (
-        <div key={index} css={[css.fitLine, index === 0 && css.fitFirstLine]}>
-          <div css={css.fitDetail}>{locationLabel}</div>
-          <div css={css.fitDetail}>
+        <div key={index} css={[css.line, index === 0 && css.firstLine]}>
+          <div css={css.detailCell}>{locationLabel}</div>
+          <div css={css.detailCell}>
             {fit === 'perfect_fit' ? (
               <>
                 <CheckCircleIcon /> {fitLabel}
@@ -692,34 +810,5 @@ function SizeRecommendation({ loadedProductData, selectedSizeLabel, onChangeSize
     })
   }, [loadedProductData, selectedSizeLabel])
 
-  return (
-    <div css={css.frame}>
-      <div css={css.recommendedSizeContainer}>
-        <InfoIcon />
-        <TextT
-          variant="base"
-          css={css.recommendedSizeText}
-          t="size-rec.recommended_size"
-          vars={{ size: loadedProductData.recommendedSizeLabel }}
-        />
-      </div>
-      <div css={css.itemFitContainer}>
-        <TextT
-          variant="base"
-          css={css.itemFitText}
-          t="size-rec.item_fit"
-          vars={{
-            fit:
-              t(`size-rec.fitClassification.${loadedProductData.fitClassification}`) ||
-              loadedProductData.fitClassification,
-          }}
-        />
-      </div>
-      <div css={css.selectSizeLabelContainer}>
-        <TextT variant="base" css={css.selectSizeLabelText} t="size-rec.select_size" />
-      </div>
-      <div css={css.sizeSelectorContainer}>{sizeSelectorNodeList}</div>
-      <div css={css.fitContainer}>{fitLineNodeList}</div>
-    </div>
-  )
+  return <div css={css.container}>{fitLineNodeList}</div>
 }
