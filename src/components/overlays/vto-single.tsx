@@ -19,7 +19,7 @@ import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { useCss, CssProperties } from '@/lib/theme'
-import { OverlayName } from '@/lib/view'
+import { DeviceLayout, OverlayName } from '@/lib/view'
 
 interface LoadedSizeColorData {
   colorwaySizeAssetId: number
@@ -50,6 +50,9 @@ interface ElementSize {
   height: number
 }
 
+const AVATAR_IMAGE_ASPECT_RATIO = 2 / 3 // width:height
+const AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX = 100
+
 const logger = getLogger('vto-single')
 
 export default function VtoSingleOverlay() {
@@ -57,6 +60,7 @@ export default function VtoSingleOverlay() {
   const userIsLoggedIn = useMainStore((state) => state.userIsLoggedIn)
   const userHasAvatar = useMainStore((state) => state.userHasAvatar)
   const userProfile = useMainStore((state) => state.userProfile)
+  const deviceLayout = useMainStore((state) => state.deviceLayout)
   const openOverlay = useMainStore((state) => state.openOverlay)
   const closeOverlay = useMainStore((state) => state.closeOverlay)
   const [loadedProductData, setLoadedProductData] = useState<LoadedProductData | null>(null)
@@ -251,24 +255,33 @@ export default function VtoSingleOverlay() {
     )
   }
 
-  return <SidecarModalFrame onRequestClose={closeOverlay}>
-    <DesktopLayout
-      loadedProductData={loadedProductData}
-      selectedColorSizeRecord={selectedColorSizeRecord}
-      availableColorLabels={availableColorLabels}
-      selectedColorLabel={selectedColorLabel}
-      selectedSizeLabel={selectedSizeLabel}
-      frameUrls={frameUrls}
-      onClose={closeOverlay}
-      onChangeColor={setSelectedColorLabel}
-      onChangeSize={setSelectedSizeLabel}
-      onAddToCart={handleAddToCartClick}
-      onSignOut={handleSignOutClick}
-    />
-  </SidecarModalFrame>
+  let Layout: React.FC<LayoutProps>
+  if (deviceLayout === DeviceLayout.MOBILE_PORTRAIT || deviceLayout === DeviceLayout.TABLET_PORTRAIT) {
+    Layout = MobileLayout
+  } else {
+    Layout = DesktopLayout
+  }
+
+  return (
+    <SidecarModalFrame onRequestClose={closeOverlay}>
+      <Layout
+        loadedProductData={loadedProductData}
+        selectedColorSizeRecord={selectedColorSizeRecord}
+        availableColorLabels={availableColorLabels}
+        selectedColorLabel={selectedColorLabel}
+        selectedSizeLabel={selectedSizeLabel}
+        frameUrls={frameUrls}
+        onClose={closeOverlay}
+        onChangeColor={setSelectedColorLabel}
+        onChangeSize={setSelectedSizeLabel}
+        onAddToCart={handleAddToCartClick}
+        onSignOut={handleSignOutClick}
+      />
+    </SidecarModalFrame>
+  )
 }
 
-interface DesktopLayoutProps {
+interface LayoutProps {
   loadedProductData: LoadedProductData
   selectedColorSizeRecord: LoadedSizeColorData
   availableColorLabels: string[]
@@ -280,6 +293,33 @@ interface DesktopLayoutProps {
   onChangeSize: (newSizeLabel: string) => void
   onAddToCart: () => void
   onSignOut: () => void
+}
+
+function MobileLayout({
+  // loadedProductData,
+  // selectedColorSizeRecord,
+  // availableColorLabels,
+  // selectedColorLabel,
+  // selectedSizeLabel,
+  frameUrls,
+  // onClose,
+  // onChangeColor,
+  // onChangeSize,
+  // onAddToCart,
+  // onSignOut,
+}: LayoutProps) {
+  // const { t } = useTranslation()
+  const css = useCss((_theme) => ({
+    mainContainer: {
+      width: '100%',
+      height: '100%',
+    },
+  }))
+  return (
+    <div css={css.mainContainer}>
+      <Avatar frameUrls={frameUrls} />
+    </div>
+  )
 }
 
 function DesktopLayout({
@@ -294,7 +334,7 @@ function DesktopLayout({
   onChangeSize,
   onAddToCart,
   onSignOut,
-}: DesktopLayoutProps) {
+}: LayoutProps) {
   const { t } = useTranslation()
   const css = useCss((_theme) => ({
     mainContainer: {
@@ -431,9 +471,9 @@ interface AvatarProps {
   frameUrls: string[] | null
 }
 
-const AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX = 100
-
 function Avatar({ frameUrls }: AvatarProps) {
+  const deviceLayout = useMainStore((state) => state.deviceLayout)
+  const isMobileLayout = deviceLayout === DeviceLayout.MOBILE_PORTRAIT || deviceLayout === DeviceLayout.TABLET_PORTRAIT
   const [containerSize, setContainerSize] = useState<ElementSize>({
     width: window.innerWidth,
     height: window.innerHeight,
@@ -536,14 +576,22 @@ function Avatar({ frameUrls }: AvatarProps) {
     let imageSize: ElementSize
     let bottomContainerSize: ElementSize
 
-    const imageHeightPx = containerSize.height - AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX
-    const imageWidthPx = Math.floor(imageHeightPx / 1.5)
-    const bottomContainerHeightPx = AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX
-    imageSize = { width: imageWidthPx, height: imageHeightPx }
-    bottomContainerSize = { width: imageWidthPx, height: bottomContainerHeightPx }
+    if (isMobileLayout) {
+      const imageWidthPx = containerSize.width
+      const imageHeightPx = Math.floor(imageWidthPx / AVATAR_IMAGE_ASPECT_RATIO)
+      const bottomContainerHeightPx = containerSize.height - imageHeightPx
+      imageSize = { width: imageWidthPx, height: imageHeightPx }
+      bottomContainerSize = { width: imageWidthPx, height: bottomContainerHeightPx }
+    } else {
+      const imageHeightPx = containerSize.height - AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX
+      const imageWidthPx = Math.floor(imageHeightPx * AVATAR_IMAGE_ASPECT_RATIO)
+      const bottomContainerHeightPx = AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX
+      imageSize = { width: imageWidthPx, height: imageHeightPx }
+      bottomContainerSize = { width: imageWidthPx, height: bottomContainerHeightPx }
+    }
 
     return { imageSize, bottomContainerSize }
-  }, [containerSize])
+  }, [isMobileLayout, containerSize])
 
   const rotateLeft = useCallback(() => {
     setSelectedFrameIndex((prevIndex) => {
@@ -613,16 +661,20 @@ function Avatar({ frameUrls }: AvatarProps) {
           css={css.bottomContainer}
           style={{ width: bottomContainerSize.width + 'px', height: bottomContainerSize.height + 'px' }}
         >
-          <input
-            type="range"
-            min={0}
-            max={frameUrls.length - 1}
-            step={1}
-            value={selectedFrameIndex}
-            onChange={(e) => setSelectedFrameIndex(Number(e.target.value))}
-            css={css.sliderInput}
-          />
-          <TextT variant="base" t="vto-single.slide_to_rotate" css={css.sliderText} />
+          {isMobileLayout ? <>&nbsp;</> : (
+            <>
+              <input
+                type="range"
+                min={0}
+                max={frameUrls.length - 1}
+                step={1}
+                value={selectedFrameIndex}
+                onChange={(e) => setSelectedFrameIndex(Number(e.target.value))}
+                css={css.sliderInput}
+              />
+              <TextT variant="base" t="vto-single.slide_to_rotate" css={css.sliderText} />
+            </>
+          )}
         </div>
       </>
     )
