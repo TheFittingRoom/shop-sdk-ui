@@ -173,7 +173,7 @@ export function SidecarModalFrame({ onRequestClose, children }: SidecarModalFram
     frameContentBase: {
       position: 'absolute',
       inset: '0 0 auto auto',
-      width: 'min(1100px, 100vw)',
+      width: 'max(min(1100px, 100vw), 80vw)',
       height: '100vh',
       margin: 0,
       padding: 0,
