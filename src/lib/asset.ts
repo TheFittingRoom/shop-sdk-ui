@@ -1,5 +1,5 @@
 import ArrowBackIcon from '@/assets/arrow-back.svg?react'
-import AvatarBottomBackgroundUrl from '@/assets/avatar-bottom-background.png'
+import AVATAR_BOTTOM_BACKGROUND_URL from '@/assets/avatar-bottom-background.png'
 import CheckCircleIcon from '@/assets/check-circle.svg?react'
 import ChevronLeftIcon from '@/assets/chevron-left.svg?react'
 import ChevronRightIcon from '@/assets/chevron-right.svg?react'
@@ -12,7 +12,7 @@ import { getStaticData } from '@/lib/store'
 
 export {
   ArrowBackIcon,
-  AvatarBottomBackgroundUrl,
+  AVATAR_BOTTOM_BACKGROUND_URL,
   CheckCircleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
