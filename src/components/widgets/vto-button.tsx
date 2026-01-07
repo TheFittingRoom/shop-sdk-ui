@@ -44,7 +44,7 @@ export default function VtoButtonWidget({}: WidgetProps) {
       css={css.button}
     >
       <TfrIcon css={css.icon} />
-      <TextT variant="brand" css={css.text} t="try_it_on" />
+      <TextT variant="base" css={css.text} t="try_it_on" />
     </button>
   )
 }

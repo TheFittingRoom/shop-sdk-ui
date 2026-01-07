@@ -41,7 +41,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         padding: '16px 24px',
         cursor: 'pointer',
         fontSize: '16px',
-        fontWeight: 'bold',
+        fontWeight: '500',
         textAlign: 'center',
       },
     }))
