@@ -53,7 +53,6 @@ interface ElementSize {
 const logger = getLogger('vto-single')
 
 export default function VtoSingleOverlay() {
-  const { t } = useTranslation()
   const { brandId } = getStaticData()
   const userIsLoggedIn = useMainStore((state) => state.userIsLoggedIn)
   const userHasAvatar = useMainStore((state) => state.userHasAvatar)
@@ -63,79 +62,6 @@ export default function VtoSingleOverlay() {
   const [loadedProductData, setLoadedProductData] = useState<LoadedProductData | null>(null)
   const [selectedSizeLabel, setSelectedSizeLabel] = useState<string | null>(null)
   const [selectedColorLabel, setSelectedColorLabel] = useState<string | null>(null)
-  const css = useCss((_theme) => ({
-    mainContainer: {
-      display: 'flex',
-      height: '100%',
-    },
-    rightContainer: {
-      flexGrow: 1,
-      padding: '16px',
-      display: 'flex',
-      flexDirection: 'column',
-    },
-    contentContainer: {
-      flexGrow: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      margin: '8px 0px',
-      padding: '16px 48px',
-      overflowY: 'auto',
-    },
-    productNameContainer: {},
-    productNameText: {
-      fontSize: '32px',
-    },
-    priceContainer: {
-      marginTop: '8px',
-    },
-    priceText: {
-      fontSize: '18px',
-    },
-    colorContainer: {
-      marginTop: '16px',
-    },
-    sizeRecommendationContainer: {
-      marginTop: '16px',
-      display: 'flex',
-      flexDirection: 'column',
-      border: '1px solid rgba(33, 32, 31, 0.2)',
-      padding: '32px 56px',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    recommendedSizeContainer: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      lineHeight: 'normal',
-    },
-    recommendedSizeText: {
-      fontWeight: '600',
-    },
-    itemFitContainer: {
-      marginTop: '8px',
-      lineHeight: 'normal',
-    },
-    itemFitText: {},
-    selectSizeLabelContainer: {
-      lineHeight: 'normal',
-    },
-    selectSizeLabelText: {},
-    sizeSelectorContainer: {
-      marginTop: '24px',
-    },
-    itemFitDetailsContainer: {
-      marginTop: '24px',
-      width: '100%',
-    },
-    buttonContainer: {
-      marginTop: '24px',
-    },
-    descriptionContainer: {
-      marginTop: '32px',
-    },
-  }))
 
   // Redirect if not logged in or no avatar
   useEffect(() => {
@@ -325,63 +251,179 @@ export default function VtoSingleOverlay() {
     )
   }
 
+  return <SidecarModalFrame onRequestClose={closeOverlay}>
+    <DesktopLayout
+      loadedProductData={loadedProductData}
+      selectedColorSizeRecord={selectedColorSizeRecord}
+      availableColorLabels={availableColorLabels}
+      selectedColorLabel={selectedColorLabel}
+      selectedSizeLabel={selectedSizeLabel}
+      frameUrls={frameUrls}
+      onClose={closeOverlay}
+      onChangeColor={setSelectedColorLabel}
+      onChangeSize={setSelectedSizeLabel}
+      onAddToCart={handleAddToCartClick}
+      onSignOut={handleSignOutClick}
+    />
+  </SidecarModalFrame>
+}
+
+interface DesktopLayoutProps {
+  loadedProductData: LoadedProductData
+  selectedColorSizeRecord: LoadedSizeColorData
+  availableColorLabels: string[]
+  selectedColorLabel: string | null
+  selectedSizeLabel: string | null
+  frameUrls: string[] | null
+  onClose: () => void
+  onChangeColor: (newColorLabel: string | null) => void
+  onChangeSize: (newSizeLabel: string) => void
+  onAddToCart: () => void
+  onSignOut: () => void
+}
+
+function DesktopLayout({
+  loadedProductData,
+  selectedColorSizeRecord,
+  availableColorLabels,
+  selectedColorLabel,
+  selectedSizeLabel,
+  frameUrls,
+  onClose,
+  onChangeColor,
+  onChangeSize,
+  onAddToCart,
+  onSignOut,
+}: DesktopLayoutProps) {
+  const { t } = useTranslation()
+  const css = useCss((_theme) => ({
+    mainContainer: {
+      display: 'flex',
+      height: '100%',
+    },
+    rightContainer: {
+      flexGrow: 1,
+      padding: '16px',
+      display: 'flex',
+      flexDirection: 'column',
+    },
+    contentContainer: {
+      flexGrow: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      margin: '8px 0px',
+      padding: '16px 48px',
+      overflowY: 'auto',
+    },
+    productNameContainer: {},
+    productNameText: {
+      fontSize: '32px',
+    },
+    priceContainer: {
+      marginTop: '8px',
+    },
+    priceText: {
+      fontSize: '18px',
+    },
+    colorContainer: {
+      marginTop: '16px',
+    },
+    sizeRecommendationContainer: {
+      marginTop: '16px',
+      display: 'flex',
+      flexDirection: 'column',
+      border: '1px solid rgba(33, 32, 31, 0.2)',
+      padding: '32px 56px',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    recommendedSizeContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      lineHeight: 'normal',
+    },
+    recommendedSizeText: {
+      fontWeight: '600',
+    },
+    itemFitContainer: {
+      marginTop: '8px',
+      lineHeight: 'normal',
+    },
+    itemFitText: {},
+    selectSizeLabelContainer: {
+      lineHeight: 'normal',
+    },
+    selectSizeLabelText: {},
+    sizeSelectorContainer: {
+      marginTop: '24px',
+    },
+    itemFitDetailsContainer: {
+      marginTop: '24px',
+      width: '100%',
+    },
+    buttonContainer: {
+      marginTop: '24px',
+    },
+    descriptionContainer: {
+      marginTop: '32px',
+    },
+  }))
   return (
-    <SidecarModalFrame onRequestClose={closeOverlay}>
-      <div css={css.mainContainer}>
-        <Avatar frameUrls={frameUrls} />
-        <div css={css.rightContainer}>
-          <ModalTitlebar title={t('try_it_on')} onCloseClick={closeOverlay} />
-          <div css={css.contentContainer}>
-            <div css={css.productNameContainer}>
-              <Text variant="brand" css={css.productNameText}>
-                {loadedProductData.productName}
-              </Text>
+    <div css={css.mainContainer}>
+      <Avatar frameUrls={frameUrls} />
+      <div css={css.rightContainer}>
+        <ModalTitlebar title={t('try_it_on')} onCloseClick={onClose} />
+        <div css={css.contentContainer}>
+          <div css={css.productNameContainer}>
+            <Text variant="brand" css={css.productNameText}>
+              {loadedProductData.productName}
+            </Text>
+          </div>
+          <div css={css.priceContainer}>
+            <Text variant="base" css={css.priceText}>
+              {selectedColorSizeRecord.priceFormatted}
+            </Text>
+          </div>
+          <div css={css.colorContainer}>
+            <ColorSelector
+              availableColorLabels={availableColorLabels}
+              selectedColorLabel={selectedColorLabel}
+              onChangeColor={onChangeColor}
+            />
+          </div>
+          <div css={css.sizeRecommendationContainer}>
+            <div css={css.recommendedSizeContainer}>
+              <InfoIcon />
+              <RecommendedSizeText loadedProductData={loadedProductData} css={css.recommendedSizeText} />
             </div>
-            <div css={css.priceContainer}>
-              <Text variant="base" css={css.priceText}>
-                {selectedColorSizeRecord.priceFormatted}
-              </Text>
+            <div css={css.itemFitContainer}>
+              <ItemFitText loadedProductData={loadedProductData} css={css.itemFitText} />
             </div>
-            <div css={css.colorContainer}>
-              <ColorSelector
-                availableColorLabels={availableColorLabels}
-                selectedColorLabel={selectedColorLabel}
-                onChangeColor={setSelectedColorLabel}
+            <div css={css.selectSizeLabelContainer}>
+              <TextT variant="base" css={css.selectSizeLabelText} t="size-rec.select_size" />
+            </div>
+            <div css={css.sizeSelectorContainer}>
+              <SizeSelector
+                loadedProductData={loadedProductData}
+                selectedSizeLabel={selectedSizeLabel}
+                onChangeSize={onChangeSize}
               />
             </div>
-            <div css={css.sizeRecommendationContainer}>
-              <div css={css.recommendedSizeContainer}>
-                <InfoIcon />
-                <RecommendedSizeText loadedProductData={loadedProductData} css={css.recommendedSizeText} />
-              </div>
-              <div css={css.itemFitContainer}>
-                <ItemFitText loadedProductData={loadedProductData} css={css.itemFitText} />
-              </div>
-              <div css={css.selectSizeLabelContainer}>
-                <TextT variant="base" css={css.selectSizeLabelText} t="size-rec.select_size" />
-              </div>
-              <div css={css.sizeSelectorContainer}>
-                <SizeSelector
-                  loadedProductData={loadedProductData}
-                  selectedSizeLabel={selectedSizeLabel}
-                  onChangeSize={setSelectedSizeLabel}
-                />
-              </div>
-              <div css={css.itemFitDetailsContainer}>
-                <ItemFitDetails loadedProductData={loadedProductData} selectedSizeLabel={selectedSizeLabel} />
-              </div>
-            </div>
-            <div css={css.buttonContainer}>
-              <AddToCartButton onClick={handleAddToCartClick} />
-            </div>
-            <div css={css.descriptionContainer}>
-              <ProductDescriptionText loadedProductData={loadedProductData} />
+            <div css={css.itemFitDetailsContainer}>
+              <ItemFitDetails loadedProductData={loadedProductData} selectedSizeLabel={selectedSizeLabel} />
             </div>
           </div>
-          <Footer onSignOutClick={handleSignOutClick} />
+          <div css={css.buttonContainer}>
+            <AddToCartButton onClick={onAddToCart} />
+          </div>
+          <div css={css.descriptionContainer}>
+            <ProductDescriptionText loadedProductData={loadedProductData} />
+          </div>
         </div>
+        <Footer onSignOutClick={onSignOut} />
       </div>
-    </SidecarModalFrame>
+    </div>
   )
 }
 
