@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, ReactNode, CSSProperties } from 'react'
 import { Button, ButtonT } from '@/components/button'
 import { Loading } from '@/components/content/loading'
 import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
@@ -54,6 +54,7 @@ interface ElementSize {
 
 const AVATAR_IMAGE_ASPECT_RATIO = 2 / 3 // width:height
 const AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX = 100
+const MOBILE_BOTTOM_FRAME_COLLAPSED_HEIGHT_PX = 145
 
 const logger = getLogger('vto-single')
 
@@ -310,7 +311,9 @@ function MobileLayout({
   onAddToCart,
   onSignOut,
 }: LayoutProps) {
-  // const { t } = useTranslation()
+  const bottomFrameRef = useRef<HTMLDivElement>(null)
+  const [bottomFrameHeight, setBottomFrameHeight] = useState<number | null>(null)
+  const [bottomFrameExpanded, setBottomFrameExpanded] = useState<boolean>(false)
   const css = useCss((_theme) => ({
     mainContainer: {
       width: '100%',
@@ -318,7 +321,7 @@ function MobileLayout({
     },
     closeButton: {
       position: 'absolute',
-      top: '10px',
+      top: '12px',
       right: '10px',
       width: '30px',
       height: '30px',
@@ -333,11 +336,10 @@ function MobileLayout({
       width: '16px',
       height: '16px',
     },
-    dragFrame: {
+    bottomFrame: {
       position: 'absolute',
-      bottom: '0',
       width: 'calc(100% - 16px)',
-      maxHeight: '80vh',
+      maxHeight: '55vh',
       backgroundColor: 'rgba(255, 255, 255, 0.7)',
       borderTopLeftRadius: '28px',
       borderTopRightRadius: '28px',
@@ -350,6 +352,7 @@ function MobileLayout({
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
+      transition: 'bottom 0.5s',
     },
     headerContainer: {
       flex: 'none',
@@ -362,13 +365,12 @@ function MobileLayout({
       height: '4px',
     },
     recommendedSizeContainer: {
-      marginTop: '8px',
-      marginBottom: '16px',
+      marginTop: '10px',
+      marginBottom: '14px',
     },
     recommendedSizeText: {
       textTransform: 'uppercase',
-      fontWeight: '500',
-      fontSize: '13px',
+      fontWeight: '600',
     },
     contentContainer: {
       flexGrow: 1,
@@ -389,6 +391,7 @@ function MobileLayout({
     },
     itemFitText: {},
     itemFitDetailsContainer: {
+      marginTop: '8px',
       width: '70%',
     },
     buttonContainer: {
@@ -408,22 +411,52 @@ function MobileLayout({
       marginTop: '24px',
     },
   }))
+
+  useEffect(() => {
+    if (bottomFrameRef.current) {
+      setBottomFrameHeight(bottomFrameRef.current.offsetHeight)
+    }
+  }, [])
+
+  const { bottomFrameStyle, contentContainerStyle } = useMemo(() => {
+    const bottomFrameStyle: CSSProperties = {}
+    const contentContainerStyle: CSSProperties = {}
+    if (bottomFrameHeight == null) {
+      bottomFrameStyle.bottom = '-35vh'
+      bottomFrameStyle.visibility = 'hidden'
+    } else if (bottomFrameExpanded) {
+      bottomFrameStyle.bottom = '0'
+    } else {
+      bottomFrameStyle.bottom = `-${bottomFrameHeight - MOBILE_BOTTOM_FRAME_COLLAPSED_HEIGHT_PX}px`
+      contentContainerStyle.overflowY = 'hidden'
+    }
+    return { bottomFrameStyle, contentContainerStyle }
+  }, [bottomFrameExpanded, bottomFrameHeight])
+
+  const toggleBottomFrameExpanded = useCallback(() => {
+    setBottomFrameExpanded((prevExpanded) => !prevExpanded)
+  }, [])
+
   return (
     <div css={css.mainContainer}>
       <Avatar frameUrls={frameUrls} />
       <button onClick={onClose} aria-label="Close modal" css={css.closeButton}>
         <CloseIcon css={css.closeIcon} />
       </button>
-      <div css={css.dragFrame}>
-        <div css={css.headerContainer}>
+      <div ref={bottomFrameRef} css={css.bottomFrame} style={bottomFrameStyle}>
+        <div css={css.headerContainer} onClick={toggleBottomFrameExpanded}>
           <DragHandleIcon css={css.dragHandleIcon} />
           <div css={css.recommendedSizeContainer}>
             <RecommendedSizeText loadedProductData={loadedProductData} textCss={css.recommendedSizeText} />
           </div>
         </div>
-        <div css={css.contentContainer}>
+        <div css={css.contentContainer} style={contentContainerStyle}>
           <div css={css.sizeSelectorContainer}>
-            <SizeSelector loadedProductData={loadedProductData} selectedSizeLabel={selectedSizeLabel} onChangeSize={onChangeSize} />
+            <SizeSelector
+              loadedProductData={loadedProductData}
+              selectedSizeLabel={selectedSizeLabel}
+              onChangeSize={onChangeSize}
+            />
           </div>
           <div css={css.colorSelectorContainer}>
             <ColorSelector
@@ -750,7 +783,7 @@ function Avatar({ frameUrls }: AvatarProps) {
       return prevIndex === (frameUrls ? frameUrls.length - 1 : 0) ? 0 : prevIndex + 1
     })
   }, [frameUrls])
-  const handleImageDrag = useCallback(
+  const handleImageMouseDrag = useCallback(
     (e: React.MouseEvent<HTMLImageElement, MouseEvent>) => {
       e.preventDefault()
       let startX = e.clientX
@@ -777,6 +810,33 @@ function Avatar({ frameUrls }: AvatarProps) {
     },
     [rotateLeft, rotateRight],
   )
+  const handleImageTouchDrag = useCallback(
+    (e: React.TouchEvent<HTMLImageElement>) => {
+      e.preventDefault()
+      let startX = e.touches[0].clientX
+
+      const onTouchMove = (moveEvent: TouchEvent) => {
+        const deltaX = moveEvent.touches[0].clientX - startX
+        if (Math.abs(deltaX) >= 50) {
+          if (deltaX > 0) {
+            rotateRight()
+          } else {
+            rotateLeft()
+          }
+          startX = moveEvent.touches[0].clientX
+        }
+      }
+
+      const onTouchEnd = () => {
+        window.removeEventListener('touchmove', onTouchMove)
+        window.removeEventListener('touchend', onTouchEnd)
+      }
+
+      window.addEventListener('touchmove', onTouchMove)
+      window.addEventListener('touchend', onTouchEnd)
+    },
+    [rotateLeft, rotateRight],
+  )
 
   // RENDERING:
 
@@ -789,7 +849,8 @@ function Avatar({ frameUrls }: AvatarProps) {
             src={frameUrls[selectedFrameIndex]}
             css={css.image}
             style={{ width: imageSize.width + 'px', height: imageSize.height + 'px' }}
-            onMouseDown={handleImageDrag}
+            onMouseDown={handleImageMouseDrag}
+            onTouchStart={handleImageTouchDrag}
           />
           <div css={css.chevronLeftContainer} onClick={rotateLeft}>
             <ChevronLeftIcon css={css.chevronIcon} />
