@@ -4,6 +4,7 @@ import CheckCircleIcon from '@/assets/check-circle.svg?react'
 import ChevronLeftIcon from '@/assets/chevron-left.svg?react'
 import ChevronRightIcon from '@/assets/chevron-right.svg?react'
 import CloseIcon from '@/assets/close-icon.svg?react'
+import DragHandleIcon from '@/assets/drag-handle.svg?react'
 import InfoIcon from '@/assets/info-icon.svg?react'
 import LoadingCircleIcon from '@/assets/loading-circle.svg?react'
 import TfrIcon from '@/assets/tfr-icon.svg?react'
@@ -17,6 +18,7 @@ export {
   ChevronLeftIcon,
   ChevronRightIcon,
   CloseIcon,
+  DragHandleIcon,
   InfoIcon,
   LoadingCircleIcon,
   TfrIcon,

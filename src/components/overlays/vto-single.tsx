@@ -11,6 +11,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CloseIcon,
+  DragHandleIcon,
   InfoIcon,
   TfrNameSvg,
 } from '@/lib/asset'
@@ -297,17 +298,17 @@ interface LayoutProps {
 }
 
 function MobileLayout({
-  // loadedProductData,
-  // selectedColorSizeRecord,
-  // availableColorLabels,
-  // selectedColorLabel,
-  // selectedSizeLabel,
+  loadedProductData,
+  selectedColorSizeRecord,
+  availableColorLabels,
+  selectedColorLabel,
+  selectedSizeLabel,
   frameUrls,
   onClose,
-  // onChangeColor,
-  // onChangeSize,
-  // onAddToCart,
-  // onSignOut,
+  onChangeColor,
+  onChangeSize,
+  onAddToCart,
+  onSignOut,
 }: LayoutProps) {
   // const { t } = useTranslation()
   const css = useCss((_theme) => ({
@@ -332,6 +333,80 @@ function MobileLayout({
       width: '16px',
       height: '16px',
     },
+    dragFrame: {
+      position: 'absolute',
+      bottom: '0',
+      width: 'calc(100% - 16px)',
+      maxHeight: '80vh',
+      backgroundColor: 'rgba(255, 255, 255, 0.7)',
+      borderTopLeftRadius: '28px',
+      borderTopRightRadius: '28px',
+      borderTop: '1px solid rgba(0, 0, 0, 0.1)',
+      borderLeft: '1px solid rgba(0, 0, 0, 0.1)',
+      borderRight: '1px solid rgba(0, 0, 0, 0.1)',
+      marginLeft: '8px',
+      marginRight: '8px',
+      padding: '16px 8px 0 8px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+    },
+    headerContainer: {
+      flex: 'none',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+    },
+    dragHandleIcon: {
+      width: '32px',
+      height: '4px',
+    },
+    recommendedSizeContainer: {
+      marginTop: '8px',
+      marginBottom: '16px',
+    },
+    recommendedSizeText: {
+      textTransform: 'uppercase',
+      fontWeight: '500',
+      fontSize: '13px',
+    },
+    contentContainer: {
+      flexGrow: 1,
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      padding: '16px',
+      backgroundColor: '#FFFFFF',
+      overflowY: 'auto',
+    },
+    sizeSelectorContainer: {},
+    colorSelectorContainer: {
+      marginTop: '16px',
+    },
+    itemFitTextContainer: {
+      marginTop: '8px',
+    },
+    itemFitText: {},
+    itemFitDetailsContainer: {
+      width: '70%',
+    },
+    buttonContainer: {
+      marginTop: '16px',
+      width: '100%',
+    },
+    productNameContainer: {
+      marginTop: '16px',
+    },
+    productNameText: {},
+    priceContainer: {},
+    priceText: {},
+    productDescriptionContainer: {
+      marginTop: '8px',
+    },
+    footerContainer: {
+      marginTop: '24px',
+    },
   }))
   return (
     <div css={css.mainContainer}>
@@ -339,6 +414,51 @@ function MobileLayout({
       <button onClick={onClose} aria-label="Close modal" css={css.closeButton}>
         <CloseIcon css={css.closeIcon} />
       </button>
+      <div css={css.dragFrame}>
+        <div css={css.headerContainer}>
+          <DragHandleIcon css={css.dragHandleIcon} />
+          <div css={css.recommendedSizeContainer}>
+            <RecommendedSizeText loadedProductData={loadedProductData} textCss={css.recommendedSizeText} />
+          </div>
+        </div>
+        <div css={css.contentContainer}>
+          <div css={css.sizeSelectorContainer}>
+            <SizeSelector loadedProductData={loadedProductData} selectedSizeLabel={selectedSizeLabel} onChangeSize={onChangeSize} />
+          </div>
+          <div css={css.colorSelectorContainer}>
+            <ColorSelector
+              availableColorLabels={availableColorLabels}
+              selectedColorLabel={selectedColorLabel}
+              onChangeColor={onChangeColor}
+            />
+          </div>
+          <div css={css.itemFitTextContainer}>
+            <ItemFitText loadedProductData={loadedProductData} />
+          </div>
+          <div css={css.itemFitDetailsContainer}>
+            <ItemFitDetails loadedProductData={loadedProductData} selectedSizeLabel={selectedSizeLabel} />
+          </div>
+          <div css={css.buttonContainer}>
+            <AddToCartButton onClick={onAddToCart} />
+          </div>
+          <div css={css.productNameContainer}>
+            <Text variant="brand" css={css.productNameText}>
+              {loadedProductData.productName}
+            </Text>
+          </div>
+          <div css={css.priceContainer}>
+            <Text variant="base" css={css.priceText}>
+              {selectedColorSizeRecord.priceFormatted}
+            </Text>
+          </div>
+          <div css={css.productDescriptionContainer}>
+            <ProductDescriptionText loadedProductData={loadedProductData} />
+          </div>
+          <div css={css.footerContainer}>
+            <Footer onSignOutClick={onSignOut} />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -456,7 +576,7 @@ function DesktopLayout({
           <div css={css.sizeRecommendationContainer}>
             <div css={css.recommendedSizeContainer}>
               <InfoIcon />
-              <RecommendedSizeText loadedProductData={loadedProductData} css={css.recommendedSizeText} />
+              <RecommendedSizeText loadedProductData={loadedProductData} textCss={css.recommendedSizeText} />
             </div>
             <div css={css.itemFitContainer}>
               <ItemFitText loadedProductData={loadedProductData} css={css.itemFitText} />
@@ -682,7 +802,9 @@ function Avatar({ frameUrls }: AvatarProps) {
           css={css.bottomContainer}
           style={{ width: bottomContainerSize.width + 'px', height: bottomContainerSize.height + 'px' }}
         >
-          {isMobileLayout ? <>&nbsp;</> : (
+          {isMobileLayout ? (
+            <>&nbsp;</>
+          ) : (
             <>
               <input
                 type="range"
@@ -804,14 +926,14 @@ function SizeSelector({ loadedProductData, selectedSizeLabel, onChangeSize }: Si
 
 interface RecommendedSizeTextProps {
   loadedProductData: LoadedProductData
-  css?: CssProperties
+  textCss: CssProperties
 }
 
-function RecommendedSizeText({ loadedProductData, css }: RecommendedSizeTextProps) {
+function RecommendedSizeText({ loadedProductData, textCss }: RecommendedSizeTextProps) {
   return (
     <TextT
       variant="base"
-      css={css}
+      css={textCss}
       t="size-rec.recommended_size"
       vars={{ size: loadedProductData.recommendedSizeLabel }}
     />
