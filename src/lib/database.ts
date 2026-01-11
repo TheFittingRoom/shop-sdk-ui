@@ -1,7 +1,7 @@
-import { FirestoreStyle, FirestoreColorwaySizeAsset } from '@/api/gen/responses'
+import { FirestoreStyle, FirestoreColorwaySizeAsset, FirestoreStyleGarmentCategory } from '@/api/gen/responses'
 import { getFirestoreManager, where } from '@/lib/firebase'
 
-export type { FirestoreStyle, FirestoreColorwaySizeAsset }
+export type { FirestoreStyle, FirestoreColorwaySizeAsset, FirestoreStyleGarmentCategory }
 
 const recordCache: { [key: string]: unknown } = {}
 
@@ -22,6 +22,21 @@ export async function getStyleByExternalId(brandId: number, externalId: string):
   }
 
   const record = querySnapshot.docs[0].data()
+  recordCache[cacheKey] = record
+  return record
+}
+
+export async function getStyleGarmentCategoryById(styleGarmentCategoryId: number): Promise<FirestoreStyleGarmentCategory | null> {
+  const cacheKey = `getStyleGarmentCategoryById/${styleGarmentCategoryId}`
+  if (recordCache[cacheKey]) {
+    return recordCache[cacheKey] as FirestoreStyleGarmentCategory
+  }
+  
+  const firestore = getFirestoreManager()
+  const record = await firestore.getDocData<FirestoreStyleGarmentCategory>('style_garment_categories', styleGarmentCategoryId.toString())
+  if (!record) {
+    return null
+  }
   recordCache[cacheKey] = record
   return record
 }

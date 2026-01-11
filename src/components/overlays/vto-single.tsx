@@ -15,7 +15,7 @@ import {
   InfoIcon,
   TfrNameSvg,
 } from '@/lib/asset'
-import { getStyleByExternalId } from '@/lib/database'
+import { getStyleByExternalId, getStyleGarmentCategoryById } from '@/lib/database'
 import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
@@ -45,6 +45,7 @@ interface LoadedProductData {
   recommendedSizeId: number
   recommendedSizeLabel: string
   sizes: LoadedSizeData[]
+  styleCategoryLabel: string | null
 }
 
 interface ElementSize {
@@ -92,12 +93,16 @@ export default function VtoSingleOverlay() {
         const { productName, productDescriptionHtml, variants } = currentProduct
         const { color: selectedColor } = await currentProduct.getSelectedOptions()
 
-        // Fetch style and size recommendation
+        // Fetch style data from firestore
         const styleRec = await getStyleByExternalId(brandId, currentProduct.externalId)
         if (!styleRec) {
           logger.logError('Style not found for externalId:', currentProduct.externalId)
           return
         }
+        const styleGarmentCategoryRec = await getStyleGarmentCategoryById(styleRec.style_garment_category_id)
+        const styleCategoryLabel = styleGarmentCategoryRec?.style_category_label ?? null
+
+        // Fetch size recommendation from API
         const sizeRecommendationRecord = await getSizeRecommendation(styleRec.id)
 
         // Assemble loaded product data
@@ -147,6 +152,7 @@ export default function VtoSingleOverlay() {
             recommendedSizeId,
             recommendedSizeLabel,
             sizes,
+            styleCategoryLabel,
           }
         }
         let recommendedColorLabel: string
@@ -573,6 +579,7 @@ function MobileContentExpanded({
   onAddToCart,
 }: MobileContentProps) {
   const css = useCss((_theme) => ({
+    productSummaryRowContainer: {},
     selectSizeLabelContainer: {
       marginTop: '8px',
     },
@@ -609,6 +616,9 @@ function MobileContentExpanded({
 
   return (
     <>
+      <div css={css.productSummaryRowContainer}>
+        <ProductSummaryRow loadedProductData={loadedProductData} />
+      </div>
       <div css={css.selectSizeLabelContainer}>
         <TextT variant="base" css={css.selectSizeLabelText} t="size-rec.select_size" />
       </div>
@@ -653,6 +663,7 @@ function MobileContentFull({
   onSignOut,
 }: MobileContentProps) {
   const css = useCss((_theme) => ({
+    productSummaryRowContainer: {},
     selectSizeLabelContainer: {},
     selectSizeLabelText: {},
     sizeSelectorContainer: {},
@@ -700,7 +711,9 @@ function MobileContentFull({
 
   return (
     <>
-      <div>FULLY EXPANDED VIEW</div>
+      <div css={css.productSummaryRowContainer}>
+        <ProductSummaryRow loadedProductData={loadedProductData} />
+      </div>
       <div css={css.selectSizeLabelContainer}>
         <TextT variant="base" css={css.selectSizeLabelText} t="size-rec.select_size" />
       </div>
@@ -751,7 +764,7 @@ function MobileContentFull({
       <div css={css.footerContainer}>
         <Footer onSignOutClick={onSignOut} />
       </div>
-      </>
+    </>
   )
 }
 
@@ -1196,6 +1209,23 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
   return (
     <div css={css.topContainer} style={layoutData.topContainerStyle}>
       {contentNode}
+    </div>
+  )
+}
+
+interface ProductSummaryRowProps {
+  loadedProductData: LoadedProductData
+}
+
+function ProductSummaryRow({ loadedProductData }: ProductSummaryRowProps) {
+  return (
+    <div>
+      <div>
+        <Text variant="base">{loadedProductData.styleCategoryLabel}</Text>
+      </div>
+      <div>
+        <Text variant="base">{loadedProductData.productName}</Text>
+      </div>
     </div>
   )
 }
