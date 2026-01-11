@@ -36,7 +36,8 @@
     "slide_to_rotate": "Faites glisser pour faire pivoter",
     "sign_out": "Se déconnecter",
     "color_label": "Couleur :",
-    "add_to_cart": "Ajouter au panier"
+    "add_to_cart": "Ajouter au panier",
+    "view_product_details": "Voir les détails du produit"
   },
   "size-rec": {
     "recommended_size": "Taille recommandée : {{size}}",

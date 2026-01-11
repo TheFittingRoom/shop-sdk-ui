@@ -53,8 +53,7 @@ interface ElementSize {
 }
 
 const AVATAR_IMAGE_ASPECT_RATIO = 2 / 3 // width:height
-const AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX = 100
-const MOBILE_BOTTOM_FRAME_COLLAPSED_HEIGHT_PX = 145
+const AVATAR_GUTTER_HEIGHT_PX = 100
 
 const logger = getLogger('vto-single')
 
@@ -301,6 +300,8 @@ interface LayoutProps {
   onSignOut: () => void
 }
 
+type MobileContentView = 'collapsed' | 'expanded' | 'full'
+
 function MobileLayout({
   loadedProductData,
   selectedColorSizeRecord,
@@ -315,9 +316,9 @@ function MobileLayout({
   onAddToCart,
   onSignOut,
 }: LayoutProps) {
-  const bottomFrameRef = useRef<HTMLDivElement>(null)
-  const [bottomFrameHeight, setBottomFrameHeight] = useState<number | null>(null)
-  const [bottomFrameExpanded, setBottomFrameExpanded] = useState<boolean>(false)
+  const [contentView, setContentView] = useState<MobileContentView>('collapsed')
+  const bottomFrameInnerRef = useRef<HTMLDivElement>(null)
+  const [bottomFrameStyle, setBottomFrameStyle] = useState<StyleProp>({})
   const css = useCss((_theme) => ({
     mainContainer: {
       width: '100%',
@@ -344,7 +345,8 @@ function MobileLayout({
       position: 'absolute',
       width: 'calc(100% - 16px)',
       maxWidth: '450px',
-      maxHeight: '55vh',
+      bottom: '0',
+      maxHeight: '95vh',
       left: '50%',
       transform: 'translateX(-50%)',
       backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -354,11 +356,15 @@ function MobileLayout({
       borderLeft: '1px solid rgba(0, 0, 0, 0.1)',
       borderRight: '1px solid rgba(0, 0, 0, 0.1)',
       margin: '0',
+      padding: '0',
+      transition: 'height 0.75s',
+    },
+    bottomFrameInner: {
+      width: '100%',
       padding: '16px 8px 0 8px',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      transition: 'bottom 0.5s',
     },
     headerContainer: {
       width: '100%',
@@ -385,7 +391,7 @@ function MobileLayout({
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      padding: '16px',
+      padding: '0 16px 16px 16px',
       backgroundColor: '#FFFFFF',
       overflowY: 'auto',
     },
@@ -420,37 +426,65 @@ function MobileLayout({
   }))
 
   useEffect(() => {
-    function refreshHeight() {
-      if (!bottomFrameRef.current) {
+    function refreshBottomFrameStyle() {
+      const bottomFrameInnerEl = bottomFrameInnerRef.current
+      if (!bottomFrameInnerEl) {
         return
       }
-      setBottomFrameHeight(bottomFrameRef.current.offsetHeight)
+      const height = bottomFrameInnerEl.clientHeight
+      const bottomFrameStyle: StyleProp = {
+        height: `${height}px`,
+      }
+      setBottomFrameStyle(bottomFrameStyle)
     }
-    refreshHeight()
-    window.addEventListener('resize', refreshHeight)
-    return () => {
-      window.removeEventListener('resize', refreshHeight)
-    }
-  }, [])
+    setTimeout(refreshBottomFrameStyle, 50)
+  }, [contentView])
 
-  const { bottomFrameStyle, contentContainerStyle } = useMemo(() => {
-    const bottomFrameStyle: StyleProp = {}
-    const contentContainerStyle: StyleProp = {}
-    if (bottomFrameHeight == null) {
-      bottomFrameStyle.bottom = '-35vh'
-      bottomFrameStyle.visibility = 'hidden'
-    } else if (bottomFrameExpanded) {
-      bottomFrameStyle.bottom = '0'
-    } else {
-      bottomFrameStyle.bottom = `-${bottomFrameHeight - MOBILE_BOTTOM_FRAME_COLLAPSED_HEIGHT_PX}px`
-      contentContainerStyle.overflowY = 'hidden'
-    }
-    return { bottomFrameStyle, contentContainerStyle }
-  }, [bottomFrameExpanded, bottomFrameHeight])
+  const handleBottomFrameTouchStart = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      let startY = e.touches[0].clientY
+      const initialContentView = contentView
+      const onTouchMove = (moveEvent: TouchEvent) => {
+        const deltaY = moveEvent.touches[0].clientY - startY
+        if (Math.abs(deltaY) >= 30) {
+          if (deltaY > 0) {
+            // Swiping down
+            if (initialContentView === 'full' || initialContentView === 'expanded') {
+              setContentView('collapsed')
+            }
+          } else {
+            // Swiping up
+            if (initialContentView === 'collapsed') {
+              setContentView('expanded')
+            } else if (initialContentView === 'expanded') {
+              setContentView('full')
+            }
+          }
+          document.removeEventListener('touchmove', onTouchMove)
+        }
+      }
+      document.addEventListener('touchmove', onTouchMove)
+      const onTouchEnd = () => {
+        document.removeEventListener('touchmove', onTouchMove)
+        document.removeEventListener('touchend', onTouchEnd)
+      }
+      document.addEventListener('touchend', onTouchEnd)
+    },
+    [contentView],
+  )
 
-  const toggleBottomFrameExpanded = useCallback(() => {
-    setBottomFrameExpanded((prevExpanded) => !prevExpanded)
-  }, [])
+  let Content: React.FC<MobileContentProps>
+  switch (contentView) {
+    case 'collapsed':
+      Content = MobileContentCollapsed
+      break
+    case 'expanded':
+      Content = MobileContentExpanded
+      break
+    case 'full':
+      Content = MobileContentFull
+      break
+  }
 
   return (
     <div css={css.mainContainer}>
@@ -458,56 +492,237 @@ function MobileLayout({
       <button onClick={onClose} aria-label="Close modal" css={css.closeButton}>
         <CloseIcon css={css.closeIcon} />
       </button>
-      <div ref={bottomFrameRef} css={css.bottomFrame} style={bottomFrameStyle}>
-        <div css={css.headerContainer} onClick={toggleBottomFrameExpanded}>
-          <DragHandleIcon css={css.dragHandleIcon} />
-          <div css={css.recommendedSizeContainer}>
-            <RecommendedSizeText loadedProductData={loadedProductData} textCss={css.recommendedSizeText} />
+      <div css={css.bottomFrame} style={bottomFrameStyle}>
+        <div ref={bottomFrameInnerRef} css={css.bottomFrameInner}>
+          <div css={css.headerContainer} onTouchStart={handleBottomFrameTouchStart}>
+            <DragHandleIcon css={css.dragHandleIcon} />
+            <div css={css.recommendedSizeContainer}>
+              <RecommendedSizeText loadedProductData={loadedProductData} textCss={css.recommendedSizeText} />
+            </div>
           </div>
-        </div>
-        <div css={css.contentContainer} style={contentContainerStyle}>
-          <div css={css.sizeSelectorContainer}>
-            <SizeSelector
+          <div css={css.contentContainer}>
+            <Content
               loadedProductData={loadedProductData}
-              selectedSizeLabel={selectedSizeLabel}
-              onChangeSize={onChangeSize}
-            />
-          </div>
-          <div css={css.colorSelectorContainer}>
-            <ColorSelector
+              selectedColorSizeRecord={selectedColorSizeRecord}
               availableColorLabels={availableColorLabels}
               selectedColorLabel={selectedColorLabel}
+              selectedSizeLabel={selectedSizeLabel}
+              onChangeContentView={setContentView}
               onChangeColor={onChangeColor}
+              onChangeSize={onChangeSize}
+              onAddToCart={onAddToCart}
+              onSignOut={onSignOut}
             />
-          </div>
-          <div css={css.itemFitTextContainer}>
-            <ItemFitText loadedProductData={loadedProductData} />
-          </div>
-          <div css={css.itemFitDetailsContainer}>
-            <ItemFitDetails loadedProductData={loadedProductData} selectedSizeLabel={selectedSizeLabel} />
-          </div>
-          <div css={css.buttonContainer}>
-            <AddToCartButton onClick={onAddToCart} />
-          </div>
-          <div css={css.productNameContainer}>
-            <Text variant="brand" css={css.productNameText}>
-              {loadedProductData.productName}
-            </Text>
-          </div>
-          <div css={css.priceContainer}>
-            <Text variant="base" css={css.priceText}>
-              {selectedColorSizeRecord.priceFormatted}
-            </Text>
-          </div>
-          <div css={css.productDescriptionContainer}>
-            <ProductDescriptionText loadedProductData={loadedProductData} />
-          </div>
-          <div css={css.footerContainer}>
-            <Footer onSignOutClick={onSignOut} />
           </div>
         </div>
       </div>
     </div>
+  )
+}
+
+interface MobileContentProps {
+  loadedProductData: LoadedProductData
+  selectedColorSizeRecord: LoadedSizeColorData
+  availableColorLabels: string[]
+  selectedColorLabel: string | null
+  selectedSizeLabel: string | null
+  onChangeContentView: (contentView: MobileContentView) => void
+  onChangeColor: (newColorLabel: string | null) => void
+  onChangeSize: (newSizeLabel: string) => void
+  onAddToCart: () => void
+  onSignOut: () => void
+}
+
+function MobileContentCollapsed({ loadedProductData, selectedSizeLabel, onChangeSize }: MobileContentProps) {
+  const css = useCss((_theme) => ({
+    selectSizeLabelContainer: {
+      marginTop: '8px',
+    },
+    selectSizeLabelText: {},
+    sizeSelectorContainer: {
+      marginTop: '8px',
+    },
+  }))
+  return (
+    <>
+      <div css={css.selectSizeLabelContainer}>
+        <TextT variant="base" css={css.selectSizeLabelText} t="size-rec.select_size" />
+      </div>
+      <div css={css.sizeSelectorContainer}>
+        <SizeSelector
+          loadedProductData={loadedProductData}
+          selectedSizeLabel={selectedSizeLabel}
+          onChangeSize={onChangeSize}
+        />
+      </div>
+    </>
+  )
+}
+
+function MobileContentExpanded({
+  loadedProductData,
+  selectedSizeLabel,
+  onChangeContentView,
+  onChangeSize,
+  onAddToCart,
+}: MobileContentProps) {
+  const css = useCss((_theme) => ({
+    selectSizeLabelContainer: {
+      marginTop: '8px',
+    },
+    selectSizeLabelText: {},
+    sizeSelectorContainer: {
+      marginTop: '8px',
+    },
+    itemFitTextContainer: {
+      marginTop: '8px',
+    },
+    itemFitText: {},
+    itemFitDetailsContainer: {
+      marginTop: '8px',
+      width: '70%',
+    },
+    buttonContainer: {
+      marginTop: '24px',
+      width: '100%',
+    },
+    detailsContainer: {
+      marginTop: '24px',
+      marginBottom: '16px',
+    },
+    detailsText: {
+      textDecoration: 'underline',
+      textTransform: 'uppercase',
+      cursor: 'pointer',
+    },
+  }))
+
+  const handleViewDetailsClick = useCallback(() => {
+    onChangeContentView('full')
+  }, [onChangeContentView])
+
+  return (
+    <>
+      <div css={css.selectSizeLabelContainer}>
+        <TextT variant="base" css={css.selectSizeLabelText} t="size-rec.select_size" />
+      </div>
+      <div css={css.sizeSelectorContainer}>
+        <SizeSelector
+          loadedProductData={loadedProductData}
+          selectedSizeLabel={selectedSizeLabel}
+          onChangeSize={onChangeSize}
+        />
+      </div>
+      <div css={css.itemFitTextContainer}>
+        <ItemFitText loadedProductData={loadedProductData} />
+      </div>
+      <div css={css.itemFitDetailsContainer}>
+        <ItemFitDetails loadedProductData={loadedProductData} selectedSizeLabel={selectedSizeLabel} />
+      </div>
+      <div css={css.buttonContainer}>
+        <AddToCartButton onClick={onAddToCart} />
+      </div>
+      <div css={css.detailsContainer}>
+        <LinkT
+          variant="base"
+          css={css.detailsText}
+          t="vto-single.view_product_details"
+          onClick={handleViewDetailsClick}
+        />
+      </div>
+    </>
+  )
+}
+
+function MobileContentFull({
+  loadedProductData,
+  selectedColorSizeRecord,
+  availableColorLabels,
+  selectedColorLabel,
+  selectedSizeLabel,
+  onChangeColor,
+  onChangeSize,
+  onAddToCart,
+  onSignOut,
+}: MobileContentProps) {
+  const css = useCss((_theme) => ({
+    selectSizeLabelContainer: {},
+    selectSizeLabelText: {},
+    sizeSelectorContainer: {},
+    colorSelectorContainer: {
+      marginTop: '16px',
+    },
+    itemFitTextContainer: {
+      marginTop: '8px',
+    },
+    itemFitText: {},
+    itemFitDetailsContainer: {
+      marginTop: '8px',
+      width: '70%',
+    },
+    buttonContainer: {
+      marginTop: '16px',
+      width: '100%',
+    },
+    productNameContainer: {
+      marginTop: '16px',
+    },
+    productNameText: {},
+    priceContainer: {},
+    priceText: {},
+    productDescriptionContainer: {
+      marginTop: '8px',
+    },
+    footerContainer: {
+      marginTop: '24px',
+    },
+  }))
+  return (
+    <>
+      <div>FULLY EXPANDED VIEW</div>
+      <div css={css.selectSizeLabelContainer}>
+        <TextT variant="base" css={css.selectSizeLabelText} t="size-rec.select_size" />
+      </div>
+      <div css={css.sizeSelectorContainer}>
+        <SizeSelector
+          loadedProductData={loadedProductData}
+          selectedSizeLabel={selectedSizeLabel}
+          onChangeSize={onChangeSize}
+        />
+      </div>
+      <div css={css.colorSelectorContainer}>
+        <ColorSelector
+          availableColorLabels={availableColorLabels}
+          selectedColorLabel={selectedColorLabel}
+          onChangeColor={onChangeColor}
+        />
+      </div>
+      <div css={css.itemFitTextContainer}>
+        <ItemFitText loadedProductData={loadedProductData} />
+      </div>
+      <div css={css.itemFitDetailsContainer}>
+        <ItemFitDetails loadedProductData={loadedProductData} selectedSizeLabel={selectedSizeLabel} />
+      </div>
+      <div css={css.buttonContainer}>
+        <AddToCartButton onClick={onAddToCart} />
+      </div>
+      <div css={css.productNameContainer}>
+        <Text variant="brand" css={css.productNameText}>
+          {loadedProductData.productName}
+        </Text>
+      </div>
+      <div css={css.priceContainer}>
+        <Text variant="base" css={css.priceText}>
+          {selectedColorSizeRecord.priceFormatted}
+        </Text>
+      </div>
+      <div css={css.productDescriptionContainer}>
+        <ProductDescriptionText loadedProductData={loadedProductData} />
+      </div>
+      <div css={css.footerContainer}>
+        <Footer onSignOutClick={onSignOut} />
+      </div>
+    </>
   )
 }
 
@@ -630,7 +845,7 @@ function DesktopLayout({
               <RecommendedSizeText loadedProductData={loadedProductData} textCss={css.recommendedSizeText} />
             </div>
             <div css={css.itemFitContainer}>
-              <ItemFitText loadedProductData={loadedProductData} css={css.itemFitText} />
+              <ItemFitText loadedProductData={loadedProductData} textCss={css.itemFitText} />
             </div>
             <div css={css.selectSizeLabelContainer}>
               <TextT variant="base" css={css.selectSizeLabelText} t="size-rec.select_size" />
@@ -747,27 +962,19 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
         let imageHeightPx = Math.floor(imageWidthPx / AVATAR_IMAGE_ASPECT_RATIO)
         let bottomContainerHeightPx = screenHeightPx - imageHeightPx
         let modalWidthPx: number | null = null
-        if (imageHeightPx > screenHeightPx) {
-          imageHeightPx = screenHeightPx
+        if (bottomContainerHeightPx < AVATAR_GUTTER_HEIGHT_PX) {
+          bottomContainerHeightPx = AVATAR_GUTTER_HEIGHT_PX
+          imageHeightPx = screenHeightPx - bottomContainerHeightPx
           imageWidthPx = Math.floor(imageHeightPx * AVATAR_IMAGE_ASPECT_RATIO)
-          bottomContainerHeightPx = 0
           modalWidthPx = imageWidthPx
         }
         imageSize = {
           width: imageWidthPx,
           height: imageHeightPx,
         }
-        if (bottomContainerHeightPx > 0) {
-          bottomContainerStyle = {
-            width: imageWidthPx,
-            height: bottomContainerHeightPx,
-          }
-        } else {
-          bottomContainerStyle = {
-            display: 'none',
-            width: imageWidthPx,
-            height: 0,
-          }
+        bottomContainerStyle = {
+          width: imageWidthPx,
+          height: bottomContainerHeightPx,
         }
         if (modalWidthPx != null) {
           const theme = getThemeData()
@@ -790,9 +997,9 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
         }
       } else {
         const screenHeightPx = window.innerHeight
-        const imageHeightPx = screenHeightPx - AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX
+        const bottomContainerHeightPx = AVATAR_GUTTER_HEIGHT_PX
+        const imageHeightPx = screenHeightPx - bottomContainerHeightPx
         const imageWidthPx = Math.floor(imageHeightPx * AVATAR_IMAGE_ASPECT_RATIO)
-        const bottomContainerHeightPx = AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX
         imageSize = {
           width: imageWidthPx,
           height: imageHeightPx,
@@ -1075,15 +1282,15 @@ function RecommendedSizeText({ loadedProductData, textCss }: RecommendedSizeText
 
 interface ItemFitTextProps {
   loadedProductData: LoadedProductData
-  css?: CssProp
+  textCss?: CssProp
 }
 
-function ItemFitText({ loadedProductData, css }: ItemFitTextProps) {
+function ItemFitText({ loadedProductData, textCss }: ItemFitTextProps) {
   const { t } = useTranslation()
   return (
     <TextT
       variant="base"
-      css={css}
+      css={textCss}
       t="size-rec.item_fit"
       vars={{
         fit:
