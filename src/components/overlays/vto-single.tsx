@@ -98,7 +98,6 @@ export default function VtoSingleOverlay() {
           logger.logError('Style not found for externalId:', currentProduct.externalId)
           return
         }
-        console.log('styleRec:', styleRec)
         const sizeRecommendationRecord = await getSizeRecommendation(styleRec.id)
 
         // Assemble loaded product data
