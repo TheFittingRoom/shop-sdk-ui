@@ -20,7 +20,7 @@ import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
-import { useCss, CssProperties } from '@/lib/theme'
+import { useCss, CssProperties, StyleProperties } from '@/lib/theme'
 import { DeviceLayout, OverlayName } from '@/lib/view'
 
 interface LoadedSizeColorData {
@@ -69,6 +69,7 @@ export default function VtoSingleOverlay() {
   const [loadedProductData, setLoadedProductData] = useState<LoadedProductData | null>(null)
   const [selectedSizeLabel, setSelectedSizeLabel] = useState<string | null>(null)
   const [selectedColorLabel, setSelectedColorLabel] = useState<string | null>(null)
+  const [modalStyle, setModalStyle] = useState<StyleProperties>({})
 
   // Redirect if not logged in or no avatar
   useEffect(() => {
@@ -266,7 +267,7 @@ export default function VtoSingleOverlay() {
   }
 
   return (
-    <SidecarModalFrame onRequestClose={closeOverlay}>
+    <SidecarModalFrame onRequestClose={closeOverlay} contentStyle={modalStyle}>
       <Layout
         loadedProductData={loadedProductData}
         selectedColorSizeRecord={selectedColorSizeRecord}
@@ -274,6 +275,7 @@ export default function VtoSingleOverlay() {
         selectedColorLabel={selectedColorLabel}
         selectedSizeLabel={selectedSizeLabel}
         frameUrls={frameUrls}
+        setModalStyle={setModalStyle}
         onClose={closeOverlay}
         onChangeColor={setSelectedColorLabel}
         onChangeSize={setSelectedSizeLabel}
@@ -291,6 +293,7 @@ interface LayoutProps {
   selectedColorLabel: string | null
   selectedSizeLabel: string | null
   frameUrls: string[] | null
+  setModalStyle: (style: StyleProperties) => void
   onClose: () => void
   onChangeColor: (newColorLabel: string | null) => void
   onChangeSize: (newSizeLabel: string) => void
@@ -339,15 +342,17 @@ function MobileLayout({
     bottomFrame: {
       position: 'absolute',
       width: 'calc(100% - 16px)',
+      maxWidth: '450px',
       maxHeight: '55vh',
-      backgroundColor: 'rgba(255, 255, 255, 0.7)',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
       borderTopLeftRadius: '28px',
       borderTopRightRadius: '28px',
       borderTop: '1px solid rgba(0, 0, 0, 0.1)',
       borderLeft: '1px solid rgba(0, 0, 0, 0.1)',
       borderRight: '1px solid rgba(0, 0, 0, 0.1)',
-      marginLeft: '8px',
-      marginRight: '8px',
+      margin: '0',
       padding: '16px 8px 0 8px',
       display: 'flex',
       flexDirection: 'column',
@@ -355,6 +360,7 @@ function MobileLayout({
       transition: 'bottom 0.5s',
     },
     headerContainer: {
+      width: '100%',
       flex: 'none',
       display: 'flex',
       flexDirection: 'column',
@@ -514,6 +520,8 @@ function DesktopLayout({
     mainContainer: {
       display: 'flex',
       height: '100%',
+      position: 'relative',
+      top: '-1px',
     },
     rightContainer: {
       flexGrow: 1,
@@ -641,6 +649,13 @@ function DesktopLayout({
   )
 }
 
+interface AvatarLayoutData {
+  topContainerStyle: CSSProperties
+  imageContainerStyle: CSSProperties
+  imageStyle: CSSProperties
+  bottomContainerStyle: CSSProperties
+}
+
 interface AvatarProps {
   frameUrls: string[] | null
 }
@@ -648,11 +663,13 @@ interface AvatarProps {
 function Avatar({ frameUrls }: AvatarProps) {
   const deviceLayout = useMainStore((state) => state.deviceLayout)
   const isMobileLayout = deviceLayout === DeviceLayout.MOBILE_PORTRAIT || deviceLayout === DeviceLayout.TABLET_PORTRAIT
-  const [containerSize, setContainerSize] = useState<ElementSize>({
-    width: window.innerWidth,
-    height: window.innerHeight,
-  })
   const topContainerRef = useRef<HTMLDivElement>(null)
+  const [layoutData, setLayoutData] = useState<AvatarLayoutData>({
+    topContainerStyle: {},
+    imageContainerStyle: {},
+    imageStyle: {},
+    bottomContainerStyle: {},
+  })
   const [selectedFrameIndex, setSelectedFrameIndex] = useState<number | null>(null)
   const css = useCss((theme) => ({
     topContainer: {
@@ -686,7 +703,7 @@ function Avatar({ frameUrls }: AvatarProps) {
     },
     bottomContainer: {
       position: 'absolute',
-      bottom: '0',
+      bottom: '1px',
       height: '50px',
       display: 'flex',
       flexDirection: 'column',
@@ -707,27 +724,73 @@ function Avatar({ frameUrls }: AvatarProps) {
     },
   }))
 
-  // Determine container height on mount and resize
+  // Determine layout sizes on mount and resize
   useEffect(() => {
-    const handleResize = () => {
-      const containerEl = topContainerRef.current
-      const size: ElementSize = containerEl
-        ? {
-            width: containerEl.clientWidth,
-            height: containerEl.clientHeight,
+    function refreshLayoutData() {
+      const topContainerEl = topContainerRef.current
+      if (!topContainerEl) {
+        return
+      }
+      const containerSize: ElementSize = {
+        width: topContainerEl.clientWidth,
+        height: topContainerEl.clientHeight,
+      }
+      let imageSize: ElementSize
+      let bottomContainerStyle: CSSProperties
+      if (isMobileLayout) {
+        const imageWidthPx = containerSize.width
+        const imageHeightPx = Math.floor(imageWidthPx / AVATAR_IMAGE_ASPECT_RATIO)
+        const bottomContainerHeightPx = containerSize.height - imageHeightPx
+        imageSize = {
+          width: imageWidthPx,
+          height: imageHeightPx
+        }
+        if (bottomContainerHeightPx > 0) {
+          bottomContainerStyle = {
+            width: imageWidthPx,
+            height: bottomContainerHeightPx
           }
-        : {
-            width: window.innerWidth,
-            height: window.innerHeight,
+        }
+        else {
+          bottomContainerStyle = {
+            display: 'none',
+            width: imageWidthPx,
+            height: 0
           }
-      setContainerSize(size)
+        }
+      } else {
+        const imageHeightPx = containerSize.height - AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX
+        const imageWidthPx = Math.floor(imageHeightPx * AVATAR_IMAGE_ASPECT_RATIO)
+        const bottomContainerHeightPx = AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX
+        imageSize = {
+          width: imageWidthPx,
+          height: imageHeightPx
+        }
+        bottomContainerStyle = {
+          width: imageWidthPx,
+          height: bottomContainerHeightPx
+        }
+      }
+      const topContainerStyle: CSSProperties = {
+        width: imageSize.width + 'px'
+      }
+      const imageContainerStyle: CSSProperties = {
+        width: imageSize.width + 'px',
+        height: imageSize.height + 'px'
+      }
+      const imageStyle: CSSProperties = {
+        width: imageSize.width + 'px',
+        height: imageSize.height + 'px'
+      }
+      setLayoutData({ topContainerStyle, imageContainerStyle, imageStyle, bottomContainerStyle })
     }
-    handleResize()
-    window.addEventListener('resize', handleResize)
+
+    refreshLayoutData()
+    window.addEventListener('resize', refreshLayoutData)
     return () => {
-      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('resize', refreshLayoutData)
     }
-  }, [])
+  }, [isMobileLayout])
 
   // Auto-rotate avatar on initial frame load
   useEffect(() => {
@@ -744,28 +807,6 @@ function Avatar({ frameUrls }: AvatarProps) {
       }, 200)
     }
   }, [frameUrls, selectedFrameIndex])
-
-  // Determmine element dimensions based on container size
-  const { imageSize, bottomContainerSize } = useMemo(() => {
-    let imageSize: ElementSize
-    let bottomContainerSize: ElementSize
-
-    if (isMobileLayout) {
-      const imageWidthPx = containerSize.width
-      const imageHeightPx = Math.floor(imageWidthPx / AVATAR_IMAGE_ASPECT_RATIO)
-      const bottomContainerHeightPx = containerSize.height - imageHeightPx
-      imageSize = { width: imageWidthPx, height: imageHeightPx }
-      bottomContainerSize = { width: imageWidthPx, height: bottomContainerHeightPx }
-    } else {
-      const imageHeightPx = containerSize.height - AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX
-      const imageWidthPx = Math.floor(imageHeightPx * AVATAR_IMAGE_ASPECT_RATIO)
-      const bottomContainerHeightPx = AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX
-      imageSize = { width: imageWidthPx, height: imageHeightPx }
-      bottomContainerSize = { width: imageWidthPx, height: bottomContainerHeightPx }
-    }
-
-    return { imageSize, bottomContainerSize }
-  }, [isMobileLayout, containerSize])
 
   const rotateLeft = useCallback(() => {
     setSelectedFrameIndex((prevIndex) => {
@@ -844,11 +885,11 @@ function Avatar({ frameUrls }: AvatarProps) {
   if (frameUrls && selectedFrameIndex != null) {
     contentNode = (
       <>
-        <div css={css.imageContainer} style={{ width: imageSize.width + 'px', height: imageSize.height + 'px' }}>
+        <div css={css.imageContainer} style={layoutData.imageContainerStyle}>
           <img
             src={frameUrls[selectedFrameIndex]}
             css={css.image}
-            style={{ width: imageSize.width + 'px', height: imageSize.height + 'px' }}
+            style={layoutData.imageStyle}
             onMouseDown={handleImageMouseDrag}
             onTouchStart={handleImageTouchDrag}
           />
@@ -861,7 +902,7 @@ function Avatar({ frameUrls }: AvatarProps) {
         </div>
         <div
           css={css.bottomContainer}
-          style={{ width: bottomContainerSize.width + 'px', height: bottomContainerSize.height + 'px' }}
+          style={layoutData.bottomContainerStyle}
         >
           {isMobileLayout ? (
             <>&nbsp;</>
@@ -886,7 +927,7 @@ function Avatar({ frameUrls }: AvatarProps) {
     contentNode = <Loading t="vto-single.avatar_loading" />
   }
   return (
-    <div ref={topContainerRef} css={css.topContainer} style={{ width: imageSize.width + 'px' }}>
+    <div ref={topContainerRef} css={css.topContainer} style={layoutData.topContainerStyle}>
       {contentNode}
     </div>
   )

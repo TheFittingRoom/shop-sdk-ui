@@ -1,20 +1,20 @@
-import { CSSProperties, ReactNode } from 'react'
+import { ReactNode } from 'react'
 import ModalBase from 'react-modal'
 import { Text } from '@/components/text'
 import { ArrowBackIcon, CloseIcon } from '@/lib/asset'
 import { useMainStore } from '@/lib/store'
-import { useCss } from '@/lib/theme'
+import { useCss, StyleProperties } from '@/lib/theme'
 import { DeviceLayout } from '@/lib/view'
 
 export interface ModalFrameProps {
   isOpen: boolean
   onRequestClose: () => void
-  contentStyle: CSSProperties
+  contentStyle: StyleProperties
   children: ReactNode
 }
 
 export function ModalFrame({ isOpen, onRequestClose, contentStyle, children }: ModalFrameProps) {
-  const styleProp: { overlay: CSSProperties; content: CSSProperties } = {
+  const styleProp: { overlay: StyleProperties; content: StyleProperties } = {
     overlay: {
       zIndex: 1000,
     },
@@ -165,11 +165,12 @@ export function ModalTitlebar({ title, onBackClick, onCloseClick }: ModalTitleba
 }
 
 export interface SidecarModalFrameProps {
+  contentStyle?: StyleProperties
   onRequestClose: () => void
   children: ReactNode
 }
 
-export function SidecarModalFrame({ onRequestClose, children }: SidecarModalFrameProps) {
+export function SidecarModalFrame({ contentStyle, onRequestClose, children }: SidecarModalFrameProps) {
   const deviceLayout = useMainStore((state) => state.deviceLayout)
   const isMobileLayout = deviceLayout === DeviceLayout.MOBILE_PORTRAIT || deviceLayout === DeviceLayout.TABLET_PORTRAIT
   const css = useCss((_theme) => ({
@@ -190,15 +191,20 @@ export function SidecarModalFrame({ onRequestClose, children }: SidecarModalFram
       height: '100vh',
       margin: 0,
       padding: 0,
+      overflow: 'hidden',
       border: 'none',
       backgroundColor: '#FFFFFF',
     },
   }))
+  const applyContentStyle = {
+    ...contentStyle,
+    ...(isMobileLayout ? css.frameContentFullScreen : css.frameContentBase),
+  }
   return (
     <ModalFrame
       isOpen
       onRequestClose={onRequestClose}
-      contentStyle={isMobileLayout ? css.frameContentFullScreen : css.frameContentBase}
+      contentStyle={applyContentStyle}
     >
       {children}
     </ModalFrame>

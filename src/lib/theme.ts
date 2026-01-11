@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, CSSProperties } from 'react'
 import { keyframes, CSSObject } from '@emotion/react'
 
 export interface ThemeData {
@@ -33,6 +33,7 @@ export function getThemeData(): ThemeData {
 }
 
 export type CssProperties = CSSObject
+export type StyleProperties = CSSProperties
 
 export { keyframes }
 
