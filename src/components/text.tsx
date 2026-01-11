@@ -1,12 +1,12 @@
 import { forwardRef } from 'react'
 import { useTranslation } from '@/lib/locale'
-import { CssProperties, useVariantCss } from '@/lib/theme'
+import { CssProp, useVariantCss } from '@/lib/theme'
 
 export type TextVariant = 'base' | 'brand' | 'error'
 
 export interface TextProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant: TextVariant
-  css?: CssProperties
+  css?: CssProp
 }
 
 export const Text = forwardRef<HTMLSpanElement, TextProps>(({ children, variant, css, ...props }, ref) => {

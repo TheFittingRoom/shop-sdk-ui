@@ -32,19 +32,19 @@ export function getThemeData(): ThemeData {
   return themeData
 }
 
-export type CssProperties = CSSObject
-export type StyleProperties = CSSProperties
+export type CssProp = CSSObject
+export type StyleProp = CSSProperties
 
 export { keyframes }
 
-export function useCss<T extends Record<string, CssProperties>>(callback: (themeData: ThemeData) => T): T {
+export function useCss<T extends Record<string, CssProp>>(callback: (themeData: ThemeData) => T): T {
   return useMemo(() => callback(themeData), [])
 }
 
-export function useVariantCss<T extends string, U extends Record<T, CssProperties> = Record<T, CssProperties>>(
+export function useVariantCss<T extends string, U extends Record<T, CssProp> = Record<T, CssProp>>(
   variant: T,
   callback: (themeData: ThemeData) => U,
-): CssProperties {
+): CssProp {
   return useMemo(() => {
     const variants = callback(themeData)
     return variants[variant]

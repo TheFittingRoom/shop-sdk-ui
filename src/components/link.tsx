@@ -1,12 +1,12 @@
 import { forwardRef } from 'react'
 import { useTranslation } from '@/lib/locale'
-import { CssProperties, useVariantCss } from '@/lib/theme'
+import { CssProp, useVariantCss } from '@/lib/theme'
 
 export type LinkVariant = 'base' | 'brand' | 'underline' | 'semibold'
 
 export interface LinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   variant: LinkVariant
-  css?: CssProperties
+  css?: CssProp
 }
 
 export const Link = forwardRef<HTMLAnchorElement, LinkProps>(({ children, variant, css, ...props }, ref) => {

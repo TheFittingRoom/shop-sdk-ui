@@ -20,7 +20,7 @@ import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
-import { useCss, CssProperties, StyleProperties } from '@/lib/theme'
+import { useCss, CssProp, StyleProp } from '@/lib/theme'
 import { DeviceLayout, OverlayName } from '@/lib/view'
 
 interface LoadedSizeColorData {
@@ -69,7 +69,7 @@ export default function VtoSingleOverlay() {
   const [loadedProductData, setLoadedProductData] = useState<LoadedProductData | null>(null)
   const [selectedSizeLabel, setSelectedSizeLabel] = useState<string | null>(null)
   const [selectedColorLabel, setSelectedColorLabel] = useState<string | null>(null)
-  const [modalStyle, setModalStyle] = useState<StyleProperties>({})
+  const [modalStyle, setModalStyle] = useState<StyleProp>({})
 
   // Redirect if not logged in or no avatar
   useEffect(() => {
@@ -293,7 +293,7 @@ interface LayoutProps {
   selectedColorLabel: string | null
   selectedSizeLabel: string | null
   frameUrls: string[] | null
-  setModalStyle: (style: StyleProperties) => void
+  setModalStyle: (style: StyleProp) => void
   onClose: () => void
   onChangeColor: (newColorLabel: string | null) => void
   onChangeSize: (newSizeLabel: string) => void
@@ -1028,7 +1028,7 @@ function SizeSelector({ loadedProductData, selectedSizeLabel, onChangeSize }: Si
 
 interface RecommendedSizeTextProps {
   loadedProductData: LoadedProductData
-  textCss: CssProperties
+  textCss: CssProp
 }
 
 function RecommendedSizeText({ loadedProductData, textCss }: RecommendedSizeTextProps) {
@@ -1044,7 +1044,7 @@ function RecommendedSizeText({ loadedProductData, textCss }: RecommendedSizeText
 
 interface ItemFitTextProps {
   loadedProductData: LoadedProductData
-  css?: CssProperties
+  css?: CssProp
 }
 
 function ItemFitText({ loadedProductData, css }: ItemFitTextProps) {

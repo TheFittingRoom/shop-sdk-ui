@@ -3,18 +3,18 @@ import ModalBase from 'react-modal'
 import { Text } from '@/components/text'
 import { ArrowBackIcon, CloseIcon } from '@/lib/asset'
 import { useMainStore } from '@/lib/store'
-import { useCss, StyleProperties } from '@/lib/theme'
+import { useCss, StyleProp } from '@/lib/theme'
 import { DeviceLayout } from '@/lib/view'
 
 export interface ModalFrameProps {
   isOpen: boolean
   onRequestClose: () => void
-  contentStyle: StyleProperties
+  contentStyle: StyleProp
   children: ReactNode
 }
 
 export function ModalFrame({ isOpen, onRequestClose, contentStyle, children }: ModalFrameProps) {
-  const styleProp: { overlay: StyleProperties; content: StyleProperties } = {
+  const styleProp: { overlay: StyleProp; content: StyleProp } = {
     overlay: {
       zIndex: 1000,
     },
@@ -165,7 +165,7 @@ export function ModalTitlebar({ title, onBackClick, onCloseClick }: ModalTitleba
 }
 
 export interface SidecarModalFrameProps {
-  contentStyle?: StyleProperties
+  contentStyle?: StyleProp
   onRequestClose: () => void
   children: ReactNode
 }

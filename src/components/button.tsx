@@ -1,12 +1,12 @@
 import { forwardRef } from 'react'
 import { useTranslation } from '@/lib/locale'
-import { CssProperties, useVariantCss } from '@/lib/theme'
+import { CssProp, useVariantCss } from '@/lib/theme'
 
 export type ButtonVariant = 'base' | 'primary' | 'brand'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant: ButtonVariant
-  css?: CssProperties
+  css?: CssProp
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
