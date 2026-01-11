@@ -98,6 +98,7 @@ export default function VtoSingleOverlay() {
           logger.logError('Style not found for externalId:', currentProduct.externalId)
           return
         }
+        console.log('styleRec:', styleRec)
         const sizeRecommendationRecord = await getSizeRecommendation(styleRec.id)
 
         // Assemble loaded product data
@@ -592,18 +593,18 @@ function MobileContentExpanded({
       marginTop: '24px',
       width: '100%',
     },
-    detailsContainer: {
+    productDetailsContainer: {
       marginTop: '24px',
       marginBottom: '16px',
     },
-    detailsText: {
+    productDetailsText: {
       textDecoration: 'underline',
       textTransform: 'uppercase',
       cursor: 'pointer',
     },
   }))
 
-  const handleViewDetailsClick = useCallback(() => {
+  const handleProductDetailsClick = useCallback(() => {
     onChangeContentView('full')
   }, [onChangeContentView])
 
@@ -628,12 +629,12 @@ function MobileContentExpanded({
       <div css={css.buttonContainer}>
         <AddToCartButton onClick={onAddToCart} />
       </div>
-      <div css={css.detailsContainer}>
+      <div css={css.productDetailsContainer}>
         <LinkT
           variant="base"
-          css={css.detailsText}
+          css={css.productDetailsText}
           t="vto-single.view_product_details"
-          onClick={handleViewDetailsClick}
+          onClick={handleProductDetailsClick}
         />
       </div>
     </>
@@ -646,6 +647,7 @@ function MobileContentFull({
   availableColorLabels,
   selectedColorLabel,
   selectedSizeLabel,
+  onChangeContentView,
   onChangeColor,
   onChangeSize,
   onAddToCart,
@@ -670,6 +672,15 @@ function MobileContentFull({
       marginTop: '16px',
       width: '100%',
     },
+    productDetailsContainer: {
+      marginTop: '24px',
+      marginBottom: '16px',
+    },
+    productDetailsText: {
+      textDecoration: 'underline',
+      textTransform: 'uppercase',
+      cursor: 'pointer',
+    },
     productNameContainer: {
       marginTop: '16px',
     },
@@ -683,6 +694,11 @@ function MobileContentFull({
       marginTop: '24px',
     },
   }))
+
+  const handleProductDetailsClick = useCallback(() => {
+    onChangeContentView('expanded')
+  }, [onChangeContentView])
+
   return (
     <>
       <div>FULLY EXPANDED VIEW</div>
@@ -712,6 +728,14 @@ function MobileContentFull({
       <div css={css.buttonContainer}>
         <AddToCartButton onClick={onAddToCart} />
       </div>
+      <div css={css.productDetailsContainer}>
+        <LinkT
+          variant="base"
+          css={css.productDetailsText}
+          t="vto-single.hide_product_details"
+          onClick={handleProductDetailsClick}
+        />
+      </div>
       <div css={css.productNameContainer}>
         <Text variant="brand" css={css.productNameText}>
           {loadedProductData.productName}
@@ -728,7 +752,7 @@ function MobileContentFull({
       <div css={css.footerContainer}>
         <Footer onSignOutClick={onSignOut} />
       </div>
-    </>
+      </>
   )
 }
 

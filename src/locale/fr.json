@@ -37,7 +37,8 @@
     "sign_out": "Se déconnecter",
     "color_label": "Couleur :",
     "add_to_cart": "Ajouter au panier",
-    "view_product_details": "Voir les détails du produit"
+    "view_product_details": "Voir les détails du produit",
+    "hide_product_details": "Masquer les détails du produit"
   },
   "size-rec": {
     "recommended_size": "Taille recommandée : {{size}}",
