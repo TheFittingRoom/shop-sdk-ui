@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, ReactNode, CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from 'react'
 import { Button, ButtonT } from '@/components/button'
 import { Loading } from '@/components/content/loading'
 import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
@@ -20,7 +20,7 @@ import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
-import { useCss, CssProp, StyleProp } from '@/lib/theme'
+import { getThemeData, useCss, CssProp, StyleProp } from '@/lib/theme'
 import { DeviceLayout, OverlayName } from '@/lib/view'
 
 interface LoadedSizeColorData {
@@ -308,6 +308,7 @@ function MobileLayout({
   selectedColorLabel,
   selectedSizeLabel,
   frameUrls,
+  setModalStyle,
   onClose,
   onChangeColor,
   onChangeSize,
@@ -419,14 +420,22 @@ function MobileLayout({
   }))
 
   useEffect(() => {
-    if (bottomFrameRef.current) {
+    function refreshHeight() {
+      if (!bottomFrameRef.current) {
+        return
+      }
       setBottomFrameHeight(bottomFrameRef.current.offsetHeight)
+    }
+    refreshHeight()
+    window.addEventListener('resize', refreshHeight)
+    return () => {
+      window.removeEventListener('resize', refreshHeight)
     }
   }, [])
 
   const { bottomFrameStyle, contentContainerStyle } = useMemo(() => {
-    const bottomFrameStyle: CSSProperties = {}
-    const contentContainerStyle: CSSProperties = {}
+    const bottomFrameStyle: StyleProp = {}
+    const contentContainerStyle: StyleProp = {}
     if (bottomFrameHeight == null) {
       bottomFrameStyle.bottom = '-35vh'
       bottomFrameStyle.visibility = 'hidden'
@@ -445,7 +454,7 @@ function MobileLayout({
 
   return (
     <div css={css.mainContainer}>
-      <Avatar frameUrls={frameUrls} />
+      <Avatar frameUrls={frameUrls} setModalStyle={setModalStyle} />
       <button onClick={onClose} aria-label="Close modal" css={css.closeButton}>
         <CloseIcon css={css.closeIcon} />
       </button>
@@ -509,6 +518,7 @@ function DesktopLayout({
   selectedColorLabel,
   selectedSizeLabel,
   frameUrls,
+  setModalStyle,
   onClose,
   onChangeColor,
   onChangeSize,
@@ -593,7 +603,7 @@ function DesktopLayout({
   }))
   return (
     <div css={css.mainContainer}>
-      <Avatar frameUrls={frameUrls} />
+      <Avatar frameUrls={frameUrls} setModalStyle={setModalStyle} />
       <div css={css.rightContainer}>
         <ModalTitlebar title={t('try_it_on')} onCloseClick={onClose} />
         <div css={css.contentContainer}>
@@ -650,20 +660,20 @@ function DesktopLayout({
 }
 
 interface AvatarLayoutData {
-  topContainerStyle: CSSProperties
-  imageContainerStyle: CSSProperties
-  imageStyle: CSSProperties
-  bottomContainerStyle: CSSProperties
+  topContainerStyle: StyleProp
+  imageContainerStyle: StyleProp
+  imageStyle: StyleProp
+  bottomContainerStyle: StyleProp
 }
 
 interface AvatarProps {
   frameUrls: string[] | null
+  setModalStyle: (style: StyleProp) => void
 }
 
-function Avatar({ frameUrls }: AvatarProps) {
+function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
   const deviceLayout = useMainStore((state) => state.deviceLayout)
   const isMobileLayout = deviceLayout === DeviceLayout.MOBILE_PORTRAIT || deviceLayout === DeviceLayout.TABLET_PORTRAIT
-  const topContainerRef = useRef<HTMLDivElement>(null)
   const [layoutData, setLayoutData] = useState<AvatarLayoutData>({
     topContainerStyle: {},
     imageContainerStyle: {},
@@ -727,66 +737,90 @@ function Avatar({ frameUrls }: AvatarProps) {
   // Determine layout sizes on mount and resize
   useEffect(() => {
     function refreshLayoutData() {
-      const topContainerEl = topContainerRef.current
-      if (!topContainerEl) {
-        return
-      }
-      const containerSize: ElementSize = {
-        width: topContainerEl.clientWidth,
-        height: topContainerEl.clientHeight,
-      }
       let imageSize: ElementSize
-      let bottomContainerStyle: CSSProperties
+      let bottomContainerStyle: StyleProp
+      let modalStyle: StyleProp
       if (isMobileLayout) {
-        const imageWidthPx = containerSize.width
-        const imageHeightPx = Math.floor(imageWidthPx / AVATAR_IMAGE_ASPECT_RATIO)
-        const bottomContainerHeightPx = containerSize.height - imageHeightPx
+        const screenWidthPx = window.innerWidth
+        const screenHeightPx = window.innerHeight
+        let imageWidthPx = screenWidthPx
+        let imageHeightPx = Math.floor(imageWidthPx / AVATAR_IMAGE_ASPECT_RATIO)
+        let bottomContainerHeightPx = screenHeightPx - imageHeightPx
+        let modalWidthPx: number | null = null
+        if (imageHeightPx > screenHeightPx) {
+          imageHeightPx = screenHeightPx
+          imageWidthPx = Math.floor(imageHeightPx * AVATAR_IMAGE_ASPECT_RATIO)
+          bottomContainerHeightPx = 0
+          modalWidthPx = imageWidthPx
+        }
         imageSize = {
           width: imageWidthPx,
-          height: imageHeightPx
+          height: imageHeightPx,
         }
         if (bottomContainerHeightPx > 0) {
           bottomContainerStyle = {
             width: imageWidthPx,
-            height: bottomContainerHeightPx
+            height: bottomContainerHeightPx,
           }
-        }
-        else {
+        } else {
           bottomContainerStyle = {
             display: 'none',
             width: imageWidthPx,
-            height: 0
+            height: 0,
           }
         }
+        if (modalWidthPx != null) {
+          const theme = getThemeData()
+          modalStyle = {
+            width: modalWidthPx + 'px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            borderTopColor: theme.color_tfr_800,
+            borderTopStyle: 'solid',
+            borderTopWidth: '1px',
+            borderRightColor: theme.color_tfr_800,
+            borderRightStyle: 'solid',
+            borderRightWidth: '1px',
+            borderLeftColor: theme.color_tfr_800,
+            borderLeftStyle: 'solid',
+            borderLeftWidth: '1px',
+          }
+        } else {
+          modalStyle = {}
+        }
       } else {
-        const imageHeightPx = containerSize.height - AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX
+        const screenHeightPx = window.innerHeight
+        const imageHeightPx = screenHeightPx - AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX
         const imageWidthPx = Math.floor(imageHeightPx * AVATAR_IMAGE_ASPECT_RATIO)
         const bottomContainerHeightPx = AVATAR_DESKTOP_BOTTOM_CONTAINER_HEIGHT_PX
         imageSize = {
           width: imageWidthPx,
-          height: imageHeightPx
+          height: imageHeightPx,
         }
         bottomContainerStyle = {
           width: imageWidthPx,
-          height: bottomContainerHeightPx
+          height: bottomContainerHeightPx,
         }
+        modalStyle = {}
       }
-      const topContainerStyle: CSSProperties = {
-        width: imageSize.width + 'px'
-      }
-      const imageContainerStyle: CSSProperties = {
+      const topContainerStyle: StyleProp = {
         width: imageSize.width + 'px',
-        height: imageSize.height + 'px'
       }
-      const imageStyle: CSSProperties = {
+      const imageContainerStyle: StyleProp = {
         width: imageSize.width + 'px',
-        height: imageSize.height + 'px'
+        height: imageSize.height + 'px',
+      }
+      const imageStyle: StyleProp = {
+        width: imageSize.width + 'px',
+        height: imageSize.height + 'px',
       }
       setLayoutData({ topContainerStyle, imageContainerStyle, imageStyle, bottomContainerStyle })
+      setModalStyle(modalStyle)
     }
 
     refreshLayoutData()
     window.addEventListener('resize', refreshLayoutData)
+
     return () => {
       window.removeEventListener('resize', refreshLayoutData)
     }
@@ -900,10 +934,7 @@ function Avatar({ frameUrls }: AvatarProps) {
             <ChevronRightIcon css={css.chevronIcon} />
           </div>
         </div>
-        <div
-          css={css.bottomContainer}
-          style={layoutData.bottomContainerStyle}
-        >
+        <div css={css.bottomContainer} style={layoutData.bottomContainerStyle}>
           {isMobileLayout ? (
             <>&nbsp;</>
           ) : (
@@ -927,7 +958,7 @@ function Avatar({ frameUrls }: AvatarProps) {
     contentNode = <Loading t="vto-single.avatar_loading" />
   }
   return (
-    <div ref={topContainerRef} css={css.topContainer} style={layoutData.topContainerStyle}>
+    <div css={css.topContainer} style={layoutData.topContainerStyle}>
       {contentNode}
     </div>
   )

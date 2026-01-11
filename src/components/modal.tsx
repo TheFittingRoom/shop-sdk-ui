@@ -197,8 +197,8 @@ export function SidecarModalFrame({ contentStyle, onRequestClose, children }: Si
     },
   }))
   const applyContentStyle = {
-    ...contentStyle,
     ...(isMobileLayout ? css.frameContentFullScreen : css.frameContentBase),
+    ...contentStyle,
   }
   return (
     <ModalFrame
