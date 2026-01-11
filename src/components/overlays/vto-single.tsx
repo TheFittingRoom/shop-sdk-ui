@@ -318,7 +318,8 @@ function MobileLayout({
 }: LayoutProps) {
   const [contentView, setContentView] = useState<MobileContentView>('collapsed')
   const bottomFrameInnerRef = useRef<HTMLDivElement>(null)
-  const [bottomFrameStyle, setBottomFrameStyle] = useState<StyleProp>({})
+  const [bottomFrameOuterStyle, setBottomFrameOuterStyle] = useState<StyleProp>({})
+  const [bottomFrameInnerStyle, setBottomFrameInnerStyle] = useState<StyleProp>({})
   const css = useCss((_theme) => ({
     mainContainer: {
       width: '100%',
@@ -341,7 +342,7 @@ function MobileLayout({
       width: '16px',
       height: '16px',
     },
-    bottomFrame: {
+    bottomFrameOuter: {
       position: 'absolute',
       width: 'calc(100% - 16px)',
       maxWidth: '450px',
@@ -357,7 +358,7 @@ function MobileLayout({
       borderRight: '1px solid rgba(0, 0, 0, 0.1)',
       margin: '0',
       padding: '0',
-      transition: 'height 0.75s',
+      transition: 'height 0.5s',
     },
     bottomFrameInner: {
       width: '100%',
@@ -431,12 +432,17 @@ function MobileLayout({
       if (!bottomFrameInnerEl) {
         return
       }
-      const height = bottomFrameInnerEl.clientHeight
+      const maxHeightPx = Number(
+        window.getComputedStyle(bottomFrameInnerEl.parentElement!).getPropertyValue('max-height').replace('px', ''),
+      )
+      const heightPx = Math.min(bottomFrameInnerEl.clientHeight, maxHeightPx)
       const bottomFrameStyle: StyleProp = {
-        height: `${height}px`,
+        height: `${heightPx}px`,
       }
-      setBottomFrameStyle(bottomFrameStyle)
+      setBottomFrameOuterStyle(bottomFrameStyle)
+      setBottomFrameInnerStyle(bottomFrameStyle)
     }
+    setBottomFrameInnerStyle({})
     setTimeout(refreshBottomFrameStyle, 50)
   }, [contentView])
 
@@ -492,8 +498,8 @@ function MobileLayout({
       <button onClick={onClose} aria-label="Close modal" css={css.closeButton}>
         <CloseIcon css={css.closeIcon} />
       </button>
-      <div css={css.bottomFrame} style={bottomFrameStyle}>
-        <div ref={bottomFrameInnerRef} css={css.bottomFrameInner}>
+      <div css={css.bottomFrameOuter} style={bottomFrameOuterStyle}>
+        <div ref={bottomFrameInnerRef} css={css.bottomFrameInner} style={bottomFrameInnerStyle}>
           <div css={css.headerContainer} onTouchStart={handleBottomFrameTouchStart}>
             <DragHandleIcon css={css.dragHandleIcon} />
             <div css={css.recommendedSizeContainer}>
