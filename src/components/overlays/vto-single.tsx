@@ -485,6 +485,11 @@ function MobileLayout({
     [contentView],
   )
 
+  let aboveContentNode: ReactNode = null
+  if (contentView === 'expanded' || contentView === 'full') {
+    aboveContentNode = <ProductSummaryRow loadedProductData={loadedProductData} />
+  }
+
   let Content: React.FC<MobileContentProps>
   switch (contentView) {
     case 'collapsed':
@@ -512,6 +517,7 @@ function MobileLayout({
               <RecommendedSizeText loadedProductData={loadedProductData} textCss={css.recommendedSizeText} />
             </div>
           </div>
+          {aboveContentNode}
           <div css={css.contentContainer}>
             <Content
               loadedProductData={loadedProductData}
@@ -579,7 +585,6 @@ function MobileContentExpanded({
   onAddToCart,
 }: MobileContentProps) {
   const css = useCss((_theme) => ({
-    productSummaryRowContainer: {},
     selectSizeLabelContainer: {
       marginTop: '8px',
     },
@@ -616,9 +621,6 @@ function MobileContentExpanded({
 
   return (
     <>
-      <div css={css.productSummaryRowContainer}>
-        <ProductSummaryRow loadedProductData={loadedProductData} />
-      </div>
       <div css={css.selectSizeLabelContainer}>
         <TextT variant="base" css={css.selectSizeLabelText} t="size-rec.select_size" />
       </div>
@@ -663,10 +665,20 @@ function MobileContentFull({
   onSignOut,
 }: MobileContentProps) {
   const css = useCss((_theme) => ({
-    productSummaryRowContainer: {},
+    sizeRecommendationFrame: {
+      marginTop: '16px',
+      display: 'flex',
+      flexDirection: 'column',
+      border: '1px solid rgba(33, 32, 31, 0.2)',
+      padding: '16px 56px',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
     selectSizeLabelContainer: {},
     selectSizeLabelText: {},
-    sizeSelectorContainer: {},
+    sizeSelectorContainer: {
+      marginTop: '16px',
+    },
     colorSelectorContainer: {
       marginTop: '16px',
     },
@@ -676,7 +688,7 @@ function MobileContentFull({
     itemFitText: {},
     itemFitDetailsContainer: {
       marginTop: '8px',
-      width: '70%',
+      width: '100%',
     },
     buttonContainer: {
       marginTop: '16px',
@@ -691,17 +703,13 @@ function MobileContentFull({
       textTransform: 'uppercase',
       cursor: 'pointer',
     },
-    productNameContainer: {
-      marginTop: '16px',
-    },
-    productNameText: {},
     priceContainer: {},
     priceText: {},
     productDescriptionContainer: {
       marginTop: '8px',
     },
     footerContainer: {
-      marginTop: '24px',
+      marginTop: '48px',
     },
   }))
 
@@ -711,18 +719,23 @@ function MobileContentFull({
 
   return (
     <>
-      <div css={css.productSummaryRowContainer}>
-        <ProductSummaryRow loadedProductData={loadedProductData} />
-      </div>
-      <div css={css.selectSizeLabelContainer}>
-        <TextT variant="base" css={css.selectSizeLabelText} t="size-rec.select_size" />
-      </div>
-      <div css={css.sizeSelectorContainer}>
-        <SizeSelector
-          loadedProductData={loadedProductData}
-          selectedSizeLabel={selectedSizeLabel}
-          onChangeSize={onChangeSize}
-        />
+      <div css={css.sizeRecommendationFrame}>
+        <div css={css.selectSizeLabelContainer}>
+          <TextT variant="base" css={css.selectSizeLabelText} t="size-rec.select_size" />
+        </div>
+        <div css={css.sizeSelectorContainer}>
+          <SizeSelector
+            loadedProductData={loadedProductData}
+            selectedSizeLabel={selectedSizeLabel}
+            onChangeSize={onChangeSize}
+          />
+        </div>
+        <div css={css.itemFitTextContainer}>
+          <ItemFitText loadedProductData={loadedProductData} />
+        </div>
+        <div css={css.itemFitDetailsContainer}>
+          <ItemFitDetails loadedProductData={loadedProductData} selectedSizeLabel={selectedSizeLabel} />
+        </div>
       </div>
       <div css={css.colorSelectorContainer}>
         <ColorSelector
@@ -730,12 +743,6 @@ function MobileContentFull({
           selectedColorLabel={selectedColorLabel}
           onChangeColor={onChangeColor}
         />
-      </div>
-      <div css={css.itemFitTextContainer}>
-        <ItemFitText loadedProductData={loadedProductData} />
-      </div>
-      <div css={css.itemFitDetailsContainer}>
-        <ItemFitDetails loadedProductData={loadedProductData} selectedSizeLabel={selectedSizeLabel} />
       </div>
       <div css={css.buttonContainer}>
         <AddToCartButton onClick={onAddToCart} />
@@ -747,11 +754,6 @@ function MobileContentFull({
           t="vto-single.hide_product_details"
           onClick={handleProductDetailsClick}
         />
-      </div>
-      <div css={css.productNameContainer}>
-        <Text variant="brand" css={css.productNameText}>
-          {loadedProductData.productName}
-        </Text>
       </div>
       <div css={css.priceContainer}>
         <Text variant="base" css={css.priceText}>
@@ -817,7 +819,7 @@ function DesktopLayout({
     colorContainer: {
       marginTop: '16px',
     },
-    sizeRecommendationContainer: {
+    sizeRecommendationFrame: {
       marginTop: '16px',
       display: 'flex',
       flexDirection: 'column',
@@ -881,7 +883,7 @@ function DesktopLayout({
               onChangeColor={onChangeColor}
             />
           </div>
-          <div css={css.sizeRecommendationContainer}>
+          <div css={css.sizeRecommendationFrame}>
             <div css={css.recommendedSizeContainer}>
               <InfoIcon />
               <RecommendedSizeText loadedProductData={loadedProductData} textCss={css.recommendedSizeText} />
@@ -1218,13 +1220,31 @@ interface ProductSummaryRowProps {
 }
 
 function ProductSummaryRow({ loadedProductData }: ProductSummaryRowProps) {
+  const css = useCss((_theme) => ({
+    container: {
+      width: '100%',
+      padding: '4px 16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      backgroundColor: '#F8F8F8',
+    },
+    labelContainer: {},
+    labelText: {
+      color: '#1A1A1A',
+    },
+    nameContainer: {},
+    nameText: {
+      color: '#9F9F9F',
+    },
+  }))
   return (
-    <div>
-      <div>
-        <Text variant="base">{loadedProductData.styleCategoryLabel}</Text>
+    <div css={css.container}>
+      <div css={css.labelContainer}>
+        <Text variant="brand" css={css.labelText}>{loadedProductData.styleCategoryLabel}</Text>
       </div>
-      <div>
-        <Text variant="base">{loadedProductData.productName}</Text>
+      <div css={css.nameContainer}>
+        <Text variant="brand" css={css.nameText}>{loadedProductData.productName}</Text>
       </div>
     </div>
   )
