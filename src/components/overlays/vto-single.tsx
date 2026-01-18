@@ -56,6 +56,7 @@ interface ElementSize {
 
 const AVATAR_IMAGE_ASPECT_RATIO = 2 / 3 // width:height
 const AVATAR_GUTTER_HEIGHT_PX = 100
+const DESKTOP_CONTENT_WIDTH_PX = 550
 
 const logger = getLogger('vto-single')
 
@@ -1094,6 +1095,7 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
         const bottomContainerHeightPx = AVATAR_GUTTER_HEIGHT_PX
         const imageHeightPx = screenHeightPx - bottomContainerHeightPx
         const imageWidthPx = Math.floor(imageHeightPx * AVATAR_IMAGE_ASPECT_RATIO)
+        const modalWidthPx = imageWidthPx + DESKTOP_CONTENT_WIDTH_PX
         imageSize = {
           width: imageWidthPx,
           height: imageHeightPx,
@@ -1102,7 +1104,9 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
           width: imageWidthPx,
           height: bottomContainerHeightPx,
         }
-        modalStyle = {}
+        modalStyle = {
+          width: `min(${modalWidthPx}px, 100vw)`,
+        }
       }
       const topContainerStyle: StyleProp = {
         width: imageSize.width + 'px',
