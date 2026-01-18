@@ -74,12 +74,12 @@ export function FitChart({ onRequestClose }: FitChartProps) {
     scaleFitLabelLeftContainer: {
       marginTop: '4px',
       position: 'relative',
-      left: '-36px',
+      left: '-28px',
     },
     scaleFitLabelRightContainer: {
       marginTop: '4px',
       position: 'relative',
-      right: '-36px',
+      right: '-28px',
     },
     scaleLineRow: {
       marginTop: '8px',

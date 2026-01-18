@@ -665,6 +665,7 @@ function MobileContentFull({
   onAddToCart,
   onSignOut,
 }: MobileContentProps) {
+  const [fitChartOpen, setFitChartOpen] = useState<boolean>(false)
   const css = useCss((_theme) => ({
     sizeRecommendationFrame: {
       marginTop: '16px',
@@ -686,10 +687,14 @@ function MobileContentFull({
     itemFitTextContainer: {
       marginTop: '8px',
     },
+    fitChartButton: {},
     itemFitText: {},
     itemFitDetailsContainer: {
       marginTop: '8px',
       width: '100%',
+    },
+    fitChartContainer: {
+      marginTop: '16px',
     },
     buttonContainer: {
       marginTop: '16px',
@@ -717,6 +722,21 @@ function MobileContentFull({
   const handleProductDetailsClick = useCallback(() => {
     onChangeContentView('expanded')
   }, [onChangeContentView])
+  const handleFitChartOpen = useCallback(() => {
+    setFitChartOpen(true)
+  }, [])
+  const handleFitChartClose = useCallback(() => {
+    setFitChartOpen(false)
+  }, [])
+
+  let fitChartNode: ReactNode = null
+  if (fitChartOpen) {
+    fitChartNode = (
+      <div css={css.fitChartContainer}>
+        <FitChart onRequestClose={handleFitChartClose} />
+      </div>
+    )
+  }
 
   return (
     <>
@@ -732,12 +752,16 @@ function MobileContentFull({
           />
         </div>
         <div css={css.itemFitTextContainer}>
-          <ItemFitText loadedProductData={loadedProductData} />
+          <Button variant="base" css={css.fitChartButton} onClick={handleFitChartOpen}>
+            <InfoIcon />
+          </Button>
+          <ItemFitText loadedProductData={loadedProductData} textCss={css.itemFitText} />
         </div>
         <div css={css.itemFitDetailsContainer}>
           <ItemFitDetails loadedProductData={loadedProductData} selectedSizeLabel={selectedSizeLabel} />
         </div>
       </div>
+      {fitChartNode}
       <div css={css.colorSelectorContainer}>
         <ColorSelector
           availableColorLabels={availableColorLabels}
