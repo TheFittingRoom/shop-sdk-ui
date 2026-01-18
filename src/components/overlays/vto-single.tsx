@@ -56,7 +56,7 @@ interface ElementSize {
 
 const AVATAR_IMAGE_ASPECT_RATIO = 2 / 3 // width:height
 const AVATAR_GUTTER_HEIGHT_PX = 100
-const DESKTOP_CONTENT_WIDTH_PX = 550
+const CONTENT_AREA_WIDTH_PX = 550
 
 const logger = getLogger('vto-single')
 
@@ -353,7 +353,7 @@ function MobileLayout({
     bottomFrameOuter: {
       position: 'absolute',
       width: 'calc(100% - 16px)',
-      maxWidth: '450px',
+      maxWidth: `${CONTENT_AREA_WIDTH_PX}px`,
       bottom: '0',
       maxHeight: '95vh',
       left: '50%',
@@ -1095,7 +1095,7 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
         const bottomContainerHeightPx = AVATAR_GUTTER_HEIGHT_PX
         const imageHeightPx = screenHeightPx - bottomContainerHeightPx
         const imageWidthPx = Math.floor(imageHeightPx * AVATAR_IMAGE_ASPECT_RATIO)
-        const modalWidthPx = imageWidthPx + DESKTOP_CONTENT_WIDTH_PX
+        const modalWidthPx = imageWidthPx + CONTENT_AREA_WIDTH_PX
         imageSize = {
           width: imageWidthPx,
           height: imageHeightPx,
