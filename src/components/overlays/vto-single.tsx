@@ -404,34 +404,6 @@ function MobileLayout({
       backgroundColor: '#FFFFFF',
       overflowY: 'auto',
     },
-    sizeSelectorContainer: {},
-    colorSelectorContainer: {
-      marginTop: '16px',
-    },
-    itemFitTextContainer: {
-      marginTop: '8px',
-    },
-    itemFitText: {},
-    itemFitDetailsContainer: {
-      marginTop: '8px',
-      width: '70%',
-    },
-    buttonContainer: {
-      marginTop: '16px',
-      width: '100%',
-    },
-    productNameContainer: {
-      marginTop: '16px',
-    },
-    productNameText: {},
-    priceContainer: {},
-    priceText: {},
-    productDescriptionContainer: {
-      marginTop: '8px',
-    },
-    footerContainer: {
-      marginTop: '24px',
-    },
   }))
 
   useEffect(() => {
@@ -600,11 +572,12 @@ function MobileContentExpanded({
     itemFitText: {},
     itemFitDetailsContainer: {
       marginTop: '8px',
-      width: '70%',
+      width: 'min(100%, 220px)',
     },
     buttonContainer: {
       marginTop: '24px',
       width: '100%',
+      maxWidth: '375px',
     },
     productDetailsContainer: {
       marginTop: '24px',
@@ -670,10 +643,11 @@ function MobileContentFull({
   const css = useCss((_theme) => ({
     sizeRecommendationFrame: {
       marginTop: '16px',
+      width: 'min(100%, 375px)',
       display: 'flex',
       flexDirection: 'column',
       border: '1px solid rgba(33, 32, 31, 0.2)',
-      padding: '16px 56px',
+      padding: '16px',
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -692,7 +666,7 @@ function MobileContentFull({
     itemFitText: {},
     itemFitDetailsContainer: {
       marginTop: '8px',
-      width: '100%',
+      width: 'min(100%, 220px)',
     },
     fitChartContainer: {
       marginTop: '16px',
@@ -700,6 +674,7 @@ function MobileContentFull({
     buttonContainer: {
       marginTop: '16px',
       width: '100%',
+      maxWidth: '375px',
     },
     productDetailsContainer: {
       marginTop: '24px',
