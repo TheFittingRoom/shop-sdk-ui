@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from 'react'
 import { Button, ButtonT } from '@/components/button'
+import { FitChart } from '@/components/content/fit-chart'
 import { Loading } from '@/components/content/loading'
 import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
 import { LinkT } from '@/components/link'
@@ -785,6 +786,7 @@ function DesktopLayout({
   onSignOut,
 }: LayoutProps) {
   const { t } = useTranslation()
+  const [fitChartOpen, setFitChartOpen] = useState<boolean>(false)
   const css = useCss((_theme) => ({
     mainContainer: {
       display: 'flex',
@@ -837,6 +839,7 @@ function DesktopLayout({
     recommendedSizeText: {
       fontWeight: '600',
     },
+    fitChartButton: {},
     itemFitContainer: {
       marginTop: '8px',
       lineHeight: 'normal',
@@ -853,6 +856,9 @@ function DesktopLayout({
       marginTop: '24px',
       width: '100%',
     },
+    fitChartContainer: {
+      marginTop: '16px',
+    },
     buttonContainer: {
       marginTop: '24px',
     },
@@ -860,6 +866,23 @@ function DesktopLayout({
       marginTop: '32px',
     },
   }))
+
+  const handleFitChartOpen = useCallback(() => {
+    setFitChartOpen(true)
+  }, [])
+  const handleFitChartClose = useCallback(() => {
+    setFitChartOpen(false)
+  }, [])
+
+  let fitChartNode: ReactNode = null
+  if (fitChartOpen) {
+    fitChartNode = (
+      <div css={css.fitChartContainer}>
+        <FitChart onRequestClose={handleFitChartClose} />
+      </div>
+    )
+  }
+
   return (
     <div css={css.mainContainer}>
       <Avatar frameUrls={frameUrls} setModalStyle={setModalStyle} />
@@ -885,7 +908,9 @@ function DesktopLayout({
           </div>
           <div css={css.sizeRecommendationFrame}>
             <div css={css.recommendedSizeContainer}>
-              <InfoIcon />
+              <Button variant="base" css={css.fitChartButton} onClick={handleFitChartOpen}>
+                <InfoIcon />
+              </Button>
               <RecommendedSizeText loadedProductData={loadedProductData} textCss={css.recommendedSizeText} />
             </div>
             <div css={css.itemFitContainer}>
@@ -905,6 +930,7 @@ function DesktopLayout({
               <ItemFitDetails loadedProductData={loadedProductData} selectedSizeLabel={selectedSizeLabel} />
             </div>
           </div>
+          {fitChartNode}
           <div css={css.buttonContainer}>
             <AddToCartButton onClick={onAddToCart} />
           </div>
@@ -1089,7 +1115,7 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
         if (currentFrameIndex === 0) {
           clearInterval(intervalId)
         }
-      }, 200)
+      }, 500)
     }
   }, [frameUrls, selectedFrameIndex])
 
@@ -1241,10 +1267,14 @@ function ProductSummaryRow({ loadedProductData }: ProductSummaryRowProps) {
   return (
     <div css={css.container}>
       <div css={css.labelContainer}>
-        <Text variant="brand" css={css.labelText}>{loadedProductData.styleCategoryLabel}</Text>
+        <Text variant="brand" css={css.labelText}>
+          {loadedProductData.styleCategoryLabel}
+        </Text>
       </div>
       <div css={css.nameContainer}>
-        <Text variant="brand" css={css.nameText}>{loadedProductData.productName}</Text>
+        <Text variant="brand" css={css.nameText}>
+          {loadedProductData.productName}
+        </Text>
       </div>
     </div>
   )

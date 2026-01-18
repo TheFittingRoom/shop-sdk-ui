@@ -59,8 +59,8 @@
       "bust": "Buste",
       "waist": "Taille",
       "low_waist": "Bas de la taille",
-      "low_hip": "Bas des hanches",
       "high_hip": "Haut des hanches",
+      "low_hip": "Bas des hanches",
       "thigh": "Cuisse",
       "inseam": "Entrejambe",
       "hsp_to_low_hip": "HSP au bas des hanches",
@@ -82,6 +82,29 @@
       "slightly_long": "Légèrement long",
       "long": "Long",
       "too_long": "Trop long"
+    }
+  },
+  "fit-chart": {
+    "fit_scale": "Échelle d'ajustement",
+    "fit": {
+      "poor_fit": "Mauvais ajustement",
+      "acceptable_fit": "Ajustement acceptable",
+      "too_tight": "Trop serré",
+      "tight": "Serré ou plus ajusté",
+      "slightly_tight": "Légèrement serré ou ajusté",
+      "perfect_fit": "Parfait",
+      "slightly_loose": "Légèrement ample ou moins ajusté",
+      "loose": "Ample ou non ajusté",
+      "oversized": "Oversize"
+    },
+    "measurement_points": "Points de mesure",
+    "point": {
+      "bust": "Poitrine/Buste",
+      "waist": "Taille naturelle",
+      "pant_waist": "Taille du pantalon",
+      "high_hip": "Haut des hanches",
+      "low_hip": "Bas des hanches",
+      "thigh": "Cuisse"
     }
   }
 }

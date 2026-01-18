@@ -59,8 +59,8 @@
       "bust": "Bust",
       "waist": "Waist",
       "low_waist": "Low Waist",
-      "low_hip": "Low Hip",
       "high_hip": "High Hip",
+      "low_hip": "Low Hip",
       "thigh": "Thigh",
       "inseam": "Inseam",
       "hsp_to_low_hip": "HSP to Low Hip",
@@ -82,6 +82,29 @@
       "slightly_long": "Slightly Long",
       "long": "Long",
       "too_long": "Too Long"
+    }
+  },
+  "fit-chart": {
+    "fit_scale": "Fit Scale",
+    "fit": {
+      "poor_fit": "Poor Fit",
+      "acceptable_fit": "Acceptable Fit",
+      "too_tight": "Too Tight",
+      "tight": "Tight or More Fitted",
+      "slightly_tight": "Slightly Tight or Fitted",
+      "perfect_fit": "Perfect Fit",
+      "slightly_loose": "Slightly Loose or Less Fitted",
+      "loose": "Loose or Not Fitted",
+      "oversized": "Oversized"
+    },
+    "measurement_points": "Measurement Points",
+    "point": {
+      "bust": "Chest/Bust",
+      "waist": "Natural Waist",
+      "pant_waist": "Pant Waist",
+      "high_hip": "High Hip",
+      "low_hip": "Low Hip",
+      "thigh": "Thigh"
     }
   }
 }
