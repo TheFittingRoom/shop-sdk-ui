@@ -1,16 +1,17 @@
-import { forwardRef } from 'react'
+import { forwardRef, ReactNode } from 'react'
 import { useTranslation } from '@/lib/locale'
 import { CssProp, useVariantCss } from '@/lib/theme'
 
-export type ButtonVariant = 'base' | 'primary' | 'brand'
+export type ButtonVariant = 'base' | 'primary' | 'outline' | 'brand'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant: ButtonVariant
   css?: CssProp
+  icon?: ReactNode
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ children, variant, css, ...props }, ref) => {
+  ({ children, variant, css, icon, ...props }, ref) => {
     const variantCss = useVariantCss<ButtonVariant>(variant, (theme) => ({
       base: {
         background: 'none',
@@ -32,6 +33,24 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         fontSize: '16px',
         fontWeight: 'bold',
         textAlign: 'center',
+        textTransform: 'uppercase',
+        letterSpacing: '0.75px',
+      },
+      outline: {
+        display: 'block',
+        width: '100%',
+        backgroundColor: '#fff',
+        color: 'black',
+        border: `2px solid ${theme.color_tfr_800}`,
+        borderRadius: '25px',
+        padding: '16px 24px',
+        cursor: 'pointer',
+        fontFamily: theme.font_family,
+        fontSize: '16px',
+        fontWeight: '500',
+        textAlign: 'center',
+        textTransform: 'uppercase',
+        letterSpacing: '0.75px',
       },
       brand: {
         display: 'block',
@@ -52,6 +71,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     }))
     return (
       <button ref={ref} css={[variantCss, css]} {...props}>
+        {icon}
         {children}
       </button>
     )

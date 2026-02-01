@@ -13,6 +13,7 @@ import {
   ChevronRightIcon,
   CloseIcon,
   DragHandleIcon,
+  HangerFilled,
   InfoIcon,
   TfrNameSvg,
 } from '@/lib/asset'
@@ -255,6 +256,9 @@ export default function VtoSingleOverlay() {
       logger.logError('Error adding to cart:', error)
     }
   }, [selectedColorLabel, selectedSizeLabel])
+  const handleAddToFittingRoomClick = useCallback(() => {
+    console.log('TODO: Add to fitting room clicked')
+  }, [])
 
   // RENDERING:
 
@@ -287,6 +291,7 @@ export default function VtoSingleOverlay() {
         onChangeColor={setSelectedColorLabel}
         onChangeSize={setSelectedSizeLabel}
         onAddToCart={handleAddToCartClick}
+        onAddToFittingRoom={handleAddToFittingRoomClick}
         onSignOut={handleSignOutClick}
       />
     </SidecarModalFrame>
@@ -305,6 +310,7 @@ interface LayoutProps {
   onChangeColor: (newColorLabel: string | null) => void
   onChangeSize: (newSizeLabel: string) => void
   onAddToCart: () => void
+  onAddToFittingRoom: () => void
   onSignOut: () => void
 }
 
@@ -322,6 +328,7 @@ function MobileLayout({
   onChangeColor,
   onChangeSize,
   onAddToCart,
+  onAddToFittingRoom,
   onSignOut,
 }: LayoutProps) {
   const [contentView, setContentView] = useState<MobileContentView>('collapsed')
@@ -503,6 +510,7 @@ function MobileLayout({
               onChangeColor={onChangeColor}
               onChangeSize={onChangeSize}
               onAddToCart={onAddToCart}
+              onAddToFittingRoom={onAddToFittingRoom}
               onSignOut={onSignOut}
             />
           </div>
@@ -522,6 +530,7 @@ interface MobileContentProps {
   onChangeColor: (newColorLabel: string | null) => void
   onChangeSize: (newSizeLabel: string) => void
   onAddToCart: () => void
+  onAddToFittingRoom: () => void
   onSignOut: () => void
 }
 
@@ -557,6 +566,7 @@ function MobileContentExpanded({
   onChangeContentView,
   onChangeSize,
   onAddToCart,
+  onAddToFittingRoom,
 }: MobileContentProps) {
   const css = useCss((_theme) => ({
     selectSizeLabelContainer: {
@@ -613,7 +623,7 @@ function MobileContentExpanded({
         <ItemFitDetails loadedProductData={loadedProductData} selectedSizeLabel={selectedSizeLabel} />
       </div>
       <div css={css.buttonContainer}>
-        <AddToCartButton onClick={onAddToCart} />
+        <VtoSingleCtaList onAddToCart={onAddToCart} onAddToFittingRoom={onAddToFittingRoom} />
       </div>
       <div css={css.productDetailsContainer}>
         <LinkT
@@ -638,6 +648,7 @@ function MobileContentFull({
   onChangeSize,
   onAddToCart,
   onSignOut,
+  onAddToFittingRoom,
 }: MobileContentProps) {
   const [fitChartOpen, setFitChartOpen] = useState<boolean>(false)
   const css = useCss((_theme) => ({
@@ -746,7 +757,7 @@ function MobileContentFull({
         />
       </div>
       <div css={css.buttonContainer}>
-        <AddToCartButton onClick={onAddToCart} />
+        <VtoSingleCtaList onAddToCart={onAddToCart} onAddToFittingRoom={onAddToFittingRoom} />
       </div>
       <div css={css.productDetailsContainer}>
         <LinkT
@@ -783,6 +794,7 @@ function DesktopLayout({
   onChangeColor,
   onChangeSize,
   onAddToCart,
+  onAddToFittingRoom,
   onSignOut,
 }: LayoutProps) {
   const { t } = useTranslation()
@@ -932,7 +944,7 @@ function DesktopLayout({
           </div>
           {fitChartNode}
           <div css={css.buttonContainer}>
-            <AddToCartButton onClick={onAddToCart} />
+            <VtoSingleCtaList onAddToCart={onAddToCart} onAddToFittingRoom={onAddToFittingRoom} />
           </div>
           <div css={css.descriptionContainer}>
             <ProductDescriptionText loadedProductData={loadedProductData} />
@@ -1472,12 +1484,18 @@ function ItemFitDetails({ loadedProductData, selectedSizeLabel }: ItemFitDetails
   return <div css={css.container}>{fitLineNodeList}</div>
 }
 
-interface AddToCartButtonProps {
-  onClick: () => void
+interface VtoSingleCtaListProps {
+  onAddToCart: () => void
+  onAddToFittingRoom: () => void
 }
 
-function AddToCartButton({ onClick }: AddToCartButtonProps) {
-  return <ButtonT variant="brand" t="vto-single.add_to_cart" onClick={onClick} />
+function VtoSingleCtaList({ onAddToCart, onAddToFittingRoom }: VtoSingleCtaListProps) {
+  return (
+    <>
+      <ButtonT variant="brand" t="vto-single.add_to_cart" onClick={onAddToCart} />
+      <ButtonT variant="outline" t="vto-single.add_to_fitting_room" icon={<HangerFilled />} onClick={onAddToFittingRoom} />
+    </>
+  )
 }
 
 interface ProductDescriptionTextProps {
