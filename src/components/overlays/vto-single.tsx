@@ -122,7 +122,6 @@ export default function VtoSingleOverlay() {
         // Fetch size recommendation from API
         logger.timerStart('fetchInitialData_3_getSizeRecommendation')
         const sizeRecommendationRecord = await apiGetSizeRecommendation(styleRec.id)
-        console.log('sizeRecommendationRecord', sizeRecommendationRecord)
         logger.timerEnd('fetchInitialData_3_getSizeRecommendation')
 
         // Assemble loaded product data
@@ -383,6 +382,13 @@ function NoFitLayout({ onClose, onSignOut }: { onClose: () => void; onSignOut: (
       padding: '16px',
     },
     titlebarContainer: {},
+    contentContainer: {
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     messageContainer: {
       marginTop: '32px',
       textAlign: 'center',
@@ -396,11 +402,14 @@ function NoFitLayout({ onClose, onSignOut }: { onClose: () => void; onSignOut: (
       <div css={css.titlebarContainer}>
         <ModalTitlebar title={t('try_it_on')} onCloseClick={onClose} />
       </div>
-      <div css={css.messageContainer}>
-        <TextT variant="base" t="vto-single.no_recommendation" />
-      </div>
-      <div css={css.footerContainer}>
-        <Footer onSignOutClick={onSignOut} />
+      <div css={css.contentContainer}>
+        <div>&nbsp;</div>
+        <div css={css.messageContainer}>
+          <TextT variant="base" t="vto-single.no_recommendation" />
+        </div>
+        <div css={css.footerContainer}>
+          <Footer onSignOutClick={onSignOut} />
+        </div>
       </div>
     </div>
   )
