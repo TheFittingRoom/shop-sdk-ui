@@ -7,7 +7,7 @@ import { _init as initAsset } from '@/lib/asset'
 import { getConfig, EnvName } from '@/lib/config'
 import { _init as initFirebase, getAuthManager } from '@/lib/firebase'
 import { i18n } from '@/lib/locale'
-import { _init as initLogger, getLogger, logInfo } from '@/lib/logger'
+import { _init as initLogger, getLogger } from '@/lib/logger'
 import { _init as initStore, useMainStore, ExternalProduct } from '@/lib/store'
 import { _init as initTheme, ThemeData } from '@/lib/theme'
 import { _init as initView } from '@/lib/view'
@@ -62,7 +62,7 @@ export async function init(initParams: InitParams): Promise<boolean> {
 
     // Initialize logger
     initLogger(debug)
-    logger.logDebug('Received initParams:', initParams)
+    logger.logDebug('Starting SDK initialization:', { initParams })
 
     // Get config
     const config = getConfig(environment)
@@ -129,7 +129,7 @@ export async function init(initParams: InitParams): Promise<boolean> {
     logger.logDebug('SDK initialized', config.build)
     return true
   } catch (error) {
-    logger.logError('SDK initialization failed:', error)
+    logger.logError('SDK initialization failed:', { error })
     return false
   }
 }
@@ -137,7 +137,8 @@ export async function init(initParams: InitParams): Promise<boolean> {
 export async function logout() {
   const authManager = getAuthManager()
   await authManager.logout()
-  logInfo('logout', 'User logged out')
+  const logger = getLogger('logout')
+  logger.logInfo('User logged out')
 }
 
 const TFR = {

@@ -1,8 +1,11 @@
 import { TextT } from '@/components/text'
 import { TfrIcon } from '@/lib/asset'
+import { getLogger } from '@/lib/logger'
 import { useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
 import { OverlayName, WidgetProps } from '@/lib/view'
+
+const logger = getLogger('widgets/vto-button')
 
 export default function VtoButtonWidget({}: WidgetProps) {
   const openOverlay = useMainStore((state) => state.openOverlay)
@@ -34,6 +37,7 @@ export default function VtoButtonWidget({}: WidgetProps) {
   }))
 
   const openVto = () => {
+    logger.logDebug('{{ts}} - Opening VTO overlay')
     openOverlay(OverlayName.VTO_SINGLE)
   }
 

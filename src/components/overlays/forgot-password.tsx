@@ -81,7 +81,7 @@ export default function ForgotPasswordOverlay({ returnToOverlay }: ForgotPasswor
           await authManager.sendPasswordResetEmail(email)
           setLinkSent(true)
         } catch (error) {
-          logger.logError('Error sending password reset email:', error)
+          logger.logError('Error sending password reset email:', { error })
         }
       }
       event.preventDefault()

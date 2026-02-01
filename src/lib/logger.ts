@@ -1,102 +1,147 @@
-let sourceRegExp: RegExp | false = false
+let debugSource: RegExp | boolean = false
 
 export function _init(debug: boolean | string | string[] | RegExp) {
   // Parse debug param
   if (debug) {
     function escapeRegExp(string: string) {
-      return string
-        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-        .replace(/\*/g, '.*')
-        .replace(/\?/g, '.')
+      return (
+        '^' +
+        string
+          .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+          .replace(/\*/g, '.*')
+          .replace(/\?/g, '.') +
+        '$'
+      )
     }
     if (debug === true) {
-      sourceRegExp = /.*/
+      debugSource = true
     } else if (debug instanceof RegExp) {
-      sourceRegExp = debug
+      debugSource = debug
     } else if (Array.isArray(debug)) {
-      sourceRegExp = new RegExp(debug.map((s) => escapeRegExp(s)).join('|'))
+      debugSource = new RegExp(debug.map((s) => escapeRegExp(s)).join('|'))
     } else if (typeof debug === 'string') {
-      sourceRegExp = new RegExp(escapeRegExp(debug))
+      debugSource = new RegExp(escapeRegExp(debug))
     }
   }
 }
 
 export function isDebugSource(source: string): boolean {
-  if (!sourceRegExp) {
-    return false
+  if (typeof debugSource === 'boolean') {
+    return debugSource
   }
-  return sourceRegExp.test(source)
+  return debugSource.test(source)
 }
 
 export type LogLevel = 'error' | 'warn' | 'info' | 'debug'
+export type LogData = Record<string, unknown> | null
 export interface LogEntry {
   source: string
   level: LogLevel
   message: string
-  data: unknown[]
+  data?: LogData
+  duration?: number
 }
 
 export function log(entry: LogEntry): void {
-  const { source, level, message, data } = entry
+  const { source, level, message, data, duration } = entry
 
-  const logMessage = `[TFR ${source}][${level.toUpperCase()}] ${message}`
+  if (level === 'debug' && !isDebugSource(source)) {
+    return
+  }
+
+  let finalMessage = message
+  if (finalMessage.includes('{{')) {
+    finalMessage = finalMessage.replace(/{{ts}}/g, new Date().toISOString())
+  }
+  finalMessage = `[TFR ${source}][${level.toUpperCase()}] ${finalMessage}`
+
+  const logData: unknown[] = [finalMessage]
+  if (duration !== undefined) {
+    logData.push(`${duration.toFixed(2)} ms`)
+  }
+  if (data) {
+    logData.push(data)
+  }
   switch (level) {
     case 'error':
-      console.error(logMessage, ...data)
+      console.error(...logData)
       break
     case 'warn':
-      console.warn(logMessage, ...data)
+      console.warn(...logData)
       break
     case 'info':
-      console.info(logMessage, ...data)
+      console.info(...logData)
       break
     case 'debug':
-      if (isDebugSource(source)) {
-        console.debug(logMessage, ...data)
-      }
+      console.debug(...logData)
       break
     default:
-      console.log(logMessage, ...data)
+      console.log(...logData)
   }
 }
 
-export function logError(source: string, message: string, ...data: unknown[]): void {
-  log({ source, level: 'error', message, data })
-}
-
-export function logWarn(source: string, message: string, ...data: unknown[]): void {
-  log({ source, level: 'warn', message, data })
-}
-
-export function logInfo(source: string, message: string, ...data: unknown[]): void {
-  log({ source, level: 'info', message, data })
-}
-
-export function logDebug(source: string, message: string, ...data: unknown[]): void {
-  log({ source, level: 'debug', message, data })
-}
-
 export class Logger {
-  private source: string
+  source: string
+  timers: Record<string, [number, number | null]> = {}
 
   constructor(source: string) {
     this.source = source
   }
 
-  logError(message: string, ...data: unknown[]): void {
-    logError(this.source, message, ...data)
+  logError(message: string, data: LogData = null): void {
+    log({ source: this.source, level: 'error', message, data })
   }
 
-  logWarn(message: string, ...data: unknown[]): void {
-    logWarn(this.source, message, ...data)
+  logWarn(message: string, data: LogData = null): void {
+    log({ source: this.source, level: 'warn', message, data })
   }
 
-  logInfo(message: string, ...data: unknown[]): void {
-    logInfo(this.source, message, ...data)
+  logInfo(message: string, data: LogData = null): void {
+    log({ source: this.source, level: 'info', message, data })
   }
 
-  logDebug(message: string, ...data: unknown[]): void {
-    logDebug(this.source, message, ...data)
+  logDebug(message: string, data: LogData = null): void {
+    log({ source: this.source, level: 'debug', message, data })
+  }
+
+  logTimer(timerName: string, message: string, data: LogData = null): void {
+    const duration = this.getTimerDuration(timerName)
+    log({ source: this.source, level: 'debug', message, data, duration: duration ?? undefined })
+  }
+
+  clearTimers(): void {
+    this.timers = {}
+  }
+
+  timerStart(name: string): void {
+    this.timers[name] = [performance.now(), null]
+  }
+
+  timerEnd(name: string): void {
+    const timer = this.timers[name]
+    if (timer && timer[1] === null) {
+      timer[1] = performance.now()
+    }
+  }
+
+  getTimers(): Record<string, number | null> {
+    const result: Record<string, number | null> = {}
+    for (const name in this.timers) {
+      result[name] = this.getTimerDuration(name)
+    }
+    return result
+  }
+
+  getTimerDuration(name: string): number | null {
+    const timer = this.timers[name]
+    if (timer && timer[1] !== null) {
+      return timer[1] - timer[0]
+    }
+    return null
+  }
+
+  isDebugEnabled(): boolean {
+    return isDebugSource(this.source)
   }
 }
 

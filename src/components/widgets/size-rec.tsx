@@ -1,9 +1,9 @@
 import { useCallback, useEffect } from 'react'
 import { LinkT } from '@/components/link'
-import { getSizeLabelFromSize } from '@/lib/api'
 import { getLogger } from '@/lib/logger'
 import { useSizeRecommendation } from '@/lib/size-rec'
 import { useMainStore } from '@/lib/store'
+import { getSizeLabelFromSize } from '@/lib/util'
 import { OverlayName, WidgetProps } from '@/lib/view'
 
 const logger = getLogger('size-rec')
@@ -17,7 +17,7 @@ export default function SizeRecWidget({}: WidgetProps) {
   const { record: sizeRecommendationRecord, error: sizeRecommendationError } = useSizeRecommendation(hasOpenedVtoSingleOverlay)
   useEffect(() => {
     if (sizeRecommendationError) {
-      logger.logError('Error loading size recommendation:', sizeRecommendationError)
+      logger.logError('Error loading size recommendation:', { error: sizeRecommendationError })
     }
   }, [sizeRecommendationError])
 

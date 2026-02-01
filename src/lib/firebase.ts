@@ -220,6 +220,8 @@ export class AuthManager {
     }
 
     if (authUser) {
+      logger.logDebug('User logged in:', { uid: authUser.uid })
+
       // Listen to and publish user profile changes
       this.listenToUserProfileUnsub = getFirestoreManager().listenToDoc<UserProfile>('users', authUser.uid, (doc) => {
         this.userProfile = doc
@@ -260,7 +262,7 @@ export class AuthManager {
             await firestore.mergeDocData('user_logging', userLoggingDocId, userLoggingData)
           }
         } catch (error) {
-          logger.logError('Error logging user login activity:', error)
+          logger.logError('Error logging user login activity:', { error })
         }
       })()
     } else {

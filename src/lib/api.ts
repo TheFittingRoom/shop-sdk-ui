@@ -151,13 +151,6 @@ export async function getSizeRecommendation(styleId: number): Promise<SizeFitRec
   })
 }
 
-export function getSizeLabelFromSize(size: Size): string | null {
-  if (size.label) {
-    return size.label
-  }
-  return size.size_value?.name ?? null
-}
-
 export async function requestVtoSingle(colorwaySizeAssetId: number) {
   await execApiRequest<void>({
     useCache: true, // although this is a POST, we only want to send it once

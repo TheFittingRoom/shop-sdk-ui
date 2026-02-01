@@ -88,7 +88,7 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
             closeOverlay()
           }
         } catch (error) {
-          logger.logError('Login failed:', error)
+          logger.logError('Login failed:', { error })
           setEmailError(' ')
           setPasswordError(t('sign-in.login_failed'))
           passwordEl.focus()
