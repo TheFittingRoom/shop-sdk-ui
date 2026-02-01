@@ -38,7 +38,8 @@
     "color_label": "Couleur :",
     "add_to_cart": "Ajouter au panier",
     "view_product_details": "Voir les détails du produit",
-    "hide_product_details": "Masquer les détails du produit"
+    "hide_product_details": "Masquer les détails du produit",
+    "no_recommendation": "Il n'y a actuellement pas de tailles bien ajustées disponibles pour cet article."
   },
   "size-rec": {
     "recommended_size": "Taille recommandée : {{size}}",

@@ -38,7 +38,8 @@
     "color_label": "Color:",
     "add_to_cart": "Add to cart",
     "view_product_details": "View product details",
-    "hide_product_details": "Hide product details"
+    "hide_product_details": "Hide product details",
+    "no_recommendation": "There are currently no well fitting sizes available for this item."
   },
   "size-rec": {
     "recommended_size": "Recommended Size: {{size}}",
