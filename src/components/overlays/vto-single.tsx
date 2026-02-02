@@ -32,7 +32,7 @@ import { DeviceLayout, OverlayName } from '@/lib/view'
 
 interface LoadedSizeColorData {
   colorwaySizeAssetId: number
-  colorLabel: string
+  colorLabel: string | null
   sku: string
   priceFormatted: string
 }
@@ -112,8 +112,7 @@ export default function VtoSingleOverlay() {
         logger.timerStart('fetchInitialData_2_getStyleData')
         const styleRec = await getStyleByExternalId(brandId, currentProduct.externalId)
         if (!styleRec) {
-          logger.logError(`Style not found for externalId: ${currentProduct.externalId}`)
-          return
+          throw new Error(`Style not found for externalId: ${currentProduct.externalId}`)
         }
         const styleGarmentCategoryRec = await getStyleGarmentCategoryById(styleRec.style_garment_category_id)
         const styleCategoryLabel = styleGarmentCategoryRec?.style_category_label ?? null
@@ -129,79 +128,90 @@ export default function VtoSingleOverlay() {
         {
           const recommendedSizeId = sizeRecommendationRecord.recommended_size.id || null
           const recommendedSizeLabel = getSizeLabelFromSize(sizeRecommendationRecord.recommended_size)
-          if (recommendedSizeId != null && recommendedSizeLabel != null) {
-            let productData: LoadedProductData
-            {
-              const fitClassification = sizeRecommendationRecord.fit_classification
-              const sizes: LoadedSizeData[] = []
-              for (const sizeRec of sizeRecommendationRecord.available_sizes) {
-                const sizeId = sizeRec.id
-                const sizeLabel = getSizeLabelFromSize(sizeRec) || null
-                if (!sizeLabel) {
+          if (recommendedSizeId == null || recommendedSizeLabel == null) {
+            throw new Error(`No recommended size found for externalId: ${currentProduct.externalId}`)
+          }
+          let productData: LoadedProductData
+          {
+            const fitClassification = sizeRecommendationRecord.fit_classification
+            const sizes: LoadedSizeData[] = []
+            for (const sizeRec of sizeRecommendationRecord.available_sizes) {
+              const sizeId = sizeRec.id
+              const sizeLabel = getSizeLabelFromSize(sizeRec) || null
+              if (!sizeLabel) {
+                continue
+              }
+              const isRecommended = sizeRec.id === recommendedSizeId
+              const fit = sizeRecommendationRecord.fits.find((f) => f.size_id === sizeRec.id)
+              if (!fit) {
+                continue
+              }
+              const colors: LoadedSizeColorData[] = []
+              for (const csaRec of sizeRec.colorway_size_assets) {
+                const colorwaySizeAssetId = csaRec.id
+                const sku = csaRec.sku
+                const variant = variants.find((v) => v.sku === sku)
+                if (!variant) {
+                  logger.logWarn(
+                    `Variant not found for externalId: ${currentProduct.externalId} sizeId: ${sizeId} sku: ${sku}`,
+                  )
                   continue
                 }
-                const isRecommended = sizeRec.id === recommendedSizeId
-                const fit = sizeRecommendationRecord.fits.find((f) => f.size_id === sizeRec.id)
-                if (!fit) {
-                  continue
-                }
-                const colors: LoadedSizeColorData[] = []
-                for (const csaRec of sizeRec.colorway_size_assets) {
-                  const colorwaySizeAssetId = csaRec.id
-                  const sku = csaRec.sku
-                  const variant = variants.find((v) => v.sku === sku)
-                  if (!variant) {
-                    continue
-                  }
-                  const colorLabel = variant.color || null
-                  if (!colorLabel) {
-                    continue
-                  }
-                  const priceFormatted = variant.priceFormatted
-                  colors.push({
-                    colorwaySizeAssetId,
-                    colorLabel,
-                    sku,
-                    priceFormatted,
-                  })
-                }
-                sizes.push({
-                  sizeId,
-                  sizeLabel,
-                  isRecommended,
-                  fit,
-                  colors,
+                const colorLabel = variant.color || null
+                const priceFormatted = variant.priceFormatted
+                colors.push({
+                  colorwaySizeAssetId,
+                  colorLabel,
+                  sku,
+                  priceFormatted,
                 })
               }
-              productData = {
-                productName,
-                productDescriptionHtml,
-                fitClassification,
-                recommendedSizeId,
-                recommendedSizeLabel,
-                sizes,
-                styleCategoryLabel,
+              if (!colors.length) {
+                logger.logWarn(
+                  `No valid colorways found for externalId: ${currentProduct.externalId} sizeId: ${sizeId}`,
+                )
+                continue
               }
+              sizes.push({
+                sizeId,
+                sizeLabel,
+                isRecommended,
+                fit,
+                colors,
+              })
             }
-            let recommendedColorLabel: string
-            {
-              const recommendedSizeRecord = productData.sizes.find((s) => s.isRecommended)
-              if (!recommendedSizeRecord) {
-                throw new Error('Recommended size record not found')
-              }
-              const recommendedSizeColorRecord =
-                recommendedSizeRecord.colors.find((c) => {
-                  return c.colorLabel === selectedColor
-                }) || recommendedSizeRecord.colors[0]
-
-              recommendedColorLabel = recommendedSizeColorRecord.colorLabel
+            if (!sizes.length) {
+              throw new Error(`No valid sizes found for externalId: ${currentProduct.externalId}`)
             }
-            setLoadedProductData(productData)
-            setSelectedSizeLabel(recommendedSizeLabel)
-            setSelectedColorLabel(recommendedColorLabel)
-          } else {
-            setLoadedProductData(false)
+            productData = {
+              productName,
+              productDescriptionHtml,
+              fitClassification,
+              recommendedSizeId,
+              recommendedSizeLabel,
+              sizes,
+              styleCategoryLabel,
+            }
           }
+          let recommendedColorLabel: string | null = null
+          {
+            const recommendedSizeRecord = productData.sizes.find((s) => s.isRecommended)
+            if (!recommendedSizeRecord) {
+              throw new Error('Recommended size record not found')
+            }
+            if (!recommendedSizeRecord.colors.length) {
+              throw new Error('No colorways found for recommended size record')
+            }
+            const recommendedSizeColorRecord =
+              recommendedSizeRecord.colors.find((c) => {
+                return c.colorLabel === selectedColor
+              }) || recommendedSizeRecord.colors[0]
+
+            recommendedColorLabel = recommendedSizeColorRecord?.colorLabel ?? null
+          }
+          setLoadedProductData(productData)
+          setSelectedSizeLabel(recommendedSizeLabel)
+          setSelectedColorLabel(recommendedColorLabel)
         }
         for (const sku in userProfile?.vto?.[brandId] ?? {}) {
           fetchedVtoSkus.current.add(sku)
@@ -213,6 +223,9 @@ export default function VtoSingleOverlay() {
         logger.logTimer('total', '{{ts}} - Completed fetch of initial data', logger.getTimers())
       } catch (error) {
         logger.logError('Error fetching initial data:', { error })
+        setLoadedProductData(false)
+        setSelectedSizeLabel(null)
+        setSelectedColorLabel(null)
       }
     }
     if (userIsLoggedIn && userHasAvatar && userProfile && loadedProductData == null) {
@@ -230,7 +243,7 @@ export default function VtoSingleOverlay() {
       return { sizeColorRecord: null, availableColorLabels: [] }
     }
     const sizeColorRecord = sizeRecord.colors.find((c) => c.colorLabel === selectedColorLabel) ?? sizeRecord.colors[0]
-    const availableColorLabels = sizeRecord.colors.map((c) => c.colorLabel)
+    const availableColorLabels = sizeRecord.colors.map((c) => c.colorLabel).filter((label): label is string => !!label)
     return { sizeColorRecord, availableColorLabels }
   }, [loadedProductData, selectedSizeLabel, selectedColorLabel])
 
@@ -262,7 +275,9 @@ export default function VtoSingleOverlay() {
     }
     for (const sizeRecord of loadedProductData.sizes) {
       const sizeColorRecord = sizeRecord.colors.find((c) => c.colorLabel === selectedColorLabel) ?? sizeRecord.colors[0]
-      requestVto(sizeColorRecord)
+      if (sizeColorRecord) {
+        requestVto(sizeColorRecord)
+      }
     }
   }, [requestVto, loadedProductData, selectedColorLabel])
 
