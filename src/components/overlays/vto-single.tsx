@@ -60,6 +60,7 @@ interface ElementSize {
   height: number
 }
 
+const NON_PRIORITY_VTO_REQUEST_DELAY_MS: number | false = 500
 const AVATAR_IMAGE_ASPECT_RATIO = 2 / 3 // width:height
 const AVATAR_GUTTER_HEIGHT_PX = 100
 const CONTENT_AREA_WIDTH_PX = 550
@@ -80,6 +81,7 @@ export default function VtoSingleOverlay() {
   const [modalStyle, setModalStyle] = useState<StyleProp>({})
   const fetchedVtoSkus = useRef<Set<string>>(new Set())
   const readyVtoSkus = useRef<Set<string>>(new Set())
+  const lastPriorityVtoRequestTimeRef = useRef<number | null>(null)
 
   // Redirect if not logged in or no avatar
   useEffect(() => {
@@ -248,23 +250,45 @@ export default function VtoSingleOverlay() {
   }, [loadedProductData, selectedSizeLabel, selectedColorLabel])
 
   // Fetch VTO data for a color/size
-  const requestVto = useCallback((sizeColorRecord: LoadedSizeColorData) => {
+  const requestVto = useCallback((sizeColorRecord: LoadedSizeColorData, priority: boolean) => {
     if (fetchedVtoSkus.current.has(sizeColorRecord.sku)) {
       return
     }
-    logger.timerStart(`requestVto_${sizeColorRecord.sku}`)
-    logger.logDebug(`{{ts}} - Requesting VTO for sku: ${sizeColorRecord.sku}`, { sizeColorRecord })
-    fetchedVtoSkus.current.add(sizeColorRecord.sku)
+    function executeRequest() {
+      logger.timerStart(`requestVto_${sizeColorRecord.sku}`)
+      logger.logDebug(`{{ts}} - Requesting VTO for sku: ${sizeColorRecord.sku}`, { sizeColorRecord })
+      fetchedVtoSkus.current.add(sizeColorRecord.sku)
 
-    apiRequestVtoSingle(sizeColorRecord.colorwaySizeAssetId).catch((error) => {
-      logger.logError('Error requesting VTO:', { error, sizeColorRecord })
-    })
+      apiRequestVtoSingle(sizeColorRecord.colorwaySizeAssetId).catch((error) => {
+        logger.logError('Error requesting VTO:', { error, sizeColorRecord })
+      })
+    }
+    if (NON_PRIORITY_VTO_REQUEST_DELAY_MS) {
+      let delay: number = 0
+      if (priority) {
+        lastPriorityVtoRequestTimeRef.current = Date.now()
+      } else {
+        const lastPriorityTime = lastPriorityVtoRequestTimeRef.current
+        if (lastPriorityTime) {
+          const now = Date.now()
+          const minNextRequestTime = lastPriorityTime + NON_PRIORITY_VTO_REQUEST_DELAY_MS
+          if (now < minNextRequestTime) {
+            delay = minNextRequestTime - now
+          }
+        }
+      }
+      if (delay) {
+        setTimeout(executeRequest, delay)
+        return
+      }
+    }
+    executeRequest()
   }, [])
 
   // Trigger priority VTO request when size/color selection changes
   useEffect(() => {
     if (selectedColorSizeRecord) {
-      requestVto(selectedColorSizeRecord)
+      requestVto(selectedColorSizeRecord, true)
     }
   }, [requestVto, selectedColorSizeRecord])
 
@@ -276,7 +300,7 @@ export default function VtoSingleOverlay() {
     for (const sizeRecord of loadedProductData.sizes) {
       const sizeColorRecord = sizeRecord.colors.find((c) => c.colorLabel === selectedColorLabel) ?? sizeRecord.colors[0]
       if (sizeColorRecord) {
-        requestVto(sizeColorRecord)
+        requestVto(sizeColorRecord, false)
       }
     }
   }, [requestVto, loadedProductData, selectedColorLabel])
