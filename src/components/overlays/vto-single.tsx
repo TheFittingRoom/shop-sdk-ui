@@ -6,7 +6,6 @@ import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
 import { LinkT } from '@/components/link'
 import { Text, TextT } from '@/components/text'
 import {
-  getSizeRecommendation as apiGetSizeRecommendation,
   requestVtoSingle as apiRequestVtoSingle,
   FitClassification,
   SizeFit,
@@ -21,37 +20,37 @@ import {
   InfoIcon,
   TfrNameSvg,
 } from '@/lib/asset'
-import { getStyleByExternalId, getStyleGarmentCategoryById } from '@/lib/database'
 import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
+import { loadProductDataToStore } from '@/lib/product'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { getThemeData, useCss, CssProp, StyleProp } from '@/lib/theme'
 import { getSizeLabelFromSize } from '@/lib/util'
 import { DeviceLayout, OverlayName } from '@/lib/view'
 
-interface LoadedSizeColorData {
+interface VtoSizeColorData {
   colorwaySizeAssetId: number
   colorLabel: string | null
   sku: string
   priceFormatted: string
 }
 
-interface LoadedSizeData {
+interface VtoSizeData {
   sizeId: number
   sizeLabel: string
   isRecommended: boolean
   fit: SizeFit
-  colors: LoadedSizeColorData[]
+  colors: VtoSizeColorData[]
 }
 
-interface LoadedProductData {
+interface VtoProductData {
   productName: string
   productDescriptionHtml: string
   fitClassification: FitClassification
   recommendedSizeId: number
   recommendedSizeLabel: string
-  sizes: LoadedSizeData[]
+  sizes: VtoSizeData[]
   styleCategoryLabel: string | null
 }
 
@@ -72,10 +71,11 @@ export default function VtoSingleOverlay() {
   const userIsLoggedIn = useMainStore((state) => state.userIsLoggedIn)
   const userHasAvatar = useMainStore((state) => state.userHasAvatar)
   const userProfile = useMainStore((state) => state.userProfile)
+  const storeProductData = useMainStore((state) => state.productData)
   const deviceLayout = useMainStore((state) => state.deviceLayout)
   const openOverlay = useMainStore((state) => state.openOverlay)
   const closeOverlay = useMainStore((state) => state.closeOverlay)
-  const [loadedProductData, setLoadedProductData] = useState<LoadedProductData | false | null>(null)
+  const [vtoProductData, setVtoProductData] = useState<VtoProductData | false | null>(null)
   const [selectedSizeLabel, setSelectedSizeLabel] = useState<string | null>(null)
   const [selectedColorLabel, setSelectedColorLabel] = useState<string | null>(null)
   const [modalStyle, setModalStyle] = useState<StyleProp>({})
@@ -95,48 +95,45 @@ export default function VtoSingleOverlay() {
     }
   }, [userIsLoggedIn, userHasAvatar, openOverlay])
 
-  // Load initial data
+  // On load, load store product data (in case not already loaded)
   useEffect(() => {
-    async function fetchInitialData() {
+    const { currentProduct } = getStaticData()
+    loadProductDataToStore(currentProduct.externalId)
+  }, [])
+
+  // On load, generate vto product data from store product data + user selections
+  useEffect(() => {
+    async function setupInitialVtoData() {
       try {
-        logger.clearTimers()
-        logger.timerStart('fetchInitialData')
-        logger.logDebug('{{ts}} - Starting fetch of initial data')
-
-        // Get external product data and user selections
-        logger.timerStart('fetchInitialData_1_getProductData')
         const { currentProduct } = getStaticData()
-        const { productName, productDescriptionHtml, variants } = currentProduct
-        const { color: selectedColor } = await currentProduct.getSelectedOptions()
-        logger.timerEnd('fetchInitialData_1_getProductData')
-
-        // Fetch style data from firestore
-        logger.timerStart('fetchInitialData_2_getStyleData')
-        const styleRec = await getStyleByExternalId(brandId, currentProduct.externalId)
-        if (!styleRec) {
-          throw new Error(`Style not found for externalId: ${currentProduct.externalId}`)
+        const storeProduct = storeProductData[currentProduct.externalId]
+        if (!storeProduct) {
+          return
         }
-        const styleGarmentCategoryRec = await getStyleGarmentCategoryById(styleRec.style_garment_category_id)
+        if ('error' in storeProduct) {
+          throw storeProduct.error
+        }
+
+        // Get external product data
+        const { productName, productDescriptionHtml, variants } = currentProduct
+
+        // Get user selections from page
+        const { color: selectedColor } = await currentProduct.getSelectedOptions()
+
+        // Assemble vto product data
+        const styleGarmentCategoryRec = storeProduct.styleGarmentCategory
         const styleCategoryLabel = styleGarmentCategoryRec?.style_category_label ?? null
-        logger.timerEnd('fetchInitialData_2_getStyleData')
-
-        // Fetch size recommendation from API
-        logger.timerStart('fetchInitialData_3_getSizeRecommendation')
-        const sizeRecommendationRecord = await apiGetSizeRecommendation(styleRec.id)
-        logger.timerEnd('fetchInitialData_3_getSizeRecommendation')
-
-        // Assemble loaded product data
-        logger.timerStart('fetchInitialData_4_assembleLoadedData')
+        const sizeRecommendationRecord = storeProduct.sizeFitRecommendation
         {
           const recommendedSizeId = sizeRecommendationRecord.recommended_size.id || null
           const recommendedSizeLabel = getSizeLabelFromSize(sizeRecommendationRecord.recommended_size)
           if (recommendedSizeId == null || recommendedSizeLabel == null) {
             throw new Error(`No recommended size found for externalId: ${currentProduct.externalId}`)
           }
-          let productData: LoadedProductData
+          let vtoProductData: VtoProductData
           {
             const fitClassification = sizeRecommendationRecord.fit_classification
-            const sizes: LoadedSizeData[] = []
+            const sizes: VtoSizeData[] = []
             for (const sizeRec of sizeRecommendationRecord.available_sizes) {
               const sizeId = sizeRec.id
               const sizeLabel = getSizeLabelFromSize(sizeRec) || null
@@ -148,7 +145,7 @@ export default function VtoSingleOverlay() {
               if (!fit) {
                 continue
               }
-              const colors: LoadedSizeColorData[] = []
+              const colors: VtoSizeColorData[] = []
               for (const csaRec of sizeRec.colorway_size_assets) {
                 const colorwaySizeAssetId = csaRec.id
                 const sku = csaRec.sku
@@ -185,7 +182,7 @@ export default function VtoSingleOverlay() {
             if (!sizes.length) {
               throw new Error(`No valid sizes found for externalId: ${currentProduct.externalId}`)
             }
-            productData = {
+            vtoProductData = {
               productName,
               productDescriptionHtml,
               fitClassification,
@@ -197,7 +194,7 @@ export default function VtoSingleOverlay() {
           }
           let recommendedColorLabel: string | null = null
           {
-            const recommendedSizeRecord = productData.sizes.find((s) => s.isRecommended)
+            const recommendedSizeRecord = vtoProductData.sizes.find((s) => s.isRecommended)
             if (!recommendedSizeRecord) {
               throw new Error('Recommended size record not found')
             }
@@ -211,56 +208,49 @@ export default function VtoSingleOverlay() {
 
             recommendedColorLabel = recommendedSizeColorRecord?.colorLabel ?? null
           }
-          setLoadedProductData(productData)
+          setVtoProductData(vtoProductData)
           setSelectedSizeLabel(recommendedSizeLabel)
           setSelectedColorLabel(recommendedColorLabel)
         }
-        for (const sku in userProfile?.vto?.[brandId] ?? {}) {
-          fetchedVtoSkus.current.add(sku)
-          readyVtoSkus.current.add(sku)
-        }
-        logger.timerEnd('fetchInitialData_4_assembleLoadedData')
-
-        logger.timerEnd('fetchInitialData')
-        logger.logTimer('total', '{{ts}} - Completed fetch of initial data', logger.getTimers())
       } catch (error) {
         logger.logError('Error fetching initial data:', { error })
-        setLoadedProductData(false)
+        setVtoProductData(false)
         setSelectedSizeLabel(null)
         setSelectedColorLabel(null)
       }
     }
-    if (userIsLoggedIn && userHasAvatar && userProfile && loadedProductData == null) {
-      fetchInitialData()
+    if (vtoProductData !== null) {
+      return
     }
-  }, [userIsLoggedIn, userHasAvatar, userProfile, loadedProductData])
+    setupInitialVtoData()
+  }, [storeProductData, vtoProductData])
 
   // Derive selected color/size data from selections
   const { sizeColorRecord: selectedColorSizeRecord, availableColorLabels } = useMemo(() => {
-    if (!loadedProductData) {
+    if (!vtoProductData) {
       return { sizeColorRecord: null, availableColorLabels: [] }
     }
-    const sizeRecord = loadedProductData.sizes.find((s) => s.sizeLabel === selectedSizeLabel)
+    const sizeRecord = vtoProductData.sizes.find((s) => s.sizeLabel === selectedSizeLabel)
     if (!sizeRecord || !sizeRecord.colors.length) {
       return { sizeColorRecord: null, availableColorLabels: [] }
     }
     const sizeColorRecord = sizeRecord.colors.find((c) => c.colorLabel === selectedColorLabel) ?? sizeRecord.colors[0]
     const availableColorLabels = sizeRecord.colors.map((c) => c.colorLabel).filter((label): label is string => !!label)
     return { sizeColorRecord, availableColorLabels }
-  }, [loadedProductData, selectedSizeLabel, selectedColorLabel])
+  }, [vtoProductData, selectedSizeLabel, selectedColorLabel])
 
   // Fetch VTO data for a color/size
-  const requestVto = useCallback((sizeColorRecord: LoadedSizeColorData, priority: boolean) => {
+  const requestVto = useCallback((sizeColorRecord: VtoSizeColorData, priority: boolean) => {
     if (fetchedVtoSkus.current.has(sizeColorRecord.sku)) {
       return
     }
     function executeRequest() {
       logger.timerStart(`requestVto_${sizeColorRecord.sku}`)
-      logger.logDebug(`{{ts}} - Requesting VTO for sku: ${sizeColorRecord.sku}`, { sizeColorRecord })
+      logger.logDebug(`{{ts}} - Requesting VTO for sku: ${sizeColorRecord.sku}`, { priority, sizeColorRecord })
       fetchedVtoSkus.current.add(sizeColorRecord.sku)
 
       apiRequestVtoSingle(sizeColorRecord.colorwaySizeAssetId).catch((error) => {
-        logger.logError('Error requesting VTO:', { error, sizeColorRecord })
+        logger.logError(`Error requesting VTO for sku: ${sizeColorRecord.sku}`, { error, sizeColorRecord })
       })
     }
     if (NON_PRIORITY_VTO_REQUEST_DELAY_MS) {
@@ -294,16 +284,16 @@ export default function VtoSingleOverlay() {
 
   // Trigger VTO requests for all recommended sizes when color selection changes (and on initial load)
   useEffect(() => {
-    if (!loadedProductData) {
+    if (!vtoProductData) {
       return
     }
-    for (const sizeRecord of loadedProductData.sizes) {
+    for (const sizeRecord of vtoProductData.sizes) {
       const sizeColorRecord = sizeRecord.colors.find((c) => c.colorLabel === selectedColorLabel) ?? sizeRecord.colors[0]
       if (sizeColorRecord) {
         requestVto(sizeColorRecord, false)
       }
     }
-  }, [requestVto, loadedProductData, selectedColorLabel])
+  }, [requestVto, vtoProductData, selectedColorLabel])
 
   // Lookup VTO frames for selected color/size from user profile
   const vtoData = useMemo(() => {
@@ -342,6 +332,7 @@ export default function VtoSingleOverlay() {
       })
     }
 
+    logger.logDebug(`Displaying VTO for sku: ${selectedColorSizeRecord.sku}`)
     return vtoData
   }, [selectedColorSizeRecord, userProfile])
   const frameUrls = vtoData?.frames ?? null
@@ -369,7 +360,7 @@ export default function VtoSingleOverlay() {
 
   // RENDERING:
 
-  if (loadedProductData === false) {
+  if (vtoProductData === false) {
     return (
       <SidecarModalFrame onRequestClose={closeOverlay}>
         <NoFitLayout onClose={closeOverlay} onSignOut={handleSignOutClick} />
@@ -377,7 +368,7 @@ export default function VtoSingleOverlay() {
     )
   }
 
-  if (!userIsLoggedIn || !userHasAvatar || loadedProductData == null || !selectedColorSizeRecord) {
+  if (!userIsLoggedIn || !userHasAvatar || vtoProductData == null || !selectedColorSizeRecord) {
     return (
       <SidecarModalFrame onRequestClose={closeOverlay}>
         <Loading />
@@ -395,7 +386,7 @@ export default function VtoSingleOverlay() {
   return (
     <SidecarModalFrame onRequestClose={closeOverlay} contentStyle={modalStyle}>
       <Layout
-        loadedProductData={loadedProductData}
+        loadedProductData={vtoProductData}
         selectedColorSizeRecord={selectedColorSizeRecord}
         availableColorLabels={availableColorLabels}
         selectedColorLabel={selectedColorLabel}
@@ -455,8 +446,8 @@ function NoFitLayout({ onClose, onSignOut }: { onClose: () => void; onSignOut: (
 }
 
 interface LayoutProps {
-  loadedProductData: LoadedProductData
-  selectedColorSizeRecord: LoadedSizeColorData
+  loadedProductData: VtoProductData
+  selectedColorSizeRecord: VtoSizeColorData
   availableColorLabels: string[]
   selectedColorLabel: string | null
   selectedSizeLabel: string | null
@@ -674,8 +665,8 @@ function MobileLayout({
 }
 
 interface MobileContentProps {
-  loadedProductData: LoadedProductData
-  selectedColorSizeRecord: LoadedSizeColorData
+  loadedProductData: VtoProductData
+  selectedColorSizeRecord: VtoSizeColorData
   availableColorLabels: string[]
   selectedColorLabel: string | null
   selectedSizeLabel: string | null
@@ -1406,7 +1397,7 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
 }
 
 interface ProductSummaryRowProps {
-  loadedProductData: LoadedProductData
+  loadedProductData: VtoProductData
 }
 
 function ProductSummaryRow({ loadedProductData }: ProductSummaryRowProps) {
@@ -1489,7 +1480,7 @@ function ColorSelector({ availableColorLabels, selectedColorLabel, onChangeColor
 }
 
 interface SizeSelectorProps {
-  loadedProductData: LoadedProductData
+  loadedProductData: VtoProductData
   selectedSizeLabel: string | null
   onChangeSize: (newSizeLabel: string) => void
 }
@@ -1538,7 +1529,7 @@ function SizeSelector({ loadedProductData, selectedSizeLabel, onChangeSize }: Si
 }
 
 interface RecommendedSizeTextProps {
-  loadedProductData: LoadedProductData
+  loadedProductData: VtoProductData
   textCss: CssProp
 }
 
@@ -1554,7 +1545,7 @@ function RecommendedSizeText({ loadedProductData, textCss }: RecommendedSizeText
 }
 
 interface ItemFitTextProps {
-  loadedProductData: LoadedProductData
+  loadedProductData: VtoProductData
   textCss?: CssProp
 }
 
@@ -1574,7 +1565,7 @@ function ItemFitText({ loadedProductData, textCss }: ItemFitTextProps) {
 }
 
 interface ItemFitDetailsProps {
-  loadedProductData: LoadedProductData
+  loadedProductData: VtoProductData
   selectedSizeLabel: string | null
 }
 
@@ -1642,7 +1633,7 @@ function AddToCartButton({ onClick }: AddToCartButtonProps) {
 }
 
 interface ProductDescriptionTextProps {
-  loadedProductData: LoadedProductData
+  loadedProductData: VtoProductData
 }
 
 function ProductDescriptionText({ loadedProductData }: ProductDescriptionTextProps) {

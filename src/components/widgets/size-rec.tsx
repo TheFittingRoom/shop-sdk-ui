@@ -1,8 +1,7 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useMemo } from 'react'
 import { LinkT } from '@/components/link'
 import { getLogger } from '@/lib/logger'
-import { useSizeRecommendation } from '@/lib/size-rec'
-import { useMainStore } from '@/lib/store'
+import { getStaticData, useMainStore } from '@/lib/store'
 import { getSizeLabelFromSize } from '@/lib/util'
 import { OverlayName, WidgetProps } from '@/lib/view'
 
@@ -11,19 +10,27 @@ const logger = getLogger('size-rec')
 export default function SizeRecWidget({}: WidgetProps) {
   const openOverlay = useMainStore((state) => state.openOverlay)
   const openedOverlays = useMainStore((state) => state.openedOverlays)
+  const storeProductData = useMainStore((state) => state.productData)
   const hasOpenedVtoSingleOverlay = openedOverlays.includes(OverlayName.VTO_SINGLE)
 
-  // Load size recommendation, after VTO single overlay has been opened
-  const { record: sizeRecommendationRecord, error: sizeRecommendationError } = useSizeRecommendation(hasOpenedVtoSingleOverlay)
-  useEffect(() => {
-    if (sizeRecommendationError) {
-      logger.logError('Error loading size recommendation:', { error: sizeRecommendationError })
+  // Get size recommendation
+  const sizeRecommendationRecord = useMemo(() => {
+    const { currentProduct } = getStaticData()
+    const { externalId } = currentProduct
+    const productData = storeProductData[externalId]
+    if (!productData) {
+      return null
     }
-  }, [sizeRecommendationError])
+    if ('error' in productData) {
+      logger.logError('Error loading size recommendation:', { error: productData.error })
+      return null
+    }
+    return productData.sizeFitRecommendation || null
+  }, [storeProductData])
 
   const handleLinkClick = useCallback(() => {
     openOverlay(OverlayName.VTO_SINGLE)
-  }, [])
+  }, [openOverlay])
 
   // RENDERING:
 

@@ -8,6 +8,7 @@ import { getConfig, EnvName } from '@/lib/config'
 import { _init as initFirebase, getAuthManager } from '@/lib/firebase'
 import { i18n } from '@/lib/locale'
 import { _init as initLogger, getLogger } from '@/lib/logger'
+import { _init as initProduct } from '@/lib/product'
 import { _init as initStore, useMainStore, ExternalProduct } from '@/lib/store'
 import { _init as initTheme, ThemeData } from '@/lib/theme'
 import { _init as initView } from '@/lib/view'
@@ -103,6 +104,9 @@ export async function init(initParams: InitParams): Promise<boolean> {
 
     // Initialize api
     initApi()
+
+    // Initialize product data
+    initProduct()
 
     // Inject styles
     {

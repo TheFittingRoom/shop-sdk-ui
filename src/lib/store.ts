@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { Config } from '@/lib/config'
 import { AuthUser, UserProfile } from '@/lib/firebase'
+import { LoadedProductData, LoadedProductError } from '@/lib/product'
 import { DeviceLayout, OverlayName } from '@/lib/view'
 
 export interface ExternalProductVariant {
@@ -59,6 +60,10 @@ export interface MainStoreState {
   userHasAvatar: boolean | null
   setUserProfile: (userProfile: UserProfile | null) => void
 
+  // Product data:
+  productData: Record<string, LoadedProductData | LoadedProductError>
+  setProductData: (externalId: string, data: LoadedProductData | LoadedProductError) => void
+
   // UI state:
   activeOverlay: OverlayName | null
   activeOverlayProps: Record<string, unknown> | null
@@ -86,6 +91,16 @@ export const useMainStore = create<MainStoreState>((set) => ({
     const userHasAvatar = userProfile ? userProfile.avatar_status === 'CREATED' : null
     set({ userProfile, userHasAvatar })
   },
+
+  // Product data:
+  productData: {},
+  setProductData: (externalId: string, data: LoadedProductData | LoadedProductError) =>
+    set((prevState) => ({
+      productData: {
+        ...prevState.productData,
+        [externalId]: data,
+      },
+    })),
 
   // UI state:
   activeOverlay: null,
