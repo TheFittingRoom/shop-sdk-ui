@@ -338,7 +338,7 @@ export default function VtoSingleOverlay() {
       })
     }
 
-    logger.logDebug(`Displaying VTO for sku: ${selectedColorSizeRecord.sku}`)
+    logger.logDebug(`{{ts}} - Displaying VTO for sku: ${selectedColorSizeRecord.sku}`)
     return vtoData
   }, [selectedColorSizeRecord, userProfile])
   const frameUrls = vtoData?.frames ?? null

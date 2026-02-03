@@ -34,8 +34,12 @@ const logger = getLogger('product')
 
 export function _init() {
   // Preload data for the current product
-  const { currentProduct } = getStaticData()
-  loadProductDataToStore(currentProduct.externalId)
+  useMainStore.subscribe((state, prevState) => {
+    if (state.userHasAvatar && !prevState.userHasAvatar) {
+      const { currentProduct } = getStaticData()
+      loadProductDataToStore(currentProduct.externalId)
+    }
+  })
 }
 
 export async function loadProductData(externalId: string): Promise<LoadedProductData> {
