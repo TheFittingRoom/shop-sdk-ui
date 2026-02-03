@@ -67,7 +67,6 @@ const CONTENT_AREA_WIDTH_PX = 550
 const logger = getLogger('overlays/vto-single')
 
 export default function VtoSingleOverlay() {
-  const { brandId } = getStaticData()
   const userIsLoggedIn = useMainStore((state) => state.userIsLoggedIn)
   const userHasAvatar = useMainStore((state) => state.userHasAvatar)
   const userProfile = useMainStore((state) => state.userProfile)
@@ -105,7 +104,7 @@ export default function VtoSingleOverlay() {
   useEffect(() => {
     async function setupInitialVtoData() {
       try {
-        const { currentProduct } = getStaticData()
+        const { brandId, currentProduct } = getStaticData()
         const storeProduct = storeProductData[currentProduct.externalId]
         if (!storeProduct) {
           return
@@ -212,6 +211,12 @@ export default function VtoSingleOverlay() {
           setSelectedSizeLabel(recommendedSizeLabel)
           setSelectedColorLabel(recommendedColorLabel)
         }
+
+        // Mark already available VTO SKUs as fetched/ready
+        for (const sku in userProfile?.vto?.[brandId] ?? {}) {
+          fetchedVtoSkus.current.add(sku)
+          readyVtoSkus.current.add(sku)
+        }
       } catch (error) {
         logger.logError('Error fetching initial data:', { error })
         setVtoProductData(false)
@@ -223,7 +228,7 @@ export default function VtoSingleOverlay() {
       return
     }
     setupInitialVtoData()
-  }, [storeProductData, vtoProductData])
+  }, [storeProductData, vtoProductData, userProfile])
 
   // Derive selected color/size data from selections
   const { sizeColorRecord: selectedColorSizeRecord, availableColorLabels } = useMemo(() => {
@@ -302,6 +307,7 @@ export default function VtoSingleOverlay() {
     }
 
     // Lookup VTO data from user profile
+    const { brandId } = getStaticData()
     const availableSkuData = userProfile.vto?.[brandId]
     if (!availableSkuData) {
       return null
