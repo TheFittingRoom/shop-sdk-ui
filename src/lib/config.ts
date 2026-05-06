@@ -95,7 +95,7 @@ const CONFIGS: Record<EnvName, Config> = {
       baseUrl: 'http://localhost:8080',
     },
     asset: {
-      baseUrl: 'http://localhost:9000/tfr-assets-dev',
+      baseUrl: 'http://localhost:9000/tfr-assets-dev/shop-sdk/assets/v5',
     },
     ...SHARED_CONFIG,
   },
