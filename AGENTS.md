@@ -30,9 +30,22 @@ and accessor functions. Order matters — do not reorder without tracing the dep
 ## Environment selection
 
 `InitParams.environment` is an `EnvName` (`development` | `production` | `local`).
-`src/lib/config.ts` maps each to firebase/api/asset URLs. `local` points at the
-`local-deployment` Docker stack (`http://localhost:8080`, MinIO at `:9000`) and
+`src/lib/config.ts` maps each to firebase/api/asset/frames URLs. `local` points at
+the `local-deployment` Docker stack (`http://localhost:8080`, MinIO at `:9000`) and
 reuses the dev Firebase project.
+
+## Frame URL rewriting
+
+Backend stores avatar and VTO frame URLs in Firestore as bare paths (e.g.
+`user-X/avatar-N/colorway-size-asset-M/frames/image_K.png`) — see the matching
+note in `tfr-backend/AGENTS.md`. The SDK prepends the configured `frames.baseUrl`
+(per-env in `config.ts`) at the consumption site. Helper: `applyFrameBaseUrl` in
+`src/lib/util.ts`. It also strips the host from any legacy host-prefixed URLs
+still present in older Firestore records, so both shapes work.
+
+Currently used in `src/components/overlays/vto-single.tsx` only. Anywhere else
+that turns a Firestore-supplied frame URL into an `<img src>` should call
+`applyFrameBaseUrl` too.
 
 ## Conventions
 
