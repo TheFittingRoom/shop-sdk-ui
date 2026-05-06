@@ -55,3 +55,23 @@ that turns a Firestore-supplied frame URL into an `<img src>` should call
 - Emotion is the styling solution (`jsxImportSource: '@emotion/react'`).
 - State: Zustand (`useMainStore` in `src/lib/store.ts`). Static init-time data lives
   in a separate `staticData` singleton, not in the store.
+
+## How this is consumed in the demo storefront
+
+The test storefront is the `shopify` theme repo. Its `development` branch
+syncs to `tfrshop-1346.myshopify.com` automatically on push. The theme's
+`assets/tfr.js` is the bootstrap layer — it builds `currentProduct` from
+Shopify's product object, wires merchant-supplied callbacks
+(`getSelectedOptions`, `addToCart`, `productLookup`, `getOverlayTopOffset`),
+and chooses the SDK URL: jsdelivr in production, `localhost:5173` when the
+page URL has `?tfr-source=local`.
+
+The widgets are embedded as `<tfr-widget>` custom elements in
+`sections/main-product.liquid`, `sections/header.liquid`, and
+`snippets/card-product.liquid`. New widgets typically need a corresponding
+`<tfr-widget>` insertion there.
+
+For SDK-only changes, run `npm run watch-serve` and reload the demo
+storefront with `?tfr-source=local` — no theme push needed. For changes
+that touch the bootstrap script, callbacks, or markup, push to the
+`shopify` repo's `development` branch.

@@ -50,10 +50,38 @@ Run the SDK against the local backend stack from
 
    <https://tfrshop-1346.myshopify.com/products/blackbandana-fitted-dress?tfr-source=local>
 
-   The `?tfr-source=local` query param tells the storefront's TFR snippet to
-   load the SDK from `http://localhost:5173/dist/index.js` instead of jsdelivr,
-   and to initialize it with `environment: 'local'` (see `src/lib/config.ts` —
+   The `?tfr-source=local` query param tells the storefront's `tfr.js` to load
+   the SDK from `http://localhost:5173/dist/index.js` instead of jsdelivr, and
+   to initialize it with `environment: 'local'` (see `src/lib/config.ts` —
    that env points at `http://localhost:8080` for the API and the local MinIO
    bucket for assets).
 
 Reload the storefront page after a rebuild to pick up changes.
+
+### Working with the storefront
+
+The test storefront lives in the
+[`shopify`](https://github.com/TheFittingRoom/shopify) theme repo. Its
+`development` branch syncs to `tfrshop-1346.myshopify.com` automatically —
+push to `origin/development` and the live demo store updates without any
+`shopify theme push`.
+
+The integration glue lives in three places in that repo:
+
+- `assets/tfr.js` — bootstraps the SDK. Builds `currentProduct` from
+  `window.currentProduct` (set inline by `main-product.liquid`), wires the
+  `productLookup` and `getOverlayTopOffset` callbacks, and selects the SDK
+  source URL based on `?tfr-source=local`.
+- `layout/theme.liquid` — loads `tfr.js` site-wide.
+- `<tfr-widget>` embeds across `sections/main-product.liquid`,
+  `sections/header.liquid`, and `snippets/card-product.liquid`.
+
+When iterating with `?tfr-source=local`, the SDK comes from your watcher
+and the theme from the live demo store — you only need to push to
+`shopify` when changing markup, the bootstrap script, or merchant
+callbacks (`getSelectedOptions`, `addToCart`, `productLookup`,
+`getOverlayTopOffset`). For SDK-only changes, just rebuild and reload.
+
+If you're using `local-deployment`, both repos are cloned side-by-side
+under `local-repo/` for you. See `local-repo/shopify/AGENTS.md` for the
+theme conventions.
