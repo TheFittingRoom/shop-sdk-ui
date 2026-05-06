@@ -10,7 +10,9 @@ const logger = getLogger('widgets/fitting-room-icon')
 export default function FittingRoomIconWidget({}: WidgetProps) {
   const { t } = useTranslation()
   const count = useMainStore((state) => state.fittingRoom.length)
+  const isOpen = useMainStore((state) => state.activeOverlay === OverlayName.FITTING_ROOM)
   const openOverlay = useMainStore((state) => state.openOverlay)
+  const closeOverlay = useMainStore((state) => state.closeOverlay)
 
   const css = useCss((theme) => ({
     button: {
@@ -49,6 +51,11 @@ export default function FittingRoomIconWidget({}: WidgetProps) {
   }))
 
   const handleClick = () => {
+    if (isOpen) {
+      logger.logDebug('{{ts}} - Closing fitting room overlay', { count })
+      closeOverlay()
+      return
+    }
     logger.logDebug('{{ts}} - Opening fitting room overlay', { count })
     openOverlay(OverlayName.FITTING_ROOM)
   }

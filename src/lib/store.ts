@@ -29,6 +29,7 @@ export interface ExternalProduct {
 }
 
 export type ProductLookup = (externalIds: string[]) => Promise<ExternalProduct[]>
+export type GetOverlayTopOffset = () => number
 
 export interface StaticData {
   brandId: number
@@ -36,6 +37,7 @@ export interface StaticData {
   environment: string
   config: Config
   productLookup: ProductLookup | null
+  getOverlayTopOffset: GetOverlayTopOffset | null
 }
 
 let staticData: StaticData | null = null

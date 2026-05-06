@@ -10,13 +10,15 @@ export interface ModalFrameProps {
   isOpen: boolean
   onRequestClose: () => void
   contentStyle: StyleProp
+  overlayStyle?: StyleProp
   children: ReactNode
 }
 
-export function ModalFrame({ isOpen, onRequestClose, contentStyle, children }: ModalFrameProps) {
+export function ModalFrame({ isOpen, onRequestClose, contentStyle, overlayStyle, children }: ModalFrameProps) {
   const styleProp: { overlay: StyleProp; content: StyleProp } = {
     overlay: {
       zIndex: 1000,
+      ...overlayStyle,
     },
     content: contentStyle,
   }
