@@ -16,6 +16,9 @@ export interface Config {
   asset: {
     baseUrl: string
   }
+  frames: {
+    baseUrl: string
+  }
   links: {
     appAppleStoreUrl: string
     appGooglePlayUrl: string
@@ -61,6 +64,9 @@ const CONFIGS: Record<EnvName, Config> = {
     asset: {
       baseUrl: 'https://assets.dev.thefittingroom.xyz/shop-sdk/assets/v5',
     },
+    frames: {
+      baseUrl: 'https://assets.dev.thefittingroom.xyz',
+    },
     ...SHARED_CONFIG,
   },
   [EnvName.PRODUCTION]: {
@@ -79,6 +85,9 @@ const CONFIGS: Record<EnvName, Config> = {
     asset: {
       baseUrl: 'https://assets.p.thefittingroom.xyz/shop-sdk/assets/v5',
     },
+    frames: {
+      baseUrl: 'https://assets.p.thefittingroom.xyz',
+    },
     ...SHARED_CONFIG,
   },
   [EnvName.LOCAL]: {
@@ -96,6 +105,9 @@ const CONFIGS: Record<EnvName, Config> = {
     },
     asset: {
       baseUrl: 'http://localhost:9000/tfr-assets-dev/shop-sdk/assets/v5',
+    },
+    frames: {
+      baseUrl: 'http://localhost:9000/tfr-assets-dev',
     },
     ...SHARED_CONFIG,
   },

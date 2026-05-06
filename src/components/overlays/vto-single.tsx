@@ -26,7 +26,7 @@ import { getLogger } from '@/lib/logger'
 import { loadProductDataToStore } from '@/lib/product'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { getThemeData, useCss, CssProp, StyleProp } from '@/lib/theme'
-import { getSizeLabelFromSize } from '@/lib/util'
+import { applyFrameBaseUrl, getSizeLabelFromSize } from '@/lib/util'
 import { DeviceLayout, OverlayName } from '@/lib/view'
 
 interface VtoSizeColorData {
@@ -330,18 +330,22 @@ export default function VtoSingleOverlay() {
       return null
     }
 
-    // Preload frame images
-    if (vtoData.frames) {
-      vtoData.frames.forEach((frameUrl) => {
-        const img = new Image()
-        img.src = frameUrl
-      })
-    }
-
     logger.logDebug(`{{ts}} - Displaying VTO for sku: ${selectedColorSizeRecord.sku}`)
     return vtoData
   }, [selectedColorSizeRecord, userProfile])
-  const frameUrls = vtoData?.frames ?? null
+
+  // Rewrite firestore-supplied frame URLs to the configured frames base URL,
+  // then preload the resulting images
+  const frameUrls = useMemo(() => {
+    if (!vtoData?.frames) return null
+    const baseUrl = getStaticData().config.frames.baseUrl
+    const rewritten = vtoData.frames.map((u) => applyFrameBaseUrl(u, baseUrl))
+    rewritten.forEach((url) => {
+      const img = new Image()
+      img.src = url
+    })
+    return rewritten
+  }, [vtoData])
 
   const handleSignOutClick = useCallback(() => {
     closeOverlay()
