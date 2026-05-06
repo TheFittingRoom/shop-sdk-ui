@@ -29,6 +29,7 @@ export interface Config {
 export enum EnvName {
   DEVELOPMENT = 'development',
   PRODUCTION = 'production',
+  LOCAL = 'local',
 }
 
 const SHARED_CONFIG = {
@@ -77,6 +78,24 @@ const CONFIGS: Record<EnvName, Config> = {
     },
     asset: {
       baseUrl: 'https://assets.p.thefittingroom.xyz/shop-sdk/assets/v5',
+    },
+    ...SHARED_CONFIG,
+  },
+  [EnvName.LOCAL]: {
+    firebase: {
+      apiKey: 'AIzaSyDfjBWzpmzb-mhGN8VSURxzLg6nkzmKUD8',
+      authDomain: 'fittingroom-dev-5d248.firebaseapp.com',
+      projectId: 'fittingroom-dev-5d248',
+      storageBucket: 'fittingroom-dev-5d248.appspot.com',
+      messagingSenderId: '2298664147',
+      appId: '1:2298664147:web:340bda75cd5d25f3997026',
+      measurementId: 'G-B7GDQ1Y9LL',
+    },
+    api: {
+      baseUrl: 'http://localhost:8080',
+    },
+    asset: {
+      baseUrl: 'http://localhost:9000/tfr-assets-dev',
     },
     ...SHARED_CONFIG,
   },
