@@ -27,15 +27,21 @@ export default function AddToFittingRoomCompactWidget({ attributes }: WidgetProp
       width: '36px',
       height: '36px',
       padding: 0,
-      backgroundColor: isInFittingRoom ? theme.color_fg_text : 'transparent',
+      backgroundColor: 'transparent',
       border: 'none',
       borderRadius: '50%',
       cursor: 'pointer',
     },
+    buttonAdded: {
+      backgroundColor: theme.color_fg_text,
+    },
     icon: {
       width: '24px',
       height: '24px',
-      color: isInFittingRoom ? '#FFFFFF' : theme.color_fg_text,
+      color: theme.color_fg_text,
+    },
+    iconAdded: {
+      color: '#FFFFFF',
     },
   }))
 
@@ -52,8 +58,14 @@ export default function AddToFittingRoomCompactWidget({ attributes }: WidgetProp
   const ariaLabel = t(isInFittingRoom ? 'added_to_fitting_room' : 'add_to_fitting_room')
 
   return (
-    <button type="button" onClick={handleClick} css={css.button} aria-label={ariaLabel} aria-pressed={isInFittingRoom}>
-      <FittingRoomIcon css={css.icon} />
+    <button
+      type="button"
+      onClick={handleClick}
+      css={[css.button, isInFittingRoom && css.buttonAdded]}
+      aria-label={ariaLabel}
+      aria-pressed={isInFittingRoom}
+    >
+      <FittingRoomIcon css={[css.icon, isInFittingRoom && css.iconAdded]} />
     </button>
   )
 }
