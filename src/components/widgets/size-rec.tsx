@@ -16,6 +16,9 @@ export default function SizeRecWidget({}: WidgetProps) {
   // Get size recommendation
   const sizeRecommendationRecord = useMemo(() => {
     const { currentProduct } = getStaticData()
+    if (!currentProduct) {
+      return null
+    }
     const { externalId } = currentProduct
     const productData = storeProductData[externalId]
     if (!productData) {

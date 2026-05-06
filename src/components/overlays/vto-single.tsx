@@ -97,6 +97,9 @@ export default function VtoSingleOverlay() {
   // On load, load store product data (in case not already loaded)
   useEffect(() => {
     const { currentProduct } = getStaticData()
+    if (!currentProduct) {
+      return
+    }
     loadProductDataToStore(currentProduct.externalId)
   }, [])
 
@@ -105,6 +108,9 @@ export default function VtoSingleOverlay() {
     async function setupInitialVtoData() {
       try {
         const { brandId, currentProduct } = getStaticData()
+        if (!currentProduct) {
+          return
+        }
         const storeProduct = storeProductData[currentProduct.externalId]
         if (!storeProduct) {
           return
@@ -360,6 +366,9 @@ export default function VtoSingleOverlay() {
         return
       }
       const { currentProduct } = getStaticData()
+      if (!currentProduct) {
+        return
+      }
 
       closeOverlay()
       await currentProduct.addToCart({ size: selectedSizeLabel, color: selectedColorLabel })

@@ -2,6 +2,15 @@
   "try_it_on": "Essayez-le",
   "powered_by": "Alimenté par",
   "loading": "Chargement...",
+  "add_to_fitting_room": "Ajouter à la cabine d'essayage",
+  "added_to_fitting_room": "Dans la cabine d'essayage",
+  "view_fitting_room": "Cabine d'essayage",
+  "fitting_room": {
+    "title": "Cabine d'essayage",
+    "empty": "Votre cabine d'essayage est vide.",
+    "size_not_chosen": "Taille non choisie — choisissez-en une avant l'essayage.",
+    "remove": "Supprimer"
+  },
   "landing": {
     "header": "Rencontrez votre mini-moi !",
     "description": "Lâche à la taille mais serré aux hanches ? Nous allons vous montrer.",

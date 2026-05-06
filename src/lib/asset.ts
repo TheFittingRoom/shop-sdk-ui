@@ -5,6 +5,7 @@ import ChevronLeftIcon from '@/assets/chevron-left.svg?react'
 import ChevronRightIcon from '@/assets/chevron-right.svg?react'
 import CloseIcon from '@/assets/close-icon.svg?react'
 import DragHandleIcon from '@/assets/drag-handle.svg?react'
+import FittingRoomIcon from '@/assets/fitting-room-icon.svg?react'
 import InfoIcon from '@/assets/info-icon.svg?react'
 import LoadingCircleIcon from '@/assets/loading-circle.svg?react'
 import TfrIcon from '@/assets/tfr-icon.svg?react'
@@ -19,6 +20,7 @@ export {
   ChevronRightIcon,
   CloseIcon,
   DragHandleIcon,
+  FittingRoomIcon,
   InfoIcon,
   LoadingCircleIcon,
   TfrIcon,

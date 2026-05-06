@@ -1,9 +1,14 @@
 import Bowser from 'bowser'
+import FittingRoomOverlay from '@/components/overlays/fitting-room'
 import ForgotPasswordOverlay from '@/components/overlays/forgot-password'
 import GetAppOverlay from '@/components/overlays/get-app'
 import LandingOverlay from '@/components/overlays/landing'
 import SignInOverlay from '@/components/overlays/sign-in'
 import VtoSingleOverlay from '@/components/overlays/vto-single'
+import AddToFittingRoomCompactWidget from '@/components/widgets/add-to-fitting-room-compact'
+import AddToFittingRoomWidget from '@/components/widgets/add-to-fitting-room'
+import FittingRoomIconWidget from '@/components/widgets/fitting-room-icon'
+import FittingRoomWidget from '@/components/widgets/fitting-room'
 import SizeRecWidget from '@/components/widgets/size-rec'
 import VtoButtonWidget from '@/components/widgets/vto-button'
 import { useMainStore } from '@/lib/store'
@@ -52,16 +57,25 @@ export interface WidgetProps {
 }
 
 export enum WidgetName {
+  ADD_TO_FITTING_ROOM = 'add-to-fitting-room',
+  ADD_TO_FITTING_ROOM_COMPACT = 'add-to-fitting-room-compact',
+  FITTING_ROOM = 'fitting-room',
+  FITTING_ROOM_ICON = 'fitting-room-icon',
   SIZE_REC = 'size-rec',
   VTO_BUTTON = 'vto-button',
 }
 
 export const WIDGETS: Record<WidgetName, React.FC<WidgetProps>> = {
+  [WidgetName.ADD_TO_FITTING_ROOM]: AddToFittingRoomWidget,
+  [WidgetName.ADD_TO_FITTING_ROOM_COMPACT]: AddToFittingRoomCompactWidget,
+  [WidgetName.FITTING_ROOM]: FittingRoomWidget,
+  [WidgetName.FITTING_ROOM_ICON]: FittingRoomIconWidget,
   [WidgetName.SIZE_REC]: SizeRecWidget,
   [WidgetName.VTO_BUTTON]: VtoButtonWidget,
 }
 
 export enum OverlayName {
+  FITTING_ROOM = 'fitting-room',
   FORGOT_PASSWORD = 'forgot-password',
   GET_APP = 'get-app',
   LANDING = 'landing',
@@ -72,6 +86,7 @@ export enum OverlayName {
 export type OverlayProps = Record<string, unknown>
 
 export const OVERLAYS: Record<OverlayName, React.FC<OverlayProps>> = {
+  [OverlayName.FITTING_ROOM]: FittingRoomOverlay,
   [OverlayName.FORGOT_PASSWORD]: ForgotPasswordOverlay,
   [OverlayName.GET_APP]: GetAppOverlay,
   [OverlayName.LANDING]: LandingOverlay,

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { Config } from '@/lib/config'
 import { AuthUser, UserProfile } from '@/lib/firebase'
+import { FittingRoomItem, writeFittingRoom } from '@/lib/fitting-room'
 import { LoadedProductData, LoadedProductError } from '@/lib/product'
 import { DeviceLayout, OverlayName } from '@/lib/view'
 
@@ -27,11 +28,14 @@ export interface ExternalProduct {
   addToCart: (options: ExternalProductOptionSelection) => void | Promise<void>
 }
 
+export type ProductLookup = (externalIds: string[]) => Promise<ExternalProduct[]>
+
 export interface StaticData {
   brandId: number
-  currentProduct: ExternalProduct
+  currentProduct: ExternalProduct | null
   environment: string
   config: Config
+  productLookup: ProductLookup | null
 }
 
 let staticData: StaticData | null = null
@@ -63,6 +67,13 @@ export interface MainStoreState {
   // Product data:
   productData: Record<string, LoadedProductData | LoadedProductError>
   setProductData: (externalId: string, data: LoadedProductData | LoadedProductError) => void
+
+  // Fitting room:
+  fittingRoom: FittingRoomItem[]
+  addToFittingRoom: (item: FittingRoomItem) => void
+  removeFromFittingRoom: (externalId: string) => void
+  updateFittingRoomItem: (externalId: string, patch: Partial<FittingRoomItem>) => void
+  clearFittingRoom: () => void
 
   // UI state:
   activeOverlay: OverlayName | null
@@ -101,6 +112,35 @@ export const useMainStore = create<MainStoreState>((set) => ({
         [externalId]: data,
       },
     })),
+
+  // Fitting room:
+  fittingRoom: [],
+  addToFittingRoom: (item: FittingRoomItem) =>
+    set((prevState) => {
+      const filtered = prevState.fittingRoom.filter((existing) => existing.externalId !== item.externalId)
+      const next = [...filtered, item]
+      writeFittingRoom(getStaticData().brandId, next)
+      return { fittingRoom: next }
+    }),
+  removeFromFittingRoom: (externalId: string) =>
+    set((prevState) => {
+      const next = prevState.fittingRoom.filter((existing) => existing.externalId !== externalId)
+      writeFittingRoom(getStaticData().brandId, next)
+      return { fittingRoom: next }
+    }),
+  updateFittingRoomItem: (externalId: string, patch: Partial<FittingRoomItem>) =>
+    set((prevState) => {
+      const next = prevState.fittingRoom.map((existing) =>
+        existing.externalId === externalId ? { ...existing, ...patch } : existing,
+      )
+      writeFittingRoom(getStaticData().brandId, next)
+      return { fittingRoom: next }
+    }),
+  clearFittingRoom: () =>
+    set(() => {
+      writeFittingRoom(getStaticData().brandId, [])
+      return { fittingRoom: [] }
+    }),
 
   // UI state:
   activeOverlay: null,

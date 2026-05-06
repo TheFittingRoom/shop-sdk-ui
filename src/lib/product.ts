@@ -37,7 +37,9 @@ export function _init() {
   useMainStore.subscribe((state, prevState) => {
     if (state.userHasAvatar && !prevState.userHasAvatar) {
       const { currentProduct } = getStaticData()
-      loadProductDataToStore(currentProduct.externalId)
+      if (currentProduct) {
+        loadProductDataToStore(currentProduct.externalId)
+      }
     }
   })
 }

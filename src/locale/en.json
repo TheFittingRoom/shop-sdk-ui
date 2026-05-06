@@ -2,6 +2,15 @@
   "try_it_on": "Try It On",
   "powered_by": "Powered by",
   "loading": "Loading...",
+  "add_to_fitting_room": "Add to Fitting Room",
+  "added_to_fitting_room": "In Fitting Room",
+  "view_fitting_room": "Fitting Room",
+  "fitting_room": {
+    "title": "Fitting Room",
+    "empty": "Your fitting room is empty.",
+    "size_not_chosen": "Size not chosen — pick one before trying on.",
+    "remove": "Remove"
+  },
   "landing": {
     "header": "Meet your mini me!",
     "description": "Loose on your waist but tight on your hips? We’ll show you.",

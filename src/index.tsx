@@ -6,10 +6,11 @@ import { _init as initApi } from '@/lib/api'
 import { _init as initAsset } from '@/lib/asset'
 import { getConfig, EnvName } from '@/lib/config'
 import { _init as initFirebase, getAuthManager } from '@/lib/firebase'
+import { _init as initFittingRoom } from '@/lib/fitting-room'
 import { i18n } from '@/lib/locale'
 import { _init as initLogger, getLogger } from '@/lib/logger'
 import { _init as initProduct } from '@/lib/product'
-import { _init as initStore, useMainStore, ExternalProduct } from '@/lib/store'
+import { _init as initStore, useMainStore, ExternalProduct, ProductLookup } from '@/lib/store'
 import { _init as initTheme, ThemeData } from '@/lib/theme'
 import { _init as initView } from '@/lib/view'
 
@@ -38,23 +39,24 @@ class TfrWidgetElement extends HTMLElement {
 
 export interface InitParams {
   brandId: number
-  currentProduct: ExternalProduct
+  currentProduct?: ExternalProduct
   environment: EnvName
   lang?: string | null
   theme?: Partial<ThemeData> | null
   debug: boolean | string | string[] | RegExp
+  productLookup?: ProductLookup
 }
 
 export async function init(initParams: InitParams): Promise<boolean> {
   const logger = getLogger('init')
   try {
-    const { brandId, currentProduct, environment, lang = null, theme = null, debug } = initParams
+    const { brandId, currentProduct, environment, lang = null, theme = null, debug, productLookup } = initParams
 
     // Validate init params
     if (!brandId || typeof brandId !== 'number' || isNaN(brandId) || brandId <= 0) {
       throw new Error(`Invalid brandId "${brandId}"`)
     }
-    if (!currentProduct || typeof currentProduct.externalId !== 'string') {
+    if (currentProduct !== undefined && typeof currentProduct.externalId !== 'string') {
       throw new Error('Invalid currentProduct')
     }
     if (!Object.values(EnvName).includes(environment)) {
@@ -76,10 +78,14 @@ export async function init(initParams: InitParams): Promise<boolean> {
     // Set static data
     initStore({
       brandId,
-      currentProduct,
+      currentProduct: currentProduct ?? null,
       environment,
       config,
+      productLookup: productLookup ?? null,
     })
+
+    // Hydrate fitting room from localStorage
+    initFittingRoom()
 
     // Initialize asset manager
     initAsset()
