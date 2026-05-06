@@ -12,6 +12,7 @@
     "build": "npm run clean && vite build --mode production",
     "watch": "vite build --mode production --watch",
     "serve": "serve . -p 5173 --cors",
+    "watch-serve": "trap 'kill 0' EXIT; npm run watch & npm run serve & wait",
     "check": "tsc --noEmit",
     "manual-release": "run() { npm run check && npm run build && npm version $1 && git push && git push --tags && npm run build && echo 'Now run npm publish' ; }; run ${1:-patch}"
   },
