@@ -1,0 +1,33 @@
+# Tygo config for shop-sdk-ui. Generates TypeScript types in src/api/gen/
+# from the Go types in tfr-backend/pkg/types/*.
+#
+# Run via: npm run gen-types — see scripts/gen-types.sh.
+#
+# Output paths are absolute Docker paths because the script mounts the
+# SDK at /sdk and runs tygo from inside /backend (the tfr-backend
+# checkout) so Go can resolve the module-relative package paths.
+#
+# pkg/types/errors is intentionally excluded — its constants use Go's
+# type-conversion form (`Error("...")`) that tygo emits as `= any`, which
+# fails strict TS compilation. The SDK does not consume those constants
+# directly, so dropping the generated file is a no-op for callers.
+packages:
+  - path: "github.com/thefittingroom/tfr-backend/pkg/types/requests"
+    output_path: "/sdk/src/api/gen/requests.ts"
+    type_mappings:
+      enums.MeasurementLocation: "string"
+
+  - path: "github.com/thefittingroom/tfr-backend/pkg/types/responses"
+    output_path: "/sdk/src/api/gen/responses.ts"
+    type_mappings:
+      enums.MeasurementLocation: "string"
+
+  - path: "github.com/thefittingroom/tfr-backend/pkg/types/enums"
+    output_path: "/sdk/src/api/gen/enums.ts"
+    type_mappings:
+      enums.MeasurementLocation: "string"
+
+  - path: "github.com/thefittingroom/tfr-backend/pkg/types/common"
+    output_path: "/sdk/src/api/gen/common.ts"
+    type_mappings:
+      enums.MeasurementLocation: "string"

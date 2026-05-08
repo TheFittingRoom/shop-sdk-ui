@@ -16,6 +16,7 @@ export interface Avatar {
   skin_tone_hex?: string;
   skin_tone_fac?: number /* float64 */;
   body_measurements?: { [key: string]: number /* float64 */};
+  expiry_seconds?: number /* int64 */; // for post_avatar
 }
 export interface FirestoreAvatar {
   gender: string;
@@ -118,6 +119,9 @@ export interface ColorwaySizeAsset {
   colorway_name?: string;
   folder_storage_path: string;
   asset_container_name: string;
+}
+export interface VTOExpiryResponse {
+  expiry_seconds: number /* int64 */;
 }
 export interface FirestoreColorwaySizeAsset {
   id: number /* int */;
