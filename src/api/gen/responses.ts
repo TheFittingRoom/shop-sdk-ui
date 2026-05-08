@@ -683,12 +683,15 @@ export interface FirestoreStyleBaseBodyAdjustment {
  * StyleCategory is the API response shape for GET /v1/style-categories.
  * The data is sourced from the in-code StyleCategoryConfigs map; there is
  * no longer a backing DB table, so id/brand_id no longer apply.
+ * MeasurementLocations is gender-agnostic: every category exposes the
+ * single set of avatar measurement locations the algorithm and the
+ * dashboard care about. Categories whose original DB rows differed
+ * between male and female now expose the union of both sets.
  */
 export interface StyleCategory {
   name: any /* enums.StyleCategory */;
   label: string;
-  measurement_locations_female: string[];
-  measurement_locations_male: string[];
+  measurement_locations: string[];
 }
 
 //////////
