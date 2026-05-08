@@ -253,7 +253,6 @@ export interface Joint {
 
 export interface MeasurementLocation {
   name: string;
-  brand_id: number /* int64 */;
   avatar_measurement_location: string;
   garment_label: string;
   avatar_label: string;
@@ -264,28 +263,11 @@ export interface MeasurementLocation {
   group?: MeasurementLocationGroup;
   is_placement_measurement: boolean;
 }
-export interface FirestoreMeasurementLocation {
-  name: string;
-  avatar_measurement_location: string;
-  brand_id: number /* int */;
-  sort_order: number /* int */;
-  garment_label: string;
-  avatar_label: string;
-  is_vertical: boolean;
-  can_layflat: boolean;
-  is_required_base_body_measurement: boolean;
-  is_placement_measurement: boolean;
-  group?: FirestoreMeasurementLocationGroup;
-}
 
 //////////
 // source: measurement_location_group.go
 
 export interface MeasurementLocationGroup {
-  name: string;
-  label: string;
-}
-export interface FirestoreMeasurementLocationGroup {
   name: string;
   label: string;
 }

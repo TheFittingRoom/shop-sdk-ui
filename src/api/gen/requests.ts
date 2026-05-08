@@ -145,22 +145,6 @@ export interface Invitation {
 }
 
 //////////
-// source: measurement_location.go
-
-export interface MeasurementLocation {
-  name: string;
-  is_global: boolean;
-  avatar_measurement_location: string;
-  garment_label: string;
-  avatar_label: string;
-  is_vertical: boolean;
-  can_layflat: boolean;
-  is_required_base_body_measurement: boolean;
-  sort_order: number /* int64 */; // will insert before matching order
-  group_name: string;
-}
-
-//////////
 // source: shopify_store.go
 
 export interface ShopifyStore {
