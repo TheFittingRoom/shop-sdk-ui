@@ -636,7 +636,7 @@ export interface Style {
   description: string;
   sale_type: string;
   style_category_name: any /* enums.StyleCategory */;
-  style_category?: StyleCategory;
+  style_category_label: string;
   size_system?: SizeSystem;
   vertical_size_system?: SizeSystem;
   sizes: Size[];
@@ -654,6 +654,7 @@ export interface FirestoreStyle {
   brand_id: number /* int */;
   cycle_id: number /* int */;
   style_category_name: string;
+  style_category_label: string;
   description: string;
   id: number /* int */;
   name: string;
@@ -696,21 +697,16 @@ export interface FirestoreStyleBaseBodyAdjustment {
 //////////
 // source: style_category.go
 
+/**
+ * StyleCategory is the API response shape for GET /v1/style-categories.
+ * The data is sourced from the in-code StyleCategoryConfigs map; there is
+ * no longer a backing DB table, so id/brand_id no longer apply.
+ */
 export interface StyleCategory {
-  id: number /* int64 */;
-  brand_id: number /* int64 */;
-  name: string;
+  name: any /* enums.StyleCategory */;
   label: string;
   measurement_locations_female: string[];
   measurement_locations_male: string[];
-}
-export interface FirestoreStyleCategory {
-  id: number /* int */;
-  name: string;
-  brand_id: number /* int */;
-  label: string;
-  measurement_locations_male: string[];
-  measurement_locations_female: string[];
 }
 
 //////////

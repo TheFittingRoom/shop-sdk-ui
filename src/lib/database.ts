@@ -1,7 +1,7 @@
-import { FirestoreStyle, FirestoreColorwaySizeAsset, FirestoreStyleCategory } from '@/api/gen/responses'
+import { FirestoreStyle, FirestoreColorwaySizeAsset } from '@/api/gen/responses'
 import { getFirestoreManager, where } from '@/lib/firebase'
 
-export type { FirestoreStyle, FirestoreColorwaySizeAsset, FirestoreStyleCategory }
+export type { FirestoreStyle, FirestoreColorwaySizeAsset }
 
 const recordCache: { [key: string]: unknown } = {}
 
@@ -22,21 +22,6 @@ export async function getStyleByExternalId(brandId: number, externalId: string):
   }
 
   const record = querySnapshot.docs[0].data()
-  recordCache[cacheKey] = record
-  return record
-}
-
-export async function getStyleCategoryByName(name: string): Promise<FirestoreStyleCategory | null> {
-  const cacheKey = `getStyleCategoryByName/${name}`
-  if (recordCache[cacheKey]) {
-    return recordCache[cacheKey] as FirestoreStyleCategory
-  }
-
-  const firestore = getFirestoreManager()
-  const record = await firestore.getDocData<FirestoreStyleCategory>('style_categories', name)
-  if (!record) {
-    return null
-  }
   recordCache[cacheKey] = record
   return record
 }

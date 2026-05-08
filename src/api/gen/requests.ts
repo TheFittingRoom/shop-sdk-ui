@@ -285,22 +285,6 @@ export interface StyleBaseBodyAdjustments {
 }
 
 //////////
-// source: style_category.go
-
-export interface StyleCategory {
-  name: string;
-  is_global: boolean;
-  label: string;
-  measurement_locations_female: string[];
-  measurement_locations_male: string[];
-}
-export interface PatchStyleCategory {
-  label: string;
-  measurement_locations_female: string[];
-  measurement_locations_male: string[];
-}
-
-//////////
 // source: user.go
 
 export interface User {
