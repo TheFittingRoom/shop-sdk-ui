@@ -136,16 +136,6 @@ export interface Division {
 }
 
 //////////
-// source: garment_category.go
-
-export interface GarmentCategory {
-  label: string;
-}
-export interface PatchGarmentCategory {
-  label: string;
-}
-
-//////////
 // source: invitation.go
 
 export interface Invitation {
@@ -257,7 +247,7 @@ export interface Style {
   name: string;
   description: string;
   sale_type: string;
-  style_garment_category_id: number /* int64 */;
+  style_category_name: any /* enums.StyleCategory */;
   measurement_unit?: string;
   size_system_id: number /* int64 */;
   vertical_size_system_id: number /* int64 */;
@@ -271,7 +261,7 @@ export interface PutStyle {
   name: string;
   description: string;
   sale_type: string;
-  style_garment_category_id: number /* int64 */;
+  style_category_name: any /* enums.StyleCategory */;
   measurement_unit: string;
   size_system_id: number /* int64 */;
   vertical_size_system_id: number /* int64 */;
@@ -308,15 +298,6 @@ export interface PatchStyleCategory {
   label: string;
   measurement_locations_female: string[];
   measurement_locations_male: string[];
-}
-
-//////////
-// source: style_garment_category.go
-
-export interface StyleGarmentCategory {
-  is_global: boolean;
-  style_category_name: string;
-  garment_category_name: string;
 }
 
 //////////
@@ -365,7 +346,6 @@ export interface FramesRequest {
   joints: Joint[];
   u3ma: string;
   style_category_name: any /* enums.StyleCategory */;
-  garment_category_name: any /* enums.GarmentCategory */;
   placement_measurement_location: string;
   placement_offset_y: number /* float64 */;
 }

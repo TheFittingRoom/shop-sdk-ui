@@ -205,22 +205,6 @@ export interface FirestoreDivision {
 }
 
 //////////
-// source: garment_category.go
-
-export interface GarmentCategory {
-  id: number /* int64 */;
-  name: string;
-  label: string;
-}
-export interface FirestoreGarmentCategory {
-  id: number /* int */;
-  name: string;
-  label: string;
-  created_at: any /* time.Time */;
-  updated_at?: any /* time.Time */;
-}
-
-//////////
 // source: garment_measurement.go
 
 export interface GarmentMeasurement {
@@ -529,7 +513,6 @@ export interface DebugSizeRecommendation {
   avatar_id: number /* int64 */;
   user_id: string;
   style_category_name: any /* enums.StyleCategory */;
-  garment_category_name: any /* enums.GarmentCategory */;
   gender: any /* enums.Gender */;
   should_zero_base_body: boolean;
   size_system?: DebugSizeSystem;
@@ -652,7 +635,8 @@ export interface Style {
   name: string;
   description: string;
   sale_type: string;
-  style_garment_category?: StyleGarmentCategory;
+  style_category_name: any /* enums.StyleCategory */;
+  style_category?: StyleCategory;
   size_system?: SizeSystem;
   vertical_size_system?: SizeSystem;
   sizes: Size[];
@@ -669,7 +653,7 @@ export interface Style {
 export interface FirestoreStyle {
   brand_id: number /* int */;
   cycle_id: number /* int */;
-  style_garment_category_id: number /* int */;
+  style_category_name: string;
   description: string;
   id: number /* int */;
   name: string;
@@ -727,26 +711,6 @@ export interface FirestoreStyleCategory {
   label: string;
   measurement_locations_male: string[];
   measurement_locations_female: string[];
-}
-
-//////////
-// source: style_garment_category.go
-
-export interface StyleGarmentCategory {
-  id: number /* int64 */;
-  brand_id: number /* int64 */;
-  style_category_name: any /* enums.StyleCategory */;
-  garment_category_name: any /* enums.GarmentCategory */;
-  style_category?: StyleCategory;
-  garment_category?: GarmentCategory;
-}
-export interface FirestoreStyleGarmentCategory {
-  brand_id: number /* int */;
-  style_category: string;
-  style_category_label: string;
-  garment_category: string;
-  garment_category_label: string;
-  measurement_locations: { [key: string]: string[]};
 }
 
 //////////

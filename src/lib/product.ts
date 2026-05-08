@@ -7,9 +7,9 @@ import {
 } from '@/lib/api'
 import {
   getStyleByExternalId,
-  getStyleGarmentCategoryById,
+  getStyleCategoryByName,
   FirestoreStyle,
-  FirestoreStyleGarmentCategory,
+  FirestoreStyleCategory,
 } from '@/lib/database'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
@@ -17,12 +17,12 @@ import { getStaticData, useMainStore } from '@/lib/store'
 export type { FitClassification, MeasurementLocationFit, SizeFit, SizeFitRecommendation }
 
 export type Style = FirestoreStyle
-export type StyleGarmentCategory = FirestoreStyleGarmentCategory
+export type StyleCategory = FirestoreStyleCategory
 
 export interface LoadedProductData {
   externalId: string
   style: Style
-  styleGarmentCategory: StyleGarmentCategory
+  styleCategory: StyleCategory
   sizeFitRecommendation: SizeFitRecommendation
 }
 export interface LoadedProductError {
@@ -53,21 +53,21 @@ export async function loadProductData(externalId: string): Promise<LoadedProduct
     throw new Error(`Style not found for externalId: ${externalId}`)
   }
 
-  // Load style garment category and size fit recommendation in parallel
-  const [styleGarmentCategory, sizeFitRecommendation] = await Promise.all([
-    getStyleGarmentCategoryById(style.style_garment_category_id),
+  // Load style category and size fit recommendation in parallel
+  const [styleCategory, sizeFitRecommendation] = await Promise.all([
+    getStyleCategoryByName(style.style_category_name),
     apiGetSizeRecommendation(style.id),
   ])
-  if (!styleGarmentCategory) {
+  if (!styleCategory) {
     throw new Error(
-      `StyleGarmentCategory not found for externalId: ${externalId} style_garment_category_id: ${style.style_garment_category_id}`,
+      `StyleCategory not found for externalId: ${externalId} style_category_name: ${style.style_category_name}`,
     )
   }
 
   return {
     externalId,
     style,
-    styleGarmentCategory,
+    styleCategory,
     sizeFitRecommendation,
   }
 }
