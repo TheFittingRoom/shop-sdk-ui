@@ -79,74 +79,6 @@ export const FitClassificationRelaxedFit: FitClassification = "relaxed_fit";
 export const FitClassificationOversizedFit: FitClassification = "oversized_fit";
 
 //////////
-// source: garment_category.go
-
-export type StyleCategory = string;
-export const StyleCategoryBodysuits: StyleCategory = "bodysuits";
-export const StyleCategoryCoatsJacketsParkas: StyleCategory = "coats_jackets_parkas";
-export const StyleCategoryDressShirts: StyleCategory = "dress_shirts";
-export const StyleCategoryDresses: StyleCategory = "dresses";
-export const StyleCategoryPants: StyleCategory = "pants";
-export const StyleCategoryLongSleeveTopsAndSweaters: StyleCategory = "long_sleeve_tops_and_sweaters";
-export const StyleCategoryRompers: StyleCategory = "rompers";
-export const StyleCategoryShortSleeveTops: StyleCategory = "short_sleeve_tops";
-export const StyleCategoryShortsAndCapris: StyleCategory = "shorts_and_capris";
-export const StyleCategorySkirts: StyleCategory = "skirts";
-export const StyleCategorySleevelessTops: StyleCategory = "sleeveless_tops";
-export const StyleCategorySuitJacketsAndBlazers: StyleCategory = "suit_jackets_and_blazers";
-export type GarmentCategory = string;
-export const GarmentCategoryALine: GarmentCategory = "a_line";
-export const GarmentCategoryALineFlared: GarmentCategory = "a_line_flared";
-export const GarmentCategoryBlazers: GarmentCategory = "blazers";
-export const GarmentCategoryBodycon: GarmentCategory = "bodycon";
-export const GarmentCategoryBodysuits: GarmentCategory = "bodysuits";
-export const GarmentCategoryBoilersuits: GarmentCategory = "boilersuits";
-export const GarmentCategoryJumpsuits: GarmentCategory = "jumpsuits";
-export const GarmentCategoryOveralls: GarmentCategory = "overalls";
-export const GarmentCategoryUnitards: GarmentCategory = "unitards";
-export const GarmentCategoryCorsets: GarmentCategory = "corsets";
-export const GarmentCategoryBustiers: GarmentCategory = "bustiers";
-export const GarmentCategoryCropTops: GarmentCategory = "crop_tops";
-export const GarmentCategoryFitAndFlare: GarmentCategory = "fit_and_flare";
-export const GarmentCategoryFlared: GarmentCategory = "flared";
-export const GarmentCategoryHoodies: GarmentCategory = "hoodies";
-export const GarmentCategoryJoggers: GarmentCategory = "joggers";
-export const GarmentCategoryKnit: GarmentCategory = "knit";
-export const GarmentCategoryLeggings: GarmentCategory = "leggings";
-export const GarmentCategoryPencil: GarmentCategory = "pencil";
-export const GarmentCategoryPleated: GarmentCategory = "pleated";
-export const GarmentCategoryPolos: GarmentCategory = "polos";
-export const GarmentCategoryCoats: GarmentCategory = "coats";
-export const GarmentCategoryJackets: GarmentCategory = "jackets";
-export const GarmentCategoryParkas: GarmentCategory = "parkas";
-export const GarmentCategoryPufferJackets: GarmentCategory = "puffer_jackets";
-export const GarmentCategoryRelaxed: GarmentCategory = "relaxed";
-export const GarmentCategoryRompers: GarmentCategory = "relaxed";
-export const GarmentCategoryShackets: GarmentCategory = "shackets";
-export const GarmentCategoryShirts: GarmentCategory = "shirts";
-export const GarmentCategoryBlouses: GarmentCategory = "blouses";
-export const GarmentCategorySkater: GarmentCategory = "skater";
-export const GarmentCategorySkinny: GarmentCategory = "skinny";
-export const GarmentCategorySlim: GarmentCategory = "slim";
-export const GarmentCategorySlip: GarmentCategory = "slip";
-export const GarmentCategoryStraight: GarmentCategory = "straight";
-export const GarmentCategorySuitJackets: GarmentCategory = "suit_jackets";
-export const GarmentCategorySweatshirts: GarmentCategory = "sweatshirts";
-export const GarmentCategorySweaters: GarmentCategory = "sweaters";
-export const GarmentCategoryTShirts: GarmentCategory = "t_shirts";
-export const GarmentCategoryTankTops: GarmentCategory = "tank_tops";
-export const GarmentCategoryCamisoles: GarmentCategory = "camisoles";
-export const GarmentCategoryTapered: GarmentCategory = "tapered";
-export const GarmentCategoryTrousers: GarmentCategory = "trousers";
-export const GarmentCategoryTurtlenecks: GarmentCategory = "turtlenecks";
-export const GarmentCategoryHoodiesAndZipups: GarmentCategory = "hoodies_and_zipups";
-export const GarmentCategoryWrap: GarmentCategory = "wrap";
-export const GarmentCategoryShorts: GarmentCategory = "shorts";
-export const GarmentCategoryCapris: GarmentCategory = "capris";
-export const GarmentCategoryJeans: GarmentCategory = "jeans";
-export const GarmentCategorySlacks: GarmentCategory = "slacks";
-
-//////////
 // source: gender.go
 
 export type Gender = string;
@@ -280,6 +212,109 @@ export const AUS24: SizeValueID = 68 + 1;
 export const AUS26: SizeValueID = 69 + 1;
 export const AUS28: SizeValueID = 70 + 1;
 export const AUS30: SizeValueID = 71 + 1;
+
+//////////
+// source: sleeve_length.go
+
+export type SleeveLength = string;
+export const SleeveLengthFullSleeve: SleeveLength = "full_sleeve";
+export const SleeveLengthThreeQuarterSleeve: SleeveLength = "three_quarter_sleeve";
+export const SleeveLengthHalfSleeve: SleeveLength = "half_sleeve";
+export const SleeveLengthQuarterSleeve: SleeveLength = "quarter_sleeve";
+export const SleeveLengthSleeveless: SleeveLength = "sleeveless";
+
+//////////
+// source: style_category.go
+
+export type StyleCategory = string;
+/**
+ * Skin and Base layer.
+ */
+export const StyleCategoryUndergarmentBottoms: StyleCategory = "undergarment_bottoms";
+/**
+ * Skin and Base layer.
+ */
+export const StyleCategoryUndergarmentFullBody: StyleCategory = "undergarment_full_body";
+/**
+ * Skin and Base layer.
+ */
+export const StyleCategoryUndergarmentTops: StyleCategory = "undergarment_tops";
+/**
+ * Skin and Base layer.
+ */
+export const StyleCategoryShapewear: StyleCategory = "shapewear";
+/**
+ * Skin and Base layer.
+ */
+export const StyleCategoryTights: StyleCategory = "tights";
+/**
+ * Skin and Base layer.
+ */
+export const StyleCategorySocks: StyleCategory = "socks";
+/**
+ * Skin and Base layer.
+ */
+export const StyleCategoryBodysuits: StyleCategory = "bodysuits";
+/**
+ * Bottoms.
+ */
+export const StyleCategoryBottoms: StyleCategory = "bottoms";
+/**
+ * Dresses / Full Body.
+ */
+export const StyleCategoryOveralls: StyleCategory = "overalls";
+/**
+ * Dresses / Full Body.
+ */
+export const StyleCategoryDresses: StyleCategory = "dresses";
+/**
+ * Tops.
+ */
+export const StyleCategoryInnerTops: StyleCategory = "inner_tops";
+/**
+ * Tops.
+ */
+export const StyleCategoryOuterTops: StyleCategory = "outer_tops";
+/**
+ * Sweaters and Vests.
+ */
+export const StyleCategorySweaters: StyleCategory = "sweaters";
+/**
+ * Sweaters and Vests.
+ */
+export const StyleCategoryOvershirts: StyleCategory = "overshirts";
+/**
+ * Sweaters and Vests.
+ */
+export const StyleCategoryVests: StyleCategory = "vests";
+/**
+ * Jackets and Coats.
+ */
+export const StyleCategoryBlazers: StyleCategory = "blazers";
+/**
+ * Jackets and Coats.
+ */
+export const StyleCategoryJackets: StyleCategory = "jackets";
+/**
+ * Jackets and Coats.
+ */
+export const StyleCategoryCoats: StyleCategory = "coats";
+/**
+ * Jackets and Coats.
+ */
+export const StyleCategoryCoveralls: StyleCategory = "coveralls";
+/**
+ * Jackets and Coats.
+ */
+export const StyleCategoryPufferVests: StyleCategory = "puffer_vests";
+/**
+ * Jackets and Coats.
+ */
+export const StyleCategoryShells: StyleCategory = "shells";
+/**
+ * Jackets and Coats.
+ */
+export const StyleCategoryCloaks: StyleCategory = "cloaks";
 
 //////////
 // source: upload_limits.go

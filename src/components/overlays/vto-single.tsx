@@ -126,8 +126,7 @@ export default function VtoSingleOverlay() {
         const { color: selectedColor } = await currentProduct.getSelectedOptions()
 
         // Assemble vto product data
-        const styleGarmentCategoryRec = storeProduct.styleGarmentCategory
-        const styleCategoryLabel = styleGarmentCategoryRec?.style_category_label ?? null
+        const styleCategoryLabel = storeProduct.style.style_category_label || null
         const sizeRecommendationRecord = storeProduct.sizeFitRecommendation
         {
           const recommendedSizeId = sizeRecommendationRecord.recommended_size.id || null

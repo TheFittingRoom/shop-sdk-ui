@@ -7,9 +7,7 @@ import {
 } from '@/lib/api'
 import {
   getStyleByExternalId,
-  getStyleGarmentCategoryById,
   FirestoreStyle,
-  FirestoreStyleGarmentCategory,
 } from '@/lib/database'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
@@ -17,12 +15,10 @@ import { getStaticData, useMainStore } from '@/lib/store'
 export type { FitClassification, MeasurementLocationFit, SizeFit, SizeFitRecommendation }
 
 export type Style = FirestoreStyle
-export type StyleGarmentCategory = FirestoreStyleGarmentCategory
 
 export interface LoadedProductData {
   externalId: string
   style: Style
-  styleGarmentCategory: StyleGarmentCategory
   sizeFitRecommendation: SizeFitRecommendation
 }
 export interface LoadedProductError {
@@ -53,21 +49,11 @@ export async function loadProductData(externalId: string): Promise<LoadedProduct
     throw new Error(`Style not found for externalId: ${externalId}`)
   }
 
-  // Load style garment category and size fit recommendation in parallel
-  const [styleGarmentCategory, sizeFitRecommendation] = await Promise.all([
-    getStyleGarmentCategoryById(style.style_garment_category_id),
-    apiGetSizeRecommendation(style.id),
-  ])
-  if (!styleGarmentCategory) {
-    throw new Error(
-      `StyleGarmentCategory not found for externalId: ${externalId} style_garment_category_id: ${style.style_garment_category_id}`,
-    )
-  }
+  const sizeFitRecommendation = await apiGetSizeRecommendation(style.id)
 
   return {
     externalId,
     style,
-    styleGarmentCategory,
     sizeFitRecommendation,
   }
 }

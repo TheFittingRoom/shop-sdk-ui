@@ -16,6 +16,7 @@ export interface Avatar {
   skin_tone_hex?: string;
   skin_tone_fac?: number /* float64 */;
   body_measurements?: { [key: string]: number /* float64 */};
+  expiry_seconds?: number /* int64 */; // for post_avatar
 }
 export interface FirestoreAvatar {
   gender: string;
@@ -119,6 +120,9 @@ export interface ColorwaySizeAsset {
   folder_storage_path: string;
   asset_container_name: string;
 }
+export interface VTOExpiryResponse {
+  expiry_seconds: number /* int64 */;
+}
 export interface FirestoreColorwaySizeAsset {
   id: number /* int */;
   brand_id: number /* int */;
@@ -201,22 +205,6 @@ export interface FirestoreDivision {
 }
 
 //////////
-// source: garment_category.go
-
-export interface GarmentCategory {
-  id: number /* int64 */;
-  name: string;
-  label: string;
-}
-export interface FirestoreGarmentCategory {
-  id: number /* int */;
-  name: string;
-  label: string;
-  created_at: any /* time.Time */;
-  updated_at?: any /* time.Time */;
-}
-
-//////////
 // source: garment_measurement.go
 
 export interface GarmentMeasurement {
@@ -265,7 +253,6 @@ export interface Joint {
 
 export interface MeasurementLocation {
   name: string;
-  brand_id: number /* int64 */;
   avatar_measurement_location: string;
   garment_label: string;
   avatar_label: string;
@@ -276,28 +263,11 @@ export interface MeasurementLocation {
   group?: MeasurementLocationGroup;
   is_placement_measurement: boolean;
 }
-export interface FirestoreMeasurementLocation {
-  name: string;
-  avatar_measurement_location: string;
-  brand_id: number /* int */;
-  sort_order: number /* int */;
-  garment_label: string;
-  avatar_label: string;
-  is_vertical: boolean;
-  can_layflat: boolean;
-  is_required_base_body_measurement: boolean;
-  is_placement_measurement: boolean;
-  group?: FirestoreMeasurementLocationGroup;
-}
 
 //////////
 // source: measurement_location_group.go
 
 export interface MeasurementLocationGroup {
-  name: string;
-  label: string;
-}
-export interface FirestoreMeasurementLocationGroup {
   name: string;
   label: string;
 }
@@ -525,7 +495,6 @@ export interface DebugSizeRecommendation {
   avatar_id: number /* int64 */;
   user_id: string;
   style_category_name: any /* enums.StyleCategory */;
-  garment_category_name: any /* enums.GarmentCategory */;
   gender: any /* enums.Gender */;
   should_zero_base_body: boolean;
   size_system?: DebugSizeSystem;
@@ -648,7 +617,9 @@ export interface Style {
   name: string;
   description: string;
   sale_type: string;
-  style_garment_category?: StyleGarmentCategory;
+  style_category_name: any /* enums.StyleCategory */;
+  style_category_label: string;
+  sleeves?: any /* enums.SleeveLength */;
   size_system?: SizeSystem;
   vertical_size_system?: SizeSystem;
   sizes: Size[];
@@ -665,7 +636,9 @@ export interface Style {
 export interface FirestoreStyle {
   brand_id: number /* int */;
   cycle_id: number /* int */;
-  style_garment_category_id: number /* int */;
+  style_category_name: string;
+  style_category_label: string;
+  sleeves?: string;
   description: string;
   id: number /* int */;
   name: string;
@@ -708,41 +681,44 @@ export interface FirestoreStyleBaseBodyAdjustment {
 //////////
 // source: style_category.go
 
+/**
+ * StyleCategory is the API response shape for GET /v1/style-categories.
+ * Sourced from the in-code styleconfig.StyleCategoryConfigs map; there is
+ * no longer a backing DB table.
+ * MeasurementLocations is the base list shown by the dashboard for every
+ * style in the category. AdditionalLocationsFullSleeves is appended when
+ * the style's sleeves value is full_sleeve (algorithm always considers
+ * the union; dashboard gates display).
+ */
 export interface StyleCategory {
-  id: number /* int64 */;
-  brand_id: number /* int64 */;
+  name: any /* enums.StyleCategory */;
+  label: string;
+  group: string;
+  layer_order: number /* int */;
+  tuckable: boolean;
+  layer_order_tucked: number /* int */;
+  sleeve_selection: string;
+  sleeve_auto_value?: any /* enums.SleeveLength */;
+  measurement_locations: string[];
+  additional_locations_full_sleeves: string[];
+  /**
+   * Same-group categories that DO compose with this one despite the
+   * group's default rule saying they don't.
+   */
+  includes: any /* enums.StyleCategory */[];
+  /**
+   * Categories — same-group or cross-group — that do NOT compose with
+   * this one regardless of the group default.
+   */
+  excludes: any /* enums.StyleCategory */[];
+}
+/**
+ * StyleCategoryGroup is the API response shape for GET /v1/style-category-groups.
+ */
+export interface StyleCategoryGroup {
   name: string;
   label: string;
-  measurement_locations_female: string[];
-  measurement_locations_male: string[];
-}
-export interface FirestoreStyleCategory {
-  id: number /* int */;
-  name: string;
-  brand_id: number /* int */;
-  label: string;
-  measurement_locations_male: string[];
-  measurement_locations_female: string[];
-}
-
-//////////
-// source: style_garment_category.go
-
-export interface StyleGarmentCategory {
-  id: number /* int64 */;
-  brand_id: number /* int64 */;
-  style_category_name: any /* enums.StyleCategory */;
-  garment_category_name: any /* enums.GarmentCategory */;
-  style_category?: StyleCategory;
-  garment_category?: GarmentCategory;
-}
-export interface FirestoreStyleGarmentCategory {
-  brand_id: number /* int */;
-  style_category: string;
-  style_category_label: string;
-  garment_category: string;
-  garment_category_label: string;
-  measurement_locations: { [key: string]: string[]};
+  same_group_default: string;
 }
 
 //////////
