@@ -619,6 +619,7 @@ export interface Style {
   sale_type: string;
   style_category_name: any /* enums.StyleCategory */;
   style_category_label: string;
+  sleeves?: any /* enums.SleeveLength */;
   size_system?: SizeSystem;
   vertical_size_system?: SizeSystem;
   sizes: Size[];
@@ -637,6 +638,7 @@ export interface FirestoreStyle {
   cycle_id: number /* int */;
   style_category_name: string;
   style_category_label: string;
+  sleeves?: string;
   description: string;
   id: number /* int */;
   name: string;
@@ -681,17 +683,42 @@ export interface FirestoreStyleBaseBodyAdjustment {
 
 /**
  * StyleCategory is the API response shape for GET /v1/style-categories.
- * The data is sourced from the in-code StyleCategoryConfigs map; there is
- * no longer a backing DB table, so id/brand_id no longer apply.
- * MeasurementLocations is gender-agnostic: every category exposes the
- * single set of avatar measurement locations the algorithm and the
- * dashboard care about. Categories whose original DB rows differed
- * between male and female now expose the union of both sets.
+ * Sourced from the in-code styleconfig.StyleCategoryConfigs map; there is
+ * no longer a backing DB table.
+ * MeasurementLocations is the base list shown by the dashboard for every
+ * style in the category. AdditionalLocationsFullSleeves is appended when
+ * the style's sleeves value is full_sleeve (algorithm always considers
+ * the union; dashboard gates display).
  */
 export interface StyleCategory {
   name: any /* enums.StyleCategory */;
   label: string;
+  group: string;
+  layer_order: number /* int */;
+  tuckable: boolean;
+  layer_order_tucked: number /* int */;
+  sleeve_selection: string;
+  sleeve_auto_value?: any /* enums.SleeveLength */;
   measurement_locations: string[];
+  additional_locations_full_sleeves: string[];
+  /**
+   * Same-group categories that DO compose with this one despite the
+   * group's default rule saying they don't.
+   */
+  includes: any /* enums.StyleCategory */[];
+  /**
+   * Categories — same-group or cross-group — that do NOT compose with
+   * this one regardless of the group default.
+   */
+  excludes: any /* enums.StyleCategory */[];
+}
+/**
+ * StyleCategoryGroup is the API response shape for GET /v1/style-category-groups.
+ */
+export interface StyleCategoryGroup {
+  name: string;
+  label: string;
+  same_group_default: string;
 }
 
 //////////

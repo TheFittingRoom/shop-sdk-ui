@@ -232,6 +232,7 @@ export interface Style {
   description: string;
   sale_type: string;
   style_category_name: any /* enums.StyleCategory */;
+  sleeves?: any /* enums.SleeveLength */;
   measurement_unit?: string;
   size_system_id: number /* int64 */;
   vertical_size_system_id: number /* int64 */;
@@ -246,6 +247,7 @@ export interface PutStyle {
   description: string;
   sale_type: string;
   style_category_name: any /* enums.StyleCategory */;
+  sleeves?: any /* enums.SleeveLength */;
   measurement_unit: string;
   size_system_id: number /* int64 */;
   vertical_size_system_id: number /* int64 */;
@@ -314,6 +316,7 @@ export interface FramesRequest {
   joints: Joint[];
   u3ma: string;
   style_category_name: any /* enums.StyleCategory */;
+  sleeveless: boolean;
   placement_measurement_location: string;
   placement_offset_y: number /* float64 */;
 }
