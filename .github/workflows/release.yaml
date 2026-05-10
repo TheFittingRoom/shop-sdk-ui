@@ -1,0 +1,90 @@
+name: Release
+
+# Human-initiated release. Triggered manually from the Actions tab when
+# you're ready to ship a new version. Replaces the previous label-driven
+# auto-publish-on-PR-merge flow (which had a fragile multi-stage chain
+# tied to PATs, `pull_request_target` quirks, and OIDC trigger
+# restrictions).
+#
+# This workflow does the entire release in one run: bump → tag → push →
+# npm publish via OIDC trusted publishing. No long-lived secrets needed.
+# The npm trusted-publisher entry for @thefittingroom/shop-ui must
+# point at this file (release.yaml).
+#
+# To release:
+#   Actions tab → Release → Run workflow → pick patch/minor/major → Run.
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: "Version bump type"
+        required: true
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  # Required for OIDC trusted publishing — lets the runner mint a
+  # short-lived token npm exchanges for publish rights.
+  id-token: write
+  # Required for the workflow to push the bumped package.json + tag
+  # back to main.
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
+          # Routes scoped publishes to the right registry resolver.
+          scope: "@thefittingroom"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Verify the build succeeds before bumping/tagging — fail fast if
+      # something is broken on main rather than after pushing a tag.
+      - name: Build (pre-bump verification)
+        run: npm run build
+
+      - name: Setup Git
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+      # Bumps package.json and creates a vX.Y.Z tag locally. The bump
+      # commit's parent is whatever main currently points at, so subsequent
+      # releases see the new version on next checkout.
+      - name: Bump version
+        run: npm version "${{ inputs.version_bump }}"
+
+      # Rebuild after the bump so the version embedded in dist/ matches
+      # what we're about to publish (vite config picks up
+      # packageJson.version at build time).
+      - name: Build (post-bump)
+        run: npm run build
+
+      # Pushes both the bump commit and the new tag back to main. Branch
+      # protection isn't enabled on main yet; if you turn it on, this
+      # step will need a credential with bypass rights (see AGENTS.md
+      # release section for the discussion).
+      - name: Push commit + tag
+        run: git push origin main --follow-tags
+
+      # OIDC trusted publishing — no NPM_TOKEN. --provenance attaches a
+      # supply-chain attestation tying this tarball to this workflow run
+      # and the just-pushed commit.
+      - name: Publish to npm (next)
+        run: npm publish --tag next --provenance --verbose

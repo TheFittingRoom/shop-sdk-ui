@@ -12,43 +12,61 @@ and renders a `<tfr-widget>` custom element.
 
 ### Release flow
 
-Two-stage release model — see README.md for the full developer-facing
-walkthrough. Summary:
+Releases are explicit and human-initiated. No magic on PR merges. See
+README.md for the full walkthrough. Summary:
 
-1. **Auto-publish to dist-tag `next` on PR merge** — split across two
-   workflows because npm OIDC trusted publishing doesn't work with
-   `pull_request_target` triggers ([npm/cli#8739](https://github.com/npm/cli/issues/8739)):
-   - `.github/workflows/dev.yaml` (the bump-and-tag stage) triggers on
-     `pull_request_target: closed` (gated to merged-only), bumps
-     `package.json` per the PR's required label (`patch` / `minor` /
-     `major` / `chore`; `chore` skips the bump entirely), and pushes
-     the `vX.Y.Z` tag to `main` using `SDK_PUSH_PAT` (a real PAT, not
-     `GITHUB_TOKEN` — pushes by `GITHUB_TOKEN` don't fire downstream
-     workflows). This stage does NOT publish.
-   - `.github/workflows/publish.yaml` (the publish stage) triggers on
-     `push: tags: 'v*'` — fired automatically when dev.yaml's tag push
-     lands. It runs `npm publish ... --tag next --provenance` via npm
-     trusted publishing (OIDC; no long-lived secret). The trusted
-     publisher entry on npm **must reference `publish.yaml`**, not
-     `dev.yaml`.
-2. **Manual promotion to dist-tag `latest`.** When ready to release,
-   run `npm run promote-latest` locally (from a logged-in npm session
-   with publish rights to `@thefittingroom/shop-ui`). This runs
-   `npm dist-tag add ...@<ver> latest` — no new artifact is published,
-   the existing `next` build is just re-tagged. Consumers running
-   `npm install @thefittingroom/shop-ui` then resolve to that version.
+1. **Cut a `next` release: trigger `.github/workflows/release.yaml`
+   manually.** Actions tab → Release → Run workflow → pick patch /
+   minor / major. The workflow does the entire release in one run:
+   checks out main, builds (pre-bump verification), runs `npm version`,
+   rebuilds with the new version, pushes the bump commit + tag back to
+   main, and publishes to npm under dist-tag `next` via OIDC trusted
+   publishing with `--provenance`. The npm trusted-publisher entry for
+   `@thefittingroom/shop-ui` **must point at `release.yaml`**.
+2. **Promote `next` → `latest`** when ready for end users. Locally:
+   `git pull origin main && npm run promote-latest`. That runs
+   `npm dist-tag add ...@<ver> latest` — no new artifact, just re-points
+   the `latest` dist-tag at the already-published `next` build. The
+   runner needs to be `npm login`-ed with publish rights to
+   `@thefittingroom/shop-ui`. Override the version with
+   `npm run promote-latest -- <version>`.
 
-`scripts/promote-latest.sh` reads the current `package.json` version
-unless overridden with a positional arg (`npm run promote-latest --
-5.0.13`).
+The two-stage design (split bump from publish) was used previously to
+work around npm OIDC trusted publishing not supporting
+`pull_request_target` triggers ([npm/cli#8739](https://github.com/npm/cli/issues/8739)).
+That constraint disappears entirely once the trigger is `workflow_dispatch`,
+so the current single-workflow design is simpler and has no PAT
+chain. Historical context preserved here in case the constraint comes
+back or someone needs to re-derive why we don't auto-publish on PR
+merge.
 
-`scripts/gen-types.sh` is the unchanged tygo codegen script for
-backend type bindings (see "Generated code" below).
+#### Branch protection caveat
 
-`manual-release` is kept as an emergency fallback for when CI is
-unreachable; it does the version bump + git push but leaves
-`npm publish` to the operator (who must be logged in to npm with
-publish rights).
+`release.yaml` pushes the bump commit + tag directly to `main` using
+the workflow's auto-issued `GITHUB_TOKEN`. This works because main has
+no required-PR branch protection rule. If branch protection is added
+later, that push will fail (`GITHUB_TOKEN` is not in any bypass list
+by default). At that point you have three options:
+
+- Use a fine-grained PAT or GitHub App listed in the branch-protection
+  bypass settings; `actions/checkout` is configured with its token
+  via `with: token: ${{ secrets.... }}`
+- Have the workflow open a PR with the bump rather than push directly,
+  and hand-merge it (this defeats the "one button" simplicity)
+- Don't enable required-PR protection on main (current state)
+
+The simplification of the single-workflow design depends on direct
+push being allowed; the choice is real.
+
+#### Why no auto-publish on PR merge
+
+A previous design used PR labels (`patch` / `minor` / `major` /
+`chore`) to auto-bump and publish on merge. It worked but had a
+fragile multi-stage chain dependent on `pull_request_target` (broken
+with OIDC), `SDK_PUSH_PAT` (an org secret with unknown scopes that
+turned out to be unset), and a bunch of subtle interactions between
+checkout credentials and downstream-workflow-trigger rules.
+`workflow_dispatch` collapses all of that to a single button.
 
 ## Generated code — do not edit by hand
 
