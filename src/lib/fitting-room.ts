@@ -4,6 +4,7 @@ import { getSizeLabelFromSize } from '@/lib/util'
 
 export interface FittingRoomItem {
   externalId: string
+  handle: string | null
   size: string | null
   color: string | null
   colorwaySizeAssetId: number | null
@@ -59,7 +60,11 @@ export function _init(): void {
   useMainStore.setState({ fittingRoom: items })
 }
 
-export async function toggleFittingRoomItem(productId: string, isPdp: boolean): Promise<void> {
+export async function toggleFittingRoomItem(
+  productId: string,
+  handle: string | null,
+  isPdp: boolean,
+): Promise<void> {
   const state = useMainStore.getState()
   const isInFittingRoom = state.fittingRoom.some((item) => item.externalId === productId)
   if (isInFittingRoom) {
@@ -67,15 +72,19 @@ export async function toggleFittingRoomItem(productId: string, isPdp: boolean): 
     state.removeFromFittingRoom(productId)
     return
   }
-  logger.logDebug('{{ts}} - Adding to fitting room', { productId, isPdp })
+  logger.logDebug('{{ts}} - Adding to fitting room', { productId, handle, isPdp })
 
   let size: string | null = null
   let color: string | null = null
   let colorwaySizeAssetId: number | null = null
+  let resolvedHandle: string | null = handle
 
   if (isPdp) {
     const { currentProduct } = getStaticData()
     if (currentProduct) {
+      if (!resolvedHandle) {
+        resolvedHandle = currentProduct.handle
+      }
       try {
         const selection = await currentProduct.getSelectedOptions()
         size = selection.size || null
@@ -104,6 +113,7 @@ export async function toggleFittingRoomItem(productId: string, isPdp: boolean): 
 
   state.addToFittingRoom({
     externalId: productId,
+    handle: resolvedHandle,
     size,
     color,
     colorwaySizeAssetId,

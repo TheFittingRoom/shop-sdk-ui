@@ -9,7 +9,8 @@
     "title": "Cabine d'essayage",
     "empty": "Votre cabine d'essayage est vide.",
     "size_not_chosen": "Taille non choisie — choisissez-en une avant l'essayage.",
-    "remove": "Supprimer"
+    "remove": "Supprimer",
+    "ungrouped": "Autres"
   },
   "landing": {
     "header": "Rencontrez votre mini-moi !",

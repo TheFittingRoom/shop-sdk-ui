@@ -9,7 +9,8 @@
     "title": "Fitting Room",
     "empty": "Your fitting room is empty.",
     "size_not_chosen": "Size not chosen — pick one before trying on.",
-    "remove": "Remove"
+    "remove": "Remove",
+    "ungrouped": "Other"
   },
   "landing": {
     "header": "Meet your mini me!",

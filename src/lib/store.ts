@@ -12,6 +12,7 @@ export interface ExternalProductVariant {
   fullName: string
   skuName: string
   priceFormatted: string
+  imageUrl: string | null
 }
 
 export interface ExternalProductOptionSelection {
@@ -23,12 +24,16 @@ export interface ExternalProduct {
   productName: string
   productDescriptionHtml: string
   externalId: string
+  handle: string | null
+  imageUrl: string | null
   variants: ExternalProductVariant[]
   getSelectedOptions: () => ExternalProductOptionSelection | Promise<ExternalProductOptionSelection>
   addToCart: (options: ExternalProductOptionSelection) => void | Promise<void>
 }
 
-export type ProductLookup = (externalIds: string[]) => Promise<ExternalProduct[]>
+export type MerchantProductError = { error: Error }
+
+export type ProductLookup = (handles: string[]) => Promise<ExternalProduct[]>
 export type GetOverlayTopOffset = () => number
 
 export interface StaticData {
@@ -69,6 +74,10 @@ export interface MainStoreState {
   // Product data:
   productData: Record<string, LoadedProductData | LoadedProductError>
   setProductData: (externalId: string, data: LoadedProductData | LoadedProductError) => void
+
+  // Merchant-supplied product data (Shopify, etc.) keyed by externalId:
+  merchantProductData: Record<string, ExternalProduct | MerchantProductError>
+  setMerchantProductData: (externalId: string, data: ExternalProduct | MerchantProductError) => void
 
   // Fitting room:
   fittingRoom: FittingRoomItem[]
@@ -111,6 +120,16 @@ export const useMainStore = create<MainStoreState>((set) => ({
     set((prevState) => ({
       productData: {
         ...prevState.productData,
+        [externalId]: data,
+      },
+    })),
+
+  // Merchant-supplied product data:
+  merchantProductData: {},
+  setMerchantProductData: (externalId: string, data: ExternalProduct | MerchantProductError) =>
+    set((prevState) => ({
+      merchantProductData: {
+        ...prevState.merchantProductData,
         [externalId]: data,
       },
     })),

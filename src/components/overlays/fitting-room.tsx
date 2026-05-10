@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/button'
 import { ModalFrame } from '@/components/modal'
 import { Text, TextT } from '@/components/text'
+import { ResolvedFittingRoomItem, useResolvedFittingRoom } from '@/lib/fitting-room-data'
 import { useTranslation } from '@/lib/locale'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
@@ -21,9 +22,9 @@ function measureTopOffset(): number {
 
 export default function FittingRoomOverlay() {
   const { t } = useTranslation()
-  const fittingRoom = useMainStore((state) => state.fittingRoom)
   const removeFromFittingRoom = useMainStore((state) => state.removeFromFittingRoom)
   const closeOverlay = useMainStore((state) => state.closeOverlay)
+  const resolved = useResolvedFittingRoom()
 
   const [topOffset, setTopOffset] = useState<number>(() => 0)
 
@@ -53,13 +54,21 @@ export default function FittingRoomOverlay() {
       padding: '24px',
       boxSizing: 'border-box',
     },
+    section: {
+      width: '100%',
+      maxWidth: '760px',
+      margin: '0 auto 24px auto',
+    },
+    sectionTitle: {
+      fontWeight: 'bold',
+      textTransform: 'uppercase',
+      marginBottom: '12px',
+      display: 'block',
+    },
     list: {
       display: 'flex',
       flexDirection: 'column',
       gap: '12px',
-      width: '100%',
-      maxWidth: '760px',
-      margin: '0 auto',
     },
     item: {
       display: 'flex',
@@ -77,9 +86,8 @@ export default function FittingRoomOverlay() {
       alignItems: 'center',
       gap: '8px',
     },
-    itemId: {
+    itemName: {
       fontWeight: 'bold',
-      wordBreak: 'break-all',
     },
     itemMeta: {
       fontSize: '13px',
@@ -96,6 +104,12 @@ export default function FittingRoomOverlay() {
     empty: {
       marginTop: '48px',
       textAlign: 'center',
+    },
+    loading: {
+      marginTop: '12px',
+      fontSize: '13px',
+      color: theme.color_fg_text,
+      opacity: 0.6,
     },
   }))
 
@@ -117,6 +131,41 @@ export default function FittingRoomOverlay() {
     overflow: 'hidden' as const,
   }
 
+  function renderItem(item: ResolvedFittingRoomItem) {
+    const displayName = item.merchantProduct?.productName ?? item.externalId
+    const sizeColor = [item.storage.size, item.storage.color].filter(Boolean).join(' / ')
+    const error = item.merchantError ?? item.loadedError
+    return (
+      <div key={item.externalId} css={css.item}>
+        <div css={css.itemHeader}>
+          <Text variant="base" css={css.itemName}>
+            {displayName}
+          </Text>
+          <Button
+            variant="base"
+            css={css.removeButton}
+            onClick={() => removeFromFittingRoom(item.externalId)}
+          >
+            {t('fitting_room.remove')}
+          </Button>
+        </div>
+        {sizeColor ? (
+          <Text variant="base" css={css.itemMeta}>
+            {sizeColor}
+          </Text>
+        ) : null}
+        {item.needsResize ? (
+          <TextT variant="base" css={css.itemMissing} t="fitting_room.size_not_chosen" />
+        ) : null}
+        {error ? (
+          <Text variant="base" css={css.itemMissing}>
+            {error.message}
+          </Text>
+        ) : null}
+      </div>
+    )
+  }
+
   return (
     <ModalFrame
       isOpen
@@ -125,37 +174,32 @@ export default function FittingRoomOverlay() {
       contentStyle={contentStyle}
     >
       <div css={css.body}>
-        {fittingRoom.length === 0 ? (
+        {resolved.items.length === 0 ? (
           <TextT variant="base" css={css.empty} t="fitting_room.empty" />
         ) : (
-          <div css={css.list}>
-            {fittingRoom.map((item) => {
-              const hasVariant = item.size != null
-              return (
-                <div key={item.externalId} css={css.item}>
-                  <div css={css.itemHeader}>
-                    <Text variant="base" css={css.itemId}>
-                      {item.externalId}
-                    </Text>
-                    <Button
-                      variant="base"
-                      css={css.removeButton}
-                      onClick={() => removeFromFittingRoom(item.externalId)}
-                    >
-                      {t('fitting_room.remove')}
-                    </Button>
-                  </div>
-                  {hasVariant ? (
-                    <Text variant="base" css={css.itemMeta}>
-                      {[item.size, item.color].filter(Boolean).join(' / ')}
-                    </Text>
-                  ) : (
-                    <TextT variant="base" css={css.itemMissing} t="fitting_room.size_not_chosen" />
-                  )}
-                </div>
-              )
-            })}
-          </div>
+          <>
+            {resolved.groups.map(({ group, items }) => (
+              <div key={group.name} css={css.section}>
+                <Text variant="base" css={css.sectionTitle}>
+                  {group.label}
+                </Text>
+                <div css={css.list}>{items.map(renderItem)}</div>
+              </div>
+            ))}
+            {resolved.ungrouped.length > 0 ? (
+              <div css={css.section}>
+                <Text variant="base" css={css.sectionTitle}>
+                  {t('fitting_room.ungrouped')}
+                </Text>
+                <div css={css.list}>{resolved.ungrouped.map(renderItem)}</div>
+              </div>
+            ) : null}
+            {resolved.isLoading ? (
+              <div css={css.section}>
+                <TextT variant="base" css={css.loading} t="loading" />
+              </div>
+            ) : null}
+          </>
         )}
       </div>
     </ModalFrame>

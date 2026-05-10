@@ -11,6 +11,8 @@ import {
   Size,
   SizeFit as GenSizeFit,
   SizeFitRecommendation as GenSizeFitRecommendation,
+  StyleCategory,
+  StyleCategoryGroup,
   VtoCompositionResponse,
 } from '@/api/gen/responses'
 import { getAuthManager } from '@/lib/firebase'
@@ -149,6 +151,24 @@ export async function getSizeRecommendation(styleId: number): Promise<SizeFitRec
     useToken: true,
     method: 'GET',
     endpoint: `/v1/styles/${styleId}/recommendation`,
+  })
+}
+
+export async function getStyleCategories(): Promise<StyleCategory[]> {
+  return await execApiRequest<StyleCategory[]>({
+    useCache: true,
+    useToken: true,
+    method: 'GET',
+    endpoint: '/v1/style-categories',
+  })
+}
+
+export async function getStyleCategoryGroups(): Promise<StyleCategoryGroup[]> {
+  return await execApiRequest<StyleCategoryGroup[]>({
+    useCache: true,
+    useToken: true,
+    method: 'GET',
+    endpoint: '/v1/style-category-groups',
   })
 }
 

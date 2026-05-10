@@ -12,8 +12,10 @@ export default function AddToFittingRoomCompactWidget({ attributes }: WidgetProp
   const { t } = useTranslation()
   const { currentProduct } = getStaticData()
   const attrProductId = attributes['product-id'] as string | undefined
+  const attrProductHandle = attributes['product-handle'] as string | undefined
   const productId = attrProductId || currentProduct?.externalId || null
   const isPdp = productId != null && productId === currentProduct?.externalId
+  const productHandle = attrProductHandle || (isPdp ? currentProduct?.handle ?? null : null)
 
   const isInFittingRoom = useMainStore((state) =>
     productId == null ? false : state.fittingRoom.some((item) => item.externalId === productId),
@@ -50,7 +52,7 @@ export default function AddToFittingRoomCompactWidget({ attributes }: WidgetProp
   }
 
   const handleClick = () => {
-    toggleFittingRoomItem(productId, isPdp).catch((error) => {
+    toggleFittingRoomItem(productId, productHandle, isPdp).catch((error) => {
       logger.logError('toggleFittingRoomItem failed', { error })
     })
   }
