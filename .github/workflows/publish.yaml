@@ -14,6 +14,15 @@ on:
   push:
     tags:
       - "v*"
+  # Manual fallback: trigger from the Actions tab against any existing
+  # tag. Useful when dev.yaml pushed a tag but the chain broke and the
+  # publish never fired.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to publish (e.g. v5.0.16)"
+        required: true
+        type: string
 
 permissions:
   id-token: write
@@ -23,10 +32,13 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      # On push: github.ref is the tag ref (refs/tags/vX.Y.Z) — checkout
+       # uses it directly. On workflow_dispatch: the user-supplied tag
+       # input wins.
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: ${{ github.ref }}
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - uses: actions/setup-node@v6
         with:

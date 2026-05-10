@@ -48,10 +48,18 @@ jobs:
     if: needs.get_version_label.result == 'success' && needs.get_version_label.outputs.version_label != 'chore'
     runs-on: ubuntu-latest
     steps:
+      # `token:` is what actually controls the credentials git uses for
+      # pushes downstream (via extraheader in .git/config). Setting an
+      # env GITHUB_TOKEN on the push step itself is ignored — git's
+      # auth is already locked in from checkout. SDK_PUSH_PAT is a real
+      # PAT, which is required so the resulting tag push fires
+      # publish.yaml. GITHUB_TOKEN-authored pushes don't fire downstream
+      # workflows by GitHub design (loop prevention).
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: main
+          token: ${{ secrets.SDK_PUSH_PAT }}
 
       - uses: actions/setup-node@v6
         with:
@@ -65,10 +73,5 @@ jobs:
       - name: Bump version
         run: npm version "${{ needs.get_version_label.outputs.version_label }}"
 
-      # Push using SDK_PUSH_PAT so the resulting tag push fires
-      # publish.yaml. GITHUB_TOKEN-pushed tags don't trigger workflows.
       - name: Push version + tag
-        env:
-          GITHUB_TOKEN: ${{ secrets.SDK_PUSH_PAT }}
-        run: |
-          git push origin main --follow-tags
+        run: git push origin main --follow-tags
