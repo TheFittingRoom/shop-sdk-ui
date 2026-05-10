@@ -24,55 +24,61 @@ npm ci
 | `npm run watch-serve` | Both `watch` and `serve` together; Ctrl+C stops both |
 | `npm run gen-types` | Regenerate `src/api/gen/*.ts` from `tfr-backend` Go types |
 | `npm run promote-latest [version]` | Move npm dist-tag `latest` onto a published version (defaults to current `package.json` version) |
-| `npm run manual-release [patch\|minor\|major]` | Emergency local release path (rarely needed; CI handles normal releases) |
 
 ## Release process
 
-Releases are CI-driven. The day-to-day flow:
+Releases are explicit, human-initiated steps via a single GitHub Actions
+workflow. No magic on PR merges.
 
-**1. Auto-publish to `next` on every PR merge.** Open a PR, label it
-`patch` / `minor` / `major` / `chore` (exactly one). On merge:
+**1. Cut a `next` release.**
 
-- `chore` → workflow skips entirely (use this for docs, CI fixes,
-  internal refactors that don't ship to consumers)
-- `patch` / `minor` / `major` → two-stage CI:
-  1. `.github/workflows/dev.yaml` bumps `package.json` and pushes the
-     `vX.Y.Z` tag back to `main`
-  2. The tag push triggers `.github/workflows/publish.yaml`, which
-     builds the SDK and publishes to npm under dist-tag `next` via
-     [npm trusted publishing](https://docs.npmjs.com/trusted-publishers)
-     (OIDC, no long-lived secret)
+- Go to https://github.com/TheFittingRoom/shop-sdk-ui/actions/workflows/release.yaml
+- Click **Run workflow**
+- Pick the bump type (`patch` / `minor` / `major`)
+- Click **Run workflow**
 
-The split exists because npm's OIDC trusted publishing doesn't work
-with `pull_request_target`-triggered workflows
-([npm/cli#8739](https://github.com/npm/cli/issues/8739)). The publish
-has to happen in a `push`-triggered workflow, hence the two-stage
-chain. The npm trusted-publisher entry for `@thefittingroom/shop-ui`
-must point at `publish.yaml` (not `dev.yaml`).
+The `release.yaml` workflow does everything in one run:
 
-**2. Promote `next` → `latest` when ready to ship.** When a `next` build
-has been validated and you want it to become the default install for
-end users, run from your local checkout (logged in to npm with publish
-rights to `@thefittingroom/shop-ui`):
+1. Checks out `main`, installs deps, builds (verifies it compiles)
+2. Runs `npm version <bump>` — bumps `package.json` and creates the
+   `vX.Y.Z` tag
+3. Rebuilds with the new version embedded
+4. Pushes the bump commit + tag back to `main`
+5. Publishes to npm under dist-tag `next` via
+   [npm trusted publishing](https://docs.npmjs.com/trusted-publishers)
+   (OIDC, no long-lived secret) with `--provenance` for supply-chain
+   attestation
+
+The npm trusted-publisher entry for `@thefittingroom/shop-ui` must
+point at `release.yaml`.
+
+> **Branch protection note:** the workflow pushes commits + tags
+> directly to `main`. If you enable required-PR branch protection on
+> `main` later, this push will fail until either (a) the workflow uses
+> a credential listed in the branch-protection bypass list, or (b)
+> branch protection allows the workflow to bypass via some other means.
+> The current setup deliberately defers that complication.
+
+**2. Promote `next` → `latest` when ready for end users.**
+
+`release.yaml` only publishes under dist-tag `next`. To make a version
+the default that consumers get from `npm install @thefittingroom/shop-ui`,
+you have to explicitly promote it:
 
 ```sh
-git pull origin main      # ensure package.json reflects the latest publish
+git pull origin main      # ensure package.json reflects the latest release
 npm run promote-latest    # moves dist-tag latest onto current package.json version
 ```
 
-This runs `npm dist-tag add @thefittingroom/shop-ui@<ver> latest` — no
-new artifact is published; we just point the `latest` tag at the
-already-published `next` build, so consumers running `npm install
-@thefittingroom/shop-ui` get the new version.
+That runs `npm dist-tag add @thefittingroom/shop-ui@<ver> latest` — no
+new artifact is published; we just re-point `latest` at the already-
+published `next` build. The runner needs to be logged in to npm with
+publish rights to `@thefittingroom/shop-ui` (`npm whoami` to check;
+`npm login` if not).
 
 To promote a specific older version: `npm run promote-latest -- 5.0.13`.
 
-**3. Verify the promotion** with `npm dist-tag ls @thefittingroom/shop-ui`.
-
-The `manual-release` script is kept as an emergency local fallback for
-when CI is unavailable; it does the version bump + git push but expects
-you to run `npm publish` yourself afterward (which requires you to be
-logged in to npm with publish rights).
+**3. Verify** with `npm dist-tag ls @thefittingroom/shop-ui`.
 
 ## Local development
 
