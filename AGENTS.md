@@ -50,15 +50,35 @@ reuses the dev Firebase project.
 ## Frame URL rewriting
 
 Backend stores avatar and VTO frame URLs in Firestore as bare paths (e.g.
-`user-X/avatar-N/colorway-size-asset-M/frames/image_K.png`) — see the matching
-note in `tfr-backend/AGENTS.md`. The SDK prepends the configured `frames.baseUrl`
-(per-env in `config.ts`) at the consumption site. Helper: `applyFrameBaseUrl` in
-`src/lib/util.ts`. It also strips the host from any legacy host-prefixed URLs
-still present in older Firestore records, so both shapes work.
+`user-X/avatar-N/frames/image_K.png` for avatar, `user-X/avatar-N/vto-{token}/frames/image_K.png`
+for VTO compositions) — see the matching note in `tfr-backend/AGENTS.md`. The SDK
+prepends the configured `frames.baseUrl` (per-env in `config.ts`) at the
+consumption site. Helper: `applyFrameBaseUrl` in `src/lib/util.ts`. It also
+strips the host from any legacy host-prefixed URLs still present in older
+Firestore records, so both shapes work.
 
 Currently used in `src/components/overlays/vto-single.tsx` only. Anywhere else
 that turns a Firestore-supplied frame URL into an `<img src>` should call
 `applyFrameBaseUrl` too.
+
+## VTO request flow
+
+`requestVto(items)` in `src/lib/api.ts` posts a 1..4-garment composition to
+`/v1/vto-compositions` and returns `{token, status, composition_path}`. The
+SDK then subscribes to `users/{uid}/vto_compositions/{token}` via
+`FirestoreManager.listenToSubDoc` (in `src/lib/firebase.ts`) and renders
+frames as the backend webhook delivers them.
+
+`vto-single.tsx` keeps a per-component `compositionTokens: Map<csaKey, token>`
+to dedupe POSTs and a `vtoDocsByToken` state to hold the latest snapshot per
+token. `compositionKey(csaId, tucked)` is the dedup key — tucked is always
+`false` for single-garment, but the shape is forward-compatible with
+multi-garment when that lands. Subscriptions are torn down on unmount.
+
+Backend dedupes server-side by content hash, so re-requesting the same
+composition returns the same token without a sim-vis call. `useCache` on
+`execApiRequest` is intentionally **off** for this endpoint because the
+local cache is URL-keyed and the body now varies; backend dedup covers it.
 
 ## Conventions
 
@@ -88,3 +108,33 @@ For SDK-only changes, run `npm run watch-serve` and reload the demo
 storefront with `?tfr-source=local` — no theme push needed. For changes
 that touch the bootstrap script, callbacks, or markup, push to the
 `shopify` repo's `development` branch.
+
+---
+
+## Definition of done
+
+A change is not complete until every box below is checked. The `init` /
+gen / Firestore-conventions notes above are easy to drift from when
+files move or shapes change — keep AGENTS.md edits in the same change as
+the code they describe.
+
+- [ ] `npm run check` (tsc --noEmit) clean
+- [ ] `npm run build` produces `dist/index.js` without errors
+- [ ] If consumed any new or changed backend types: `npm run gen-types`
+      ran and the `src/api/gen/*` diff is committed in the same change
+- [ ] If a new `_init` step was added: ordered correctly in
+      `src/index.tsx`'s init sequence (logger → store → asset → theme →
+      view → firebase → api → product), and any module-scoped `let`
+      variable + accessor pattern is consistent with sibling modules
+- [ ] If a new Firestore subscription was added: an `Unsubscribe` is
+      tracked and torn down on unmount or auth-state change (see
+      `vto-single.tsx` token-keyed subscription map for the pattern)
+- [ ] Demo storefront round-trip verified with `?tfr-source=local` for any
+      user-visible change (or noted explicitly when the change can't be
+      visually verified)
+- [ ] **AGENTS.md updated** if the change touches: the build/release flow,
+      the gen-types boundary, the `_init` order, the frame URL contract,
+      the VTO request flow, the Zustand store conventions, or any specific
+      file/helper this file cites by name
+- [ ] **README.md updated** if the local-development workflow,
+      `npm run` scripts, or storefront integration changed

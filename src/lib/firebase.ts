@@ -100,6 +100,25 @@ export class FirestoreManager {
     return unsubscribe
   }
 
+  // listenToSubDoc subscribes to <parent>/<parentID>/<sub>/<subID>. Used for
+  // VTO compositions which live at users/{uid}/vto_compositions/{token}.
+  public listenToSubDoc<T extends DocumentData = DocumentData>(
+    parent: string,
+    parentID: string,
+    sub: string,
+    subID: string,
+    callback: (data: T | null) => void,
+  ): Unsubscribe {
+    const docRef = doc(this.firestore, parent, parentID, sub, subID)
+    return onSnapshot(docRef, (snap) => {
+      if (snap.exists()) {
+        callback(snap.data() as T)
+      } else {
+        callback(null)
+      }
+    })
+  }
+
   public async queryDocs<T extends DocumentData = DocumentData>(
     collectionName: string,
     constraints: QueryFieldFilterConstraint[],

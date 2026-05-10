@@ -11,6 +11,7 @@ import {
   Size,
   SizeFit as GenSizeFit,
   SizeFitRecommendation as GenSizeFitRecommendation,
+  VtoCompositionResponse,
 } from '@/api/gen/responses'
 import { getAuthManager } from '@/lib/firebase'
 import { getStaticData, useMainStore } from '@/lib/store'
@@ -151,11 +152,23 @@ export async function getSizeRecommendation(styleId: number): Promise<SizeFitRec
   })
 }
 
-export async function requestVtoSingle(colorwaySizeAssetId: number) {
-  await execApiRequest<void>({
-    useCache: true, // although this is a POST, we only want to send it once
+export type VtoCompositionItem = {
+  colorway_size_asset_id: number
+  tucked?: boolean
+}
+
+// requestVto dispatches a 1..4-garment VTO composition. Backend dedupes by
+// content hash so re-requesting the same composition returns the same
+// token without a sim-vis call. The returned token is the routing key for
+// the rendered Firestore doc — subscribe to it via subscribeToVtoComposition.
+//
+// useCache is off because the cache is URL-keyed and this endpoint's body
+// varies per call. Backend server-side dedup handles the same scenario.
+export async function requestVto(items: VtoCompositionItem[]): Promise<VtoCompositionResponse> {
+  return await execApiRequest<VtoCompositionResponse>({
     useToken: true,
     method: 'POST',
-    endpoint: `/v1/colorway-size-assets/${colorwaySizeAssetId}/frames`,
+    endpoint: '/v1/vto-compositions',
+    body: { items },
   })
 }
