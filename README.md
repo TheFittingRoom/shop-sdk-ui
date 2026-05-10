@@ -22,9 +22,47 @@ npm ci
 | `npm run watch` | Vite build in watch mode |
 | `npm run serve` | Static-serve the repo on `:5173` with CORS |
 | `npm run watch-serve` | Both `watch` and `serve` together; Ctrl+C stops both |
-| `npm run manual-release [patch\|minor\|major]` | Check, build, version bump, push tag |
+| `npm run gen-types` | Regenerate `src/api/gen/*.ts` from `tfr-backend` Go types |
+| `npm run promote-latest [version]` | Move npm dist-tag `latest` onto a published version (defaults to current `package.json` version) |
+| `npm run manual-release [patch\|minor\|major]` | Emergency local release path (rarely needed; CI handles normal releases) |
 
-Release: `npm run manual-release` then `npm publish`.
+## Release process
+
+Releases are CI-driven. The day-to-day flow:
+
+**1. Auto-publish to `next` on every PR merge.** Open a PR, label it
+`patch` / `minor` / `major` / `chore` (exactly one). On merge:
+
+- `chore` → workflow skips entirely (use this for docs, CI fixes,
+  internal refactors that don't ship to consumers)
+- `patch` / `minor` / `major` → `.github/workflows/dev.yaml` bumps
+  `package.json`, pushes the tag, and publishes to npm under dist-tag
+  `next` via [npm trusted publishing](https://docs.npmjs.com/trusted-publishers)
+  (OIDC, no long-lived secret)
+
+**2. Promote `next` → `latest` when ready to ship.** When a `next` build
+has been validated and you want it to become the default install for
+end users, run from your local checkout (logged in to npm with publish
+rights to `@thefittingroom/shop-ui`):
+
+```sh
+git pull origin main      # ensure package.json reflects the latest publish
+npm run promote-latest    # moves dist-tag latest onto current package.json version
+```
+
+This runs `npm dist-tag add @thefittingroom/shop-ui@<ver> latest` — no
+new artifact is published; we just point the `latest` tag at the
+already-published `next` build, so consumers running `npm install
+@thefittingroom/shop-ui` get the new version.
+
+To promote a specific older version: `npm run promote-latest -- 5.0.13`.
+
+**3. Verify the promotion** with `npm dist-tag ls @thefittingroom/shop-ui`.
+
+The `manual-release` script is kept as an emergency local fallback for
+when CI is unavailable; it does the version bump + git push but expects
+you to run `npm publish` yourself afterward (which requires you to be
+logged in to npm with publish rights).
 
 ## Local development
 

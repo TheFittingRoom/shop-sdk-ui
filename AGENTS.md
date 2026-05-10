@@ -7,10 +7,41 @@ and renders a `<tfr-widget>` custom element.
 ## Build and distribution
 
 - Vite library build → `dist/index.js` (single ESM bundle, unminified) plus inlined CSS.
-- Release flow: `npm run manual-release [patch|minor|major]` (runs check + build,
-  bumps version, pushes tag) followed by `npm publish` to npm. Consumers
-  `<script type="module">` the jsdelivr URL backed by the npm package.
 - `npm run check` = `tsc --noEmit`. `npm run build` cleans + builds. CI runs both.
+- Consumers load the SDK via `<script type="module">` from a jsdelivr URL backed by the npm package `@thefittingroom/shop-ui`.
+
+### Release flow
+
+Two-stage release model — see README.md for the full developer-facing
+walkthrough. Summary:
+
+1. **Auto-publish to dist-tag `next` on PR merge.**
+   `.github/workflows/dev.yaml` triggers on `pull_request_target: closed`
+   (gated to merged-only), bumps `package.json` per the PR's required
+   label (`patch` / `minor` / `major` / `chore`; `chore` skips the
+   publish job entirely), and runs `npm publish ... --tag next
+   --provenance` via npm trusted publishing (OIDC; no `NPM_TOKEN`
+   secret). The trusted publisher is configured at npm against this
+   repo + `dev.yaml`; only the workflow file referenced in that npm
+   config can publish, no other workflow.
+2. **Manual promotion to dist-tag `latest`.** When ready to release,
+   run `npm run promote-latest` locally (from a logged-in npm session
+   with publish rights to `@thefittingroom/shop-ui`). This runs
+   `npm dist-tag add ...@<ver> latest` — no new artifact is published,
+   the existing `next` build is just re-tagged. Consumers running
+   `npm install @thefittingroom/shop-ui` then resolve to that version.
+
+`scripts/promote-latest.sh` reads the current `package.json` version
+unless overridden with a positional arg (`npm run promote-latest --
+5.0.13`).
+
+`scripts/gen-types.sh` is the unchanged tygo codegen script for
+backend type bindings (see "Generated code" below).
+
+`manual-release` is kept as an emergency fallback for when CI is
+unreachable; it does the version bump + git push but leaves
+`npm publish` to the operator (who must be logged in to npm with
+publish rights).
 
 ## Generated code — do not edit by hand
 

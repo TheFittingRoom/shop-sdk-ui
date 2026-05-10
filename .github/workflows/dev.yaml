@@ -44,7 +44,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           registry-url: "https://registry.npmjs.org"
           cache: "npm"
 
@@ -79,8 +79,12 @@ jobs:
         run: |
           git push origin main --follow-tags
 
+      # Auth via npm trusted publishing (OIDC). The id-token: write
+      # permission at the workflow level lets the runner mint a short-lived
+      # OIDC token that npm exchanges for publish rights — no NPM_TOKEN
+      # needed. --provenance attaches a verifiable supply-chain attestation
+      # tying this tarball to this workflow run + commit (public repo +
+      # public package required, both apply here).
       - name: Publish to npm (next)
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          npm publish --access public --tag next --verbose
+          npm publish --access public --tag next --provenance --verbose
