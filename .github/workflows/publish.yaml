@@ -1,0 +1,53 @@
+name: Publish to npm
+
+# Fires when dev.yaml pushes a new vX.Y.Z tag (the bump-and-tag workflow
+# triggered by a labeled PR merge). The actual `npm publish` lives here
+# rather than in dev.yaml because npm OIDC trusted publishing doesn't
+# work with `pull_request_target`-triggered workflows — see
+# https://github.com/npm/cli/issues/8739. A `push: tags` trigger lives
+# in a `push` event context, which is the context npm's OIDC token
+# exchange expects.
+#
+# The npm trusted-publisher entry for @thefittingroom/shop-ui must
+# point at THIS workflow filename (publish.yaml).
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
+          # `scope` writes `@thefittingroom:registry=...` into the
+          # generated .npmrc so the npm CLI definitively routes the
+          # scoped publish to the right registry resolver.
+          scope: "@thefittingroom"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      # Auth via npm trusted publishing (OIDC). The id-token: write
+      # permission lets the runner mint a short-lived OIDC token that
+      # npm exchanges for publish rights. --provenance attaches a
+      # supply-chain attestation tying this tarball to this workflow
+      # run + commit (public repo + public package required).
+      - name: Publish to npm (next)
+        run: npm publish --tag next --provenance --verbose

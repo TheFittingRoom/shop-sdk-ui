@@ -15,15 +15,22 @@ and renders a `<tfr-widget>` custom element.
 Two-stage release model — see README.md for the full developer-facing
 walkthrough. Summary:
 
-1. **Auto-publish to dist-tag `next` on PR merge.**
-   `.github/workflows/dev.yaml` triggers on `pull_request_target: closed`
-   (gated to merged-only), bumps `package.json` per the PR's required
-   label (`patch` / `minor` / `major` / `chore`; `chore` skips the
-   publish job entirely), and runs `npm publish ... --tag next
-   --provenance` via npm trusted publishing (OIDC; no `NPM_TOKEN`
-   secret). The trusted publisher is configured at npm against this
-   repo + `dev.yaml`; only the workflow file referenced in that npm
-   config can publish, no other workflow.
+1. **Auto-publish to dist-tag `next` on PR merge** — split across two
+   workflows because npm OIDC trusted publishing doesn't work with
+   `pull_request_target` triggers ([npm/cli#8739](https://github.com/npm/cli/issues/8739)):
+   - `.github/workflows/dev.yaml` (the bump-and-tag stage) triggers on
+     `pull_request_target: closed` (gated to merged-only), bumps
+     `package.json` per the PR's required label (`patch` / `minor` /
+     `major` / `chore`; `chore` skips the bump entirely), and pushes
+     the `vX.Y.Z` tag to `main` using `SDK_PUSH_PAT` (a real PAT, not
+     `GITHUB_TOKEN` — pushes by `GITHUB_TOKEN` don't fire downstream
+     workflows). This stage does NOT publish.
+   - `.github/workflows/publish.yaml` (the publish stage) triggers on
+     `push: tags: 'v*'` — fired automatically when dev.yaml's tag push
+     lands. It runs `npm publish ... --tag next --provenance` via npm
+     trusted publishing (OIDC; no long-lived secret). The trusted
+     publisher entry on npm **must reference `publish.yaml`**, not
+     `dev.yaml`.
 2. **Manual promotion to dist-tag `latest`.** When ready to release,
    run `npm run promote-latest` locally (from a logged-in npm session
    with publish rights to `@thefittingroom/shop-ui`). This runs
