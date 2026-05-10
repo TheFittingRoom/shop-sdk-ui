@@ -20,13 +20,21 @@ permissions:
   contents: write
 
 jobs:
+  # Only run on merged PRs (not on close-without-merge) or manual dispatch.
+  # `pull_request_target: closed` fires on both, so we have to filter here.
   get_version_label:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     uses: ./.github/workflows/get-version-label.yaml
     with:
       workflow_dispatch_version_label: ${{ github.event.inputs.workflow_dispatch_version_label }}
   build:
     needs: [get_version_label]
-    if: needs.get_version_label.result == 'success'
+    # Skip the bump+publish job entirely when the PR is labeled `chore`.
+    # The label still has to be present (get-version-label.yaml enforces
+    # exactly one of patch/minor/major/chore), but `chore` signals "no
+    # release for this PR" — `npm version chore` isn't a valid command,
+    # so we have to gate the job rather than try to run it.
+    if: needs.get_version_label.result == 'success' && needs.get_version_label.outputs.version_label != 'chore'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
