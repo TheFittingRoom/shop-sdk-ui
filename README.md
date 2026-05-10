@@ -91,8 +91,8 @@ Run the SDK against the local backend stack from
    The `?tfr-source=local` query param tells the storefront's `tfr.js` to load
    the SDK from `http://localhost:5173/dist/index.js` instead of jsdelivr, and
    to initialize it with `environment: 'local'` (see `src/lib/config.ts` —
-   that env points at `http://localhost:8080` for the API and the local MinIO
-   bucket for assets).
+   that env points at `http://localhost:8080` for the API and the local
+   s3proxy bucket for assets at `http://localhost:9000`).
 
 Reload the storefront page after a rebuild to pick up changes.
 
