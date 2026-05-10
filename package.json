@@ -18,7 +18,7 @@
     "manual-release": "run() { npm run check && npm run build && npm version $1 && git push && git push --tags && npm run build && echo 'Now run npm publish' ; }; run ${1:-patch}"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "devDependencies": {
     "@types/react": "^19.2.7",
