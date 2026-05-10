@@ -4,6 +4,10 @@
   "description": "the fitting room UI library",
   "type": "module",
   "main": "./dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheFittingRoom/shop-sdk-ui.git"
+  },
   "files": [
     "dist"
   ],
