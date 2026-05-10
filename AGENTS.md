@@ -108,3 +108,33 @@ For SDK-only changes, run `npm run watch-serve` and reload the demo
 storefront with `?tfr-source=local` — no theme push needed. For changes
 that touch the bootstrap script, callbacks, or markup, push to the
 `shopify` repo's `development` branch.
+
+---
+
+## Definition of done
+
+A change is not complete until every box below is checked. The `init` /
+gen / Firestore-conventions notes above are easy to drift from when
+files move or shapes change — keep AGENTS.md edits in the same change as
+the code they describe.
+
+- [ ] `npm run check` (tsc --noEmit) clean
+- [ ] `npm run build` produces `dist/index.js` without errors
+- [ ] If consumed any new or changed backend types: `npm run gen-types`
+      ran and the `src/api/gen/*` diff is committed in the same change
+- [ ] If a new `_init` step was added: ordered correctly in
+      `src/index.tsx`'s init sequence (logger → store → asset → theme →
+      view → firebase → api → product), and any module-scoped `let`
+      variable + accessor pattern is consistent with sibling modules
+- [ ] If a new Firestore subscription was added: an `Unsubscribe` is
+      tracked and torn down on unmount or auth-state change (see
+      `vto-single.tsx` token-keyed subscription map for the pattern)
+- [ ] Demo storefront round-trip verified with `?tfr-source=local` for any
+      user-visible change (or noted explicitly when the change can't be
+      visually verified)
+- [ ] **AGENTS.md updated** if the change touches: the build/release flow,
+      the gen-types boundary, the `_init` order, the frame URL contract,
+      the VTO request flow, the Zustand store conventions, or any specific
+      file/helper this file cites by name
+- [ ] **README.md updated** if the local-development workflow,
+      `npm run` scripts, or storefront integration changed
