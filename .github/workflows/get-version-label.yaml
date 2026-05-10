@@ -24,17 +24,11 @@ jobs:
     outputs:
       version_label: ${{ steps.get_version_label.outputs.version_label }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: "https://registry.npmjs.org"
-          cache: "npm"
-
+      # No checkout/setup-node needed — labels come from the webhook event
+      # payload (context.payload.pull_request.labels), not from the repo.
+      # Earlier versions checked out github.event.pull_request.head.ref,
+      # which fails on close events when the head branch has been deleted
+      # (manually or via auto-delete-on-merge).
       - name: Determine version label
         id: get_version_label
         uses: actions/github-script@v7
