@@ -46,6 +46,11 @@ jobs:
         with:
           node-version: 24
           registry-url: "https://registry.npmjs.org"
+          # `scope` writes `@thefittingroom:registry=...` into the
+          # generated .npmrc so the npm CLI definitively routes scoped
+          # publishes to the right registry, which some OIDC code paths
+          # rely on. Belt-and-suspenders for trusted publishing.
+          scope: "@thefittingroom"
           cache: "npm"
 
       - name: Install dependencies
