@@ -755,3 +755,20 @@ export interface FirestoreUser {
   is_gte_18: boolean;
   vto: { [key: string]: { [key: string]: FirestoreVTOData}}; // brand_id and colorway_sku index
 }
+
+//////////
+// source: vto.go
+
+/**
+ * VtoCompositionResponse is the SDK ← backend response from POST
+ * /v1/vto-compositions. The token is sim-vis's identifier (also the cache
+ * key); status is "pending" when the render is in flight, "ready" when
+ * the cache hit returned an already-rendered composition. composition_path
+ * is the Firestore document path the SDK should subscribe to with
+ * onSnapshot — `users/{uid}/vto_compositions/{token}`.
+ */
+export interface VtoCompositionResponse {
+  token: string;
+  status: string;
+  composition_path: string;
+}

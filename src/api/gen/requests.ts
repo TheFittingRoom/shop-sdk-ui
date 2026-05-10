@@ -300,23 +300,69 @@ export interface Joint {
   y: number /* float64 */;
   z: number /* float64 */;
 }
+/**
+ * Garment is one item within a multi-garment FramesRequest. Backend
+ * pre-sorts the garments slice by absolute layer order (StyleCategoryConfig
+ * LayerOrder, with LayerOrderTucked substituted when Tucked && Tuckable),
+ * then sets LayerOrder to the zero-based index in the sorted slice.
+ * Sim-vis renders garments in array order; the LayerOrder field is
+ * redundant-but-explicit.
+ */
+export interface Garment {
+  garment_id: number /* int64 */;
+  colorway_size_asset_id: number /* int64 */;
+  size_id: number /* int64 */;
+  asset_container_storage_path: string;
+  u3ma: string;
+  style_category_name: any /* enums.StyleCategory */;
+  sleeveless: boolean;
+  layer_order: number /* int */;
+  tucked: boolean;
+  placement_measurement_location: string;
+  placement_offset_y: number /* float64 */;
+}
+/**
+ * FramesRequest is the backend → sim-vis VTO request body. Top-level
+ * fields describe the user/avatar context; per-garment data lives in
+ * Garments. Sim-vis returns a token in its 202 response which becomes the
+ * routing key for the inbound webhook.
+ */
 export interface FramesRequest {
   user_id: string;
   avatar_id: number /* int64 */;
   gender: string;
-  garment_id: number /* int64 */;
-  colorway_id: number /* int64 */;
-  size_id: number /* int64 */;
   avatar_storage_path: string;
   sdf_storage_path: string;
-  asset_container_storage_path: string;
   hex_value: string;
   color_value: number /* float64 */;
   frame_count: number /* int64 */;
   joints: Joint[];
-  u3ma: string;
-  style_category_name: any /* enums.StyleCategory */;
-  sleeveless: boolean;
-  placement_measurement_location: string;
-  placement_offset_y: number /* float64 */;
+  garments: Garment[];
+}
+/**
+ * VtoCompositionItem is one entry in the SDK → backend POST body. The SDK
+ * passes items in any order; backend resolves the canonical render order
+ * before sending to sim-vis.
+ */
+export interface VtoCompositionItem {
+  colorway_size_asset_id: number /* int64 */;
+  tucked: boolean;
+}
+/**
+ * VtoCompositionRequest is the SDK → backend POST body. Backend enforces
+ * 1 <= len(Items) <= 4. Includes/Excludes composition rules are validated
+ * client-side; backend does not enforce them.
+ */
+export interface VtoCompositionRequest {
+  items: VtoCompositionItem[];
+}
+/**
+ * VtoCompositionWebhook is the sim-vis → backend webhook body. The token
+ * is in the URL path, not the body.
+ */
+export interface VtoCompositionWebhook {
+  avatar_id: number /* int64 */;
+  error: string;
+  frames_storage_path: string;
+  frame_count: number /* int */;
 }

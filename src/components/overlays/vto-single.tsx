@@ -6,7 +6,7 @@ import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
 import { LinkT } from '@/components/link'
 import { Text, TextT } from '@/components/text'
 import {
-  requestVtoSingle as apiRequestVtoSingle,
+  requestVto as apiRequestVto,
   FitClassification,
   SizeFit,
 } from '@/lib/api'
@@ -20,7 +20,7 @@ import {
   InfoIcon,
   TfrNameSvg,
 } from '@/lib/asset'
-import { getAuthManager } from '@/lib/firebase'
+import { getAuthManager, getFirestoreManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import { loadProductDataToStore } from '@/lib/product'
@@ -66,6 +66,21 @@ const CONTENT_AREA_WIDTH_PX = 550
 
 const logger = getLogger('overlays/vto-single')
 
+// VtoFramesDoc mirrors the per-user vto_compositions/{token} doc the backend
+// writes. Only the fields the SDK consumes are typed here.
+type VtoFramesDoc = {
+  frames?: string[]
+  error?: string
+  status?: 'pending' | 'ready' | 'failed' | string
+}
+
+// compositionKey identifies a unique 1-garment composition for in-component
+// dedup (csaId + tucked). Tucked is always false for single-garment VTO; the
+// shape is kept tucked-aware for forward compatibility with multi-garment.
+function compositionKey(csaId: number, tucked: boolean): string {
+  return `${csaId}:${tucked ? 1 : 0}`
+}
+
 export default function VtoSingleOverlay() {
   const userIsLoggedIn = useMainStore((state) => state.userIsLoggedIn)
   const userHasAvatar = useMainStore((state) => state.userHasAvatar)
@@ -78,8 +93,16 @@ export default function VtoSingleOverlay() {
   const [selectedSizeLabel, setSelectedSizeLabel] = useState<string | null>(null)
   const [selectedColorLabel, setSelectedColorLabel] = useState<string | null>(null)
   const [modalStyle, setModalStyle] = useState<StyleProp>({})
-  const fetchedVtoSkus = useRef<Set<string>>(new Set())
-  const readyVtoSkus = useRef<Set<string>>(new Set())
+  // compositionKey → token returned by POST /v1/vto-compositions; serves as
+  // both dedup (don't re-POST for the same composition) and as the lookup
+  // key into vtoDocsByToken.
+  const compositionTokensRef = useRef<Map<string, string>>(new Map())
+  // token → latest Firestore subcollection doc (frames/status/error). Updated
+  // by the onSnapshot subscription that fires whenever the backend webhook
+  // writes to users/{uid}/vto_compositions/{token}.
+  const [vtoDocsByToken, setVtoDocsByToken] = useState<Record<string, VtoFramesDoc>>({})
+  // token → unsubscribe handle; cleaned up on unmount.
+  const subscriptionsRef = useRef<Map<string, () => void>>(new Map())
   const lastPriorityVtoRequestTimeRef = useRef<number | null>(null)
 
   // Redirect if not logged in or no avatar
@@ -107,7 +130,7 @@ export default function VtoSingleOverlay() {
   useEffect(() => {
     async function setupInitialVtoData() {
       try {
-        const { brandId, currentProduct } = getStaticData()
+        const { currentProduct } = getStaticData()
         if (!currentProduct) {
           return
         }
@@ -217,11 +240,9 @@ export default function VtoSingleOverlay() {
           setSelectedColorLabel(recommendedColorLabel)
         }
 
-        // Mark already available VTO SKUs as fetched/ready
-        for (const sku in userProfile?.vto?.[brandId] ?? {}) {
-          fetchedVtoSkus.current.add(sku)
-          readyVtoSkus.current.add(sku)
-        }
+        // (Legacy `userProfile.vto[brandId][sku]` ready-marking removed:
+        // tokens are tracked per session against the new vto_compositions
+        // subcollection, populated as the user navigates colors/sizes.)
       } catch (error) {
         logger.logError('Error fetching initial data:', { error })
         setVtoProductData(false)
@@ -249,19 +270,31 @@ export default function VtoSingleOverlay() {
     return { sizeColorRecord, availableColorLabels }
   }, [vtoProductData, selectedSizeLabel, selectedColorLabel])
 
-  // Fetch VTO data for a color/size
+  // Fetch VTO data for a color/size. Posts a 1-item composition request,
+  // captures the returned token, and starts an onSnapshot subscription to
+  // the per-user `vto_compositions/{token}` Firestore doc so frame URLs
+  // arrive reactively when the backend webhook completes.
   const requestVto = useCallback((sizeColorRecord: VtoSizeColorData, priority: boolean) => {
-    if (fetchedVtoSkus.current.has(sizeColorRecord.sku)) {
+    const csaId = sizeColorRecord.colorwaySizeAssetId
+    const key = compositionKey(csaId, false)
+    if (compositionTokensRef.current.has(key)) {
       return
     }
     function executeRequest() {
       logger.timerStart(`requestVto_${sizeColorRecord.sku}`)
       logger.logDebug(`{{ts}} - Requesting VTO for sku: ${sizeColorRecord.sku}`, { priority, sizeColorRecord })
-      fetchedVtoSkus.current.add(sizeColorRecord.sku)
+      // Mark in-flight before the POST resolves to dedupe re-entrant calls.
+      compositionTokensRef.current.set(key, '')
 
-      apiRequestVtoSingle(sizeColorRecord.colorwaySizeAssetId).catch((error) => {
-        logger.logError(`Error requesting VTO for sku: ${sizeColorRecord.sku}`, { error, sizeColorRecord })
-      })
+      apiRequestVto([{ colorway_size_asset_id: csaId, tucked: false }])
+        .then((resp) => {
+          compositionTokensRef.current.set(key, resp.token)
+          subscribeToCompositionToken(resp.token, sizeColorRecord.sku)
+        })
+        .catch((error) => {
+          logger.logError(`Error requesting VTO for sku: ${sizeColorRecord.sku}`, { error, sizeColorRecord })
+          compositionTokensRef.current.delete(key)
+        })
     }
     if (NON_PRIORITY_VTO_REQUEST_DELAY_MS) {
       let delay: number = 0
@@ -285,6 +318,49 @@ export default function VtoSingleOverlay() {
     executeRequest()
   }, [])
 
+  // Subscribe to a vto_compositions/{token} Firestore doc. Idempotent:
+  // re-subscribing for the same token is a no-op. Subscriptions are torn
+  // down on unmount via subscriptionsRef.
+  const subscribeToCompositionToken = useCallback((token: string, sku: string) => {
+    if (subscriptionsRef.current.has(token)) {
+      return
+    }
+    const authManager = getAuthManager()
+    const uid = authManager.getAuthUser()?.uid
+    if (!uid) {
+      logger.logWarn(`subscribe to vto composition skipped: no uid`, { token, sku })
+      return
+    }
+    const unsub = getFirestoreManager().listenToSubDoc<VtoFramesDoc>(
+      'users',
+      uid,
+      'vto_compositions',
+      token,
+      (data) => {
+        if (data && data.frames && data.frames.length > 0) {
+          logger.timerEnd(`requestVto_${sku}`)
+          logger.logTimer(`requestVto_${sku}`, `{{ts}} - VTO data is loaded for sku: ${sku}`)
+        }
+        setVtoDocsByToken((prev) => ({ ...prev, [token]: data ?? {} }))
+      },
+    )
+    subscriptionsRef.current.set(token, unsub)
+  }, [])
+
+  // Tear down all VTO subscriptions on unmount.
+  useEffect(() => {
+    return () => {
+      subscriptionsRef.current.forEach((unsub) => {
+        try {
+          unsub()
+        } catch (e) {
+          logger.logError('Error unsubscribing from vto composition', { error: e })
+        }
+      })
+      subscriptionsRef.current.clear()
+    }
+  }, [])
+
   // Trigger priority VTO request when size/color selection changes
   useEffect(() => {
     if (selectedColorSizeRecord) {
@@ -305,39 +381,25 @@ export default function VtoSingleOverlay() {
     }
   }, [requestVto, vtoProductData, selectedColorLabel])
 
-  // Lookup VTO frames for selected color/size from user profile
+  // Lookup VTO frames for the currently-selected color/size by mapping
+  // (csaId, tucked=false) → token → vtoDocsByToken[token]. Frames are
+  // populated reactively as the Firestore subscription receives updates.
   const vtoData = useMemo(() => {
-    if (!userProfile || !selectedColorSizeRecord) {
+    if (!selectedColorSizeRecord) {
       return null
     }
-
-    // Lookup VTO data from user profile
-    const { brandId } = getStaticData()
-    const availableSkuData = userProfile.vto?.[brandId]
-    if (!availableSkuData) {
+    const key = compositionKey(selectedColorSizeRecord.colorwaySizeAssetId, false)
+    const token = compositionTokensRef.current.get(key)
+    if (!token) {
       return null
     }
-
-    // Track VTO performance
-    if (logger.isDebugEnabled()) {
-      for (const sku of fetchedVtoSkus.current) {
-        if (!readyVtoSkus.current.has(sku) && availableSkuData[sku]) {
-          readyVtoSkus.current.add(sku)
-          logger.timerEnd(`requestVto_${sku}`)
-          logger.logTimer(`requestVto_${sku}`, `{{ts}} - VTO data is loaded for sku: ${sku}`)
-        }
-      }
-    }
-
-    // Lookup selected SKU (color/size) VTO data
-    const vtoData = availableSkuData[selectedColorSizeRecord.sku]
-    if (!vtoData) {
+    const doc = vtoDocsByToken[token]
+    if (!doc || !doc.frames || doc.frames.length === 0) {
       return null
     }
-
     logger.logDebug(`{{ts}} - Displaying VTO for sku: ${selectedColorSizeRecord.sku}`)
-    return vtoData
-  }, [selectedColorSizeRecord, userProfile])
+    return doc
+  }, [selectedColorSizeRecord, vtoDocsByToken])
 
   // Rewrite firestore-supplied frame URLs to the configured frames base URL,
   // then preload the resulting images
