@@ -35,10 +35,20 @@ Releases are CI-driven. The day-to-day flow:
 
 - `chore` → workflow skips entirely (use this for docs, CI fixes,
   internal refactors that don't ship to consumers)
-- `patch` / `minor` / `major` → `.github/workflows/dev.yaml` bumps
-  `package.json`, pushes the tag, and publishes to npm under dist-tag
-  `next` via [npm trusted publishing](https://docs.npmjs.com/trusted-publishers)
-  (OIDC, no long-lived secret)
+- `patch` / `minor` / `major` → two-stage CI:
+  1. `.github/workflows/dev.yaml` bumps `package.json` and pushes the
+     `vX.Y.Z` tag back to `main`
+  2. The tag push triggers `.github/workflows/publish.yaml`, which
+     builds the SDK and publishes to npm under dist-tag `next` via
+     [npm trusted publishing](https://docs.npmjs.com/trusted-publishers)
+     (OIDC, no long-lived secret)
+
+The split exists because npm's OIDC trusted publishing doesn't work
+with `pull_request_target`-triggered workflows
+([npm/cli#8739](https://github.com/npm/cli/issues/8739)). The publish
+has to happen in a `push`-triggered workflow, hence the two-stage
+chain. The npm trusted-publisher entry for `@thefittingroom/shop-ui`
+must point at `publish.yaml` (not `dev.yaml`).
 
 **2. Promote `next` → `latest` when ready to ship.** When a `next` build
 has been validated and you want it to become the default install for
