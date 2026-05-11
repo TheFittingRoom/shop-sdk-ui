@@ -693,10 +693,17 @@ export interface FirestoreStyleBaseBodyAdjustment {
 export interface StyleCategory {
   name: any /* enums.StyleCategory */;
   label: string;
+  label_singular: string;
   group: string;
+  /**
+   * LayerOrder is the default absolute render position. For Tuckable
+   * categories the default state is tucked-in (lower layer, under
+   * bottoms); LayerOrderUntucked is the alternative position when the
+   * per-VTO-item `untucked` flag is true.
+   */
   layer_order: number /* int */;
   tuckable: boolean;
-  layer_order_tucked: number /* int */;
+  layer_order_untucked: number /* int */;
   sleeve_selection: string;
   sleeve_auto_value?: any /* enums.SleeveLength */;
   measurement_locations: string[];
@@ -719,6 +726,7 @@ export interface StyleCategoryGroup {
   name: string;
   label: string;
   same_group_default: string;
+  display_order: number /* int */;
 }
 
 //////////

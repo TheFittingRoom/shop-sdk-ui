@@ -303,10 +303,17 @@ export interface Joint {
 /**
  * Garment is one item within a multi-garment FramesRequest. Backend
  * pre-sorts the garments slice by absolute layer order (StyleCategoryConfig
- * LayerOrder, with LayerOrderTucked substituted when Tucked && Tuckable),
- * then sets LayerOrder to the zero-based index in the sorted slice.
- * Sim-vis renders garments in array order; the LayerOrder field is
- * redundant-but-explicit.
+ * LayerOrder, with LayerOrderUntucked substituted when the SDK-supplied
+ * `untucked` flag is true for a Tuckable category), then sets LayerOrder
+ * to the zero-based index in the sorted slice. Sim-vis renders garments
+ * in array order; the LayerOrder field is redundant-but-explicit.
+ * Tucked is tri-state for clarity to sim-vis:
+ *   - nil (JSON `null`): the category isn't Tuckable; the flag does not
+ *     apply (e.g. dresses, jackets).
+ *   - &true: tuckable category rendered in its tucked-in state.
+ *   - &false: tuckable category rendered in its untucked state.
+ * Sim-vis uses this to drive per-garment rendering decisions; absolute
+ * layer position is already encoded in LayerOrder.
  */
 export interface Garment {
   garment_id: number /* int64 */;
@@ -317,7 +324,7 @@ export interface Garment {
   style_category_name: any /* enums.StyleCategory */;
   sleeveless: boolean;
   layer_order: number /* int */;
-  tucked: boolean;
+  tucked?: boolean;
   placement_measurement_location: string;
   placement_offset_y: number /* float64 */;
 }
@@ -343,10 +350,13 @@ export interface FramesRequest {
  * VtoCompositionItem is one entry in the SDK → backend POST body. The SDK
  * passes items in any order; backend resolves the canonical render order
  * before sending to sim-vis.
+ * Untucked is the per-item override for Tuckable categories. Default
+ * (false) keeps the garment tucked-in (under bottoms); true layers it
+ * over bottoms. Ignored for non-tuckable categories.
  */
 export interface VtoCompositionItem {
   colorway_size_asset_id: number /* int64 */;
-  tucked: boolean;
+  untucked: boolean;
 }
 /**
  * VtoCompositionRequest is the SDK → backend POST body. Backend enforces

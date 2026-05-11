@@ -127,9 +127,11 @@ frames as the backend webhook delivers them.
 
 `vto-single.tsx` keeps a per-component `compositionTokens: Map<csaKey, token>`
 to dedupe POSTs and a `vtoDocsByToken` state to hold the latest snapshot per
-token. `compositionKey(csaId, tucked)` is the dedup key — tucked is always
-`false` for single-garment, but the shape is forward-compatible with
-multi-garment when that lands. Subscriptions are torn down on unmount.
+token. `compositionKey(csaId, untucked)` is the dedup key — untucked is
+always `false` for single-garment (tucked-in is the default for tuckable
+tops and is also fine for non-tuckable categories where the flag is
+ignored). The shape is forward-compatible with multi-garment when that
+lands. Subscriptions are torn down on unmount.
 
 Backend dedupes server-side by content hash, so re-requesting the same
 composition returns the same token without a sim-vis call. `useCache` on
