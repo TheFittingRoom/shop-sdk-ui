@@ -306,9 +306,14 @@ export interface Joint {
  * LayerOrder, with LayerOrderUntucked substituted when the SDK-supplied
  * `untucked` flag is true for a Tuckable category), then sets LayerOrder
  * to the zero-based index in the sorted slice. Sim-vis renders garments
- * in array order; the LayerOrder field is redundant-but-explicit. The
- * tuck state itself is not surfaced to sim-vis — it's already baked into
- * the resolved render order.
+ * in array order; the LayerOrder field is redundant-but-explicit.
+ * Tucked is tri-state for clarity to sim-vis:
+ *   - nil (JSON `null`): the category isn't Tuckable; the flag does not
+ *     apply (e.g. dresses, jackets).
+ *   - &true: tuckable category rendered in its tucked-in state.
+ *   - &false: tuckable category rendered in its untucked state.
+ * Sim-vis uses this to drive per-garment rendering decisions; absolute
+ * layer position is already encoded in LayerOrder.
  */
 export interface Garment {
   garment_id: number /* int64 */;
@@ -319,6 +324,7 @@ export interface Garment {
   style_category_name: any /* enums.StyleCategory */;
   sleeveless: boolean;
   layer_order: number /* int */;
+  tucked?: boolean;
   placement_measurement_location: string;
   placement_offset_y: number /* float64 */;
 }
