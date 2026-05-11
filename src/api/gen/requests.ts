@@ -303,10 +303,12 @@ export interface Joint {
 /**
  * Garment is one item within a multi-garment FramesRequest. Backend
  * pre-sorts the garments slice by absolute layer order (StyleCategoryConfig
- * LayerOrder, with LayerOrderTucked substituted when Tucked && Tuckable),
- * then sets LayerOrder to the zero-based index in the sorted slice.
- * Sim-vis renders garments in array order; the LayerOrder field is
- * redundant-but-explicit.
+ * LayerOrder, with LayerOrderUntucked substituted when the SDK-supplied
+ * `untucked` flag is true for a Tuckable category), then sets LayerOrder
+ * to the zero-based index in the sorted slice. Sim-vis renders garments
+ * in array order; the LayerOrder field is redundant-but-explicit. The
+ * tuck state itself is not surfaced to sim-vis — it's already baked into
+ * the resolved render order.
  */
 export interface Garment {
   garment_id: number /* int64 */;
@@ -317,7 +319,6 @@ export interface Garment {
   style_category_name: any /* enums.StyleCategory */;
   sleeveless: boolean;
   layer_order: number /* int */;
-  tucked: boolean;
   placement_measurement_location: string;
   placement_offset_y: number /* float64 */;
 }
@@ -343,10 +344,13 @@ export interface FramesRequest {
  * VtoCompositionItem is one entry in the SDK → backend POST body. The SDK
  * passes items in any order; backend resolves the canonical render order
  * before sending to sim-vis.
+ * Untucked is the per-item override for Tuckable categories. Default
+ * (false) keeps the garment tucked-in (under bottoms); true layers it
+ * over bottoms. Ignored for non-tuckable categories.
  */
 export interface VtoCompositionItem {
   colorway_size_asset_id: number /* int64 */;
-  tucked: boolean;
+  untucked: boolean;
 }
 /**
  * VtoCompositionRequest is the SDK → backend POST body. Backend enforces

@@ -174,7 +174,7 @@ export async function getStyleCategoryGroups(): Promise<StyleCategoryGroup[]> {
 
 export type VtoCompositionItem = {
   colorway_size_asset_id: number
-  tucked?: boolean
+  untucked?: boolean
 }
 
 // requestVto dispatches a 1..4-garment VTO composition. Backend dedupes by

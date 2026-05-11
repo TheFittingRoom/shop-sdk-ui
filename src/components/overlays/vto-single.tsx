@@ -75,10 +75,11 @@ type VtoFramesDoc = {
 }
 
 // compositionKey identifies a unique 1-garment composition for in-component
-// dedup (csaId + tucked). Tucked is always false for single-garment VTO; the
-// shape is kept tucked-aware for forward compatibility with multi-garment.
-function compositionKey(csaId: number, tucked: boolean): string {
-  return `${csaId}:${tucked ? 1 : 0}`
+// dedup (csaId + untucked). Untucked is always false for single-garment VTO
+// (the default tucked-in state is fine for a top rendered alone); the shape
+// is kept untuck-aware for forward compatibility with multi-garment.
+function compositionKey(csaId: number, untucked: boolean): string {
+  return `${csaId}:${untucked ? 1 : 0}`
 }
 
 export default function VtoSingleOverlay() {
@@ -286,7 +287,7 @@ export default function VtoSingleOverlay() {
       // Mark in-flight before the POST resolves to dedupe re-entrant calls.
       compositionTokensRef.current.set(key, '')
 
-      apiRequestVto([{ colorway_size_asset_id: csaId, tucked: false }])
+      apiRequestVto([{ colorway_size_asset_id: csaId, untucked: false }])
         .then((resp) => {
           compositionTokensRef.current.set(key, resp.token)
           subscribeToCompositionToken(resp.token, sizeColorRecord.sku)
@@ -382,7 +383,7 @@ export default function VtoSingleOverlay() {
   }, [requestVto, vtoProductData, selectedColorLabel])
 
   // Lookup VTO frames for the currently-selected color/size by mapping
-  // (csaId, tucked=false) → token → vtoDocsByToken[token]. Frames are
+  // (csaId, untucked=false) → token → vtoDocsByToken[token]. Frames are
   // populated reactively as the Firestore subscription receives updates.
   const vtoData = useMemo(() => {
     if (!selectedColorSizeRecord) {
