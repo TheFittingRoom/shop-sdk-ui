@@ -8,8 +8,10 @@ import DragHandleIcon from '@/assets/drag-handle.svg?react'
 import FittingRoomIcon from '@/assets/fitting-room-icon.svg?react'
 import InfoIcon from '@/assets/info-icon.svg?react'
 import LoadingCircleIcon from '@/assets/loading-circle.svg?react'
+import SelectedItemsIcon from '@/assets/icon-selected-items.svg?react'
 import TfrIcon from '@/assets/tfr-icon.svg?react'
 import TfrNameSvg from '@/assets/tfr-name.svg?react'
+import ZoomIcon from '@/assets/icon-zoom.svg?react'
 import { getStaticData } from '@/lib/store'
 
 export {
@@ -23,8 +25,10 @@ export {
   FittingRoomIcon,
   InfoIcon,
   LoadingCircleIcon,
+  SelectedItemsIcon,
   TfrIcon,
   TfrNameSvg,
+  ZoomIcon,
 }
 
 let baseUrl: string

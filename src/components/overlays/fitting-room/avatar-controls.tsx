@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/button'
 import { Text } from '@/components/text'
-import { CloseIcon, FittingRoomIcon, InfoIcon } from '@/lib/asset'
+import { InfoIcon, SelectedItemsIcon, ZoomIcon } from '@/lib/asset'
 import { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useTranslation } from '@/lib/locale'
 import { useCss } from '@/lib/theme'
@@ -127,7 +127,7 @@ export function AvatarControls({
   const seePill = (
     <div ref={popoverWrapperRef} style={{ position: 'relative' }}>
       <Button variant="base" css={css.pill} onClick={handleTogglePopover}>
-        <FittingRoomIcon css={css.pillIcon} />
+        <SelectedItemsIcon css={css.pillIcon} />
         <Text variant="base">{t('fitting_room.see_selected_items')}</Text>
       </Button>
       {popoverOpen ? (
@@ -170,7 +170,7 @@ export function AvatarControls({
         </Button>
       ) : null}
       <Button variant="base" css={css.pill} onClick={onToggleZoom}>
-        <CloseIcon css={css.pillIcon} style={{ transform: zoomed ? 'none' : 'rotate(45deg)' }} />
+        <ZoomIcon css={css.pillIcon} />
         <Text variant="base">
           {t(zoomed ? 'fitting_room.zoom_out' : 'fitting_room.zoom_in')}
         </Text>
