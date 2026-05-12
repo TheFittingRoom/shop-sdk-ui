@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ButtonT } from '@/components/button'
+import { Loading } from '@/components/content/loading'
 import { LinkT } from '@/components/link'
 import { ModalFrame } from '@/components/modal'
 import { TextT } from '@/components/text'
@@ -276,17 +277,13 @@ export default function FittingRoomOverlay() {
     return framesForOutfit(toWireItems(outfit.items))
   }, [outfit, framesForOutfit, userProfile])
 
-  // TODO(wip): the gate below only fires when outfit.items.length > 0, which
-  // means anonymous users can still open the overlay and see nothing useful
-  // (rails are empty because styleCategoryIndex requires auth). Per the
-  // current UX intent, opening the overlay anonymously should immediately
-  // route to LANDING / GET_APP — gate at overlay-open, not VTO-fire-time.
-  //
-  // Auth gate: if the user tries to enter try-on (mobile) or has selections
-  // (desktop) without login/avatar, route them through landing/get-app and
-  // come back to FITTING_ROOM after.
+  // Auth gate: fire at overlay-open time (mirrors vto-single). Anonymous
+  // users get bounced to LANDING; logged-in-but-no-avatar users get bounced
+  // to GET_APP. Both pass returnToOverlay=FITTING_ROOM so the post-auth
+  // flow brings them back here. userHasAvatar starts as null while the
+  // user profile is loading — only redirect to GET_APP once it's
+  // explicitly false.
   useEffect(() => {
-    if (outfit.items.length === 0) return
     if (!userIsLoggedIn) {
       openOverlay(OverlayName.LANDING, { returnToOverlay: OverlayName.FITTING_ROOM })
       return
@@ -294,7 +291,7 @@ export default function FittingRoomOverlay() {
     if (userHasAvatar === false) {
       openOverlay(OverlayName.GET_APP, { returnToOverlay: OverlayName.FITTING_ROOM, noAvatar: true })
     }
-  }, [outfit, userIsLoggedIn, userHasAvatar, openOverlay])
+  }, [userIsLoggedIn, userHasAvatar, openOverlay])
 
   const handleSignOut = useCallback(() => {
     closeOverlay()
@@ -389,6 +386,24 @@ export default function FittingRoomOverlay() {
     borderRadius: 0,
     backgroundColor: '#FFFFFF',
     overflow: 'hidden' as const,
+  }
+
+  // While the auth gate effect is deciding where to send us (or while the
+  // user profile is still loading), don't render the overlay's body — we'd
+  // either flash an empty rails view or briefly render the layout before
+  // the redirect lands. Match vto-single's gating behavior.
+  const authResolved = userIsLoggedIn && userHasAvatar === true
+  if (!authResolved) {
+    return (
+      <ModalFrame
+        isOpen
+        onRequestClose={closeOverlay}
+        overlayStyle={overlayStyle}
+        contentStyle={contentStyle}
+      >
+        <Loading />
+      </ModalFrame>
+    )
   }
 
   return (
