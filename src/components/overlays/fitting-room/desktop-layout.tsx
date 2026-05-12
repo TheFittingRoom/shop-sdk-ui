@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
+import { LinkT } from '@/components/link'
 import { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useCss } from '@/lib/theme'
 import { Availability } from './availability'
@@ -39,6 +40,7 @@ interface DesktopLayoutProps {
   onAddToCart: (externalId: string) => void
   onToggleUntuck: () => void
   onToggleZoom: () => void
+  onSignOut: () => void
 }
 
 // DesktopLayout. 2-column when no items selected (avatar + card rails);
@@ -60,6 +62,7 @@ export function DesktopLayout({
   onAddToCart,
   onToggleUntuck,
   onToggleZoom,
+  onSignOut,
 }: DesktopLayoutProps) {
   const hasSelection = selectedItems.length > 0
   const hasTuckable = selectedItems.some((i) => i.styleCategory?.tuckable)
@@ -125,6 +128,15 @@ export function DesktopLayout({
       gap: '24px',
       padding: '0 8px',
     },
+    railsHeader: {
+      display: 'flex',
+      justifyContent: 'flex-end',
+      paddingBottom: '4px',
+    },
+    signOut: {
+      fontSize: '12px',
+      letterSpacing: '0.3px',
+    },
   }))
 
   const controls = hasSelection ? (
@@ -149,6 +161,7 @@ export function DesktopLayout({
           <DetailAccordion
             items={selectedItems}
             openItemExternalId={openAccordionItemId}
+            platform="desktop"
             detailMode={detailMode}
             isMobileQuickRow={false}
             forceUntuck={forceUntuck}
@@ -162,12 +175,16 @@ export function DesktopLayout({
       ) : null}
       {!zoomed ? (
         <div css={css.railsColumn}>
+          <div css={css.railsHeader}>
+            <LinkT variant="underline" css={css.signOut} t="fitting_room.sign_out" onClick={onSignOut} />
+          </div>
           {resolved.groups.map((group) => (
             <CardRail
               key={group.group.name}
               group={group}
               availabilityByExternalId={availabilityByExternalId}
               onSelectItem={onSelectItem}
+              onRemoveItem={onRemoveItem}
               layout="horizontal"
             />
           ))}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/button'
 import { Text } from '@/components/text'
+import { CloseIcon, FittingRoomIcon, InfoIcon } from '@/lib/asset'
 import { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useTranslation } from '@/lib/locale'
 import { useCss } from '@/lib/theme'
@@ -71,6 +72,13 @@ export function AvatarControls({
       letterSpacing: '0.5px',
       textTransform: 'uppercase',
       cursor: 'pointer',
+      userSelect: 'none',
+      WebkitUserSelect: 'none',
+    },
+    pillIcon: {
+      width: '14px',
+      height: '14px',
+      flex: 'none',
     },
     popover: {
       position: 'absolute',
@@ -119,6 +127,7 @@ export function AvatarControls({
   const seePill = (
     <div ref={popoverWrapperRef} style={{ position: 'relative' }}>
       <Button variant="base" css={css.pill} onClick={handleTogglePopover}>
+        <FittingRoomIcon css={css.pillIcon} />
         <Text variant="base">{t('fitting_room.see_selected_items')}</Text>
       </Button>
       {popoverOpen ? (
@@ -154,12 +163,14 @@ export function AvatarControls({
       {seePill}
       {hasTuckable ? (
         <Button variant="base" css={css.pill} onClick={onToggleUntuck}>
+          <InfoIcon css={css.pillIcon} />
           <Text variant="base">
             {t(forceUntuck ? 'fitting_room.tuck_in' : 'fitting_room.untuck')}
           </Text>
         </Button>
       ) : null}
       <Button variant="base" css={css.pill} onClick={onToggleZoom}>
+        <CloseIcon css={css.pillIcon} style={{ transform: zoomed ? 'none' : 'rotate(45deg)' }} />
         <Text variant="base">
           {t(zoomed ? 'fitting_room.zoom_out' : 'fitting_room.zoom_in')}
         </Text>

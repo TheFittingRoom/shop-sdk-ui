@@ -1,5 +1,6 @@
 import { Button } from '@/components/button'
 import { Text } from '@/components/text'
+import { CloseIcon } from '@/lib/asset'
 import { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useCss } from '@/lib/theme'
 import { Availability } from './availability'
@@ -8,12 +9,14 @@ interface ProductCardProps {
   item: ResolvedFittingRoomItem
   availability: Availability
   onClick: () => void
+  onRemove: () => void
 }
 
-// ProductCard renders one garment in the browse rail: image, name, price.
-// `availability` drives the border (selected → solid border) and disabled
-// treatment (greyed + non-clickable when other selections rule this one out).
-export function ProductCard({ item, availability, onClick }: ProductCardProps) {
+// ProductCard renders one garment in the browse rail: image, name, price,
+// plus a top-right X to remove from the fitting room. `availability` drives
+// the border (selected → solid border) and disabled treatment (greyed +
+// non-clickable when other selections rule this one out).
+export function ProductCard({ item, availability, onClick, onRemove }: ProductCardProps) {
   const css = useCss((theme) => ({
     container: {
       position: 'relative',
@@ -24,7 +27,6 @@ export function ProductCard({ item, availability, onClick }: ProductCardProps) {
       gap: '8px',
       padding: '8px',
       border: '1px solid transparent',
-      cursor: 'pointer',
       backgroundColor: 'transparent',
       textAlign: 'left',
     },
@@ -33,6 +35,20 @@ export function ProductCard({ item, availability, onClick }: ProductCardProps) {
     },
     containerDisabled: {
       opacity: 0.35,
+    },
+    cardBody: {
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px',
+      background: 'none',
+      border: 'none',
+      padding: 0,
+      textAlign: 'left',
+      cursor: 'pointer',
+      fontFamily: theme.font_family,
+    },
+    cardBodyDisabled: {
       cursor: 'not-allowed',
     },
     imageContainer: {
@@ -54,6 +70,26 @@ export function ProductCard({ item, availability, onClick }: ProductCardProps) {
       fontSize: '12px',
       color: theme.color_fg_text,
     },
+    removeButton: {
+      position: 'absolute',
+      top: '4px',
+      right: '4px',
+      width: '24px',
+      height: '24px',
+      borderRadius: '12px',
+      border: 'none',
+      backgroundColor: 'rgba(255, 255, 255, 0.85)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      padding: 0,
+      zIndex: 1,
+    },
+    removeIcon: {
+      width: '12px',
+      height: '12px',
+    },
   }))
 
   const disabled = availability === 'disabled'
@@ -72,27 +108,44 @@ export function ProductCard({ item, availability, onClick }: ProductCardProps) {
   const price = item.merchantProduct?.variants[0]?.priceFormatted ?? null
 
   return (
-    <Button
-      variant="base"
+    <div
       css={{
         ...css.container,
         ...(selected && css.containerSelected),
         ...(disabled && css.containerDisabled),
       }}
-      onClick={handleClick}
-      disabled={disabled}
     >
-      <div css={css.imageContainer}>
-        {imageUrl ? <img src={imageUrl} css={css.image} alt={name} /> : null}
-      </div>
-      <Text variant="base" css={css.nameText}>
-        {name}
-      </Text>
-      {price ? (
-        <Text variant="base" css={css.priceText}>
-          {price}
+      <button
+        css={css.removeButton}
+        onClick={(e) => {
+          e.stopPropagation()
+          onRemove()
+        }}
+        aria-label="Remove from fitting room"
+      >
+        <CloseIcon css={css.removeIcon} />
+      </button>
+      <Button
+        variant="base"
+        css={{
+          ...css.cardBody,
+          ...(disabled && css.cardBodyDisabled),
+        }}
+        onClick={handleClick}
+        disabled={disabled}
+      >
+        <div css={css.imageContainer}>
+          {imageUrl ? <img src={imageUrl} css={css.image} alt={name} /> : null}
+        </div>
+        <Text variant="base" css={css.nameText}>
+          {name}
         </Text>
-      ) : null}
-    </Button>
+        {price ? (
+          <Text variant="base" css={css.priceText}>
+            {price}
+          </Text>
+        ) : null}
+      </Button>
+    </div>
   )
 }

@@ -445,6 +445,7 @@ export default function FittingRoomOverlay() {
             sheetSnap={sheetSnap}
             sheetTouchStart={sheetTouchStart}
             onSelectItem={handleSelectItem}
+            onRemoveItem={handleRemoveItem}
             onTryItOn={handleTryItOn}
             onBackToBrowse={handleBackToBrowse}
             onOpenAccordionItem={setOpenAccordionItemId}
@@ -471,6 +472,7 @@ export default function FittingRoomOverlay() {
             onAddToCart={handleAddToCart}
             onToggleUntuck={handleToggleUntuck}
             onToggleZoom={handleToggleZoom}
+            onSignOut={handleSignOut}
           />
         )}
         {vtoError ? (

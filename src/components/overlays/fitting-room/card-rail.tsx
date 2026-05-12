@@ -10,13 +10,14 @@ interface CardRailProps {
   group: ResolvedFittingRoomGroup
   availabilityByExternalId: Record<string, Availability>
   onSelectItem: (externalId: string) => void
+  onRemoveItem: (externalId: string) => void
   layout: 'horizontal' | 'grid'
 }
 
 // CardRail renders one style-category group as a collapsible section. The
 // items inside scroll horizontally on desktop (`layout='horizontal'`) and wrap
 // into a 2-column grid on mobile (`layout='grid'`).
-export function CardRail({ group, availabilityByExternalId, onSelectItem, layout }: CardRailProps) {
+export function CardRail({ group, availabilityByExternalId, onSelectItem, onRemoveItem, layout }: CardRailProps) {
   const [collapsed, setCollapsed] = useState(false)
 
   const css = useCss((theme) => ({
@@ -72,6 +73,7 @@ export function CardRail({ group, availabilityByExternalId, onSelectItem, layout
               item={item}
               availability={availabilityByExternalId[item.externalId] ?? 'disabled'}
               onClick={() => onSelectItem(item.externalId)}
+              onRemove={() => onRemoveItem(item.externalId)}
             />
           ))}
         </div>

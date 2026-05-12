@@ -25,6 +25,7 @@ interface MobileLayoutProps {
   sheetSnap: SheetSnap
   sheetTouchStart: (e: React.TouchEvent<HTMLElement>) => void
   onSelectItem: (externalId: string) => void
+  onRemoveItem: (externalId: string) => void
   onTryItOn: () => void
   onBackToBrowse: () => void
   onOpenAccordionItem: (externalId: string | null) => void
@@ -49,6 +50,7 @@ export function MobileLayout({
   sheetSnap,
   sheetTouchStart,
   onSelectItem,
+  onRemoveItem,
   onTryItOn,
   onBackToBrowse,
   onOpenAccordionItem,
@@ -64,6 +66,7 @@ export function MobileLayout({
         availabilityByExternalId={availabilityByExternalId}
         selectedCount={selectedItems.length}
         onSelectItem={onSelectItem}
+        onRemoveItem={onRemoveItem}
         onTryItOn={onTryItOn}
       />
     )
@@ -92,12 +95,14 @@ function BrowseView({
   availabilityByExternalId,
   selectedCount,
   onSelectItem,
+  onRemoveItem,
   onTryItOn,
 }: {
   resolved: ResolvedFittingRoom
   availabilityByExternalId: Record<string, Availability>
   selectedCount: number
   onSelectItem: (externalId: string) => void
+  onRemoveItem: (externalId: string) => void
   onTryItOn: () => void
 }) {
   const css = useCss((_theme) => ({
@@ -131,6 +136,7 @@ function BrowseView({
             group={group}
             availabilityByExternalId={availabilityByExternalId}
             onSelectItem={onSelectItem}
+            onRemoveItem={onRemoveItem}
             layout="grid"
           />
         ))}
@@ -277,6 +283,7 @@ function TryOnView({
               <DetailAccordion
                 items={selectedItems}
                 openItemExternalId={openAccordionItemId}
+                platform="mobile"
                 detailMode={detailMode}
                 isMobileQuickRow={isMobileQuickRow}
                 forceUntuck={forceUntuck}

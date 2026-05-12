@@ -1,10 +1,11 @@
 import { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useCss } from '@/lib/theme'
-import { DetailAccordionItem, DetailMode } from './detail-accordion-item'
+import { DetailAccordionItem, DetailMode, Platform } from './detail-accordion-item'
 
 interface DetailAccordionProps {
   items: ResolvedFittingRoomItem[]
   openItemExternalId: string | null
+  platform: Platform
   detailMode: DetailMode
   isMobileQuickRow: boolean
   forceUntuck: boolean
@@ -21,6 +22,7 @@ interface DetailAccordionProps {
 export function DetailAccordion({
   items,
   openItemExternalId,
+  platform,
   detailMode,
   isMobileQuickRow,
   forceUntuck,
@@ -45,6 +47,7 @@ export function DetailAccordion({
             key={item.externalId}
             item={item}
             isOpen={isOpen}
+            platform={platform}
             detailMode={detailMode}
             isMobileQuickRow={isMobileQuickRow}
             forceUntuck={forceUntuck}
