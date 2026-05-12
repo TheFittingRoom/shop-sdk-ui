@@ -276,6 +276,12 @@ export default function FittingRoomOverlay() {
     return framesForOutfit(toWireItems(outfit.items))
   }, [outfit, framesForOutfit, userProfile])
 
+  // TODO(wip): the gate below only fires when outfit.items.length > 0, which
+  // means anonymous users can still open the overlay and see nothing useful
+  // (rails are empty because styleCategoryIndex requires auth). Per the
+  // current UX intent, opening the overlay anonymously should immediately
+  // route to LANDING / GET_APP — gate at overlay-open, not VTO-fire-time.
+  //
   // Auth gate: if the user tries to enter try-on (mobile) or has selections
   // (desktop) without login/avatar, route them through landing/get-app and
   // come back to FITTING_ROOM after.

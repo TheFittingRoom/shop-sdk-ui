@@ -37,6 +37,10 @@ export type StyleProp = CSSProperties
 
 export { keyframes }
 
+// Memoized on mount with no deps — callback runs once and its result is
+// frozen. Closures over component state or props won't update. For style
+// values that need to react to state (e.g. dynamic grid template), apply
+// them via inline `style` instead of routing through useCss.
 export function useCss<T extends Record<string, CssProp>>(callback: (themeData: ThemeData) => T): T {
   return useMemo(() => callback(themeData), [])
 }
