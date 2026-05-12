@@ -44,7 +44,7 @@ function buildIndex(categories: StyleCategory[], groups: StyleCategoryGroup[]): 
       return groupMap.get(cat.group) ?? null
     },
     groupsInOrder() {
-      return groups
+      return [...groups].sort((a, b) => a.display_order - b.display_order)
     },
     raw: { categories, groups },
   }

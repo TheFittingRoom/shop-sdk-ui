@@ -570,6 +570,11 @@ export interface SizeValue {
   id: any /* enums.SizeValueID */;
   name: string;
 }
+/**
+ * FirestoreSizeValue is the inline shape of a SizeValue when embedded
+ * inside a parent Firestore doc (size_systems, styles). The standalone
+ * `size_values` Firestore collection was removed in worker change #741.
+ */
 export interface FirestoreSizeValue {
   id: number /* int */;
   name: string;
@@ -761,6 +766,13 @@ export interface FirestoreUser {
   updated_at?: any /* time.Time */;
   is_tos_accepted: boolean;
   is_gte_18: boolean;
+  /**
+   * AvatarFrames is written by tasks.HandleFirebaseSyncAvatarTask via
+   * UpdateDocument(..., "avatar_frames", frames) and contains bare frame
+   * paths (clients prepend their environment-appropriate host). Omitted
+   * for users who haven't completed avatar creation.
+   */
+  avatar_frames?: string[];
   vto: { [key: string]: { [key: string]: FirestoreVTOData}}; // brand_id and colorway_sku index
 }
 

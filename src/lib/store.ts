@@ -35,6 +35,7 @@ export type MerchantProductError = { error: Error }
 
 export type ProductLookup = (handles: string[]) => Promise<ExternalProduct[]>
 export type GetOverlayTopOffset = () => number
+export type AddToCart = (externalId: string, options: ExternalProductOptionSelection) => void | Promise<void>
 
 export interface StaticData {
   brandId: number
@@ -43,6 +44,7 @@ export interface StaticData {
   config: Config
   productLookup: ProductLookup | null
   getOverlayTopOffset: GetOverlayTopOffset | null
+  addToCart: AddToCart | null
 }
 
 let staticData: StaticData | null = null
