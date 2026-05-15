@@ -1,20 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from 'react'
-import { Button, ButtonT } from '@/components/button'
+import { AddToCartButton } from '@/components/add-to-cart-button'
+import { AvatarFrameViewer } from '@/components/avatar-frame-viewer'
+import { Button } from '@/components/button'
 import { FitChart } from '@/components/content/fit-chart'
 import { Loading } from '@/components/content/loading'
-import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
+import { ItemFitDetails } from '@/components/item-fit-details'
+import { ItemFitText } from '@/components/item-fit-text'
 import { LinkT } from '@/components/link'
+import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
+import { VtoProductData, VtoSizeColorData, VtoSizeData } from '@/components/product-sizing-types'
+import { SizeSelector } from '@/components/size-selector'
 import { Text, TextT } from '@/components/text'
 import {
   requestVto as apiRequestVto,
-  FitClassification,
-  SizeFit,
 } from '@/lib/api'
 import {
   AVATAR_BOTTOM_BACKGROUND_URL,
-  CheckCircleIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   CloseIcon,
   DragHandleIcon,
   InfoIcon,
@@ -27,32 +28,8 @@ import { loadProductDataToStore } from '@/lib/product'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { getThemeData, useCss, CssProp, StyleProp } from '@/lib/theme'
 import { applyFrameBaseUrl, getSizeLabelFromSize } from '@/lib/util'
+import { useMobileSheetSnap } from '@/lib/use-mobile-sheet-snap'
 import { DeviceLayout, OverlayName } from '@/lib/view'
-
-interface VtoSizeColorData {
-  colorwaySizeAssetId: number
-  colorLabel: string | null
-  sku: string
-  priceFormatted: string
-}
-
-interface VtoSizeData {
-  sizeId: number
-  sizeLabel: string
-  isRecommended: boolean
-  fit: SizeFit
-  colors: VtoSizeColorData[]
-}
-
-interface VtoProductData {
-  productName: string
-  productDescriptionHtml: string
-  fitClassification: FitClassification
-  recommendedSizeId: number
-  recommendedSizeLabel: string
-  sizes: VtoSizeData[]
-  styleCategoryLabel: string | null
-}
 
 interface ElementSize {
   width: number
@@ -369,8 +346,13 @@ export default function VtoSingleOverlay() {
     }
   }, [requestVto, selectedColorSizeRecord])
 
-  // Trigger VTO requests for all recommended sizes when color selection changes (and on initial load)
+  // Speculatively pre-fetch VTO for all recommended sizes when color
+  // selection changes. Gated behind config.features.vtoPrefetch — the
+  // priority request for the actively-selected size always fires (above).
   useEffect(() => {
+    if (!getStaticData().config.features.vtoPrefetch) {
+      return
+    }
     if (!vtoProductData) {
       return
     }
@@ -557,7 +539,8 @@ function MobileLayout({
   onAddToCart,
   onSignOut,
 }: LayoutProps) {
-  const [contentView, setContentView] = useState<MobileContentView>('collapsed')
+  const { snap: contentView, setSnap: setContentView, handleTouchStart: handleBottomFrameTouchStart } =
+    useMobileSheetSnap('collapsed')
   const bottomFrameInnerRef = useRef<HTMLDivElement>(null)
   const [bottomFrameOuterStyle, setBottomFrameOuterStyle] = useState<StyleProp>({})
   const [bottomFrameInnerStyle, setBottomFrameInnerStyle] = useState<StyleProp>({})
@@ -658,39 +641,6 @@ function MobileLayout({
     setBottomFrameInnerStyle({})
     setTimeout(refreshBottomFrameStyle, 50)
   }, [contentView])
-
-  const handleBottomFrameTouchStart = useCallback(
-    (e: React.TouchEvent<HTMLDivElement>) => {
-      let startY = e.touches[0].clientY
-      const initialContentView = contentView
-      const onTouchMove = (moveEvent: TouchEvent) => {
-        const deltaY = moveEvent.touches[0].clientY - startY
-        if (Math.abs(deltaY) >= 30) {
-          if (deltaY > 0) {
-            // Swiping down
-            if (initialContentView === 'full' || initialContentView === 'expanded') {
-              setContentView('collapsed')
-            }
-          } else {
-            // Swiping up
-            if (initialContentView === 'collapsed') {
-              setContentView('expanded')
-            } else if (initialContentView === 'expanded') {
-              setContentView('full')
-            }
-          }
-          document.removeEventListener('touchmove', onTouchMove)
-        }
-      }
-      document.addEventListener('touchmove', onTouchMove)
-      const onTouchEnd = () => {
-        document.removeEventListener('touchmove', onTouchMove)
-        document.removeEventListener('touchend', onTouchEnd)
-      }
-      document.addEventListener('touchend', onTouchEnd)
-    },
-    [contentView],
-  )
 
   let aboveContentNode: ReactNode = null
   if (contentView === 'expanded' || contentView === 'full') {
@@ -1204,31 +1154,6 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
       flex: 'none',
       height: '100%',
     },
-    imageContainer: {
-      position: 'absolute',
-    },
-    image: {
-      objectFit: 'contain',
-      cursor: 'grab',
-    },
-    chevronLeftContainer: {
-      position: 'absolute',
-      top: '50%',
-      left: '0',
-      transform: 'translateY(-50%)',
-      cursor: 'pointer',
-    },
-    chevronRightContainer: {
-      position: 'absolute',
-      top: '50%',
-      right: '0',
-      transform: 'translateY(-50%)',
-      cursor: 'pointer',
-    },
-    chevronIcon: {
-      width: '48px',
-      height: '48px',
-    },
     bottomContainer: {
       position: 'absolute',
       bottom: '1px',
@@ -1339,114 +1264,20 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
     }
   }, [isMobileLayout])
 
-  // Auto-rotate avatar on initial frame load
-  useEffect(() => {
-    if (frameUrls && frameUrls.length > 0 && selectedFrameIndex == null) {
-      // let currentFrameIndex = Math.ceil(frameUrls.length / 2)
-      let currentFrameIndex = 0
-      setSelectedFrameIndex(currentFrameIndex)
-      const intervalId = setInterval(() => {
-        currentFrameIndex = (currentFrameIndex + 1) % frameUrls.length
-        setSelectedFrameIndex(currentFrameIndex)
-        if (currentFrameIndex === 0) {
-          clearInterval(intervalId)
-        }
-      }, 500)
-    }
-  }, [frameUrls, selectedFrameIndex])
-
-  const rotateLeft = useCallback(() => {
-    setSelectedFrameIndex((prevIndex) => {
-      if (prevIndex == null) {
-        return null
-      }
-      return prevIndex === 0 ? (frameUrls ? frameUrls.length - 1 : 0) : prevIndex - 1
-    })
-  }, [frameUrls])
-  const rotateRight = useCallback(() => {
-    setSelectedFrameIndex((prevIndex) => {
-      if (prevIndex == null) {
-        return null
-      }
-      return prevIndex === (frameUrls ? frameUrls.length - 1 : 0) ? 0 : prevIndex + 1
-    })
-  }, [frameUrls])
-  const handleImageMouseDrag = useCallback(
-    (e: React.MouseEvent<HTMLImageElement, MouseEvent>) => {
-      e.preventDefault()
-      let startX = e.clientX
-
-      const onMouseMove = (moveEvent: MouseEvent) => {
-        const deltaX = moveEvent.clientX - startX
-        if (Math.abs(deltaX) >= 50) {
-          if (deltaX > 0) {
-            rotateRight()
-          } else {
-            rotateLeft()
-          }
-          startX = moveEvent.clientX
-        }
-      }
-
-      const onMouseUp = () => {
-        window.removeEventListener('mousemove', onMouseMove)
-        window.removeEventListener('mouseup', onMouseUp)
-      }
-
-      window.addEventListener('mousemove', onMouseMove)
-      window.addEventListener('mouseup', onMouseUp)
-    },
-    [rotateLeft, rotateRight],
-  )
-  const handleImageTouchDrag = useCallback(
-    (e: React.TouchEvent<HTMLImageElement>) => {
-      e.preventDefault()
-      let startX = e.touches[0].clientX
-
-      const onTouchMove = (moveEvent: TouchEvent) => {
-        const deltaX = moveEvent.touches[0].clientX - startX
-        if (Math.abs(deltaX) >= 50) {
-          if (deltaX > 0) {
-            rotateRight()
-          } else {
-            rotateLeft()
-          }
-          startX = moveEvent.touches[0].clientX
-        }
-      }
-
-      const onTouchEnd = () => {
-        window.removeEventListener('touchmove', onTouchMove)
-        window.removeEventListener('touchend', onTouchEnd)
-      }
-
-      window.addEventListener('touchmove', onTouchMove)
-      window.addEventListener('touchend', onTouchEnd)
-    },
-    [rotateLeft, rotateRight],
-  )
-
   // RENDERING:
 
-  let contentNode: ReactNode
-  if (frameUrls && selectedFrameIndex != null) {
-    contentNode = (
-      <>
-        <div css={css.imageContainer} style={layoutData.imageContainerStyle}>
-          <img
-            src={frameUrls[selectedFrameIndex]}
-            css={css.image}
-            style={layoutData.imageStyle}
-            onMouseDown={handleImageMouseDrag}
-            onTouchStart={handleImageTouchDrag}
-          />
-          <div css={css.chevronLeftContainer} onClick={rotateLeft}>
-            <ChevronLeftIcon css={css.chevronIcon} />
-          </div>
-          <div css={css.chevronRightContainer} onClick={rotateRight}>
-            <ChevronRightIcon css={css.chevronIcon} />
-          </div>
-        </div>
+  const isReady = !!frameUrls && selectedFrameIndex != null
+  return (
+    <div css={css.topContainer} style={layoutData.topContainerStyle}>
+      <AvatarFrameViewer
+        frameUrls={frameUrls}
+        selectedFrameIndex={selectedFrameIndex}
+        setSelectedFrameIndex={setSelectedFrameIndex}
+        imageContainerStyle={layoutData.imageContainerStyle}
+        imageStyle={layoutData.imageStyle}
+        loadingT="vto-single.avatar_loading"
+      />
+      {isReady ? (
         <div css={css.bottomContainer} style={layoutData.bottomContainerStyle}>
           {isMobileLayout ? (
             <>&nbsp;</>
@@ -1455,9 +1286,9 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
               <input
                 type="range"
                 min={0}
-                max={frameUrls.length - 1}
+                max={frameUrls!.length - 1}
                 step={1}
-                value={selectedFrameIndex}
+                value={selectedFrameIndex!}
                 onChange={(e) => setSelectedFrameIndex(Number(e.target.value))}
                 css={css.sliderInput}
               />
@@ -1465,14 +1296,7 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
             </>
           )}
         </div>
-      </>
-    )
-  } else {
-    contentNode = <Loading t="vto-single.avatar_loading" />
-  }
-  return (
-    <div css={css.topContainer} style={layoutData.topContainerStyle}>
-      {contentNode}
+      ) : null}
     </div>
   )
 }
@@ -1560,55 +1384,6 @@ function ColorSelector({ availableColorLabels, selectedColorLabel, onChangeColor
   )
 }
 
-interface SizeSelectorProps {
-  loadedProductData: VtoProductData
-  selectedSizeLabel: string | null
-  onChangeSize: (newSizeLabel: string) => void
-}
-
-function SizeSelector({ loadedProductData, selectedSizeLabel, onChangeSize }: SizeSelectorProps) {
-  const css = useCss((_theme) => ({
-    container: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-    },
-    button: {
-      width: '54px',
-      height: '44px',
-      border: '1px solid rgba(33, 32, 31, 0.2)',
-      padding: '9px 5px',
-    },
-    selectedButton: {
-      border: '1px solid rgb(33, 32, 31)',
-      cursor: 'default',
-    },
-  }))
-  const sizeSelectorNodeList = useMemo(
-    () =>
-      loadedProductData.sizes.map((sizeRecord) => {
-        const isSelected = sizeRecord.sizeLabel === selectedSizeLabel
-        return (
-          <Button
-            key={sizeRecord.sizeLabel}
-            variant="base"
-            css={{ ...css.button, ...(isSelected && css.selectedButton) }}
-            onClick={() => {
-              if (isSelected) {
-                return
-              }
-              onChangeSize(sizeRecord.sizeLabel)
-            }}
-          >
-            {sizeRecord.sizeLabel}
-          </Button>
-        )
-      }),
-    [loadedProductData.sizes, selectedSizeLabel, onChangeSize],
-  )
-  return <div css={css.container}>{sizeSelectorNodeList}</div>
-}
-
 interface RecommendedSizeTextProps {
   loadedProductData: VtoProductData
   textCss: CssProp
@@ -1623,94 +1398,6 @@ function RecommendedSizeText({ loadedProductData, textCss }: RecommendedSizeText
       vars={{ size: loadedProductData.recommendedSizeLabel }}
     />
   )
-}
-
-interface ItemFitTextProps {
-  loadedProductData: VtoProductData
-  textCss?: CssProp
-}
-
-function ItemFitText({ loadedProductData, textCss }: ItemFitTextProps) {
-  const { t } = useTranslation()
-  return (
-    <TextT
-      variant="base"
-      css={textCss}
-      t="size-rec.item_fit"
-      vars={{
-        fit:
-          t(`size-rec.fitClassification.${loadedProductData.fitClassification}`) || loadedProductData.fitClassification,
-      }}
-    />
-  )
-}
-
-interface ItemFitDetailsProps {
-  loadedProductData: VtoProductData
-  selectedSizeLabel: string | null
-}
-
-function ItemFitDetails({ loadedProductData, selectedSizeLabel }: ItemFitDetailsProps) {
-  const { t } = useTranslation()
-  const css = useCss((_theme) => ({
-    container: {
-      width: '100%',
-    },
-    line: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      gap: '8px',
-      marginTop: '4px',
-      borderTop: '1px solid rgb(33, 32, 31)',
-      paddingTop: '4px',
-    },
-    firstLine: {
-      borderTop: 'none',
-      marginTop: '0px',
-      paddingTop: '0px',
-    },
-    detailCell: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-    },
-  }))
-  const fitLineNodeList = useMemo(() => {
-    const selectedSizeRecord = loadedProductData.sizes.find((s) => s.sizeLabel === selectedSizeLabel)
-    if (!selectedSizeRecord) {
-      return null
-    }
-    return selectedSizeRecord.fit.measurement_location_fits.map((mlf, index) => {
-      const locationLabel = t(`size-rec.measurementLocation.${mlf.measurement_location}`) || mlf.measurement_location
-      const fit = mlf.fit
-      const fitLabel = t(`size-rec.fit.${fit}`) || fit
-      return (
-        <div key={index} css={[css.line, index === 0 && css.firstLine]}>
-          <div css={css.detailCell}>{locationLabel}</div>
-          <div css={css.detailCell}>
-            {fit === 'perfect_fit' ? (
-              <>
-                <CheckCircleIcon /> {fitLabel}
-              </>
-            ) : (
-              fitLabel
-            )}
-          </div>
-        </div>
-      )
-    })
-  }, [loadedProductData, selectedSizeLabel])
-
-  return <div css={css.container}>{fitLineNodeList}</div>
-}
-
-interface AddToCartButtonProps {
-  onClick: () => void
-}
-
-function AddToCartButton({ onClick }: AddToCartButtonProps) {
-  return <ButtonT variant="brand" t="vto-single.add_to_cart" onClick={onClick} />
 }
 
 interface ProductDescriptionTextProps {

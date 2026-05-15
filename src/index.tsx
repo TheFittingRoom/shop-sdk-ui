@@ -10,7 +10,7 @@ import { _init as initFittingRoom } from '@/lib/fitting-room'
 import { i18n } from '@/lib/locale'
 import { _init as initLogger, getLogger } from '@/lib/logger'
 import { _init as initProduct } from '@/lib/product'
-import { _init as initStore, useMainStore, ExternalProduct, GetOverlayTopOffset, ProductLookup } from '@/lib/store'
+import { _init as initStore, useMainStore, AddToCart, ExternalProduct, GetOverlayTopOffset, ProductLookup } from '@/lib/store'
 import { _init as initTheme, ThemeData } from '@/lib/theme'
 import { _init as initView } from '@/lib/view'
 
@@ -46,12 +46,13 @@ export interface InitParams {
   debug: boolean | string | string[] | RegExp
   productLookup?: ProductLookup
   getOverlayTopOffset?: GetOverlayTopOffset
+  addToCart?: AddToCart
 }
 
 export async function init(initParams: InitParams): Promise<boolean> {
   const logger = getLogger('init')
   try {
-    const { brandId, currentProduct, environment, lang = null, theme = null, debug, productLookup, getOverlayTopOffset } = initParams
+    const { brandId, currentProduct, environment, lang = null, theme = null, debug, productLookup, getOverlayTopOffset, addToCart } = initParams
 
     // Validate init params
     if (!brandId || typeof brandId !== 'number' || isNaN(brandId) || brandId <= 0) {
@@ -84,6 +85,7 @@ export async function init(initParams: InitParams): Promise<boolean> {
       config,
       productLookup: productLookup ?? null,
       getOverlayTopOffset: getOverlayTopOffset ?? null,
+      addToCart: addToCart ?? null,
     })
 
     // Hydrate fitting room from localStorage

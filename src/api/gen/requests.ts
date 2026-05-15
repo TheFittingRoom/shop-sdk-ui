@@ -20,14 +20,6 @@ export interface Avatar {
   SkinToneFac: string;
   Video?: any /* multipart.FileHeader */;
 }
-export interface UpdateAvatarWebhook {
-  error: string;
-  measurements: { [key: string]: number /* float64 */};
-  joints: Joint[];
-  frames_storage_path: string;
-  object_storage_path: string;
-  sdf_storage_path: string;
-}
 export interface FakeAvatar {
   gender: string;
   measurements: { [key: string]: number /* float64 */};
@@ -365,14 +357,4 @@ export interface VtoCompositionItem {
  */
 export interface VtoCompositionRequest {
   items: VtoCompositionItem[];
-}
-/**
- * VtoCompositionWebhook is the sim-vis → backend webhook body. The token
- * is in the URL path, not the body.
- */
-export interface VtoCompositionWebhook {
-  avatar_id: number /* int64 */;
-  error: string;
-  frames_storage_path: string;
-  frame_count: number /* int */;
 }
