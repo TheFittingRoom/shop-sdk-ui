@@ -27,6 +27,14 @@ export interface Config {
     version: string
     commitHash: string
   }
+  features: {
+    // When true, the SDK speculatively pre-fetches VTO compositions for
+    // sizes/colors/outfits the user hasn't selected yet (the non-priority
+    // requests). The priority request for the actively-selected item
+    // always fires regardless. Off while debugging to keep request
+    // traffic minimal.
+    vtoPrefetch: boolean
+  }
 }
 
 export enum EnvName {
@@ -67,6 +75,9 @@ const CONFIGS: Record<EnvName, Config> = {
     frames: {
       baseUrl: 'https://assets.dev.thefittingroom.xyz',
     },
+    features: {
+      vtoPrefetch: false,
+    },
     ...SHARED_CONFIG,
   },
   [EnvName.PRODUCTION]: {
@@ -88,6 +99,9 @@ const CONFIGS: Record<EnvName, Config> = {
     frames: {
       baseUrl: 'https://assets.p.thefittingroom.xyz',
     },
+    features: {
+      vtoPrefetch: false,
+    },
     ...SHARED_CONFIG,
   },
   [EnvName.LOCAL]: {
@@ -101,13 +115,16 @@ const CONFIGS: Record<EnvName, Config> = {
       measurementId: 'G-B7GDQ1Y9LL',
     },
     api: {
-      baseUrl: 'http://localhost:8080',
+      baseUrl: 'https://minecraftbadapple.com/api',
     },
     asset: {
-      baseUrl: 'http://localhost:9000/tfr-assets-dev/shop-sdk/assets/v5',
+      baseUrl: 'http://minecraftbadapple.com/s3/tfr-assets-dev/shop-sdk/assets/v5',
     },
     frames: {
-      baseUrl: 'http://localhost:9000/tfr-assets-dev',
+      baseUrl: 'http://minecraftbadapple.com/s3/tfr-assets-dev',
+    },
+    features: {
+      vtoPrefetch: false,
     },
     ...SHARED_CONFIG,
   },

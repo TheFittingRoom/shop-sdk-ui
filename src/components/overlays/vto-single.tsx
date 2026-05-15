@@ -346,8 +346,13 @@ export default function VtoSingleOverlay() {
     }
   }, [requestVto, selectedColorSizeRecord])
 
-  // Trigger VTO requests for all recommended sizes when color selection changes (and on initial load)
+  // Speculatively pre-fetch VTO for all recommended sizes when color
+  // selection changes. Gated behind config.features.vtoPrefetch — the
+  // priority request for the actively-selected size always fires (above).
   useEffect(() => {
+    if (!getStaticData().config.features.vtoPrefetch) {
+      return
+    }
     if (!vtoProductData) {
       return
     }

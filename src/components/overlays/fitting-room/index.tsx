@@ -255,13 +255,16 @@ export default function FittingRoomOverlay() {
 
   // Fire VTO for the primary outfit + pre-warm alternates. Gated on auth and
   // an existing avatar — anonymous / no-avatar users can still browse but
-  // can't fire compositions (the redirect kicks in elsewhere).
+  // can't fire compositions (the redirect kicks in elsewhere). The alternate
+  // pre-warm is speculative and gated behind config.features.vtoPrefetch.
   useEffect(() => {
     if (!userIsLoggedIn || !userHasAvatar) return
     if (outfit.items.length === 0) return
     requestVtoComposition(toWireItems(outfit.items), true)
-    for (const alt of outfit.alternates) {
-      requestVtoComposition(toWireItems(alt), false)
+    if (getStaticData().config.features.vtoPrefetch) {
+      for (const alt of outfit.alternates) {
+        requestVtoComposition(toWireItems(alt), false)
+      }
     }
   }, [userIsLoggedIn, userHasAvatar, outfit, requestVtoComposition])
 

@@ -3,6 +3,21 @@
 //////////
 // source: avatar.go
 
+/**
+ * AvatarRenderResult is the synchronous response body from
+ * `POST {simvis.url}/v1/avatar`. Sim-vis used to deliver these fields via
+ * two separate PATCH webhooks (obj + frames + measurements + joints, then
+ * SDF alone); with the sync contract everything comes back in one payload.
+ * On render failure, Error is non-empty and the other fields may be zero.
+ */
+export interface AvatarRenderResult {
+  error: string;
+  measurements: { [key: string]: number /* float64 */};
+  joints: any /* requests.Joint */[];
+  frames_storage_path: string;
+  object_storage_path: string;
+  sdf_storage_path: string;
+}
 export interface Avatar {
   id: number /* int64 */;
   user_id?: string;
@@ -781,14 +796,30 @@ export interface FirestoreUser {
 
 /**
  * VtoCompositionResponse is the SDK ← backend response from POST
- * /v1/vto-compositions. The token is sim-vis's identifier (also the cache
- * key); status is "pending" when the render is in flight, "ready" when
- * the cache hit returned an already-rendered composition. composition_path
- * is the Firestore document path the SDK should subscribe to with
- * onSnapshot — `users/{uid}/vto_compositions/{token}`.
+ * /v1/vto-compositions. Token is the deterministic sha256 hash of the
+ * composition (also the row PK and Firestore doc id); status is "pending"
+ * when the render task is in flight, "ready" when an already-rendered
+ * composition was cache-hit. composition_path is the Firestore document
+ * path the SDK should subscribe to with onSnapshot —
+ * `users/{uid}/vto_compositions/{token}`.
  */
 export interface VtoCompositionResponse {
   token: string;
   status: string;
   composition_path: string;
+}
+/**
+ * VtoFramesResult is the synchronous response body from
+ * `POST {simvis.url}/frames`. Sim-vis used to deliver these fields via the
+ * PUT /vto-compositions/:token/frames webhook; with the sync contract the
+ * data comes back in the original call's response. The token is owned by
+ * the backend (it's the composition's content hash) so no token field is
+ * returned. On render failure, Error is non-empty and frames_storage_path
+ * / frame_count are zero.
+ */
+export interface VtoFramesResult {
+  avatar_id: number /* int64 */;
+  error: string;
+  frames_storage_path: string;
+  frame_count: number /* int */;
 }
