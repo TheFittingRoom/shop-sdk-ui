@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/button'
 import { Text } from '@/components/text'
-import { InfoIcon, SelectedItemsIcon, ZoomIcon } from '@/lib/asset'
+import { SelectedItemsIcon, TuckIcon, ZoomIcon } from '@/lib/asset'
 import { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useTranslation } from '@/lib/locale'
 import { useCss } from '@/lib/theme'
@@ -11,6 +11,9 @@ interface AvatarControlsProps {
   hasTuckable: boolean
   forceUntuck: boolean
   zoomed: boolean
+  // When false, pills collapse to icon-only. The popover, when open, keeps the
+  // "See Selected Items" pill expanded so the popover still has its anchor.
+  expanded: boolean
   onToggleUntuck: () => void
   onToggleZoom: () => void
   onRemoveItem: (externalId: string) => void
@@ -25,6 +28,7 @@ export function AvatarControls({
   hasTuckable,
   forceUntuck,
   zoomed,
+  expanded,
   onToggleUntuck,
   onToggleZoom,
   onRemoveItem,
@@ -74,11 +78,26 @@ export function AvatarControls({
       cursor: 'pointer',
       userSelect: 'none',
       WebkitUserSelect: 'none',
+      transition: 'padding 500ms cubic-bezier(0.22, 1, 0.36, 1), gap 500ms cubic-bezier(0.22, 1, 0.36, 1)',
+    },
+    pillCollapsed: {
+      padding: '8px',
+      gap: 0,
     },
     pillIcon: {
       width: '14px',
       height: '14px',
       flex: 'none',
+    },
+    pillLabel: {
+      overflow: 'hidden',
+      whiteSpace: 'nowrap',
+      maxWidth: '200px',
+      transition: 'max-width 500ms cubic-bezier(0.22, 1, 0.36, 1), opacity 400ms ease-out',
+    },
+    pillLabelCollapsed: {
+      maxWidth: 0,
+      opacity: 0,
     },
     popover: {
       position: 'absolute',
@@ -124,11 +143,20 @@ export function AvatarControls({
     },
   }))
 
+  // The See Selected Items pill stays expanded while its popover is open so
+  // the popover keeps a stable anchor; other pills follow the hover state.
+  const seeExpanded = expanded || popoverOpen
+  const pillCss = (isExpanded: boolean) => (isExpanded ? css.pill : { ...css.pill, ...css.pillCollapsed })
+  const labelCss = (isExpanded: boolean) =>
+    isExpanded ? css.pillLabel : { ...css.pillLabel, ...css.pillLabelCollapsed }
+
   const seePill = (
     <div ref={popoverWrapperRef} style={{ position: 'relative' }}>
-      <Button variant="base" css={css.pill} onClick={handleTogglePopover}>
+      <Button variant="base" css={pillCss(seeExpanded)} onClick={handleTogglePopover}>
         <SelectedItemsIcon css={css.pillIcon} />
-        <Text variant="base">{t('fitting_room.see_selected_items')}</Text>
+        <Text variant="base" css={labelCss(seeExpanded)}>
+          {t('fitting_room.see_selected_items')}
+        </Text>
       </Button>
       {popoverOpen ? (
         <div css={css.popover}>
@@ -162,16 +190,16 @@ export function AvatarControls({
     <div css={css.wrapper}>
       {seePill}
       {hasTuckable ? (
-        <Button variant="base" css={css.pill} onClick={onToggleUntuck}>
-          <InfoIcon css={css.pillIcon} />
-          <Text variant="base">
+        <Button variant="base" css={pillCss(expanded)} onClick={onToggleUntuck}>
+          <TuckIcon css={css.pillIcon} />
+          <Text variant="base" css={labelCss(expanded)}>
             {t(forceUntuck ? 'fitting_room.tuck_in' : 'fitting_room.untuck')}
           </Text>
         </Button>
       ) : null}
-      <Button variant="base" css={css.pill} onClick={onToggleZoom}>
+      <Button variant="base" css={pillCss(expanded)} onClick={onToggleZoom}>
         <ZoomIcon css={css.pillIcon} />
-        <Text variant="base">
+        <Text variant="base" css={labelCss(expanded)}>
           {t(zoomed ? 'fitting_room.zoom_out' : 'fitting_room.zoom_in')}
         </Text>
       </Button>

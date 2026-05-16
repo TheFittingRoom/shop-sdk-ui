@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { LinkT } from '@/components/link'
+import { TfrIcon } from '@/lib/asset'
 import { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useCss } from '@/lib/theme'
 import { Availability } from './availability'
@@ -66,6 +67,9 @@ export function DesktopLayout({
 }: DesktopLayoutProps) {
   const hasSelection = selectedItems.length > 0
   const hasTuckable = selectedItems.some((i) => i.styleCategory?.tuckable)
+  // Avatar-pane hover collapses the AvatarControls pills to icon-only when
+  // the cursor isn't over the image pane.
+  const [avatarHovered, setAvatarHovered] = useState<boolean>(false)
 
   // Measure container height so we can derive a width for the avatar column
   // that matches the portrait frame aspect (mirrors what vto-single's Avatar
@@ -133,9 +137,22 @@ export function DesktopLayout({
       justifyContent: 'flex-end',
       paddingBottom: '4px',
     },
+    signOutWrapper: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '8px',
+      cursor: 'pointer',
+      color: _theme.color_tfr_800,
+    },
+    signOutIcon: {
+      width: '12px',
+      height: '22px',
+      fill: _theme.color_tfr_800,
+      flex: 'none',
+    },
     signOut: {
-      fontSize: '12px',
-      letterSpacing: '0.3px',
+      color: _theme.color_tfr_800,
+      fontSize: '14px',
     },
   }))
 
@@ -145,6 +162,7 @@ export function DesktopLayout({
       hasTuckable={hasTuckable}
       forceUntuck={forceUntuck}
       zoomed={zoomed}
+      expanded={avatarHovered}
       onToggleUntuck={onToggleUntuck}
       onToggleZoom={onToggleZoom}
       onRemoveItem={onRemoveItem}
@@ -153,7 +171,11 @@ export function DesktopLayout({
 
   return (
     <div ref={containerRef} css={css.container} style={{ gridTemplateColumns }}>
-      <div css={css.avatarColumn}>
+      <div
+        css={css.avatarColumn}
+        onMouseEnter={() => setAvatarHovered(true)}
+        onMouseLeave={() => setAvatarHovered(false)}
+      >
         <AvatarPane hasSelection={hasSelection} frameUrls={frameUrls} controls={controls} />
       </div>
       {!zoomed && hasSelection ? (
@@ -176,7 +198,10 @@ export function DesktopLayout({
       {!zoomed ? (
         <div css={css.railsColumn}>
           <div css={css.railsHeader}>
-            <LinkT variant="underline" css={css.signOut} t="fitting_room.sign_out" onClick={onSignOut} />
+            <span css={css.signOutWrapper} onClick={onSignOut}>
+              <TfrIcon css={css.signOutIcon} />
+              <LinkT variant="underline" css={css.signOut} t="fitting_room.sign_out" />
+            </span>
           </div>
           {resolved.groups.map((group) => (
             <CardRail
