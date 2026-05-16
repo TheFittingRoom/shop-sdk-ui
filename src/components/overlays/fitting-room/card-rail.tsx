@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { Button } from '@/components/button'
 import { Text } from '@/components/text'
 import { ResolvedFittingRoomGroup } from '@/lib/fitting-room-data'
 import { useCss } from '@/lib/theme'
 import { Availability } from './availability'
+import { Chevron } from './chevron'
 import { ProductCard } from './product-card'
 
 interface CardRailProps {
@@ -16,9 +17,45 @@ interface CardRailProps {
 
 // CardRail renders one style-category group as a collapsible section. The
 // items inside scroll horizontally on desktop (`layout='horizontal'`) and wrap
-// into a 2-column grid on mobile (`layout='grid'`).
+// into a 2-column grid on mobile (`layout='grid'`). When the horizontal rail
+// overflows, a translucent chevron handle appears on whichever edge can still
+// be scrolled.
 export function CardRail({ group, availabilityByExternalId, onSelectItem, onRemoveItem, layout }: CardRailProps) {
   const [collapsed, setCollapsed] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  // Recompute which scroll-edge affordances to show. Cheap — most scroll
+  // events leave the booleans unchanged so React bails on the re-render.
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) {
+      setCanScrollLeft(false)
+      setCanScrollRight(false)
+      return
+    }
+    setCanScrollLeft(el.scrollLeft > 1)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
+  }, [])
+
+  // Re-measure on mount, on container resize, and when the item set or
+  // collapsed state changes (all of which can change scrollWidth).
+  useLayoutEffect(() => {
+    if (layout !== 'horizontal' || collapsed) return
+    const el = scrollRef.current
+    if (!el) return
+    updateScrollState()
+    const observer = new ResizeObserver(updateScrollState)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [layout, collapsed, group.items, updateScrollState])
+
+  const scrollByPage = useCallback((dir: 1 | -1) => {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' })
+  }, [])
 
   const css = useCss((theme) => ({
     container: {
@@ -29,18 +66,25 @@ export function CardRail({ group, availabilityByExternalId, onSelectItem, onRemo
     header: {
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-start',
+      gap: '6px',
       padding: '8px 0',
-      borderBottom: `1px solid ${theme.color_fg_text}`,
+      width: '100%',
     },
     headerLabel: {
-      fontSize: '12px',
-      fontWeight: '600',
+      fontSize: '14px',
+      fontWeight: '400',
       letterSpacing: '0.5px',
       textTransform: 'uppercase',
     },
     chevron: {
-      fontSize: '12px',
+      display: 'inline-flex',
+      alignItems: 'center',
+      color: theme.color_fg_text,
+      flex: 'none',
+    },
+    scrollWrapper: {
+      position: 'relative',
     },
     horizontal: {
       display: 'flex',
@@ -48,6 +92,11 @@ export function CardRail({ group, availabilityByExternalId, onSelectItem, onRemo
       gap: '8px',
       overflowX: 'auto',
       padding: '4px 0',
+      // Native scrollbar hidden — the chevron handles are the affordance.
+      scrollbarWidth: 'none',
+      '&::-webkit-scrollbar': {
+        display: 'none',
+      },
     },
     grid: {
       display: 'grid',
@@ -55,7 +104,40 @@ export function CardRail({ group, availabilityByExternalId, onSelectItem, onRemo
       gap: '8px',
       padding: '4px 0',
     },
+    scrollHandle: {
+      position: 'absolute',
+      top: '4px',
+      bottom: '4px',
+      width: '32px',
+      padding: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      // A grey tint (not pure white) so the handle stays visible even when
+      // it overlaps a product image with a white background.
+      backgroundColor: 'rgba(228, 228, 228, 0.62)',
+      border: 'none',
+      cursor: 'pointer',
+      color: theme.color_fg_text,
+      zIndex: 2,
+    },
+    scrollHandleLeft: {
+      left: 0,
+    },
+    scrollHandleRight: {
+      right: 0,
+    },
   }))
+
+  const cards = group.items.map((item) => (
+    <ProductCard
+      key={item.externalId}
+      item={item}
+      availability={availabilityByExternalId[item.externalId] ?? 'disabled'}
+      onClick={() => onSelectItem(item.externalId)}
+      onRemove={() => onRemoveItem(item.externalId)}
+    />
+  ))
 
   return (
     <div css={css.container}>
@@ -63,20 +145,36 @@ export function CardRail({ group, availabilityByExternalId, onSelectItem, onRemo
         <Text variant="base" css={css.headerLabel}>
           {group.group.label}
         </Text>
-        <span css={css.chevron}>{collapsed ? '⌄' : '⌃'}</span>
+        <span css={css.chevron}>
+          <Chevron direction={collapsed ? 'down' : 'up'} />
+        </span>
       </Button>
-      {collapsed ? null : (
-        <div css={layout === 'horizontal' ? css.horizontal : css.grid}>
-          {group.items.map((item) => (
-            <ProductCard
-              key={item.externalId}
-              item={item}
-              availability={availabilityByExternalId[item.externalId] ?? 'disabled'}
-              onClick={() => onSelectItem(item.externalId)}
-              onRemove={() => onRemoveItem(item.externalId)}
-            />
-          ))}
+      {collapsed ? null : layout === 'horizontal' ? (
+        <div css={css.scrollWrapper}>
+          {canScrollLeft ? (
+            <Button
+              variant="base"
+              css={{ ...css.scrollHandle, ...css.scrollHandleLeft }}
+              onClick={() => scrollByPage(-1)}
+            >
+              <Chevron direction="left" size={20} />
+            </Button>
+          ) : null}
+          <div ref={scrollRef} css={css.horizontal} onScroll={updateScrollState}>
+            {cards}
+          </div>
+          {canScrollRight ? (
+            <Button
+              variant="base"
+              css={{ ...css.scrollHandle, ...css.scrollHandleRight }}
+              onClick={() => scrollByPage(1)}
+            >
+              <Chevron direction="right" size={20} />
+            </Button>
+          ) : null}
         </div>
+      ) : (
+        <div css={css.grid}>{cards}</div>
       )}
     </div>
   )

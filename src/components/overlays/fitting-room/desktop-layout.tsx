@@ -14,7 +14,9 @@ import { DetailMode } from './detail-accordion-item'
 // avatar column by computing width = available height * (2/3); the details
 // and rails columns then split what's left.
 const AVATAR_ASPECT_RATIO = 2 / 3
-const CONTAINER_PADDING_PX = 16
+// Edge inset for the detail and rails columns. The avatar column has no
+// inset — it sits flush to the overlay's top, left and bottom edges.
+const EDGE_INSET_PX = 16
 const AVATAR_MIN_WIDTH_PX = 240
 const AVATAR_MAX_WIDTH_PX = 560
 // Details/cards split: details has a 350px floor so the size pills + fit
@@ -31,6 +33,8 @@ interface DesktopLayoutProps {
   openAccordionItemId: string | null
   detailMode: DetailMode
   forceUntuck: boolean
+  // The outfit has something to tuck into — computed in FittingRoomOverlay.
+  canTuck: boolean
   zoomed: boolean
   frameUrls: string[] | null
   onSelectItem: (externalId: string) => void
@@ -53,6 +57,7 @@ export function DesktopLayout({
   openAccordionItemId,
   detailMode,
   forceUntuck,
+  canTuck,
   zoomed,
   frameUrls,
   onSelectItem,
@@ -66,7 +71,6 @@ export function DesktopLayout({
   onSignOut,
 }: DesktopLayoutProps) {
   const hasSelection = selectedItems.length > 0
-  const hasTuckable = selectedItems.some((i) => i.styleCategory?.tuckable)
   // Avatar-pane hover collapses the AvatarControls pills to icon-only when
   // the cursor isn't over the image pane.
   const [avatarHovered, setAvatarHovered] = useState<boolean>(false)
@@ -85,7 +89,9 @@ export function DesktopLayout({
     const el = containerRef.current
     if (!el) return
     const observer = new ResizeObserver(() => {
-      const availableHeightPx = el.clientHeight - CONTAINER_PADDING_PX * 2
+      // The grid container has no padding — the avatar cell spans the full
+      // overlay height, flush to the top and bottom edges.
+      const availableHeightPx = el.clientHeight
       if (availableHeightPx <= 0) return
       const target = Math.floor(availableHeightPx * AVATAR_ASPECT_RATIO)
       setAvatarWidth(Math.min(AVATAR_MAX_WIDTH_PX, Math.max(AVATAR_MIN_WIDTH_PX, target)))
@@ -109,7 +115,10 @@ export function DesktopLayout({
       gap: '16px',
       width: '100%',
       height: '100%',
-      padding: `${CONTAINER_PADDING_PX}px`,
+      // No padding — the avatar column sits flush to the overlay's top,
+      // left and bottom edges. The detail and rails columns carry their own
+      // edge insets instead.
+      padding: 0,
       boxSizing: 'border-box',
       overflow: 'hidden',
     },
@@ -117,27 +126,36 @@ export function DesktopLayout({
       minWidth: 0,
       minHeight: 0,
     },
+    // detail/rails paddingTop values are tuned so the first accordion title
+    // ("Top") and the first card-rail header ("TOPS") sit on the same line:
+    // 20 + 14 (detail header pad) == 26 + 8 (rail header pad) == 34px.
     detailColumn: {
       minWidth: 0,
       minHeight: 0,
       overflowY: 'auto',
-      padding: '0 8px',
+      padding: `20px 8px ${EDGE_INSET_PX}px`,
     },
     railsColumn: {
+      position: 'relative',
       minWidth: 0,
       minHeight: 0,
       overflowY: 'auto',
       display: 'flex',
       flexDirection: 'column',
       gap: '24px',
-      padding: '0 8px',
+      padding: `26px ${EDGE_INSET_PX}px ${EDGE_INSET_PX}px 8px`,
     },
-    railsHeader: {
-      display: 'flex',
-      justifyContent: 'flex-end',
-      paddingBottom: '4px',
-    },
+    // Sign-out is overlaid on the top-right corner of the rails column so it
+    // shares a row with the first card-rail header rather than reserving its
+    // own row. It scrolls away with the content, which is fine — it only
+    // needs to overlap that first header.
     signOutWrapper: {
+      position: 'absolute',
+      // Near the overlay top, partially overlapping the first card-rail
+      // header row below it.
+      top: '15px',
+      right: '24px',
+      zIndex: 3,
       display: 'inline-flex',
       alignItems: 'center',
       gap: '8px',
@@ -159,7 +177,7 @@ export function DesktopLayout({
   const controls = hasSelection ? (
     <AvatarControls
       selectedItems={selectedItems}
-      hasTuckable={hasTuckable}
+      canTuck={canTuck}
       forceUntuck={forceUntuck}
       zoomed={zoomed}
       expanded={avatarHovered}
@@ -187,6 +205,7 @@ export function DesktopLayout({
             detailMode={detailMode}
             isMobileQuickRow={false}
             forceUntuck={forceUntuck}
+            canTuck={canTuck}
             onOpenItem={onOpenAccordionItem}
             onChangeDetailMode={onChangeDetailMode}
             onChangeSize={onChangeSize}
@@ -197,12 +216,10 @@ export function DesktopLayout({
       ) : null}
       {!zoomed ? (
         <div css={css.railsColumn}>
-          <div css={css.railsHeader}>
-            <span css={css.signOutWrapper} onClick={onSignOut}>
-              <TfrIcon css={css.signOutIcon} />
-              <LinkT variant="underline" css={css.signOut} t="fitting_room.sign_out" />
-            </span>
-          </div>
+          <span css={css.signOutWrapper} onClick={onSignOut}>
+            <TfrIcon css={css.signOutIcon} />
+            <LinkT variant="underline" css={css.signOut} t="fitting_room.sign_out" />
+          </span>
           {resolved.groups.map((group) => (
             <CardRail
               key={group.group.name}

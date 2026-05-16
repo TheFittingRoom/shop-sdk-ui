@@ -99,6 +99,26 @@ export default function FittingRoomOverlay() {
     return indexed.map(({ item }) => item)
   }, [resolved.items, selectedExternalIds])
 
+  // canTuck: the tuck/untuck control (desktop pill + mobile per-item CTA) is
+  // only meaningful when the outfit actually has something to tuck into — a
+  // tuckable garment AND a non-tuckable garment layered above its tucked
+  // position. A tuckable top with no bottom selected has nothing to tuck in
+  // to, so every tuck control stays hidden.
+  const canTuck = useMemo<boolean>(
+    () =>
+      selectedItems.some(
+        (top) =>
+          !!top.styleCategory?.tuckable &&
+          selectedItems.some(
+            (other) =>
+              !!other.styleCategory &&
+              !other.styleCategory.tuckable &&
+              other.styleCategory.layer_order > top.styleCategory!.layer_order,
+          ),
+      ),
+    [selectedItems],
+  )
+
   // Availability map for every fitting-room item.
   const availabilityByExternalId = useMemo<Record<string, Availability>>(() => {
     const out: Record<string, Availability> = {}
@@ -446,6 +466,7 @@ export default function FittingRoomOverlay() {
             openAccordionItemId={openAccordionItemId}
             detailMode={detailMode}
             forceUntuck={forceUntuck}
+            canTuck={canTuck}
             frameUrls={frameUrls}
             sheetSnap={sheetSnap}
             sheetTouchStart={sheetTouchStart}
@@ -467,6 +488,7 @@ export default function FittingRoomOverlay() {
             openAccordionItemId={openAccordionItemId}
             detailMode={detailMode}
             forceUntuck={forceUntuck}
+            canTuck={canTuck}
             zoomed={zoomed}
             frameUrls={frameUrls}
             onSelectItem={handleSelectItem}

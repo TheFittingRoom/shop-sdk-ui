@@ -10,6 +10,7 @@ import { VtoProductData } from '@/components/product-sizing-types'
 import { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useTranslation } from '@/lib/locale'
 import { useCss } from '@/lib/theme'
+import { Chevron } from './chevron'
 import { buildVtoProductDataFromResolved } from './product-data'
 
 export type DetailMode = 'compact' | 'expanded'
@@ -20,6 +21,8 @@ interface DetailAccordionItemProps {
   isOpen: boolean
   platform: Platform
   forceUntuck: boolean
+  // The outfit has something to tuck into — gates the mobile tuck CTA.
+  canTuck: boolean
   // Mobile-only — desktop ignores these.
   detailMode: DetailMode
   isMobileQuickRow: boolean
@@ -35,6 +38,7 @@ export function DetailAccordionItem({
   isOpen,
   platform,
   forceUntuck,
+  canTuck,
   detailMode,
   isMobileQuickRow,
   onToggleOpen,
@@ -71,7 +75,9 @@ export function DetailAccordionItem({
 
   const categoryLabel = item.styleCategory?.label_singular ?? item.styleCategory?.label ?? ''
   const productName = item.merchantProduct?.productName ?? item.externalId
-  const tuckable = !!item.styleCategory?.tuckable
+  // Mobile tuck CTA shows only when this item is tuckable AND the outfit has
+  // a garment to tuck into (see canTuck in FittingRoomOverlay).
+  const tuckable = !!item.styleCategory?.tuckable && canTuck
 
   if (platform === 'desktop') {
     return (
@@ -159,12 +165,6 @@ function DesktopAccordionItem({
       color: theme.color_fg_text,
       flex: 'none',
     },
-    chevronIcon: {
-      transition: 'transform 200ms ease',
-    },
-    chevronIconOpen: {
-      transform: 'rotate(180deg)',
-    },
     body: {
       display: 'flex',
       flexDirection: 'column',
@@ -232,21 +232,7 @@ function DesktopAccordionItem({
           {categoryLabel}
         </Text>
         <span css={css.chevron}>
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            css={isOpen ? { ...css.chevronIcon, ...css.chevronIconOpen } : css.chevronIcon}
-          >
-            <path
-              d="M6 9L12 15L18 9"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <Chevron direction={isOpen ? 'up' : 'down'} />
         </span>
       </Button>
       {!isOpen ? null : (

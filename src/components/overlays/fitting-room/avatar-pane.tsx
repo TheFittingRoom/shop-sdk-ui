@@ -74,11 +74,12 @@ export function AvatarPane({ frameUrls, hasSelection, controls }: AvatarPaneProp
     )
   }
 
+  // Loading state — controls are intentionally hidden here. There's no
+  // rendered outfit to act on yet, so the pills would be controlling nothing.
   if (hasSelection) {
     return (
       <div css={css.container}>
         <Loading t="vto-single.avatar_loading" />
-        {controls}
       </div>
     )
   }

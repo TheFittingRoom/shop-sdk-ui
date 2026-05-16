@@ -8,7 +8,8 @@ import { useCss } from '@/lib/theme'
 
 interface AvatarControlsProps {
   selectedItems: ResolvedFittingRoomItem[]
-  hasTuckable: boolean
+  // The outfit has something to tuck into — see canTuck in desktop-layout.
+  canTuck: boolean
   forceUntuck: boolean
   zoomed: boolean
   // When false, pills collapse to icon-only. The popover, when open, keeps the
@@ -25,7 +26,7 @@ interface AvatarControlsProps {
 // tuckable), and Zoom In/Out.
 export function AvatarControls({
   selectedItems,
-  hasTuckable,
+  canTuck,
   forceUntuck,
   zoomed,
   expanded,
@@ -192,7 +193,7 @@ export function AvatarControls({
   return (
     <div css={css.wrapper}>
       {seePill}
-      {hasTuckable ? (
+      {canTuck ? (
         <Button variant="base" css={pillCss(expanded)} onClick={onToggleUntuck}>
           <TuckIcon css={css.pillIcon} />
           <Text variant="base" css={labelCss(expanded)}>

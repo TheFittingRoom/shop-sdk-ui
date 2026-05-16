@@ -21,6 +21,8 @@ interface MobileLayoutProps {
   openAccordionItemId: string | null
   detailMode: DetailMode
   forceUntuck: boolean
+  // The outfit has something to tuck into — computed in FittingRoomOverlay.
+  canTuck: boolean
   frameUrls: string[] | null
   sheetSnap: SheetSnap
   sheetTouchStart: (e: React.TouchEvent<HTMLElement>) => void
@@ -46,6 +48,7 @@ export function MobileLayout({
   openAccordionItemId,
   detailMode,
   forceUntuck,
+  canTuck,
   frameUrls,
   sheetSnap,
   sheetTouchStart,
@@ -77,6 +80,7 @@ export function MobileLayout({
       openAccordionItemId={openAccordionItemId}
       detailMode={detailMode}
       forceUntuck={forceUntuck}
+      canTuck={canTuck}
       frameUrls={frameUrls}
       sheetSnap={sheetSnap}
       sheetTouchStart={sheetTouchStart}
@@ -153,6 +157,7 @@ function TryOnView({
   openAccordionItemId,
   detailMode,
   forceUntuck,
+  canTuck,
   frameUrls,
   sheetSnap,
   sheetTouchStart,
@@ -167,6 +172,7 @@ function TryOnView({
   openAccordionItemId: string | null
   detailMode: DetailMode
   forceUntuck: boolean
+  canTuck: boolean
   frameUrls: string[] | null
   sheetSnap: SheetSnap
   sheetTouchStart: (e: React.TouchEvent<HTMLElement>) => void
@@ -287,6 +293,7 @@ function TryOnView({
                 detailMode={detailMode}
                 isMobileQuickRow={isMobileQuickRow}
                 forceUntuck={forceUntuck}
+                canTuck={canTuck}
                 onOpenItem={onOpenAccordionItem}
                 onChangeDetailMode={onChangeDetailMode}
                 onChangeSize={onChangeSize}

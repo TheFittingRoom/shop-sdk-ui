@@ -9,6 +9,8 @@ interface DetailAccordionProps {
   detailMode: DetailMode
   isMobileQuickRow: boolean
   forceUntuck: boolean
+  // The outfit has something to tuck into — gates the mobile tuck CTA.
+  canTuck: boolean
   onOpenItem: (externalId: string | null) => void
   onChangeDetailMode: (mode: DetailMode) => void
   onChangeSize: (externalId: string, sizeLabel: string) => void
@@ -26,6 +28,7 @@ export function DetailAccordion({
   detailMode,
   isMobileQuickRow,
   forceUntuck,
+  canTuck,
   onOpenItem,
   onChangeDetailMode,
   onChangeSize,
@@ -54,6 +57,7 @@ export function DetailAccordion({
             detailMode={detailMode}
             isMobileQuickRow={isMobileQuickRow}
             forceUntuck={forceUntuck}
+            canTuck={canTuck}
             onToggleOpen={() => onOpenItem(isOpen ? null : item.externalId)}
             onChangeDetailMode={onChangeDetailMode}
             onChangeSize={(label) => onChangeSize(item.externalId, label)}
