@@ -130,39 +130,54 @@ function DesktopAccordionItem({
   onChangeSize,
   onAddToCart,
 }: DesktopProps) {
+  // Subtle neutral grey used both as the accordion header background and as
+  // the body's 3-sided border when open — gives the visible "frame" around
+  // the open item that matches the Figma design.
+  const ACCORDION_SHADE = '#F4F4F4'
+
   const css = useCss((theme) => ({
     container: {
       display: 'flex',
       flexDirection: 'column',
-      borderBottom: `1px solid ${theme.color_fg_text}`,
     },
     header: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '14px 4px',
+      padding: '14px 20px',
       width: '100%',
       gap: '8px',
+      backgroundColor: ACCORDION_SHADE,
     },
     categoryLabel: {
-      fontSize: '12px',
-      fontWeight: '600',
-      letterSpacing: '0.5px',
-      textTransform: 'uppercase',
+      fontSize: '16px',
+      fontWeight: '400',
     },
     chevron: {
-      fontSize: '12px',
+      display: 'inline-flex',
+      alignItems: 'center',
+      color: theme.color_fg_text,
+      flex: 'none',
+    },
+    chevronIcon: {
+      transition: 'transform 200ms ease',
+    },
+    chevronIconOpen: {
+      transform: 'rotate(180deg)',
     },
     body: {
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center',
-      gap: '12px',
-      padding: '8px 16px 24px 16px',
-      textAlign: 'center',
+      alignItems: 'stretch',
+      gap: '14px',
+      padding: '20px 24px 24px 24px',
+      textAlign: 'left',
+      borderLeft: `1px solid ${ACCORDION_SHADE}`,
+      borderRight: `1px solid ${ACCORDION_SHADE}`,
+      borderBottom: `1px solid ${ACCORDION_SHADE}`,
     },
     productName: {
-      fontSize: '22px',
+      fontSize: '24px',
       lineHeight: '1.2',
     },
     price: {
@@ -170,7 +185,6 @@ function DesktopAccordionItem({
     },
     sizeBox: {
       width: '100%',
-      maxWidth: '320px',
       border: `1px solid ${theme.color_fg_text}`,
       padding: '20px 24px',
       display: 'flex',
@@ -178,6 +192,7 @@ function DesktopAccordionItem({
       alignItems: 'center',
       gap: '12px',
       marginTop: '8px',
+      textAlign: 'center',
     },
     recommendedSize: {
       fontSize: '13px',
@@ -200,11 +215,10 @@ function DesktopAccordionItem({
     },
     cartContainer: {
       width: '100%',
-      maxWidth: '320px',
-      marginTop: '16px',
+      marginTop: '8px',
     },
     description: {
-      fontSize: '12px',
+      fontSize: '13px',
       lineHeight: '1.5',
       textAlign: 'left',
       marginTop: '8px',
@@ -217,7 +231,23 @@ function DesktopAccordionItem({
         <Text variant="base" css={css.categoryLabel}>
           {categoryLabel}
         </Text>
-        <span css={css.chevron}>{isOpen ? '⌃' : '⌄'}</span>
+        <span css={css.chevron}>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            css={isOpen ? { ...css.chevronIcon, ...css.chevronIconOpen } : css.chevronIcon}
+          >
+            <path
+              d="M6 9L12 15L18 9"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
       </Button>
       {!isOpen ? null : (
         <div css={css.body}>

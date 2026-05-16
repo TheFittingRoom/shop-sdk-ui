@@ -36,6 +36,9 @@ export function DetailAccordion({
     container: {
       display: 'flex',
       flexDirection: 'column',
+      // Small gap so a collapsed item's header sits slightly apart from the
+      // next item's header rather than abutting it.
+      gap: '2px',
     },
   }))
   return (

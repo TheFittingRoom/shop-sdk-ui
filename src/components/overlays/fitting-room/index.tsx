@@ -83,11 +83,21 @@ export default function FittingRoomOverlay() {
     }
   }, [])
 
-  // selectedItems: resolved items in their fitting-room order, filtered by selection set.
-  const selectedItems = useMemo<ResolvedFittingRoomItem[]>(
-    () => resolved.items.filter((item) => selectedExternalIds.has(item.externalId)),
-    [resolved.items, selectedExternalIds],
-  )
+  // selectedItems: sorted by style-category group display_order, with stable
+  // fitting-room order as the tiebreaker so items added within the same group
+  // keep a deterministic position.
+  const selectedItems = useMemo<ResolvedFittingRoomItem[]>(() => {
+    const indexed = resolved.items
+      .map((item, idx) => ({ item, idx }))
+      .filter(({ item }) => selectedExternalIds.has(item.externalId))
+    indexed.sort((a, b) => {
+      const aOrder = a.item.styleCategoryGroup?.display_order ?? Number.MAX_SAFE_INTEGER
+      const bOrder = b.item.styleCategoryGroup?.display_order ?? Number.MAX_SAFE_INTEGER
+      if (aOrder !== bOrder) return aOrder - bOrder
+      return a.idx - b.idx
+    })
+    return indexed.map(({ item }) => item)
+  }, [resolved.items, selectedExternalIds])
 
   // Availability map for every fitting-room item.
   const availabilityByExternalId = useMemo<Record<string, Availability>>(() => {
@@ -227,24 +237,16 @@ export default function FittingRoomOverlay() {
     setMobileMode('browse')
   }, [])
 
-  // Default-open: when the open item is no longer selected (or none open),
-  // default to the most recently selected item on desktop.
+  // Clear the open-accordion id when it points at an item that's no longer
+  // selected. New selections auto-open their own accordion in
+  // handleSelectItem — this effect must NOT re-open on its own, otherwise
+  // collapsing the last open section would immediately spring back open.
+  // All sections collapsed is a valid state.
   useEffect(() => {
-    if (isMobileLayout) return
-    if (openAccordionItemId && selectedExternalIds.has(openAccordionItemId)) return
-    if (selectedItems.length === 0) {
-      if (openAccordionItemId !== null) setOpenAccordionItemId(null)
-      return
+    if (openAccordionItemId && !selectedExternalIds.has(openAccordionItemId)) {
+      setOpenAccordionItemId(null)
     }
-    // Most recently selected = highest addedAt across selected.
-    let mostRecent: ResolvedFittingRoomItem | null = null
-    for (const item of selectedItems) {
-      if (!mostRecent || item.storage.addedAt > mostRecent.storage.addedAt) {
-        mostRecent = item
-      }
-    }
-    if (mostRecent) setOpenAccordionItemId(mostRecent.externalId)
-  }, [isMobileLayout, openAccordionItemId, selectedExternalIds, selectedItems])
+  }, [openAccordionItemId, selectedExternalIds])
 
   // Derive the current outfit. Memoized so identity is stable when nothing
   // material changed (avoids re-firing the request effect on every render).

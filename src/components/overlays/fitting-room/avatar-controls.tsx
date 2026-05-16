@@ -93,11 +93,14 @@ export function AvatarControls({
       overflow: 'hidden',
       whiteSpace: 'nowrap',
       maxWidth: '200px',
-      transition: 'max-width 500ms cubic-bezier(0.22, 1, 0.36, 1), opacity 400ms ease-out',
+      // No opacity transition — animating opacity alongside the max-width
+      // clip rendered the text at fractional opacity while it reflowed each
+      // frame, which subpixel-shimmered. The max-width clip alone reveals
+      // the label cleanly at full opacity.
+      transition: 'max-width 500ms cubic-bezier(0.22, 1, 0.36, 1)',
     },
     pillLabelCollapsed: {
       maxWidth: 0,
-      opacity: 0,
     },
     popover: {
       position: 'absolute',
