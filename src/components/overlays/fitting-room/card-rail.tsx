@@ -12,15 +12,13 @@ interface CardRailProps {
   availabilityByExternalId: Record<string, Availability>
   onSelectItem: (externalId: string) => void
   onRemoveItem: (externalId: string) => void
-  layout: 'horizontal' | 'grid'
 }
 
 // CardRail renders one style-category group as a collapsible section. The
-// items inside scroll horizontally on desktop (`layout='horizontal'`) and wrap
-// into a 2-column grid on mobile (`layout='grid'`). When the horizontal rail
-// overflows, a translucent chevron handle appears on whichever edge can still
-// be scrolled.
-export function CardRail({ group, availabilityByExternalId, onSelectItem, onRemoveItem, layout }: CardRailProps) {
+// items always sit in a single horizontally-scrolling row (desktop and
+// mobile alike). When the row overflows, a translucent chevron handle
+// appears on whichever edge can still be scrolled.
+export function CardRail({ group, availabilityByExternalId, onSelectItem, onRemoveItem }: CardRailProps) {
   const [collapsed, setCollapsed] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
@@ -42,14 +40,14 @@ export function CardRail({ group, availabilityByExternalId, onSelectItem, onRemo
   // Re-measure on mount, on container resize, and when the item set or
   // collapsed state changes (all of which can change scrollWidth).
   useLayoutEffect(() => {
-    if (layout !== 'horizontal' || collapsed) return
+    if (collapsed) return
     const el = scrollRef.current
     if (!el) return
     updateScrollState()
     const observer = new ResizeObserver(updateScrollState)
     observer.observe(el)
     return () => observer.disconnect()
-  }, [layout, collapsed, group.items, updateScrollState])
+  }, [collapsed, group.items, updateScrollState])
 
   const scrollByPage = useCallback((dir: 1 | -1) => {
     const el = scrollRef.current
@@ -98,12 +96,6 @@ export function CardRail({ group, availabilityByExternalId, onSelectItem, onRemo
         display: 'none',
       },
     },
-    grid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(2, 1fr)',
-      gap: '8px',
-      padding: '4px 0',
-    },
     scrollHandle: {
       position: 'absolute',
       top: '4px',
@@ -149,7 +141,7 @@ export function CardRail({ group, availabilityByExternalId, onSelectItem, onRemo
           <Chevron direction={collapsed ? 'down' : 'up'} />
         </span>
       </Button>
-      {collapsed ? null : layout === 'horizontal' ? (
+      {collapsed ? null : (
         <div css={css.scrollWrapper}>
           {canScrollLeft ? (
             <Button
@@ -173,8 +165,6 @@ export function CardRail({ group, availabilityByExternalId, onSelectItem, onRemo
             </Button>
           ) : null}
         </div>
-      ) : (
-        <div css={css.grid}>{cards}</div>
       )}
     </div>
   )

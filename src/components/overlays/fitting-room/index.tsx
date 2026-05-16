@@ -395,8 +395,12 @@ export default function FittingRoomOverlay() {
     },
   }))
 
+  // Browse mode sits below the merchant's page header (topOffset). Try-on
+  // mode goes fullscreen — top: 0 — so the avatar image is flush with the
+  // top of the screen.
+  const isMobileTryOn = isMobileLayout && mobileMode === 'try-on'
   const overlayStyle = {
-    top: `${topOffset}px`,
+    top: isMobileTryOn ? 0 : `${topOffset}px`,
     left: 0,
     right: 0,
     bottom: 0,

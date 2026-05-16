@@ -2,6 +2,7 @@ import { ReactNode, useState } from 'react'
 import { AvatarFrameViewer } from '@/components/avatar-frame-viewer'
 import { Loading } from '@/components/content/loading'
 import { TextT } from '@/components/text'
+import { AVATAR_BOTTOM_BACKGROUND_URL } from '@/lib/asset'
 import { useCss } from '@/lib/theme'
 
 interface AvatarPaneProps {
@@ -11,6 +12,10 @@ interface AvatarPaneProps {
   hasSelection: boolean
   // Optional control overlay (desktop only — see <AvatarControls>).
   controls?: ReactNode
+  // Mobile try-on: anchor the avatar frame to the top at its natural 2:3
+  // aspect and fill the area below it with the avatar-bottom background
+  // texture (matches vto-single's mobile layout).
+  mobileFullscreen?: boolean
 }
 
 // AvatarPane is the left-column avatar area on desktop and the background of
@@ -18,7 +23,7 @@ interface AvatarPaneProps {
 // - No selection: show a "select items to try on" placeholder.
 // - Outfit pending (no frames yet): show "Finding your perfect fit..." loader.
 // - Outfit ready: render the frame carousel via <AvatarFrameViewer>.
-export function AvatarPane({ frameUrls, hasSelection, controls }: AvatarPaneProps) {
+export function AvatarPane({ frameUrls, hasSelection, controls, mobileFullscreen }: AvatarPaneProps) {
   const [selectedFrameIndex, setSelectedFrameIndex] = useState<number | null>(null)
 
   const css = useCss((theme) => ({
@@ -50,6 +55,32 @@ export function AvatarPane({ frameUrls, hasSelection, controls }: AvatarPaneProp
       width: '100%',
       height: '100%',
     },
+    // Mobile try-on: column with the avatar pinned to the top at its 2:3
+    // aspect, the bottom-background texture filling whatever's left below.
+    mobileContainer: {
+      width: '100%',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'stretch',
+      backgroundColor: '#FFFFFF',
+      position: 'relative',
+    },
+    mobileFrameSlot: {
+      position: 'relative',
+      width: '100%',
+      aspectRatio: '2 / 3',
+      flex: 'none',
+    },
+    bottomFiller: {
+      flex: 1,
+      minHeight: 0,
+      backgroundColor: '#FFFFFF',
+      backgroundImage: `url(${AVATAR_BOTTOM_BACKGROUND_URL})`,
+      backgroundSize: 'contain',
+      backgroundRepeat: 'repeat-y',
+      backgroundPosition: 'top center',
+    },
   }))
 
   // Frame priority:
@@ -57,18 +88,31 @@ export function AvatarPane({ frameUrls, hasSelection, controls }: AvatarPaneProp
   // - hasSelection but no frames yet → "Finding your perfect fit..." loader.
   // - no selection and no bare-avatar frames available → placeholder prompt.
   if (frameUrls && frameUrls.length > 0) {
+    const viewer = (
+      <AvatarFrameViewer
+        frameUrls={frameUrls}
+        selectedFrameIndex={selectedFrameIndex}
+        setSelectedFrameIndex={setSelectedFrameIndex}
+        imageContainerStyle={css.frameContainer}
+        imageStyle={css.frameImage}
+        loadingT="vto-single.avatar_loading"
+      />
+    )
+    if (mobileFullscreen) {
+      return (
+        <div css={css.mobileContainer}>
+          <div css={css.mobileFrameSlot}>{viewer}</div>
+          {/* The nbsp keeps this div non-empty: the merchant theme's global
+              `div:empty { display: none }` rule (higher specificity than an
+              emotion class) would otherwise hide the filler entirely. */}
+          <div css={css.bottomFiller}>&nbsp;</div>
+          {controls}
+        </div>
+      )
+    }
     return (
       <div css={css.container}>
-        <div css={css.frameSlot}>
-          <AvatarFrameViewer
-            frameUrls={frameUrls}
-            selectedFrameIndex={selectedFrameIndex}
-            setSelectedFrameIndex={setSelectedFrameIndex}
-            imageContainerStyle={css.frameContainer}
-            imageStyle={css.frameImage}
-            loadingT="vto-single.avatar_loading"
-          />
-        </div>
+        <div css={css.frameSlot}>{viewer}</div>
         {controls}
       </div>
     )

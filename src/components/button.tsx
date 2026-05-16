@@ -32,6 +32,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         fontSize: '16px',
         fontWeight: 'bold',
         textAlign: 'center',
+        '&:disabled': {
+          opacity: 0.4,
+          cursor: 'not-allowed',
+        },
       },
       brand: {
         display: 'block',
@@ -48,6 +52,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         textAlign: 'center',
         textTransform: 'uppercase',
         letterSpacing: '0.75px',
+        '&:disabled': {
+          opacity: 0.4,
+          cursor: 'not-allowed',
+        },
       },
     }))
     return (

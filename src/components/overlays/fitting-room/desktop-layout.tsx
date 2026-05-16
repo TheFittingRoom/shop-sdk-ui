@@ -227,7 +227,6 @@ export function DesktopLayout({
               availabilityByExternalId={availabilityByExternalId}
               onSelectItem={onSelectItem}
               onRemoveItem={onRemoveItem}
-              layout="horizontal"
             />
           ))}
         </div>

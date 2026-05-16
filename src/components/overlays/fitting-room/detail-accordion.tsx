@@ -39,13 +39,14 @@ export function DetailAccordion({
     container: {
       display: 'flex',
       flexDirection: 'column',
-      // Small gap so a collapsed item's header sits slightly apart from the
-      // next item's header rather than abutting it.
-      gap: '2px',
     },
   }))
+  // Desktop: a hairline gap so collapsed headers sit just apart. Mobile: a
+  // wider gap separating the rounded section cards. Applied inline because
+  // useCss memoizes and can't see the `platform` prop.
+  const gap = platform === 'mobile' ? '10px' : '2px'
   return (
-    <div css={css.container}>
+    <div css={css.container} style={{ gap }}>
       {items.map((item) => {
         const isOpen = openItemExternalId === item.externalId
         return (
