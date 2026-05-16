@@ -100,11 +100,15 @@ interface ApiRequestParams {
   method: RequestInit['method']
   endpoint: string
   body?: Record<string, any>
+  // Abort the request after this many ms. Used by long-running synchronous
+  // endpoints (VTO) so a hung backend doesn't leave the request pending
+  // forever. Omitted = no client-side timeout (browser default).
+  timeoutMs?: number
 }
 
 async function execApiRequest<T>(params: ApiRequestParams): Promise<T> {
   const authManager = getAuthManager()
-  const { useCache, useToken, method, endpoint, body } = params
+  const { useCache, useToken, method, endpoint, body, timeoutMs } = params
 
   const url = `${baseUrl}${endpoint}`
 
@@ -127,9 +131,33 @@ async function execApiRequest<T>(params: ApiRequestParams): Promise<T> {
     options.body = JSON.stringify(body)
   }
 
-  const response = await fetch(url, options)
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+  if (timeoutMs && timeoutMs > 0) {
+    const controller = new AbortController()
+    options.signal = controller.signal
+    timeoutHandle = setTimeout(() => controller.abort(), timeoutMs)
+  }
+
+  let response: Response
+  try {
+    response = await fetch(url, options)
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle)
+  }
+
   if (!response.ok) {
-    throw new Error(`API request failed with status ${response.status}`)
+    // Surface the backend's error message (helpers.Error returns
+    // `{"error": "..."}`) so callers can show something meaningful.
+    let detail = ''
+    try {
+      const errBody = await response.json()
+      if (errBody && typeof errBody.error === 'string') {
+        detail = errBody.error
+      }
+    } catch {
+      // Body absent or not JSON — fall back to the status code.
+    }
+    throw new Error(detail || `API request failed with status ${response.status}`)
   }
   let data: T
   if (response.status === 204) {
@@ -177,18 +205,49 @@ export type VtoCompositionItem = {
   untucked?: boolean
 }
 
-// requestVto dispatches a 1..4-garment VTO composition. Backend dedupes by
-// content hash so re-requesting the same composition returns the same
-// token without a sim-vis call. The returned token is the routing key for
-// the rendered Firestore doc — subscribe to it via subscribeToVtoComposition.
+// In-flight VTO requests keyed by canonical composition key. A second
+// identical requestVto() call while one is still in flight returns the
+// existing promise instead of issuing another POST — a strong guarantee
+// that the SDK never has duplicate in-flight VTO requests. Living in the
+// API layer means the guarantee holds across every caller (both VTO
+// overlays). The entry is removed once the request settles, so a later
+// retry can re-issue.
+const inFlightVtoRequests = new Map<string, Promise<VtoCompositionResponse>>()
+
+// canonicalVtoKey builds a stable key from the request items, sorted by
+// (colorway_size_asset_id, untucked) so submission order doesn't matter —
+// the same ordering the backend hashes into the composition token.
+function canonicalVtoKey(items: VtoCompositionItem[]): string {
+  const normalized = items
+    .map((i) => ({ csa: i.colorway_size_asset_id, untucked: !!i.untucked }))
+    .sort((a, b) => a.csa - b.csa || Number(a.untucked) - Number(b.untucked))
+  return JSON.stringify(normalized)
+}
+
+// requestVto dispatches a 1..4-garment VTO composition. The endpoint is
+// synchronous: the backend calls sim-vis inline and returns the rendered
+// frame paths directly, so the resolved VtoCompositionResponse already
+// carries `frames`. A render failure surfaces as a rejected promise
+// (HTTP 500 → thrown Error with the backend's message).
 //
-// useCache is off because the cache is URL-keyed and this endpoint's body
-// varies per call. Backend server-side dedup handles the same scenario.
-export async function requestVto(items: VtoCompositionItem[]): Promise<VtoCompositionResponse> {
-  return await execApiRequest<VtoCompositionResponse>({
+// Identical concurrent calls are deduped: while a composition's request is
+// in flight, callers share one promise and one POST.
+export function requestVto(items: VtoCompositionItem[]): Promise<VtoCompositionResponse> {
+  const key = canonicalVtoKey(items)
+  const existing = inFlightVtoRequests.get(key)
+  if (existing) {
+    return existing
+  }
+
+  const promise = execApiRequest<VtoCompositionResponse>({
     useToken: true,
     method: 'POST',
     endpoint: '/v1/vto-compositions',
     body: { items },
+    timeoutMs: getStaticData().config.api.vtoTimeoutMs,
+  }).finally(() => {
+    inFlightVtoRequests.delete(key)
   })
+  inFlightVtoRequests.set(key, promise)
+  return promise
 }

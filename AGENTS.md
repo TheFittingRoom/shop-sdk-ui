@@ -105,38 +105,42 @@ reuses the dev Firebase project.
 
 ## Frame URL rewriting
 
-Backend stores avatar and VTO frame URLs in Firestore as bare paths (e.g.
-`user-X/avatar-N/frames/image_K.png` for avatar, `user-X/avatar-N/vto-{token}/frames/image_K.png`
-for VTO compositions) — see the matching note in `tfr-backend/AGENTS.md`. The SDK
-prepends the configured `frames.baseUrl` (per-env in `config.ts`) at the
-consumption site. Helper: `applyFrameBaseUrl` in `src/lib/util.ts`. It also
-strips the host from any legacy host-prefixed URLs still present in older
-Firestore records, so both shapes work.
+Frame paths are bare (e.g. `user-X/avatar-N/frames/image_K.png` for avatar,
+`user-X/avatar-N/vto-{token}/frames/image_K.png` for VTO compositions) — see the
+matching note in `tfr-backend/AGENTS.md`. Avatar frames arrive on the Firestore
+user doc; VTO frames come back directly in the `/v1/vto-compositions` API
+response. The SDK prepends the configured `frames.baseUrl` (per-env in
+`config.ts`) at the consumption site. Helper: `applyFrameBaseUrl` in
+`src/lib/util.ts`. It also strips the host from any legacy host-prefixed URLs,
+so both shapes work.
 
-Currently used in `src/components/overlays/vto-single.tsx` only. Anywhere else
-that turns a Firestore-supplied frame URL into an `<img src>` should call
-`applyFrameBaseUrl` too.
+Used in both VTO overlays (`vto-single.tsx` and `fitting-room/`). Anywhere else
+that turns a bare frame path into an `<img src>` should call `applyFrameBaseUrl`
+too.
 
 ## VTO request flow
 
 `requestVto(items)` in `src/lib/api.ts` posts a 1..4-garment composition to
-`/v1/vto-compositions` and returns `{token, status, composition_path}`. The
-SDK then subscribes to `users/{uid}/vto_compositions/{token}` via
-`FirestoreManager.listenToSubDoc` (in `src/lib/firebase.ts`) and renders
-frames as the backend webhook delivers them.
+`/v1/vto-compositions`. The endpoint is **synchronous**: the backend renders
+inline and the resolved `VtoCompositionResponse` carries `{token, frames}`
+directly — there is no Firestore subscription. A render failure rejects the
+promise (HTTP 500 → thrown `Error` carrying the backend's message). The
+request gets a client-side abort timeout (`config.api.vtoTimeoutMs`).
 
-`vto-single.tsx` keeps a per-component `compositionTokens: Map<csaKey, token>`
-to dedupe POSTs and a `vtoDocsByToken` state to hold the latest snapshot per
-token. `compositionKey(csaId, untucked)` is the dedup key — untucked is
-always `false` for single-garment (tucked-in is the default for tuckable
-tops and is also fine for non-tuckable categories where the flag is
-ignored). The shape is forward-compatible with multi-garment when that
-lands. Subscriptions are torn down on unmount.
+`requestVto` dedupes identical concurrent calls via a module-level in-flight
+`Map<canonicalKey, Promise>`: while a composition's request is in flight every
+caller shares the one promise and one POST. The canonical key is the items
+sorted by `(colorway_size_asset_id, untucked)` — the same ordering the backend
+hashes into the token. This is the SDK's guarantee against duplicate in-flight
+VTO requests, and it holds across both overlays since both call `requestVto`.
 
-Backend dedupes server-side by content hash, so re-requesting the same
-composition returns the same token without a sim-vis call. `useCache` on
-`execApiRequest` is intentionally **off** for this endpoint because the
-local cache is URL-keyed and the body now varies; backend dedup covers it.
+`vto-single.tsx` keeps `framesByKey: Record<compositionKey, string[]>` for
+results and a `requestedKeysRef` Set for component-level dedup.
+`compositionKey(csaId, untucked)` is the key — untucked is always `false` for
+single-garment. The multi-garment overlay uses the `useVtoRequests` hook
+(`fitting-room/use-vto-requests.ts`), keyed by `outfitKey`. `useCache` on
+`execApiRequest` stays **off** for this endpoint; the in-flight dedup above
+plus the backend's content-hash cache cover repeat requests.
 
 ## Conventions
 
@@ -186,7 +190,8 @@ the code they describe.
       variable + accessor pattern is consistent with sibling modules
 - [ ] If a new Firestore subscription was added: an `Unsubscribe` is
       tracked and torn down on unmount or auth-state change (see
-      `vto-single.tsx` token-keyed subscription map for the pattern)
+      `AuthManager.listenToUserProfileUnsub` in `src/lib/firebase.ts` for
+      the pattern)
 - [ ] Demo storefront round-trip verified with `?tfr-source=local` for any
       user-visible change (or noted explicitly when the change can't be
       visually verified)
