@@ -83,10 +83,40 @@ export default function FittingRoomOverlay() {
     }
   }, [])
 
-  // selectedItems: resolved items in their fitting-room order, filtered by selection set.
-  const selectedItems = useMemo<ResolvedFittingRoomItem[]>(
-    () => resolved.items.filter((item) => selectedExternalIds.has(item.externalId)),
-    [resolved.items, selectedExternalIds],
+  // selectedItems: sorted by style-category group display_order, with stable
+  // fitting-room order as the tiebreaker so items added within the same group
+  // keep a deterministic position.
+  const selectedItems = useMemo<ResolvedFittingRoomItem[]>(() => {
+    const indexed = resolved.items
+      .map((item, idx) => ({ item, idx }))
+      .filter(({ item }) => selectedExternalIds.has(item.externalId))
+    indexed.sort((a, b) => {
+      const aOrder = a.item.styleCategoryGroup?.display_order ?? Number.MAX_SAFE_INTEGER
+      const bOrder = b.item.styleCategoryGroup?.display_order ?? Number.MAX_SAFE_INTEGER
+      if (aOrder !== bOrder) return aOrder - bOrder
+      return a.idx - b.idx
+    })
+    return indexed.map(({ item }) => item)
+  }, [resolved.items, selectedExternalIds])
+
+  // canTuck: the tuck/untuck control (desktop pill + mobile per-item CTA) is
+  // only meaningful when the outfit actually has something to tuck into — a
+  // tuckable garment AND a non-tuckable garment layered above its tucked
+  // position. A tuckable top with no bottom selected has nothing to tuck in
+  // to, so every tuck control stays hidden.
+  const canTuck = useMemo<boolean>(
+    () =>
+      selectedItems.some(
+        (top) =>
+          !!top.styleCategory?.tuckable &&
+          selectedItems.some(
+            (other) =>
+              !!other.styleCategory &&
+              !other.styleCategory.tuckable &&
+              other.styleCategory.layer_order > top.styleCategory!.layer_order,
+          ),
+      ),
+    [selectedItems],
   )
 
   // Availability map for every fitting-room item.
@@ -227,24 +257,16 @@ export default function FittingRoomOverlay() {
     setMobileMode('browse')
   }, [])
 
-  // Default-open: when the open item is no longer selected (or none open),
-  // default to the most recently selected item on desktop.
+  // Clear the open-accordion id when it points at an item that's no longer
+  // selected. New selections auto-open their own accordion in
+  // handleSelectItem — this effect must NOT re-open on its own, otherwise
+  // collapsing the last open section would immediately spring back open.
+  // All sections collapsed is a valid state.
   useEffect(() => {
-    if (isMobileLayout) return
-    if (openAccordionItemId && selectedExternalIds.has(openAccordionItemId)) return
-    if (selectedItems.length === 0) {
-      if (openAccordionItemId !== null) setOpenAccordionItemId(null)
-      return
+    if (openAccordionItemId && !selectedExternalIds.has(openAccordionItemId)) {
+      setOpenAccordionItemId(null)
     }
-    // Most recently selected = highest addedAt across selected.
-    let mostRecent: ResolvedFittingRoomItem | null = null
-    for (const item of selectedItems) {
-      if (!mostRecent || item.storage.addedAt > mostRecent.storage.addedAt) {
-        mostRecent = item
-      }
-    }
-    if (mostRecent) setOpenAccordionItemId(mostRecent.externalId)
-  }, [isMobileLayout, openAccordionItemId, selectedExternalIds, selectedItems])
+  }, [openAccordionItemId, selectedExternalIds])
 
   // Derive the current outfit. Memoized so identity is stable when nothing
   // material changed (avoids re-firing the request effect on every render).
@@ -373,8 +395,12 @@ export default function FittingRoomOverlay() {
     },
   }))
 
+  // Browse mode sits below the merchant's page header (topOffset). Try-on
+  // mode goes fullscreen — top: 0 — so the avatar image is flush with the
+  // top of the screen.
+  const isMobileTryOn = isMobileLayout && mobileMode === 'try-on'
   const overlayStyle = {
-    top: `${topOffset}px`,
+    top: isMobileTryOn ? 0 : `${topOffset}px`,
     left: 0,
     right: 0,
     bottom: 0,
@@ -444,6 +470,7 @@ export default function FittingRoomOverlay() {
             openAccordionItemId={openAccordionItemId}
             detailMode={detailMode}
             forceUntuck={forceUntuck}
+            canTuck={canTuck}
             frameUrls={frameUrls}
             sheetSnap={sheetSnap}
             sheetTouchStart={sheetTouchStart}
@@ -465,6 +492,7 @@ export default function FittingRoomOverlay() {
             openAccordionItemId={openAccordionItemId}
             detailMode={detailMode}
             forceUntuck={forceUntuck}
+            canTuck={canTuck}
             zoomed={zoomed}
             frameUrls={frameUrls}
             onSelectItem={handleSelectItem}

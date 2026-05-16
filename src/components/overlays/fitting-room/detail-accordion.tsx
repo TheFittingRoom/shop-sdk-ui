@@ -9,6 +9,8 @@ interface DetailAccordionProps {
   detailMode: DetailMode
   isMobileQuickRow: boolean
   forceUntuck: boolean
+  // The outfit has something to tuck into — gates the mobile tuck CTA.
+  canTuck: boolean
   onOpenItem: (externalId: string | null) => void
   onChangeDetailMode: (mode: DetailMode) => void
   onChangeSize: (externalId: string, sizeLabel: string) => void
@@ -26,6 +28,7 @@ export function DetailAccordion({
   detailMode,
   isMobileQuickRow,
   forceUntuck,
+  canTuck,
   onOpenItem,
   onChangeDetailMode,
   onChangeSize,
@@ -38,8 +41,12 @@ export function DetailAccordion({
       flexDirection: 'column',
     },
   }))
+  // Desktop: a hairline gap so collapsed headers sit just apart. Mobile: a
+  // wider gap separating the rounded section cards. Applied inline because
+  // useCss memoizes and can't see the `platform` prop.
+  const gap = platform === 'mobile' ? '10px' : '2px'
   return (
-    <div css={css.container}>
+    <div css={css.container} style={{ gap }}>
       {items.map((item) => {
         const isOpen = openItemExternalId === item.externalId
         return (
@@ -51,6 +58,7 @@ export function DetailAccordion({
             detailMode={detailMode}
             isMobileQuickRow={isMobileQuickRow}
             forceUntuck={forceUntuck}
+            canTuck={canTuck}
             onToggleOpen={() => onOpenItem(isOpen ? null : item.externalId)}
             onChangeDetailMode={onChangeDetailMode}
             onChangeSize={(label) => onChangeSize(item.externalId, label)}

@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from 'react'
 import { Button, ButtonT } from '@/components/button'
 import { Text } from '@/components/text'
 import { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
-import { DragHandleIcon } from '@/lib/asset'
+import { DragHandleIcon, LeftArrowIcon } from '@/lib/asset'
 import { SheetSnap } from '@/lib/use-mobile-sheet-snap'
 import { useCss, StyleProp } from '@/lib/theme'
 import { Availability } from './availability'
@@ -21,6 +21,8 @@ interface MobileLayoutProps {
   openAccordionItemId: string | null
   detailMode: DetailMode
   forceUntuck: boolean
+  // The outfit has something to tuck into — computed in FittingRoomOverlay.
+  canTuck: boolean
   frameUrls: string[] | null
   sheetSnap: SheetSnap
   sheetTouchStart: (e: React.TouchEvent<HTMLElement>) => void
@@ -46,6 +48,7 @@ export function MobileLayout({
   openAccordionItemId,
   detailMode,
   forceUntuck,
+  canTuck,
   frameUrls,
   sheetSnap,
   sheetTouchStart,
@@ -77,6 +80,7 @@ export function MobileLayout({
       openAccordionItemId={openAccordionItemId}
       detailMode={detailMode}
       forceUntuck={forceUntuck}
+      canTuck={canTuck}
       frameUrls={frameUrls}
       sheetSnap={sheetSnap}
       sheetTouchStart={sheetTouchStart}
@@ -137,13 +141,17 @@ function BrowseView({
             availabilityByExternalId={availabilityByExternalId}
             onSelectItem={onSelectItem}
             onRemoveItem={onRemoveItem}
-            layout="grid"
           />
         ))}
       </div>
-      <div css={css.bottomBar}>
-        <ButtonT variant="brand" t="fitting_room.try_it_on" onClick={onTryItOn} disabled={selectedCount === 0} />
-      </div>
+      {/* Hold the CTA back until the card rails have resolved — otherwise it
+          briefly renders alone (with an empty rails area collapsed to zero
+          height) and floats up to the top of the overlay. */}
+      {resolved.groups.length > 0 ? (
+        <div css={css.bottomBar}>
+          <ButtonT variant="brand" t="fitting_room.try_it_on" onClick={onTryItOn} disabled={selectedCount === 0} />
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -153,6 +161,7 @@ function TryOnView({
   openAccordionItemId,
   detailMode,
   forceUntuck,
+  canTuck,
   frameUrls,
   sheetSnap,
   sheetTouchStart,
@@ -167,6 +176,7 @@ function TryOnView({
   openAccordionItemId: string | null
   detailMode: DetailMode
   forceUntuck: boolean
+  canTuck: boolean
   frameUrls: string[] | null
   sheetSnap: SheetSnap
   sheetTouchStart: (e: React.TouchEvent<HTMLElement>) => void
@@ -221,25 +231,29 @@ function TryOnView({
       zIndex: 2,
     },
     backArrow: {
-      fontSize: '18px',
-      lineHeight: '1',
+      width: '14px',
+      height: '15px',
     },
     sheetOuter: {
       position: 'absolute',
-      left: 0,
-      right: 0,
+      // 8px gap to either side, matching vto-single's mobile sheet.
+      left: '8px',
+      right: '8px',
       bottom: 0,
       maxHeight: '85vh',
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
       borderTopLeftRadius: '28px',
       borderTopRightRadius: '28px',
       borderTop: '1px solid rgba(0, 0, 0, 0.1)',
+      borderLeft: '1px solid rgba(0, 0, 0, 0.1)',
+      borderRight: '1px solid rgba(0, 0, 0, 0.1)',
       transition: 'height 0.4s',
       overflow: 'hidden',
     },
     sheetInner: {
       width: '100%',
-      padding: '12px 16px 16px 16px',
+      // Narrow L/R padding so the accordion fills more of the sheet width.
+      padding: '12px 8px 16px 8px',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'stretch',
@@ -252,7 +266,7 @@ function TryOnView({
       paddingBottom: '8px',
     },
     sheetTitle: {
-      fontSize: '12px',
+      fontSize: '16px',
       fontWeight: '600',
       textTransform: 'uppercase',
       letterSpacing: '0.5px',
@@ -265,9 +279,9 @@ function TryOnView({
 
   return (
     <div css={css.container}>
-      <AvatarPane hasSelection={selectedItems.length > 0} frameUrls={frameUrls} />
+      <AvatarPane hasSelection={selectedItems.length > 0} frameUrls={frameUrls} mobileFullscreen />
       <Button variant="base" css={css.backButton} onClick={onBackToBrowse} aria-label="Back to browse">
-        <span css={css.backArrow}>←</span>
+        <LeftArrowIcon css={css.backArrow} />
       </Button>
       <div css={css.sheetOuter} style={sheetStyle}>
         <div ref={innerRef} css={css.sheetInner} style={sheetStyle}>
@@ -287,6 +301,7 @@ function TryOnView({
                 detailMode={detailMode}
                 isMobileQuickRow={isMobileQuickRow}
                 forceUntuck={forceUntuck}
+                canTuck={canTuck}
                 onOpenItem={onOpenAccordionItem}
                 onChangeDetailMode={onChangeDetailMode}
                 onChangeSize={onChangeSize}

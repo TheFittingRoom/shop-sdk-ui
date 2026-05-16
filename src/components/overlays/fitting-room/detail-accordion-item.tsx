@@ -10,6 +10,7 @@ import { VtoProductData } from '@/components/product-sizing-types'
 import { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useTranslation } from '@/lib/locale'
 import { useCss } from '@/lib/theme'
+import { Chevron } from './chevron'
 import { buildVtoProductDataFromResolved } from './product-data'
 
 export type DetailMode = 'compact' | 'expanded'
@@ -20,6 +21,8 @@ interface DetailAccordionItemProps {
   isOpen: boolean
   platform: Platform
   forceUntuck: boolean
+  // The outfit has something to tuck into — gates the mobile tuck CTA.
+  canTuck: boolean
   // Mobile-only — desktop ignores these.
   detailMode: DetailMode
   isMobileQuickRow: boolean
@@ -35,6 +38,7 @@ export function DetailAccordionItem({
   isOpen,
   platform,
   forceUntuck,
+  canTuck,
   detailMode,
   isMobileQuickRow,
   onToggleOpen,
@@ -71,7 +75,9 @@ export function DetailAccordionItem({
 
   const categoryLabel = item.styleCategory?.label_singular ?? item.styleCategory?.label ?? ''
   const productName = item.merchantProduct?.productName ?? item.externalId
-  const tuckable = !!item.styleCategory?.tuckable
+  // Mobile tuck CTA shows only when this item is tuckable AND the outfit has
+  // a garment to tuck into (see canTuck in FittingRoomOverlay).
+  const tuckable = !!item.styleCategory?.tuckable && canTuck
 
   if (platform === 'desktop') {
     return (
@@ -130,39 +136,48 @@ function DesktopAccordionItem({
   onChangeSize,
   onAddToCart,
 }: DesktopProps) {
+  // Subtle neutral grey used both as the accordion header background and as
+  // the body's 3-sided border when open — gives the visible "frame" around
+  // the open item that matches the Figma design.
+  const ACCORDION_SHADE = '#F4F4F4'
+
   const css = useCss((theme) => ({
     container: {
       display: 'flex',
       flexDirection: 'column',
-      borderBottom: `1px solid ${theme.color_fg_text}`,
     },
     header: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '14px 4px',
+      padding: '14px 20px',
       width: '100%',
       gap: '8px',
+      backgroundColor: ACCORDION_SHADE,
     },
     categoryLabel: {
-      fontSize: '12px',
-      fontWeight: '600',
-      letterSpacing: '0.5px',
-      textTransform: 'uppercase',
+      fontSize: '16px',
+      fontWeight: '400',
     },
     chevron: {
-      fontSize: '12px',
+      display: 'inline-flex',
+      alignItems: 'center',
+      color: theme.color_fg_text,
+      flex: 'none',
     },
     body: {
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center',
-      gap: '12px',
-      padding: '8px 16px 24px 16px',
-      textAlign: 'center',
+      alignItems: 'stretch',
+      gap: '14px',
+      padding: '20px 24px 24px 24px',
+      textAlign: 'left',
+      borderLeft: `1px solid ${ACCORDION_SHADE}`,
+      borderRight: `1px solid ${ACCORDION_SHADE}`,
+      borderBottom: `1px solid ${ACCORDION_SHADE}`,
     },
     productName: {
-      fontSize: '22px',
+      fontSize: '24px',
       lineHeight: '1.2',
     },
     price: {
@@ -170,7 +185,6 @@ function DesktopAccordionItem({
     },
     sizeBox: {
       width: '100%',
-      maxWidth: '320px',
       border: `1px solid ${theme.color_fg_text}`,
       padding: '20px 24px',
       display: 'flex',
@@ -178,6 +192,7 @@ function DesktopAccordionItem({
       alignItems: 'center',
       gap: '12px',
       marginTop: '8px',
+      textAlign: 'center',
     },
     recommendedSize: {
       fontSize: '13px',
@@ -200,11 +215,10 @@ function DesktopAccordionItem({
     },
     cartContainer: {
       width: '100%',
-      maxWidth: '320px',
-      marginTop: '16px',
+      marginTop: '8px',
     },
     description: {
-      fontSize: '12px',
+      fontSize: '13px',
       lineHeight: '1.5',
       textAlign: 'left',
       marginTop: '8px',
@@ -217,7 +231,9 @@ function DesktopAccordionItem({
         <Text variant="base" css={css.categoryLabel}>
           {categoryLabel}
         </Text>
-        <span css={css.chevron}>{isOpen ? '⌃' : '⌄'}</span>
+        <span css={css.chevron}>
+          <Chevron direction={isOpen ? 'up' : 'down'} />
+        </span>
       </Button>
       {!isOpen ? null : (
         <div css={css.body}>
@@ -301,54 +317,77 @@ function MobileAccordionItem({
 }: MobileProps) {
   const { t } = useTranslation()
 
+  // Light grey for the section card — the header tints over it and a ~6px
+  // frame of it surrounds the white content.
+  const ACCORDION_SHADE = '#EEEEEE'
+
   const css = useCss((theme) => ({
     container: {
       display: 'flex',
       flexDirection: 'column',
-      borderBottom: `1px solid ${theme.color_fg_text}`,
+      backgroundColor: ACCORDION_SHADE,
+      borderRadius: '10px',
+      overflow: 'hidden',
     },
     header: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '12px 0',
+      padding: '14px 16px',
       width: '100%',
       gap: '8px',
+      backgroundColor: 'transparent',
     },
     headerLabel: {
       display: 'flex',
       gap: '8px',
       alignItems: 'baseline',
+      flex: 1,
+      minWidth: 0,
     },
     categoryLabel: {
-      fontSize: '12px',
-      fontWeight: '600',
-      letterSpacing: '0.5px',
-      textTransform: 'uppercase',
+      fontSize: '15px',
+      fontWeight: '400',
+      flex: 'none',
     },
     productName: {
-      fontSize: '12px',
-      color: theme.color_fg_text,
+      fontSize: '15px',
+      color: '#8A8A8A',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      minWidth: 0,
     },
     chevron: {
-      fontSize: '12px',
+      display: 'inline-flex',
+      alignItems: 'center',
+      color: theme.color_fg_text,
+      flex: 'none',
+    },
+    content: {
+      backgroundColor: '#FFFFFF',
+      margin: '0 6px 6px 6px',
+      borderRadius: '6px',
+      padding: '16px',
     },
     body: {
       display: 'flex',
       flexDirection: 'column',
+      alignItems: 'center',
+      textAlign: 'center',
       gap: '16px',
-      padding: '4px 0 16px 0',
     },
     quickRow: {
       display: 'flex',
       alignItems: 'center',
+      justifyContent: 'center',
       gap: '12px',
-      padding: '8px 0',
     },
     sizeRow: {
       display: 'flex',
       gap: '8px',
       alignItems: 'center',
+      justifyContent: 'center',
     },
     fitDetailsContainer: {
       width: 'min(100%, 220px)',
@@ -367,6 +406,8 @@ function MobileAccordionItem({
     expandedBlock: {
       display: 'flex',
       flexDirection: 'column',
+      alignItems: 'center',
+      alignSelf: 'stretch',
       gap: '8px',
       marginTop: '8px',
     },
@@ -379,6 +420,9 @@ function MobileAccordionItem({
     },
     expandedDescription: {
       fontSize: '12px',
+      // Description stays left-aligned while every other detail is centered.
+      alignSelf: 'stretch',
+      textAlign: 'left',
     },
     tuckButton: {
       width: '100%',
@@ -413,22 +457,27 @@ function MobileAccordionItem({
             {productName}
           </Text>
         </div>
-        <span css={css.chevron}>{isOpen ? '⌃' : '⌄'}</span>
+        <span css={css.chevron}>
+          <Chevron direction={isOpen ? 'up' : 'down'} />
+        </span>
       </Button>
 
-      {!isOpen ? null : isMobileQuickRow ? (
-        <div css={css.quickRow}>
-          {productData ? (
-            <SizeSelector
-              loadedProductData={productData}
-              selectedSizeLabel={selectedSizeLabel}
-              onChangeSize={onChangeSize}
-            />
-          ) : null}
+      {isMobileQuickRow ? (
+        <div css={css.content}>
+          <div css={css.quickRow}>
+            {productData ? (
+              <SizeSelector
+                loadedProductData={productData}
+                selectedSizeLabel={selectedSizeLabel}
+                onChangeSize={onChangeSize}
+              />
+            ) : null}
+          </div>
         </div>
-      ) : (
-        <div css={css.body}>
-          {productData ? (
+      ) : !isOpen ? null : (
+        <div css={css.content}>
+          <div css={css.body}>
+            {productData ? (
             <>
               <div css={css.sizeRow}>
                 <SizeSelector
@@ -444,6 +493,14 @@ function MobileAccordionItem({
               <div css={css.buttonContainer}>
                 <AddToCartButton onClick={onAddToCart} />
               </div>
+              {/* Tuck CTA sits directly below ADD TO CART, always visible
+                  when the outfit can be tucked (canTuck-gated via `tuckable`)
+                  — no longer hidden behind "view product details". */}
+              {tuckable ? (
+                <Button variant="base" css={css.tuckButton} onClick={onToggleUntuck}>
+                  {t(tuckLabelKey)}
+                </Button>
+              ) : null}
               <LinkT
                 variant="base"
                 css={css.detailsLink}
@@ -463,17 +520,13 @@ function MobileAccordionItem({
                   <Text variant="base" css={css.expandedDescription}>
                     <span dangerouslySetInnerHTML={{ __html: productData.productDescriptionHtml }} />
                   </Text>
-                  {tuckable ? (
-                    <Button variant="base" css={css.tuckButton} onClick={onToggleUntuck}>
-                      {t(tuckLabelKey)}
-                    </Button>
-                  ) : null}
                 </div>
               ) : null}
-            </>
-          ) : (
-            <TextT variant="base" t="loading" />
-          )}
+              </>
+            ) : (
+              <TextT variant="base" t="loading" />
+            )}
+          </div>
         </div>
       )}
     </div>
