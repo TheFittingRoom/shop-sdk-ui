@@ -309,7 +309,12 @@ export async function _init() {
   // Initialize Auth manager
   {
     const auth = getAuth(firebaseApp)
-    auth.setPersistence(browserLocalPersistence)
+    // Await persistence + the initial state restoration before wiring up
+    // listeners. Without these awaits, the AuthManager's onAuthStateChanged
+    // can fire a transient null during cross-tab IndexedDB lock contention,
+    // briefly flipping the SDK to "not logged in" when a second tab opens.
+    await auth.setPersistence(browserLocalPersistence)
+    await auth.authStateReady()
     authManager = new AuthManager(auth, brandId)
   }
 }
