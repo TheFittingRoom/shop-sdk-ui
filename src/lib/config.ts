@@ -10,7 +10,9 @@ export interface Config {
   }
   api: {
     baseUrl: string
-    // vtoTimeoutMs: number
+    // Client-side abort timeout (ms) for the synchronous VTO request, which
+    // blocks while the backend renders. Guards against a hung backend.
+    vtoTimeoutMs: number
     // avatarTimeoutMs: number
   }
   asset: {
@@ -68,6 +70,7 @@ const CONFIGS: Record<EnvName, Config> = {
     },
     api: {
       baseUrl: 'https://tfr.dev.thefittingroom.xyz',
+      vtoTimeoutMs: 120000,
     },
     asset: {
       baseUrl: 'https://assets.dev.thefittingroom.xyz/shop-sdk/assets/v5',
@@ -92,6 +95,7 @@ const CONFIGS: Record<EnvName, Config> = {
     },
     api: {
       baseUrl: 'https://tfr.p.thefittingroom.xyz',
+      vtoTimeoutMs: 120000,
     },
     asset: {
       baseUrl: 'https://assets.p.thefittingroom.xyz/shop-sdk/assets/v5',
@@ -116,6 +120,7 @@ const CONFIGS: Record<EnvName, Config> = {
     },
     api: {
       baseUrl: 'https://minecraftbadapple.com/api',
+      vtoTimeoutMs: 120000,
     },
     asset: {
       baseUrl: 'http://minecraftbadapple.com/s3/tfr-assets-dev/shop-sdk/assets/v5',

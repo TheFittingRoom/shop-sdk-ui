@@ -18,7 +18,7 @@ import { DesktopLayout } from './desktop-layout'
 import { DetailMode } from './detail-accordion-item'
 import { MobileLayout, MobileMode } from './mobile-layout'
 import { findCsaByLabel, findRecommendedColorSize, buildVtoProductDataFromResolved } from './product-data'
-import { useVtoSubscriptions } from './use-vto-subscriptions'
+import { useVtoRequests } from './use-vto-requests'
 
 // Map our local OutfitItem shape (which carries the externalId for UI bookkeeping)
 // to the wire shape expected by the VTO API.
@@ -68,7 +68,7 @@ export default function FittingRoomOverlay() {
     deviceLayout === DeviceLayout.MOBILE_PORTRAIT || deviceLayout === DeviceLayout.TABLET_PORTRAIT
 
   const { request: requestVtoComposition, framesForOutfit, lastError: vtoError, clearError: clearVtoError } =
-    useVtoSubscriptions()
+    useVtoRequests()
 
   // Scroll lock + top-offset measurement
   useEffect(() => {

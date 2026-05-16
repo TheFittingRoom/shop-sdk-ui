@@ -762,13 +762,6 @@ export interface User {
   job: string;
   gender: string;
 }
-export interface FirestoreVTOData {
-  error: string;
-  colorway_size_asset_id: number /* int64 */;
-  frames: string[];
-  updated_at: any /* time.Time */;
-  timing_ms: number /* int64 */;
-}
 export interface FirestoreUser {
   brand_id: number /* int */;
   full_name: string;
@@ -788,7 +781,6 @@ export interface FirestoreUser {
    * for users who haven't completed avatar creation.
    */
   avatar_frames?: string[];
-  vto: { [key: string]: { [key: string]: FirestoreVTOData}}; // brand_id and colorway_sku index
 }
 
 //////////
@@ -796,17 +788,16 @@ export interface FirestoreUser {
 
 /**
  * VtoCompositionResponse is the SDK ← backend response from POST
- * /v1/vto-compositions. Token is the deterministic sha256 hash of the
- * composition (also the row PK and Firestore doc id); status is "pending"
- * when the render task is in flight, "ready" when an already-rendered
- * composition was cache-hit. composition_path is the Firestore document
- * path the SDK should subscribe to with onSnapshot —
- * `users/{uid}/vto_compositions/{token}`.
+ * /v1/vto-compositions. The endpoint is synchronous: the render runs inline
+ * and the rendered frame paths come back in this response. Token is the
+ * deterministic sha256 hash of the composition (also the row PK and S3
+ * frame-path identifier). Frames holds the bare S3 frame paths the SDK
+ * prepends its frames base URL to. A render failure is signalled by an HTTP
+ * 500, not a field on this struct.
  */
 export interface VtoCompositionResponse {
   token: string;
-  status: string;
-  composition_path: string;
+  frames: string[];
 }
 /**
  * VtoFramesResult is the synchronous response body from
