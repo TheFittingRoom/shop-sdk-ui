@@ -119,14 +119,14 @@ const CONFIGS: Record<EnvName, Config> = {
       measurementId: 'G-B7GDQ1Y9LL',
     },
     api: {
-      baseUrl: 'https://minecraftbadapple.com/api',
+      baseUrl: 'https://demo.thefittingroom.xyz/api',
       vtoTimeoutMs: 120000,
     },
     asset: {
-      baseUrl: 'http://minecraftbadapple.com/s3/tfr-assets-dev/shop-sdk/assets/v5',
+      baseUrl: 'http://demo.thefittingroom.xyz/s3/tfr-assets-dev/shop-sdk/assets/v5',
     },
     frames: {
-      baseUrl: 'http://minecraftbadapple.com/s3/tfr-assets-dev',
+      baseUrl: 'http://demo.thefittingroom.xyz/s3/tfr-assets-dev',
     },
     features: {
       vtoPrefetch: false,
