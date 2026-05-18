@@ -6,7 +6,13 @@ import { ModalFrame } from '@/components/modal'
 import { TextT } from '@/components/text'
 import { VtoCompositionItem } from '@/lib/api'
 import { getAuthManager } from '@/lib/firebase'
-import { ResolvedFittingRoomItem, useResolvedFittingRoom } from '@/lib/fitting-room-data'
+import {
+  buildVtoProductDataFromResolved,
+  findCsaByLabel,
+  findRecommendedColorSize,
+  ResolvedFittingRoomItem,
+  useResolvedFittingRoom,
+} from '@/lib/fitting-room-data'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
@@ -17,7 +23,6 @@ import { Availability, buildOutfit, computeAvailability, OutfitItem } from '@/li
 import { DesktopLayout } from './desktop-layout'
 import { DetailMode } from './detail-accordion-item'
 import { MobileLayout, MobileMode } from './mobile-layout'
-import { findCsaByLabel, findRecommendedColorSize, buildVtoProductDataFromResolved } from '@/lib/product'
 import { useVtoRequests } from '@/lib/use-vto-requests'
 
 // Map our local OutfitItem shape (which carries the externalId for UI bookkeeping)
