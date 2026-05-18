@@ -36,7 +36,6 @@ interface ElementSize {
   height: number
 }
 
-const NON_PRIORITY_VTO_REQUEST_DELAY_MS: number | false = 500
 const AVATAR_IMAGE_ASPECT_RATIO = 2 / 3 // width:height
 const AVATAR_GUTTER_HEIGHT_PX = 100
 const CONTENT_AREA_WIDTH_PX = 550
@@ -262,24 +261,25 @@ export default function VtoSingleOverlay() {
           requestedKeysRef.current.delete(key)
         })
     }
-    if (NON_PRIORITY_VTO_REQUEST_DELAY_MS) {
-      let delay: number = 0
-      if (priority) {
-        lastPriorityVtoRequestTimeRef.current = Date.now()
-      } else {
-        const lastPriorityTime = lastPriorityVtoRequestTimeRef.current
-        if (lastPriorityTime) {
-          const now = Date.now()
-          const minNextRequestTime = lastPriorityTime + NON_PRIORITY_VTO_REQUEST_DELAY_MS
-          if (now < minNextRequestTime) {
-            delay = minNextRequestTime - now
-          }
+    // Throttle non-priority (prefetch) requests behind the most-recent
+    // priority one. The delay floor is config-driven
+    // (config.api.vtoPrefetchDelayMs); 0 fires immediately.
+    let delay: number = 0
+    if (priority) {
+      lastPriorityVtoRequestTimeRef.current = Date.now()
+    } else {
+      const lastPriorityTime = lastPriorityVtoRequestTimeRef.current
+      if (lastPriorityTime) {
+        const now = Date.now()
+        const minNextRequestTime = lastPriorityTime + getStaticData().config.api.vtoPrefetchDelayMs
+        if (now < minNextRequestTime) {
+          delay = minNextRequestTime - now
         }
       }
-      if (delay) {
-        setTimeout(executeRequest, delay)
-        return
-      }
+    }
+    if (delay) {
+      setTimeout(executeRequest, delay)
+      return
     }
     executeRequest()
   }, [])
