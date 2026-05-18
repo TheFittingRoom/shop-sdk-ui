@@ -91,10 +91,12 @@ so there are no callers to migrate.
 ## Runtime entry
 
 `src/index.tsx` exports `init(InitParams)` and registers the `<tfr-widget>` custom
-element. `init` runs a fixed sequence of `_init` calls across `src/lib/*` (logger →
-store → asset → theme → view → firebase → api → product). Most lib modules follow
-this pattern: a module-scoped variable, an `_init` that populates it from the store,
-and accessor functions. Order matters — do not reorder without tracing the deps.
+element. `init` runs a fixed sequence of `_init` calls across `src/lib/*` — the
+`init` function in `src/index.tsx` is the source of truth for the current order.
+Most lib modules follow this pattern: a module-scoped variable, an `_init` that
+populates it (from `InitParams` or the store), and accessor functions. Order
+matters — each `_init` may rely on an earlier one having run, so do not reorder
+or insert a step without tracing the deps.
 
 ## Environment selection
 
@@ -189,10 +191,10 @@ the code they describe.
 - [ ] `npm run build` produces `dist/index.js` without errors
 - [ ] If consumed any new or changed backend types: `npm run gen-types`
       ran and the `src/api/gen/*` diff is committed in the same change
-- [ ] If a new `_init` step was added: ordered correctly in
-      `src/index.tsx`'s init sequence (logger → store → asset → theme →
-      view → firebase → api → product), and any module-scoped `let`
-      variable + accessor pattern is consistent with sibling modules
+- [ ] If a new `_init` step was added: placed correctly in the `init`
+      function in `src/index.tsx` relative to the steps it depends on,
+      and any module-scoped `let` variable + accessor pattern is
+      consistent with sibling modules
 - [ ] If a new Firestore subscription was added: an `Unsubscribe` is
       tracked and torn down on unmount or auth-state change (see
       `AuthManager.listenToUserProfileUnsub` in `src/lib/firebase.ts` for
