@@ -26,6 +26,37 @@ export interface LoadedProductError {
   error: Error
 }
 
+// --- VTO sizing view-model -------------------------------------------------
+// VtoProductData is the display shape the shared leaf widgets (SizeSelector,
+// ItemFitText, ItemFitDetails) consume. vto-single builds it from store
+// product data; the fitting room builds it from a ResolvedFittingRoomItem
+// (see buildVtoProductDataFromResolved in fitting-room-data.ts).
+
+export interface VtoSizeColorData {
+  colorwaySizeAssetId: number
+  colorLabel: string | null
+  sku: string
+  priceFormatted: string
+}
+
+export interface VtoSizeData {
+  sizeId: number
+  sizeLabel: string
+  isRecommended: boolean
+  fit: SizeFit
+  colors: VtoSizeColorData[]
+}
+
+export interface VtoProductData {
+  productName: string
+  productDescriptionHtml: string
+  fitClassification: FitClassification
+  recommendedSizeId: number
+  recommendedSizeLabel: string
+  sizes: VtoSizeData[]
+  styleCategoryLabel: string | null
+}
+
 const logger = getLogger('product')
 
 export function _init() {

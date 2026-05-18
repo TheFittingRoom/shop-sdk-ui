@@ -3,7 +3,7 @@ import { Text } from '@/components/text'
 import { CloseIcon } from '@/lib/asset'
 import { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useCss } from '@/lib/theme'
-import { Availability } from './availability'
+import { Availability } from '@/lib/fitting-room-outfit'
 
 interface ProductCardProps {
   item: ResolvedFittingRoomItem

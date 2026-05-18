@@ -5,7 +5,7 @@ import { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room
 import { DragHandleIcon, LeftArrowIcon } from '@/lib/asset'
 import { SheetSnap } from '@/lib/use-mobile-sheet-snap'
 import { useCss, StyleProp } from '@/lib/theme'
-import { Availability } from './availability'
+import { Availability } from '@/lib/fitting-room-outfit'
 import { AvatarPane } from './avatar-pane'
 import { CardRail } from './card-rail'
 import { DetailAccordion } from './detail-accordion'

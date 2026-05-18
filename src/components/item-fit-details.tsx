@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { VtoProductData } from '@/components/product-sizing-types'
+import { VtoProductData } from '@/lib/product'
 import { CheckCircleIcon } from '@/lib/asset'
 import { useTranslation } from '@/lib/locale'
 import { useCss } from '@/lib/theme'

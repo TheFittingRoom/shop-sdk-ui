@@ -1,5 +1,5 @@
 import { TextT } from '@/components/text'
-import { VtoProductData } from '@/components/product-sizing-types'
+import { VtoProductData } from '@/lib/product'
 import { useTranslation } from '@/lib/locale'
 import { CssProp } from '@/lib/theme'
 

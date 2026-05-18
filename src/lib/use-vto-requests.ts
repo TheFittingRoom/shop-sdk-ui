@@ -4,7 +4,7 @@ import { getLogger } from '@/lib/logger'
 import { getStaticData } from '@/lib/store'
 import { applyFrameBaseUrl } from '@/lib/util'
 
-const logger = getLogger('overlays/use-vto-requests')
+const logger = getLogger('use-vto-requests')
 
 // outfitKey is the dedup / lookup key for a composition. Sorted to normalize
 // item ordering so two outfits with identical (csa, untucked) tuples in

@@ -13,7 +13,7 @@ export interface FittingRoomItem {
 
 export const STORAGE_KEY = 'tfr:fitting-room:v1'
 
-const logger = getLogger('fitting-room')
+const logger = getLogger('fitting-room-storage')
 
 type StoredShape = Record<string, FittingRoomItem[]>
 

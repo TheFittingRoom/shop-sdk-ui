@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { Config } from '@/lib/config'
 import { AuthUser, UserProfile } from '@/lib/firebase'
-import { FittingRoomItem, writeFittingRoom } from '@/lib/fitting-room'
+import { FittingRoomItem, writeFittingRoom } from '@/lib/fitting-room-storage'
 import { LoadedProductData, LoadedProductError } from '@/lib/product'
 import { DeviceLayout, OverlayName } from '@/lib/view'
 

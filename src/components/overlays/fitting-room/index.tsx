@@ -6,19 +6,24 @@ import { ModalFrame } from '@/components/modal'
 import { TextT } from '@/components/text'
 import { VtoCompositionItem } from '@/lib/api'
 import { getAuthManager } from '@/lib/firebase'
-import { ResolvedFittingRoomItem, useResolvedFittingRoom } from '@/lib/fitting-room-data'
+import {
+  buildVtoProductDataFromResolved,
+  findCsaByLabel,
+  findRecommendedColorSize,
+  ResolvedFittingRoomItem,
+  useResolvedFittingRoom,
+} from '@/lib/fitting-room-data'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
 import { useMobileSheetSnap } from '@/lib/use-mobile-sheet-snap'
 import { applyFrameBaseUrl, getSizeLabelFromSize } from '@/lib/util'
 import { DeviceLayout, OverlayName } from '@/lib/view'
-import { Availability, buildOutfit, computeAvailability, OutfitItem } from './availability'
+import { Availability, buildOutfit, computeAvailability, OutfitItem } from '@/lib/fitting-room-outfit'
 import { DesktopLayout } from './desktop-layout'
 import { DetailMode } from './detail-accordion-item'
 import { MobileLayout, MobileMode } from './mobile-layout'
-import { findCsaByLabel, findRecommendedColorSize, buildVtoProductDataFromResolved } from './product-data'
-import { useVtoRequests } from '../use-vto-requests'
+import { useVtoRequests } from '@/lib/use-vto-requests'
 
 // Map our local OutfitItem shape (which carries the externalId for UI bookkeeping)
 // to the wire shape expected by the VTO API.
