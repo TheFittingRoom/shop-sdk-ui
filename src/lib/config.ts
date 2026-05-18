@@ -47,6 +47,9 @@ export interface Config {
 export enum EnvName {
   DEVELOPMENT = 'development',
   PRODUCTION = 'production',
+  // Hosted demo server (demo.thefittingroom.xyz).
+  DEMO = 'demo',
+  // The local-deployment Docker stack running on the developer's host.
   LOCAL = 'local',
 }
 
@@ -115,7 +118,7 @@ const CONFIGS: Record<EnvName, Config> = {
     },
     ...SHARED_CONFIG,
   },
-  [EnvName.LOCAL]: {
+  [EnvName.DEMO]: {
     firebase: {
       apiKey: 'AIzaSyDfjBWzpmzb-mhGN8VSURxzLg6nkzmKUD8',
       authDomain: 'fittingroom-dev-5d248.firebaseapp.com',
@@ -135,6 +138,32 @@ const CONFIGS: Record<EnvName, Config> = {
     },
     frames: {
       baseUrl: 'http://demo.thefittingroom.xyz/s3/tfr-assets-dev',
+    },
+    features: {
+      vtoPrefetch: true,
+    },
+    ...SHARED_CONFIG,
+  },
+  [EnvName.LOCAL]: {
+    firebase: {
+      apiKey: 'AIzaSyDfjBWzpmzb-mhGN8VSURxzLg6nkzmKUD8',
+      authDomain: 'fittingroom-dev-5d248.firebaseapp.com',
+      projectId: 'fittingroom-dev-5d248',
+      storageBucket: 'fittingroom-dev-5d248.appspot.com',
+      messagingSenderId: '2298664147',
+      appId: '1:2298664147:web:340bda75cd5d25f3997026',
+      measurementId: 'G-B7GDQ1Y9LL',
+    },
+    api: {
+      baseUrl: 'http://localhost:8080',
+      vtoTimeoutMs: 120000,
+      vtoPrefetchDelayMs: 3000,
+    },
+    asset: {
+      baseUrl: 'http://localhost:9000/tfr-assets-dev/shop-sdk/assets/v5',
+    },
+    frames: {
+      baseUrl: 'http://localhost:9000/tfr-assets-dev',
     },
     features: {
       vtoPrefetch: true,
