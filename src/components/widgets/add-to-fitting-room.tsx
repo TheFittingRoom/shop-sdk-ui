@@ -1,6 +1,6 @@
 import { TextT } from '@/components/text'
 import { FittingRoomIcon } from '@/lib/asset'
-import { toggleFittingRoomItem } from '@/lib/fitting-room'
+import { toggleFittingRoomItem } from '@/lib/fitting-room-storage'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'

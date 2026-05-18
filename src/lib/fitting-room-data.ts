@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { FittingRoomItem } from '@/lib/fitting-room'
+import { FittingRoomItem } from '@/lib/fitting-room-storage'
 import { getLogger } from '@/lib/logger'
 import { LoadedProductData, LoadedProductError, loadProductDataToStore } from '@/lib/product'
 import { getStaticData, useMainStore, ExternalProduct, MerchantProductError } from '@/lib/store'

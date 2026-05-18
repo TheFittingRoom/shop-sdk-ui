@@ -8,7 +8,6 @@ import { ItemFitDetails } from '@/components/item-fit-details'
 import { ItemFitText } from '@/components/item-fit-text'
 import { LinkT } from '@/components/link'
 import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
-import { VtoProductData, VtoSizeColorData, VtoSizeData } from '@/components/product-sizing-types'
 import { SizeSelector } from '@/components/size-selector'
 import { Text, TextT } from '@/components/text'
 import {
@@ -21,13 +20,13 @@ import {
 import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
-import { loadProductDataToStore } from '@/lib/product'
+import { loadProductDataToStore, VtoProductData, VtoSizeColorData, VtoSizeData } from '@/lib/product'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { getThemeData, useCss, CssProp, StyleProp } from '@/lib/theme'
 import { getSizeLabelFromSize } from '@/lib/util'
 import { useMobileSheetSnap } from '@/lib/use-mobile-sheet-snap'
 import { DeviceLayout, OverlayName } from '@/lib/view'
-import { useVtoRequests } from './use-vto-requests'
+import { useVtoRequests } from '@/lib/use-vto-requests'
 
 interface ElementSize {
   width: number

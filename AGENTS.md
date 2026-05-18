@@ -135,7 +135,7 @@ hashes into the token. This is the SDK's guarantee against duplicate in-flight
 VTO requests, and it holds across both overlays since both call `requestVto`.
 
 Both VTO overlays drive that endpoint through the shared `useVtoRequests`
-hook (`src/components/overlays/use-vto-requests.ts`). The hook keys results
+hook (`src/lib/use-vto-requests.ts`). The hook keys results
 and component-level dedup by `outfitKey` (items joined on
 `colorway_size_asset_id:untucked`), stores rendered frame paths per outfit,
 applies the config-driven prefetch throttle (`config.api.vtoPrefetchDelayMs`),

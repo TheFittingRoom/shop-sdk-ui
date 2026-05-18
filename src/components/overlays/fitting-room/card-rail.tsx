@@ -3,7 +3,7 @@ import { Button } from '@/components/button'
 import { Text } from '@/components/text'
 import { ResolvedFittingRoomGroup } from '@/lib/fitting-room-data'
 import { useCss } from '@/lib/theme'
-import { Availability } from './availability'
+import { Availability } from '@/lib/fitting-room-outfit'
 import { Chevron } from './chevron'
 import { ProductCard } from './product-card'
 
