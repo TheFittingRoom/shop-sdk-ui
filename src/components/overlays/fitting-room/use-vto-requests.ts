@@ -1,15 +1,10 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { requestVto as apiRequestVto, VtoCompositionItem } from '@/lib/api'
 import { getLogger } from '@/lib/logger'
 import { getStaticData } from '@/lib/store'
 import { applyFrameBaseUrl } from '@/lib/util'
 
 const logger = getLogger('overlays/fitting-room/use-vto-requests')
-
-// Throttle non-priority requests behind the most-recent priority one so the
-// pre-warm alternates don't crowd the user's actively-selected outfit. Mirrors
-// vto-single's NON_PRIORITY_VTO_REQUEST_DELAY_MS.
-const NON_PRIORITY_REQUEST_DELAY_MS = 500
 
 // outfitKey is the dedup / lookup key for a composition. Sorted to normalize
 // item ordering so two outfits with identical (csa, untucked) tuples in
@@ -23,9 +18,10 @@ export function outfitKey(items: VtoCompositionItem[]): string {
 
 export interface UseVtoRequestsHandle {
   // Fire a /v1/vto-compositions POST if this outfit hasn't been requested yet.
-  // priority=true marks this as the user-active outfit and resets the
-  // non-priority throttle; priority=false fires pre-warm alternates that may
-  // get delayed up to NON_PRIORITY_REQUEST_DELAY_MS.
+  // priority=true marks this as the user-active outfit, cancels any pending
+  // (still-queued) prefetch requests, and resets the non-priority throttle;
+  // priority=false fires pre-warm alternates that may get delayed up to
+  // config.api.vtoPrefetchDelayMs.
   request: (items: VtoCompositionItem[], priority: boolean) => void
   // Return rewritten (base-URL-applied) frame URLs for the given outfit, or
   // null when not ready / not yet requested.
@@ -45,6 +41,9 @@ export function useVtoRequests(): UseVtoRequestsHandle {
   // outfitKeys already requested (in-flight or completed) — dedup
   const requestedKeysRef = useRef<Set<string>>(new Set())
   const lastPriorityTimeRef = useRef<number | null>(null)
+  // Queued-but-not-yet-fired prefetch timers. A new priority request clears
+  // these so stale alternates from the previous selection never go out.
+  const pendingPrefetchTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set())
   const [lastError, setLastError] = useState<Error | null>(null)
 
   const clearError = useCallback(() => setLastError(null), [])
@@ -71,21 +70,42 @@ export function useVtoRequests(): UseVtoRequestsHandle {
     }
 
     if (priority) {
+      // The selection changed — drop prefetch timers queued for the previous
+      // outfit so they don't fire after this priority request.
+      for (const timer of pendingPrefetchTimersRef.current) clearTimeout(timer)
+      pendingPrefetchTimersRef.current.clear()
       lastPriorityTimeRef.current = Date.now()
       exec()
       return
     }
+    // Throttle non-priority requests behind the most-recent priority one so
+    // the pre-warm alternates don't crowd the user's actively-selected
+    // outfit. The delay floor is config-driven (config.api.vtoPrefetchDelayMs).
     const last = lastPriorityTimeRef.current
     let delay = 0
     if (last) {
       const now = Date.now()
-      const minNext = last + NON_PRIORITY_REQUEST_DELAY_MS
+      const minNext = last + getStaticData().config.api.vtoPrefetchDelayMs
       if (now < minNext) delay = minNext - now
     }
     if (delay > 0) {
-      setTimeout(exec, delay)
+      const timer = setTimeout(() => {
+        pendingPrefetchTimersRef.current.delete(timer)
+        exec()
+      }, delay)
+      pendingPrefetchTimersRef.current.add(timer)
     } else {
       exec()
+    }
+  }, [])
+
+  // Drop any still-queued prefetch timers when the overlay unmounts so they
+  // don't fire POSTs (or setState) after teardown.
+  useEffect(() => {
+    const timers = pendingPrefetchTimersRef.current
+    return () => {
+      for (const timer of timers) clearTimeout(timer)
+      timers.clear()
     }
   }, [])
 

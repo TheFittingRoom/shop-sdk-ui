@@ -13,6 +13,11 @@ export interface Config {
     // Client-side abort timeout (ms) for the synchronous VTO request, which
     // blocks while the backend renders. Guards against a hung backend.
     vtoTimeoutMs: number
+    // Delay (ms) before speculative VTO prefetch requests fire, measured from
+    // the most recent priority request. Keeps prefetch traffic from crowding
+    // the user's actively-selected render. 0 = fire immediately. Only takes
+    // effect when features.vtoPrefetch is true.
+    vtoPrefetchDelayMs: number
     // avatarTimeoutMs: number
   }
   asset: {
@@ -71,6 +76,7 @@ const CONFIGS: Record<EnvName, Config> = {
     api: {
       baseUrl: 'https://tfr.dev.thefittingroom.xyz',
       vtoTimeoutMs: 120000,
+      vtoPrefetchDelayMs: 3000,
     },
     asset: {
       baseUrl: 'https://assets.dev.thefittingroom.xyz/shop-sdk/assets/v5',
@@ -79,7 +85,7 @@ const CONFIGS: Record<EnvName, Config> = {
       baseUrl: 'https://assets.dev.thefittingroom.xyz',
     },
     features: {
-      vtoPrefetch: false,
+      vtoPrefetch: true,
     },
     ...SHARED_CONFIG,
   },
@@ -96,6 +102,7 @@ const CONFIGS: Record<EnvName, Config> = {
     api: {
       baseUrl: 'https://tfr.p.thefittingroom.xyz',
       vtoTimeoutMs: 120000,
+      vtoPrefetchDelayMs: 3000,
     },
     asset: {
       baseUrl: 'https://assets.p.thefittingroom.xyz/shop-sdk/assets/v5',
@@ -104,7 +111,7 @@ const CONFIGS: Record<EnvName, Config> = {
       baseUrl: 'https://assets.p.thefittingroom.xyz',
     },
     features: {
-      vtoPrefetch: false,
+      vtoPrefetch: true,
     },
     ...SHARED_CONFIG,
   },
@@ -121,6 +128,7 @@ const CONFIGS: Record<EnvName, Config> = {
     api: {
       baseUrl: 'https://demo.thefittingroom.xyz/api',
       vtoTimeoutMs: 120000,
+      vtoPrefetchDelayMs: 3000,
     },
     asset: {
       baseUrl: 'http://demo.thefittingroom.xyz/s3/tfr-assets-dev/shop-sdk/assets/v5',
@@ -129,7 +137,7 @@ const CONFIGS: Record<EnvName, Config> = {
       baseUrl: 'http://demo.thefittingroom.xyz/s3/tfr-assets-dev',
     },
     features: {
-      vtoPrefetch: false,
+      vtoPrefetch: true,
     },
     ...SHARED_CONFIG,
   },
