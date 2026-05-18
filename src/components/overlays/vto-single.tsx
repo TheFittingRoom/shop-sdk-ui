@@ -12,9 +12,6 @@ import { VtoProductData, VtoSizeColorData, VtoSizeData } from '@/components/prod
 import { SizeSelector } from '@/components/size-selector'
 import { Text, TextT } from '@/components/text'
 import {
-  requestVto as apiRequestVto,
-} from '@/lib/api'
-import {
   AVATAR_BOTTOM_BACKGROUND_URL,
   CloseIcon,
   DragHandleIcon,
@@ -27,9 +24,10 @@ import { getLogger } from '@/lib/logger'
 import { loadProductDataToStore } from '@/lib/product'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { getThemeData, useCss, CssProp, StyleProp } from '@/lib/theme'
-import { applyFrameBaseUrl, getSizeLabelFromSize } from '@/lib/util'
+import { getSizeLabelFromSize } from '@/lib/util'
 import { useMobileSheetSnap } from '@/lib/use-mobile-sheet-snap'
 import { DeviceLayout, OverlayName } from '@/lib/view'
+import { useVtoRequests } from './use-vto-requests'
 
 interface ElementSize {
   width: number
@@ -41,14 +39,6 @@ const AVATAR_GUTTER_HEIGHT_PX = 100
 const CONTENT_AREA_WIDTH_PX = 550
 
 const logger = getLogger('overlays/vto-single')
-
-// compositionKey identifies a unique 1-garment composition for in-component
-// dedup (csaId + untucked). Untucked is always false for single-garment VTO
-// (the default tucked-in state is fine for a top rendered alone); the shape
-// is kept untuck-aware for forward compatibility with multi-garment.
-function compositionKey(csaId: number, untucked: boolean): string {
-  return `${csaId}:${untucked ? 1 : 0}`
-}
 
 export default function VtoSingleOverlay() {
   const userIsLoggedIn = useMainStore((state) => state.userIsLoggedIn)
@@ -62,12 +52,9 @@ export default function VtoSingleOverlay() {
   const [selectedSizeLabel, setSelectedSizeLabel] = useState<string | null>(null)
   const [selectedColorLabel, setSelectedColorLabel] = useState<string | null>(null)
   const [modalStyle, setModalStyle] = useState<StyleProp>({})
-  // compositionKey → rendered frame paths returned by POST /v1/vto-compositions.
-  const [framesByKey, setFramesByKey] = useState<Record<string, string[]>>({})
-  // compositionKeys already requested (in-flight or completed) — dedup so a
-  // re-render doesn't re-POST the same composition.
-  const requestedKeysRef = useRef<Set<string>>(new Set())
-  const lastPriorityVtoRequestTimeRef = useRef<number | null>(null)
+  // Shared VTO request flow: dedup, prefetch throttle, and frame storage.
+  // Single-garment compositions are just one-item outfits (untucked: false).
+  const { request: vtoRequest, framesForOutfit } = useVtoRequests()
 
   // Redirect if not logged in or no avatar
   useEffect(() => {
@@ -234,55 +221,15 @@ export default function VtoSingleOverlay() {
     return { sizeColorRecord, availableColorLabels }
   }, [vtoProductData, selectedSizeLabel, selectedColorLabel])
 
-  // Fetch VTO data for a color/size. Posts a 1-item composition request to
-  // the synchronous endpoint, which returns the rendered frame paths
-  // directly; the frames are stored by compositionKey.
-  const requestVto = useCallback((sizeColorRecord: VtoSizeColorData, priority: boolean) => {
-    const csaId = sizeColorRecord.colorwaySizeAssetId
-    const key = compositionKey(csaId, false)
-    if (requestedKeysRef.current.has(key)) {
-      return
-    }
-    function executeRequest() {
-      logger.timerStart(`requestVto_${sizeColorRecord.sku}`)
-      logger.logDebug(`{{ts}} - Requesting VTO for sku: ${sizeColorRecord.sku}`, { priority, sizeColorRecord })
-      // Mark requested before the POST resolves to dedupe re-entrant calls.
-      requestedKeysRef.current.add(key)
-
-      apiRequestVto([{ colorway_size_asset_id: csaId, untucked: false }])
-        .then((resp) => {
-          logger.timerEnd(`requestVto_${sizeColorRecord.sku}`)
-          logger.logTimer(`requestVto_${sizeColorRecord.sku}`, `{{ts}} - VTO data is loaded for sku: ${sizeColorRecord.sku}`)
-          setFramesByKey((prev) => ({ ...prev, [key]: resp.frames }))
-        })
-        .catch((error) => {
-          logger.logError(`Error requesting VTO for sku: ${sizeColorRecord.sku}`, { error, sizeColorRecord })
-          // Drop the key so a later re-selection retries the render.
-          requestedKeysRef.current.delete(key)
-        })
-    }
-    // Throttle non-priority (prefetch) requests behind the most-recent
-    // priority one. The delay floor is config-driven
-    // (config.api.vtoPrefetchDelayMs); 0 fires immediately.
-    let delay: number = 0
-    if (priority) {
-      lastPriorityVtoRequestTimeRef.current = Date.now()
-    } else {
-      const lastPriorityTime = lastPriorityVtoRequestTimeRef.current
-      if (lastPriorityTime) {
-        const now = Date.now()
-        const minNextRequestTime = lastPriorityTime + getStaticData().config.api.vtoPrefetchDelayMs
-        if (now < minNextRequestTime) {
-          delay = minNextRequestTime - now
-        }
-      }
-    }
-    if (delay) {
-      setTimeout(executeRequest, delay)
-      return
-    }
-    executeRequest()
-  }, [])
+  // Request VTO for a color/size as a one-item outfit. Dedup, the prefetch
+  // throttle, and frame storage all live in the shared useVtoRequests hook;
+  // single-garment compositions are never untucked.
+  const requestVto = useCallback(
+    (sizeColorRecord: VtoSizeColorData, priority: boolean) => {
+      vtoRequest([{ colorway_size_asset_id: sizeColorRecord.colorwaySizeAssetId, untucked: false }], priority)
+    },
+    [vtoRequest],
+  )
 
   // Trigger priority VTO request when size/color selection changes
   useEffect(() => {
@@ -309,27 +256,26 @@ export default function VtoSingleOverlay() {
     }
   }, [requestVto, vtoProductData, selectedColorLabel])
 
-  // Frame URLs for the currently-selected color/size: look up the rendered
-  // frames by compositionKey, rewrite the bare paths to the configured
-  // frames base URL, and preload the resulting images.
+  // Frame URLs for the currently-selected color/size: ask the shared hook
+  // for this one-item outfit's rendered frames (already base-URL-rewritten),
+  // then preload the images.
   const frameUrls = useMemo(() => {
     if (!selectedColorSizeRecord) {
       return null
     }
-    const key = compositionKey(selectedColorSizeRecord.colorwaySizeAssetId, false)
-    const frames = framesByKey[key]
-    if (!frames || frames.length === 0) {
+    const rewritten = framesForOutfit([
+      { colorway_size_asset_id: selectedColorSizeRecord.colorwaySizeAssetId, untucked: false },
+    ])
+    if (!rewritten) {
       return null
     }
     logger.logDebug(`{{ts}} - Displaying VTO for sku: ${selectedColorSizeRecord.sku}`)
-    const baseUrl = getStaticData().config.frames.baseUrl
-    const rewritten = frames.map((u) => applyFrameBaseUrl(u, baseUrl))
     rewritten.forEach((url) => {
       const img = new Image()
       img.src = url
     })
     return rewritten
-  }, [selectedColorSizeRecord, framesByKey])
+  }, [selectedColorSizeRecord, framesForOutfit])
 
   const handleSignOutClick = useCallback(() => {
     closeOverlay()

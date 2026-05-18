@@ -4,7 +4,7 @@ import { getLogger } from '@/lib/logger'
 import { getStaticData } from '@/lib/store'
 import { applyFrameBaseUrl } from '@/lib/util'
 
-const logger = getLogger('overlays/fitting-room/use-vto-requests')
+const logger = getLogger('overlays/use-vto-requests')
 
 // outfitKey is the dedup / lookup key for a composition. Sorted to normalize
 // item ordering so two outfits with identical (csa, untucked) tuples in
@@ -31,10 +31,12 @@ export interface UseVtoRequestsHandle {
   clearError: () => void
 }
 
-// useVtoRequests encapsulates the multi-garment VTO request flow against the
-// synchronous /v1/vto-compositions endpoint: dedup POSTs by outfitKey and
-// store the rendered frame paths per outfit. The endpoint returns frames
-// directly in the response — there is no Firestore subscription.
+// useVtoRequests encapsulates the VTO request flow against the synchronous
+// /v1/vto-compositions endpoint: dedup POSTs by outfitKey and store the
+// rendered frame paths per outfit. The endpoint returns frames directly in
+// the response — there is no Firestore subscription. Shared by both VTO
+// overlays: the fitting room (multi-garment outfits + prefetch alternates)
+// and vto-single (a one-item outfit per size/color).
 export function useVtoRequests(): UseVtoRequestsHandle {
   // outfitKey → rendered frame paths
   const [framesByKey, setFramesByKey] = useState<Record<string, string[]>>({})

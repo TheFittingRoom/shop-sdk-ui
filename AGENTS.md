@@ -134,13 +134,18 @@ sorted by `(colorway_size_asset_id, untucked)` — the same ordering the backend
 hashes into the token. This is the SDK's guarantee against duplicate in-flight
 VTO requests, and it holds across both overlays since both call `requestVto`.
 
-`vto-single.tsx` keeps `framesByKey: Record<compositionKey, string[]>` for
-results and a `requestedKeysRef` Set for component-level dedup.
-`compositionKey(csaId, untucked)` is the key — untucked is always `false` for
-single-garment. The multi-garment overlay uses the `useVtoRequests` hook
-(`fitting-room/use-vto-requests.ts`), keyed by `outfitKey`. `useCache` on
-`execApiRequest` stays **off** for this endpoint; the in-flight dedup above
-plus the backend's content-hash cache cover repeat requests.
+Both VTO overlays drive that endpoint through the shared `useVtoRequests`
+hook (`src/components/overlays/use-vto-requests.ts`). The hook keys results
+and component-level dedup by `outfitKey` (items joined on
+`colorway_size_asset_id:untucked`), stores rendered frame paths per outfit,
+applies the config-driven prefetch throttle (`config.api.vtoPrefetchDelayMs`),
+and cancels still-queued prefetch timers when a new priority request fires.
+The fitting room passes multi-garment outfits plus prefetch alternates;
+`vto-single.tsx` passes a one-item outfit per size/color (`untucked` always
+`false`) — it holds no `framesByKey`/`requestedKeysRef`/`compositionKey` of
+its own. `useCache` on `execApiRequest` stays **off** for this endpoint; the
+in-flight dedup above plus the backend's content-hash cache cover repeat
+requests.
 
 ## Conventions
 
