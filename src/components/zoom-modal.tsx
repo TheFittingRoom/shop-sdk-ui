@@ -94,11 +94,20 @@ export function ZoomModal({ frameUrls, selectedFrameIndex, setSelectedFrameIndex
       justifyContent: 'center',
       borderRadius: '50%',
       border: 'none',
+      // Reset native button chrome and default padding so the circle renders
+      // exactly as styled.
+      appearance: 'none',
+      WebkitAppearance: 'none',
+      padding: 0,
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
       color: '#FFFFFF',
       fontSize: '32px',
       lineHeight: 1,
       cursor: 'pointer',
+      // Keep the "×" glyph from being text-selected — a stray selection
+      // paints a dark highlight rectangle behind it.
+      userSelect: 'none',
+      WebkitUserSelect: 'none',
       zIndex: 1,
     },
   }))

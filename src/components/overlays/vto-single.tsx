@@ -1042,7 +1042,8 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
     },
     zoomPill: {
       position: 'absolute',
-      top: '16px',
+      // Bottom-right of the avatar image, clear of the slider gutter below it.
+      bottom: `${AVATAR_GUTTER_HEIGHT_PX + 16}px`,
       right: '16px',
       display: 'inline-flex',
       alignItems: 'center',
