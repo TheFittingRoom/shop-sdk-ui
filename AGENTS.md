@@ -7,10 +7,11 @@ and renders a `<tfr-widget>` custom element.
 ## Build and distribution
 
 - Vite library build → `dist/index.js` (single ESM bundle, unminified) plus inlined CSS.
-- `npm run check` = `tsc --noEmit`. `npm run lint` = ESLint (flat config,
-  `eslint.config.js`). `npm run build` cleans + builds. CI runs all three.
-  ESLint ignores `src/api/gen/` (tygo-generated). Non-null assertions and
-  `any` are errors; `react-hooks/exhaustive-deps` is a warning.
+- `npm run check` runs `tsc --noEmit` then ESLint — the one-stop validation
+  command. `npm run lint` / `lint:fix` run ESLint alone (flat config,
+  `eslint.config.js`). `npm run build` cleans + builds. CI runs `check` +
+  `build`. ESLint ignores `src/api/gen/` (tygo-generated). Non-null
+  assertions and `any` are errors; `react-hooks/exhaustive-deps` is a warning.
 - Consumers load the SDK via `<script type="module">` from a jsdelivr URL backed by the npm package `@thefittingroom/shop-ui`.
 
 ### Release flow
@@ -193,8 +194,7 @@ gen / Firestore-conventions notes above are easy to drift from when
 files move or shapes change — keep AGENTS.md edits in the same change as
 the code they describe.
 
-- [ ] `npm run check` (tsc --noEmit) clean
-- [ ] `npm run lint` (ESLint) reports no errors
+- [ ] `npm run check` (tsc --noEmit + ESLint) clean
 - [ ] `npm run build` produces `dist/index.js` without errors
 - [ ] If consumed any new or changed backend types: `npm run gen-types`
       ran and the `src/api/gen/*` diff is committed in the same change

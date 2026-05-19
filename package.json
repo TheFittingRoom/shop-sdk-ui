@@ -17,7 +17,7 @@
     "watch": "vite build --mode production --watch",
     "serve": "serve . -p 5173 --cors",
     "watch-serve": "trap 'kill 0' EXIT; npm run watch & npm run serve & wait",
-    "check": "tsc --noEmit",
+    "check": "tsc --noEmit && npm run lint",
     "gen-types": "sh scripts/gen-types.sh",
     "promote-latest": "sh scripts/promote-latest.sh",
     "lint": "eslint .",
