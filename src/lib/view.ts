@@ -4,7 +4,7 @@ import ForgotPasswordOverlay from '@/components/overlays/forgot-password'
 import GetAppOverlay from '@/components/overlays/get-app'
 import LandingOverlay from '@/components/overlays/landing'
 import SignInOverlay from '@/components/overlays/sign-in'
-import VtoSingleOverlay from '@/components/overlays/vto-single'
+import QuickViewOverlay from '@/components/overlays/quick-view'
 import AddToFittingRoomCompactWidget from '@/components/widgets/add-to-fitting-room-compact'
 import AddToFittingRoomWidget from '@/components/widgets/add-to-fitting-room'
 import FittingRoomIconWidget from '@/components/widgets/fitting-room-icon'
@@ -80,7 +80,7 @@ export enum OverlayName {
   GET_APP = 'get-app',
   LANDING = 'landing',
   SIGN_IN = 'sign-in',
-  VTO_SINGLE = 'vto-single',
+  QUICK_VIEW = 'quick-view',
 }
 
 export type OverlayProps = Record<string, unknown>
@@ -91,5 +91,5 @@ export const OVERLAYS: Record<OverlayName, React.FC<OverlayProps>> = {
   [OverlayName.GET_APP]: GetAppOverlay,
   [OverlayName.LANDING]: LandingOverlay,
   [OverlayName.SIGN_IN]: SignInOverlay,
-  [OverlayName.VTO_SINGLE]: VtoSingleOverlay,
+  [OverlayName.QUICK_VIEW]: QuickViewOverlay,
 }

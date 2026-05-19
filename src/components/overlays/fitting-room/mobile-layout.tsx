@@ -301,7 +301,7 @@ function TryOnView({
     },
     sheetOuter: {
       position: 'absolute',
-      // 8px gap to either side, matching vto-single's mobile sheet.
+      // 8px gap to either side, matching quick-view's mobile sheet.
       left: '8px',
       right: '8px',
       bottom: 0,

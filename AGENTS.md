@@ -119,7 +119,7 @@ response. The SDK prepends the configured `frames.baseUrl` (per-env in
 `src/lib/util.ts`. It also strips the host from any legacy host-prefixed URLs,
 so both shapes work.
 
-Used in both VTO overlays (`vto-single.tsx` and `fitting-room/`). Anywhere else
+Used in both VTO overlays (`quick-view.tsx` and `fitting-room/`). Anywhere else
 that turns a bare frame path into an `<img src>` should call `applyFrameBaseUrl`
 too.
 
@@ -146,7 +146,7 @@ and component-level dedup by `outfitKey` (items joined on
 applies the config-driven prefetch throttle (`config.api.vtoPrefetchDelayMs`),
 and cancels still-queued prefetch timers when a new priority request fires.
 The fitting room passes multi-garment outfits plus prefetch alternates;
-`vto-single.tsx` passes a one-item outfit per size/color (`untucked` always
+`quick-view.tsx` passes a one-item outfit per size/color (`untucked` always
 `false`) — it holds no `framesByKey`/`requestedKeysRef`/`compositionKey` of
 its own. `useCache` on `execApiRequest` stays **off** for this endpoint; the
 in-flight dedup above plus the backend's content-hash cache cover repeat

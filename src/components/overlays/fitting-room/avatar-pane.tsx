@@ -14,7 +14,7 @@ interface AvatarPaneProps {
   controls?: ReactNode
   // Mobile try-on: anchor the avatar frame to the top at its natural 2:3
   // aspect and fill the area below it with the avatar-bottom background
-  // texture (matches vto-single's mobile layout).
+  // texture (matches quick-view's mobile layout).
   mobileFullscreen?: boolean
   // Optional controlled frame index. When omitted, AvatarPane keeps its own
   // internal state; desktop passes these so the zoom modal can show the
@@ -110,7 +110,7 @@ export function AvatarPane({
         setSelectedFrameIndex={setSelectedFrameIndex}
         imageContainerStyle={css.frameContainer}
         imageStyle={css.frameImage}
-        loadingT="vto-single.avatar_loading"
+        loadingT="quick-view.avatar_loading"
       />
     )
     if (mobileFullscreen) {
@@ -142,7 +142,7 @@ export function AvatarPane({
   if (hasSelection) {
     return (
       <div css={css.container}>
-        <Loading t="vto-single.avatar_loading" />
+        <Loading t="quick-view.avatar_loading" />
       </div>
     )
   }

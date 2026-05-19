@@ -42,9 +42,9 @@ const AVATAR_IMAGE_ASPECT_RATIO = 2 / 3 // width:height
 const AVATAR_GUTTER_HEIGHT_PX = 100
 const CONTENT_AREA_WIDTH_PX = 550
 
-const logger = getLogger('overlays/vto-single')
+const logger = getLogger('overlays/quick-view')
 
-export default function VtoSingleOverlay() {
+export default function QuickViewOverlay() {
   const userIsLoggedIn = useMainStore((state) => state.userIsLoggedIn)
   const userHasAvatar = useMainStore((state) => state.userHasAvatar)
   const userProfile = useMainStore((state) => state.userProfile)
@@ -63,11 +63,11 @@ export default function VtoSingleOverlay() {
   // Redirect if not logged in or no avatar
   useEffect(() => {
     if (!userIsLoggedIn) {
-      openOverlay(OverlayName.LANDING, { returnToOverlay: OverlayName.VTO_SINGLE })
+      openOverlay(OverlayName.LANDING, { returnToOverlay: OverlayName.QUICK_VIEW })
       return
     }
     if (userIsLoggedIn && userHasAvatar === false) {
-      openOverlay(OverlayName.GET_APP, { returnToOverlay: OverlayName.VTO_SINGLE, noAvatar: true })
+      openOverlay(OverlayName.GET_APP, { returnToOverlay: OverlayName.QUICK_VIEW, noAvatar: true })
       return
     }
   }, [userIsLoggedIn, userHasAvatar, openOverlay])
@@ -346,7 +346,7 @@ export default function VtoSingleOverlay() {
         onAddToCart={handleAddToCartClick}
         onSignOut={handleSignOutClick}
       />
-      {vtoError ? <Snackbar messageKey="vto-single.vto_error" onDismiss={clearVtoError} /> : null}
+      {vtoError ? <Snackbar messageKey="quick-view.vto_error" onDismiss={clearVtoError} /> : null}
     </SidecarModalFrame>
   )
 }
@@ -378,12 +378,12 @@ function NoFitLayout({ onClose, onSignOut }: { onClose: () => void; onSignOut: (
   return (
     <div css={css.mainContainer}>
       <div css={css.titlebarContainer}>
-        <ModalTitlebar title={t('try_it_on')} onCloseClick={onClose} />
+        <ModalTitlebar title={t('quick-view.title')} onCloseClick={onClose} />
       </div>
       <div css={css.contentContainer}>
         <div>&nbsp;</div>
         <div css={css.messageContainer}>
-          <TextT variant="base" t="vto-single.no_recommendation" />
+          <TextT variant="base" t="quick-view.no_recommendation" />
         </div>
         <div css={css.footerContainer}>
           <Footer onSignOutClick={onSignOut} />
@@ -432,7 +432,7 @@ function FittingRoomToggleButton() {
   }
 
   const handleClick = () => {
-    // vto-single always renders for the current PDP product, so isPdp=true.
+    // quick-view always renders for the current PDP product, so isPdp=true.
     toggleFittingRoomItem(productId, currentProduct?.handle ?? null, true).catch((error) => {
       logger.logError('toggleFittingRoomItem failed', { error })
     })
@@ -745,7 +745,7 @@ function MobileContentExpanded({
         <LinkT
           variant="base"
           css={css.productDetailsText}
-          t="vto-single.view_product_details"
+          t="quick-view.view_product_details"
           onClick={handleProductDetailsClick}
         />
       </div>
@@ -879,7 +879,7 @@ function MobileContentFull({
         <LinkT
           variant="base"
           css={css.productDetailsText}
-          t="vto-single.hide_product_details"
+          t="quick-view.hide_product_details"
           onClick={handleProductDetailsClick}
         />
       </div>
@@ -1014,7 +1014,7 @@ function DesktopLayout({
     <div css={css.mainContainer}>
       <Avatar frameUrls={frameUrls} setModalStyle={setModalStyle} />
       <div css={css.rightContainer}>
-        <ModalTitlebar title={t('try_it_on')} onCloseClick={onClose} />
+        <ModalTitlebar title={t('quick-view.title')} onCloseClick={onClose} />
         <div css={css.contentContainer}>
           <div css={css.productNameContainer}>
             <Text variant="brand" css={css.productNameText}>
@@ -1247,12 +1247,12 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
         setSelectedFrameIndex={setSelectedFrameIndex}
         imageContainerStyle={layoutData.imageContainerStyle}
         imageStyle={layoutData.imageStyle}
-        loadingT="vto-single.avatar_loading"
+        loadingT="quick-view.avatar_loading"
       />
       {isReady && !isMobileLayout ? (
         <Button variant="base" css={css.zoomPill} onClick={() => setZoomOpen(true)}>
           <ZoomIcon css={css.zoomPillIcon} />
-          <TextT variant="base" t="vto-single.zoom_in" />
+          <TextT variant="base" t="quick-view.zoom_in" />
         </Button>
       ) : null}
       {zoomOpen ? (
@@ -1278,7 +1278,7 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
                 onChange={(e) => setSelectedFrameIndex(Number(e.target.value))}
                 css={css.sliderInput}
               />
-              <TextT variant="base" t="vto-single.slide_to_rotate" css={css.sliderText} />
+              <TextT variant="base" t="quick-view.slide_to_rotate" css={css.sliderText} />
             </>
           )}
         </div>
@@ -1357,7 +1357,7 @@ function ColorSelector({ availableColorLabels, selectedColorLabel, onChangeColor
   return (
     <div css={css.colorContainer}>
       <label>
-        <TextT variant="base" css={css.colorLabelText} t="vto-single.color_label" />
+        <TextT variant="base" css={css.colorLabelText} t="quick-view.color_label" />
         <select value={selectedColorLabel ?? ''} onChange={handleColorSelectChange} css={css.colorSelect}>
           {availableColorLabels.map((colorLabel) => (
             <option key={colorLabel} value={colorLabel}>
@@ -1430,7 +1430,7 @@ function Footer({ onSignOutClick }: FooterProps) {
 
   return (
     <div css={css.container}>
-      <LinkT variant="underline" css={css.signOutLink} onClick={onSignOutClick} t="vto-single.sign_out" />
+      <LinkT variant="underline" css={css.signOutLink} onClick={onSignOutClick} t="quick-view.sign_out" />
       <TfrNameSvg css={css.tfrIcon} />
     </div>
   )

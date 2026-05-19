@@ -303,7 +303,7 @@ export default function FittingRoomOverlay() {
     return framesForOutfit(toWireItems(outfit.items))
   }, [outfit, framesForOutfit, userProfile])
 
-  // Auth gate: fire at overlay-open time (mirrors vto-single). Anonymous
+  // Auth gate: fire at overlay-open time (mirrors quick-view). Anonymous
   // users get bounced to LANDING; logged-in-but-no-avatar users get bounced
   // to GET_APP. Both pass returnToOverlay=FITTING_ROOM so the post-auth
   // flow brings them back here. userHasAvatar starts as null while the
@@ -398,7 +398,7 @@ export default function FittingRoomOverlay() {
   // While the auth gate effect is deciding where to send us (or while the
   // user profile is still loading), don't render the overlay's body — we'd
   // either flash an empty rails view or briefly render the layout before
-  // the redirect lands. Match vto-single's gating behavior.
+  // the redirect lands. Match quick-view's gating behavior.
   const authResolved = userIsLoggedIn && userHasAvatar === true
   if (!authResolved) {
     return (

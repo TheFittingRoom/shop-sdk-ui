@@ -59,7 +59,8 @@
     "need_help": "Besoin d'aide ?",
     "contact_us": "Contactez-nous."
   },
-  "vto-single": {
+  "quick-view": {
+    "title": "Essayage rapide",
     "avatar_loading": "Trouver votre ajustement parfait...",
     "slide_to_rotate": "Faites glisser pour faire pivoter",
     "sign_out": "Se déconnecter",

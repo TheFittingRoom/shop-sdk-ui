@@ -28,7 +28,7 @@ export interface LoadedProductError {
 
 // --- VTO sizing view-model -------------------------------------------------
 // VtoProductData is the display shape the shared leaf widgets (SizeSelector,
-// ItemFitText, ItemFitDetails) consume. vto-single builds it from store
+// ItemFitText, ItemFitDetails) consume. quick-view builds it from store
 // product data; the fitting room builds it from a ResolvedFittingRoomItem
 // (see buildVtoProductDataFromResolved in fitting-room-data.ts).
 

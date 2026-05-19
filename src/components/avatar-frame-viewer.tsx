@@ -24,7 +24,7 @@ export function AvatarFrameViewer({
   setSelectedFrameIndex,
   imageContainerStyle,
   imageStyle,
-  loadingT = 'vto-single.avatar_loading',
+  loadingT = 'quick-view.avatar_loading',
 }: AvatarFrameViewerProps) {
   const css = useCss((_theme) => ({
     imageContainer: {

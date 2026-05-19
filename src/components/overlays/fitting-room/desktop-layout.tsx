@@ -77,7 +77,7 @@ export function DesktopLayout({
   const [selectedFrameIndex, setSelectedFrameIndex] = useState<number | null>(null)
 
   // Measure container height so we can derive a width for the avatar column
-  // that matches the portrait frame aspect (mirrors what vto-single's Avatar
+  // that matches the portrait frame aspect (mirrors what quick-view's Avatar
   // does for its sidecar layout). Without this, fixed grid columns squeeze
   // the avatar column to near-zero on narrower viewports.
   //

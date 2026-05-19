@@ -59,7 +59,8 @@
     "need_help": "Need help?",
     "contact_us": "Contact us."
   },
-  "vto-single": {
+  "quick-view": {
+    "title": "Quick View Try On",
     "avatar_loading": "Finding your perfect fit...",
     "slide_to_rotate": "Slide to rotate",
     "sign_out": "Sign out",

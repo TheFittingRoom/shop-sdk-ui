@@ -36,7 +36,7 @@ export interface UseVtoRequestsHandle {
 // rendered frame paths per outfit. The endpoint returns frames directly in
 // the response — there is no Firestore subscription. Shared by both VTO
 // overlays: the fitting room (multi-garment outfits + prefetch alternates)
-// and vto-single (a one-item outfit per size/color).
+// and quick-view (a one-item outfit per size/color).
 export function useVtoRequests(): UseVtoRequestsHandle {
   // outfitKey → rendered frame paths
   const [framesByKey, setFramesByKey] = useState<Record<string, string[]>>({})

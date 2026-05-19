@@ -11,7 +11,7 @@ export default function SizeRecWidget({}: WidgetProps) {
   const openOverlay = useMainStore((state) => state.openOverlay)
   const openedOverlays = useMainStore((state) => state.openedOverlays)
   const storeProductData = useMainStore((state) => state.productData)
-  const hasOpenedVtoSingleOverlay = openedOverlays.includes(OverlayName.VTO_SINGLE)
+  const hasOpenedQuickViewOverlay = openedOverlays.includes(OverlayName.QUICK_VIEW)
 
   // Get size recommendation
   const sizeRecommendationRecord = useMemo(() => {
@@ -32,12 +32,12 @@ export default function SizeRecWidget({}: WidgetProps) {
   }, [storeProductData])
 
   const handleLinkClick = useCallback(() => {
-    openOverlay(OverlayName.VTO_SINGLE)
+    openOverlay(OverlayName.QUICK_VIEW)
   }, [openOverlay])
 
   // RENDERING:
 
-  if (!sizeRecommendationRecord || !hasOpenedVtoSingleOverlay) {
+  if (!sizeRecommendationRecord || !hasOpenedQuickViewOverlay) {
     return null
   }
   const sizeLabel = getSizeLabelFromSize(sizeRecommendationRecord.recommended_size)
