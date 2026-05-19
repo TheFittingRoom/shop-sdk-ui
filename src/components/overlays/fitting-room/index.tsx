@@ -3,6 +3,7 @@ import { ButtonT } from '@/components/button'
 import { Loading } from '@/components/content/loading'
 import { LinkT } from '@/components/link'
 import { ModalFrame } from '@/components/modal'
+import { Snackbar } from '@/components/snackbar'
 import { TextT } from '@/components/text'
 import { VtoCompositionItem } from '@/lib/api'
 import { getAuthManager } from '@/lib/firebase'
@@ -375,29 +376,6 @@ export default function FittingRoomOverlay() {
       textDecoration: 'underline',
       marginTop: '8px',
     },
-    snackbar: {
-      position: 'absolute',
-      left: '50%',
-      bottom: '24px',
-      transform: 'translateX(-50%)',
-      padding: '12px 20px',
-      borderRadius: '24px',
-      backgroundColor: theme.color_fg_text,
-      color: '#FFFFFF',
-      fontSize: '13px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      zIndex: 10,
-      maxWidth: 'calc(100% - 32px)',
-    },
-    snackbarDismiss: {
-      background: 'none',
-      border: 'none',
-      color: '#FFFFFF',
-      fontSize: '16px',
-      cursor: 'pointer',
-    },
   }))
 
   // Browse mode sits below the merchant's page header (topOffset). Try-on
@@ -511,14 +489,7 @@ export default function FittingRoomOverlay() {
             onSignOut={handleSignOut}
           />
         )}
-        {vtoError ? (
-          <div css={css.snackbar}>
-            <TextT variant="base" t="fitting_room.vto_error" />
-            <button css={css.snackbarDismiss} onClick={clearVtoError} aria-label="Dismiss">
-              ×
-            </button>
-          </div>
-        ) : null}
+        {vtoError ? <Snackbar messageKey="fitting_room.vto_error" onDismiss={clearVtoError} /> : null}
       </div>
     </ModalFrame>
   )

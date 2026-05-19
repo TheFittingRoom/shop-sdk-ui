@@ -9,6 +9,7 @@ import { ItemFitText } from '@/components/item-fit-text'
 import { LinkT } from '@/components/link'
 import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
 import { SizeSelector } from '@/components/size-selector'
+import { Snackbar } from '@/components/snackbar'
 import { Text, TextT } from '@/components/text'
 import {
   AVATAR_BOTTOM_BACKGROUND_URL,
@@ -53,7 +54,7 @@ export default function VtoSingleOverlay() {
   const [modalStyle, setModalStyle] = useState<StyleProp>({})
   // Shared VTO request flow: dedup, prefetch throttle, and frame storage.
   // Single-garment compositions are just one-item outfits (untucked: false).
-  const { request: vtoRequest, framesForOutfit } = useVtoRequests()
+  const { request: vtoRequest, framesForOutfit, lastError: vtoError, clearError: clearVtoError } = useVtoRequests()
 
   // Redirect if not logged in or no avatar
   useEffect(() => {
@@ -341,6 +342,7 @@ export default function VtoSingleOverlay() {
         onAddToCart={handleAddToCartClick}
         onSignOut={handleSignOutClick}
       />
+      {vtoError ? <Snackbar messageKey="vto-single.vto_error" onDismiss={clearVtoError} /> : null}
     </SidecarModalFrame>
   )
 }

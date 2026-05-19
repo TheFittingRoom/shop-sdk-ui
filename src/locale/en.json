@@ -67,7 +67,8 @@
     "add_to_cart": "Add to cart",
     "view_product_details": "View product details",
     "hide_product_details": "Hide product details",
-    "no_recommendation": "There are currently no well fitting sizes available for this item."
+    "no_recommendation": "There are currently no well fitting sizes available for this item.",
+    "vto_error": "Couldn't load the try-on. Please try again."
   },
   "size-rec": {
     "recommended_size": "Recommended Size: {{size}}",
