@@ -47,6 +47,21 @@ export default tseslint.config(
       // --- General ---
       eqeqeq: ['error', 'always', { null: 'ignore' }], // === except `== null`
       'no-console': 'warn',
+      // --- StandardJS-style best practices (non-formatting) ---
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'no-new-wrappers': 'error',
+      'no-new-func': 'error',
+      'no-eval': 'error',
+      'no-implied-eval': 'error',
+      'no-throw-literal': 'error',
+      'no-return-assign': ['error', 'always'],
+      'no-self-compare': 'error',
+      'no-sequences': 'error',
+      'no-unneeded-ternary': 'error',
+      'no-useless-rename': 'error',
+      'no-useless-computed-key': 'error',
+      'prefer-promise-reject-errors': 'error',
     },
   },
   {
