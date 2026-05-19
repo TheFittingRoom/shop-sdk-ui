@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react'
+import { Dispatch, ReactNode, SetStateAction, useState } from 'react'
 import { AvatarFrameViewer } from '@/components/avatar-frame-viewer'
 import { Loading } from '@/components/content/loading'
 import { TextT } from '@/components/text'
@@ -16,6 +16,11 @@ interface AvatarPaneProps {
   // aspect and fill the area below it with the avatar-bottom background
   // texture (matches vto-single's mobile layout).
   mobileFullscreen?: boolean
+  // Optional controlled frame index. When omitted, AvatarPane keeps its own
+  // internal state; desktop passes these so the zoom modal can show the
+  // currently-displayed frame.
+  selectedFrameIndex?: number | null
+  setSelectedFrameIndex?: Dispatch<SetStateAction<number | null>>
 }
 
 // AvatarPane is the left-column avatar area on desktop and the background of
@@ -23,8 +28,18 @@ interface AvatarPaneProps {
 // - No selection: show a "select items to try on" placeholder.
 // - Outfit pending (no frames yet): show "Finding your perfect fit..." loader.
 // - Outfit ready: render the frame carousel via <AvatarFrameViewer>.
-export function AvatarPane({ frameUrls, hasSelection, controls, mobileFullscreen }: AvatarPaneProps) {
-  const [selectedFrameIndex, setSelectedFrameIndex] = useState<number | null>(null)
+export function AvatarPane({
+  frameUrls,
+  hasSelection,
+  controls,
+  mobileFullscreen,
+  selectedFrameIndex: indexProp,
+  setSelectedFrameIndex: setIndexProp,
+}: AvatarPaneProps) {
+  const [localFrameIndex, setLocalFrameIndex] = useState<number | null>(null)
+  // Controlled when the caller supplies an index; otherwise self-managed.
+  const selectedFrameIndex = indexProp !== undefined ? indexProp : localFrameIndex
+  const setSelectedFrameIndex = setIndexProp ?? setLocalFrameIndex
 
   const css = useCss((theme) => ({
     container: {

@@ -65,7 +65,6 @@ export default function FittingRoomOverlay() {
   const [forceUntuck, setForceUntuck] = useState<boolean>(false)
   const [lastAddedExternalId, setLastAddedExternalId] = useState<string | null>(null)
   const [mobileMode, setMobileMode] = useState<MobileMode>('browse')
-  const [zoomed, setZoomed] = useState<boolean>(false)
 
   const { snap: sheetSnap, setSnap: setSheetSnap, handleTouchStart: sheetTouchStart } =
     useMobileSheetSnap('collapsed')
@@ -235,10 +234,6 @@ export default function FittingRoomOverlay() {
 
   const handleToggleUntuck = useCallback(() => {
     setForceUntuck((prev) => !prev)
-  }, [])
-
-  const handleToggleZoom = useCallback(() => {
-    setZoomed((prev) => !prev)
   }, [])
 
   const handleRemoveItem = useCallback(
@@ -476,7 +471,6 @@ export default function FittingRoomOverlay() {
             detailMode={detailMode}
             forceUntuck={forceUntuck}
             canTuck={canTuck}
-            zoomed={zoomed}
             frameUrls={frameUrls}
             onSelectItem={handleSelectItem}
             onRemoveItem={handleRemoveItem}
@@ -485,7 +479,6 @@ export default function FittingRoomOverlay() {
             onChangeSize={handleChangeSize}
             onAddToCart={handleAddToCart}
             onToggleUntuck={handleToggleUntuck}
-            onToggleZoom={handleToggleZoom}
             onSignOut={handleSignOut}
           />
         )}
