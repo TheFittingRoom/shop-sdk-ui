@@ -15,6 +15,10 @@ import { SectionNav } from './section-nav'
 
 export type MobileMode = 'browse' | 'try-on'
 
+// When jumping to a section, stop this far short of the very top so the
+// floating section-nav pill doesn't sit over the section title.
+const SECTION_SCROLL_TOP_GAP_PX = 50
+
 interface MobileLayoutProps {
   mode: MobileMode
   resolved: ResolvedFittingRoom
@@ -152,7 +156,7 @@ function BrowseView({
     const el = sectionRefs.current.get(name)
     if (!container || !el) return
     const delta = el.getBoundingClientRect().top - container.getBoundingClientRect().top
-    container.scrollBy({ top: delta, behavior: 'smooth' })
+    container.scrollBy({ top: delta - SECTION_SCROLL_TOP_GAP_PX, behavior: 'smooth' })
   }, [])
 
   const css = useCss((_theme) => ({
