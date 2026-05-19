@@ -100,10 +100,13 @@ or insert a step without tracing the deps.
 
 ## Environment selection
 
-`InitParams.environment` is an `EnvName` (`development` | `production` | `local`).
-`src/lib/config.ts` maps each to firebase/api/asset/frames URLs. `local` points at
-the `local-deployment` Docker stack (`http://localhost:8080`, MinIO at `:9000`) and
-reuses the dev Firebase project.
+`InitParams.environment` is an `EnvName` (`development` | `production` | `demo`
+| `local`). `src/lib/config.ts` maps each to firebase/api/asset/frames URLs.
+`demo` points at the hosted demo server (`demo.thefittingroom.xyz`); `local`
+points at the `local-deployment` Docker stack on the developer's host
+(`http://localhost:8080`, s3proxy at `:9000`). Both reuse the dev Firebase
+project. The Shopify theme defaults to `demo` and switches to `local` when the
+page URL carries `?tfr-source=local`.
 
 ## Frame URL rewriting
 
