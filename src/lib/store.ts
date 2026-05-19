@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Config } from '@/lib/config'
 import type { AuthUser, UserProfile } from '@/lib/firebase'
+import type { TestHooks } from '@/lib/firebase-mock'
 import type { FittingRoomItem } from '@/lib/fitting-room-storage'
 import { writeFittingRoom } from '@/lib/fitting-room-storage'
 import type { LoadedProductData, LoadedProductError } from '@/lib/product'
@@ -47,6 +48,10 @@ export interface StaticData {
   productLookup: ProductLookup | null
   getOverlayTopOffset: GetOverlayTopOffset | null
   addToCart: AddToCart | null
+  // Test-only data hatch. Production callers MUST NOT set this. When present,
+  // src/lib/firebase.ts:_init swaps the real Firebase Auth + Firestore for
+  // in-memory mocks seeded from this object. See src/lib/firebase-mock.ts.
+  testHooks?: TestHooks
 }
 
 let staticData: StaticData | null = null

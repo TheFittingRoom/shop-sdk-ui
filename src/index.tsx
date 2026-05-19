@@ -6,6 +6,7 @@ import { _init as initApi } from '@/lib/api'
 import { _init as initAsset } from '@/lib/asset'
 import { getConfig, EnvName } from '@/lib/config'
 import { _init as initFirebase, getAuthManager } from '@/lib/firebase'
+import type { TestHooks } from '@/lib/firebase-mock'
 import { _init as initFittingRoom } from '@/lib/fitting-room-storage'
 import { i18n } from '@/lib/locale'
 import { _init as initLogger, getLogger } from '@/lib/logger'
@@ -48,6 +49,10 @@ export interface InitParams {
   productLookup?: ProductLookup
   getOverlayTopOffset?: GetOverlayTopOffset
   addToCart?: AddToCart
+  // Test-only data hatch. Production callers MUST NOT set this. When present,
+  // Firebase is replaced with in-memory mocks seeded from this object — see
+  // src/lib/firebase-mock.ts and the branch at the top of src/lib/firebase.ts.
+  testHooks?: TestHooks
 }
 
 export async function init(initParams: InitParams): Promise<boolean> {
@@ -63,6 +68,7 @@ export async function init(initParams: InitParams): Promise<boolean> {
       productLookup,
       getOverlayTopOffset,
       addToCart,
+      testHooks,
     } = initParams
 
     // Validate init params
@@ -97,6 +103,7 @@ export async function init(initParams: InitParams): Promise<boolean> {
       productLookup: productLookup ?? null,
       getOverlayTopOffset: getOverlayTopOffset ?? null,
       addToCart: addToCart ?? null,
+      testHooks,
     })
 
     // Hydrate fitting room from localStorage

@@ -19,6 +19,8 @@ import {
   signInWithEmailAndPassword,
 } from 'firebase/auth'
 import type { FirestoreUser } from '@/api/gen/responses'
+import type { IAuthManager, IFirestoreManager } from '@/lib/firebase-mock'
+import { MockAuthManager, MockFirestoreManager } from '@/lib/firebase-mock'
 import { getLogger } from '@/lib/logger'
 import { getStaticData } from '@/lib/store'
 
@@ -49,7 +51,7 @@ export function getFirebaseApp(): FirebaseApp {
   return firebaseApp
 }
 
-export class FirestoreManager {
+export class FirestoreManager implements IFirestoreManager {
   private readonly firestore: Firestore
 
   constructor(firestore: Firestore) {
@@ -120,16 +122,16 @@ export class FirestoreManager {
   }
 }
 
-let firestoreManager: FirestoreManager | null = null
+let firestoreManager: IFirestoreManager | null = null
 
-export function getFirestoreManager(): FirestoreManager {
+export function getFirestoreManager(): IFirestoreManager {
   if (!firestoreManager) {
     throw new Error('Firebase not initialized. Call _init first.')
   }
   return firestoreManager
 }
 
-export class AuthManager {
+export class AuthManager implements IAuthManager {
   private readonly auth: Auth
   private readonly brandId: number
   private userProfile: UserProfile | null = null
@@ -273,9 +275,9 @@ export class AuthManager {
   }
 }
 
-let authManager: AuthManager | null = null
+let authManager: IAuthManager | null = null
 
-export function getAuthManager(): AuthManager {
+export function getAuthManager(): IAuthManager {
   if (!authManager) {
     throw new Error('Firebase not initialized. Call _init first.')
   }
@@ -283,7 +285,26 @@ export function getAuthManager(): AuthManager {
 }
 
 export async function _init() {
-  const { brandId, config } = getStaticData()
+  const { brandId, config, testHooks } = getStaticData()
+
+  // Test-only hatch: when InitParams.testHooks is set, swap in mock managers
+  // and skip Firebase entirely. Production callers never set this field, so
+  // the real init path below runs unchanged. See src/lib/firebase-mock.ts.
+  if (testHooks !== undefined) {
+    const seedDocs: Record<string, Record<string, Record<string, unknown>>> = {
+      ...(testHooks.firestore?.docs ?? {}),
+    }
+    if (testHooks.auth?.profile) {
+      seedDocs.users = {
+        ...(seedDocs.users ?? {}),
+        [testHooks.auth.uid]: testHooks.auth.profile as unknown as Record<string, unknown>,
+      }
+    }
+    firestoreManager = new MockFirestoreManager(seedDocs)
+    authManager = new MockAuthManager(testHooks.auth ?? null, firestoreManager)
+    logger.logDebug('Firebase initialized in MOCK mode (testHooks present)')
+    return
+  }
 
   // Initialize Firebase App
   {

@@ -104,6 +104,33 @@ populates it (from `InitParams` or the store), and accessor functions. Order
 matters — each `_init` may rely on an earlier one having run, so do not reorder
 or insert a step without tracing the deps.
 
+## Testing
+
+E2E tests live in `tests/e2e/` and run via Playwright (Chromium). The harness
+builds the bundle, serves the repo with `npm run serve`, and loads
+`tests/e2e/fixtures/host.html` — a minimal Shopify-free analog of
+`local-repo/shopify/assets/tfr.js`. Run them with `npm run test:e2e` (or
+`npm run test:e2e:ui` to debug interactively).
+
+**Firebase is mocked, not emulated.** `src/lib/firebase-mock.ts` provides
+`MockAuthManager` and `MockFirestoreManager` that satisfy the `IAuthManager` /
+`IFirestoreManager` interfaces. They're activated via `InitParams.testHooks`
+— a data-only test hatch. The branch lives in exactly one place, at the top
+of `_init` in `src/lib/firebase.ts`; no other file in `src/` knows about test
+mode, and no `window.X` lookup happens in the SDK itself (the test host
+fixture reads `window.__TFR_TEST_CONFIG__` and threads it into `init`).
+
+Production callers MUST NOT set `InitParams.testHooks`. The field is
+namespaced and documented as test-only.
+
+REST endpoints (`/v1/styles/{id}/recommendation`, `/v1/style-categories`,
+`/v1/style-category-groups`, `/v1/vto-compositions`) are mocked via Playwright
+`page.route()` from `tests/e2e/mocks/api.ts`. Per-test overrides drive error
+paths and edge cases.
+
+`npm run check` stays cheap (tsc + ESLint + Prettier). `npm run test` runs the
+e2e suite. CI runs both — see `.github/workflows/build.yml`.
+
 ## Environment selection
 
 `InitParams.environment` is an `EnvName` (`development` | `production` | `demo`
@@ -196,8 +223,14 @@ gen / Firestore-conventions notes above are easy to drift from when
 files move or shapes change — keep AGENTS.md edits in the same change as
 the code they describe.
 
-- [ ] `npm run check` (tsc --noEmit + ESLint) clean
+- [ ] `npm run check` (tsc --noEmit + ESLint + Prettier) clean
 - [ ] `npm run build` produces `dist/index.js` without errors
+- [ ] `npm run test:e2e` passes (locally or in CI)
+- [ ] If the change touches Firebase, the REST API, the `_init` sequence, or
+      the `InitParams` shape: e2e fixtures (`tests/e2e/fixtures/host.html`,
+      `tests/e2e/fixtures/seed.ts`, `tests/e2e/mocks/api.ts`) still match the
+      contract, and `MockAuthManager` / `MockFirestoreManager` still satisfy
+      `IAuthManager` / `IFirestoreManager`
 - [ ] If consumed any new or changed backend types: `npm run gen-types`
       ran and the `src/api/gen/*` diff is committed in the same change
 - [ ] If a new `_init` step was added: placed correctly in the `init`

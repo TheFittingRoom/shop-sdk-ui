@@ -77,4 +77,28 @@ export default tseslint.config(
     files: ['src/**/*.{ts,tsx}'],
     rules: { curly: ['error', 'all'] },
   },
+  {
+    // Tests and Playwright config aren't part of the main tsconfig's include,
+    // so we lint them without the type-aware project service. Same style
+    // rules; the type-checking part is provided by Playwright's own runtime
+    // tsc-via-esbuild pass.
+    files: ['tests/**/*.ts', 'playwright.config.ts'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
+    },
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'error',
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
+      eqeqeq: ['error', 'always', { null: 'ignore' }],
+      curly: ['error', 'all'],
+      'no-var': 'error',
+      'prefer-const': 'error',
+    },
+  },
 )
