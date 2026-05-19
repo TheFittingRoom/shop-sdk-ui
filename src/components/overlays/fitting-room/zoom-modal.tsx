@@ -1,15 +1,20 @@
-import { useEffect } from 'react'
+import { Dispatch, SetStateAction, useEffect } from 'react'
+import { useFrameRotation } from '@/components/use-frame-rotation'
+import { ChevronLeftIcon, ChevronRightIcon } from '@/lib/asset'
 import { useCss } from '@/lib/theme'
 
 interface ZoomModalProps {
-  imageUrl: string
+  frameUrls: string[]
+  selectedFrameIndex: number | null
+  setSelectedFrameIndex: Dispatch<SetStateAction<number | null>>
   onClose: () => void
 }
 
-// ZoomModal shows a single avatar frame at full resolution, layered over the
-// fitting-room overlay: 40px inset on every side, scrollable when the image
-// is larger than that area, with a large close affordance top-right.
-export function ZoomModal({ imageUrl, onClose }: ZoomModalProps) {
+// ZoomModal shows the avatar frames at full resolution, layered over the
+// fitting-room overlay: 40px inset on every side, scrollable when a frame is
+// larger than that area, rotatable (drag or chevrons), with a large close
+// affordance top-right.
+export function ZoomModal({ frameUrls, selectedFrameIndex, setSelectedFrameIndex, onClose }: ZoomModalProps) {
   // Escape closes the zoom modal only. A capture-phase document listener with
   // stopPropagation keeps the event from reaching react-modal's own Escape
   // handler, which would otherwise close the whole fitting-room overlay.
@@ -25,11 +30,16 @@ export function ZoomModal({ imageUrl, onClose }: ZoomModalProps) {
     return () => document.removeEventListener('keydown', onKeyDown, true)
   }, [onClose])
 
+  const { rotateLeft, rotateRight, handleMouseDragStart, handleTouchDragStart } = useFrameRotation(
+    frameUrls,
+    setSelectedFrameIndex,
+  )
+
   const css = useCss((_theme) => ({
     backdrop: {
       position: 'fixed',
       inset: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.85)',
+      backgroundColor: '#F4F4F4',
       zIndex: 100,
     },
     scrollArea: {
@@ -38,7 +48,7 @@ export function ZoomModal({ imageUrl, onClose }: ZoomModalProps) {
       inset: '40px',
       overflow: 'auto',
     },
-    // Centres the image when it fits; grows past the scroll area when it
+    // Centres the frame when it fits; grows past the scroll area when it
     // doesn't, so the scroll area scrolls instead of shrinking the image.
     imageWrap: {
       minWidth: '100%',
@@ -51,6 +61,27 @@ export function ZoomModal({ imageUrl, onClose }: ZoomModalProps) {
       // No sizing — the frame renders at its natural (full) resolution.
       display: 'block',
       flex: 'none',
+      cursor: 'grab',
+    },
+    // Rotation chevrons float at the modal's vertical centre, so they stay
+    // put regardless of how the (possibly larger) frame is scrolled.
+    chevron: {
+      position: 'absolute',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      display: 'flex',
+      cursor: 'pointer',
+      zIndex: 1,
+    },
+    chevronLeft: {
+      left: '8px',
+    },
+    chevronRight: {
+      right: '8px',
+    },
+    chevronIcon: {
+      width: '48px',
+      height: '48px',
     },
     close: {
       position: 'absolute',
@@ -72,12 +103,26 @@ export function ZoomModal({ imageUrl, onClose }: ZoomModalProps) {
     },
   }))
 
+  const imageUrl = frameUrls[selectedFrameIndex ?? 0]
+
   return (
     <div css={css.backdrop}>
       <div css={css.scrollArea}>
         <div css={css.imageWrap}>
-          <img src={imageUrl} css={css.image} alt="" />
+          <img
+            src={imageUrl}
+            css={css.image}
+            alt=""
+            onMouseDown={handleMouseDragStart}
+            onTouchStart={handleTouchDragStart}
+          />
         </div>
+      </div>
+      <div css={{ ...css.chevron, ...css.chevronLeft }} onClick={rotateLeft}>
+        <ChevronLeftIcon css={css.chevronIcon} />
+      </div>
+      <div css={{ ...css.chevron, ...css.chevronRight }} onClick={rotateRight}>
+        <ChevronRightIcon css={css.chevronIcon} />
       </div>
       <button css={css.close} onClick={onClose} aria-label="Close zoom">
         ×

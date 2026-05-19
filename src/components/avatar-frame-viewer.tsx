@@ -1,5 +1,6 @@
-import { useCallback, useEffect, Dispatch, SetStateAction } from 'react'
+import { useEffect, Dispatch, SetStateAction } from 'react'
 import { Loading } from '@/components/content/loading'
+import { useFrameRotation } from '@/components/use-frame-rotation'
 import { ChevronLeftIcon, ChevronRightIcon } from '@/lib/asset'
 import { useCss, StyleProp } from '@/lib/theme'
 
@@ -70,60 +71,9 @@ export function AvatarFrameViewer({
     return () => clearInterval(intervalId)
   }, [frameUrls, selectedFrameIndex, setSelectedFrameIndex])
 
-  const rotateLeft = useCallback(() => {
-    setSelectedFrameIndex((prevIndex) => {
-      if (prevIndex == null) return null
-      return prevIndex === 0 ? (frameUrls ? frameUrls.length - 1 : 0) : prevIndex - 1
-    })
-  }, [frameUrls, setSelectedFrameIndex])
-  const rotateRight = useCallback(() => {
-    setSelectedFrameIndex((prevIndex) => {
-      if (prevIndex == null) return null
-      return prevIndex === (frameUrls ? frameUrls.length - 1 : 0) ? 0 : prevIndex + 1
-    })
-  }, [frameUrls, setSelectedFrameIndex])
-
-  const handleImageMouseDrag = useCallback(
-    (e: React.MouseEvent<HTMLImageElement, MouseEvent>) => {
-      e.preventDefault()
-      let startX = e.clientX
-      const onMouseMove = (moveEvent: MouseEvent) => {
-        const deltaX = moveEvent.clientX - startX
-        if (Math.abs(deltaX) >= 50) {
-          if (deltaX > 0) rotateRight()
-          else rotateLeft()
-          startX = moveEvent.clientX
-        }
-      }
-      const onMouseUp = () => {
-        window.removeEventListener('mousemove', onMouseMove)
-        window.removeEventListener('mouseup', onMouseUp)
-      }
-      window.addEventListener('mousemove', onMouseMove)
-      window.addEventListener('mouseup', onMouseUp)
-    },
-    [rotateLeft, rotateRight],
-  )
-  const handleImageTouchDrag = useCallback(
-    (e: React.TouchEvent<HTMLImageElement>) => {
-      e.preventDefault()
-      let startX = e.touches[0].clientX
-      const onTouchMove = (moveEvent: TouchEvent) => {
-        const deltaX = moveEvent.touches[0].clientX - startX
-        if (Math.abs(deltaX) >= 50) {
-          if (deltaX > 0) rotateRight()
-          else rotateLeft()
-          startX = moveEvent.touches[0].clientX
-        }
-      }
-      const onTouchEnd = () => {
-        window.removeEventListener('touchmove', onTouchMove)
-        window.removeEventListener('touchend', onTouchEnd)
-      }
-      window.addEventListener('touchmove', onTouchMove)
-      window.addEventListener('touchend', onTouchEnd)
-    },
-    [rotateLeft, rotateRight],
+  const { rotateLeft, rotateRight, handleMouseDragStart, handleTouchDragStart } = useFrameRotation(
+    frameUrls,
+    setSelectedFrameIndex,
   )
 
   if (!frameUrls || selectedFrameIndex == null) {
@@ -136,8 +86,8 @@ export function AvatarFrameViewer({
         src={frameUrls[selectedFrameIndex]}
         css={css.image}
         style={imageStyle}
-        onMouseDown={handleImageMouseDrag}
-        onTouchStart={handleImageTouchDrag}
+        onMouseDown={handleMouseDragStart}
+        onTouchStart={handleTouchDragStart}
       />
       <div css={css.chevronLeftContainer} onClick={rotateLeft}>
         <ChevronLeftIcon css={css.chevronIcon} />
