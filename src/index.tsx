@@ -25,7 +25,7 @@ class TfrWidgetElement extends HTMLElement {
         attrs[name] = this.getAttribute(name)
         return attrs
       },
-      {} as Record<string, any>,
+      {} as Record<string, string | null>,
     )
 
     const root = createRoot(this)

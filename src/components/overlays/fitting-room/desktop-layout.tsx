@@ -186,8 +186,6 @@ export function DesktopLayout({
     />
   ) : null
 
-  const hasFrames = !!frameUrls && frameUrls.length > 0
-
   return (
     <div ref={containerRef} css={css.container} style={{ gridTemplateColumns }}>
       <div
@@ -236,9 +234,9 @@ export function DesktopLayout({
           />
         ))}
       </div>
-      {zoomOpen && hasFrames ? (
+      {zoomOpen && frameUrls && frameUrls.length > 0 ? (
         <ZoomModal
-          frameUrls={frameUrls!}
+          frameUrls={frameUrls}
           selectedFrameIndex={selectedFrameIndex}
           setSelectedFrameIndex={setSelectedFrameIndex}
           onClose={() => setZoomOpen(false)}

@@ -77,7 +77,9 @@ export async function loadFittingRoomData(): Promise<void> {
   }
 
   const itemsNeedingLookup = items.filter((item) => !state.merchantProductData[item.externalId])
-  const itemsWithHandle = itemsNeedingLookup.filter((item) => !!item.handle)
+  const itemsWithHandle = itemsNeedingLookup.filter(
+    (item): item is FittingRoomItem & { handle: string } => !!item.handle,
+  )
   const itemsWithoutHandle = itemsNeedingLookup.filter((item) => !item.handle)
 
   for (const item of itemsWithoutHandle) {
@@ -90,7 +92,7 @@ export async function loadFittingRoomData(): Promise<void> {
     return
   }
 
-  const handles = itemsWithHandle.map((item) => item.handle!)
+  const handles = itemsWithHandle.map((item) => item.handle)
   try {
     const products = await productLookup(handles)
     const byExternalId = new Map<string, ExternalProduct>()

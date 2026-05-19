@@ -264,8 +264,10 @@ function TryOnView({
     function refresh() {
       const el = innerRef.current
       if (!el) return
+      const parentEl = el.parentElement
+      if (!parentEl) return
       const maxHeightPx = Number(
-        window.getComputedStyle(el.parentElement!).getPropertyValue('max-height').replace('px', ''),
+        window.getComputedStyle(parentEl).getPropertyValue('max-height').replace('px', ''),
       )
       const heightPx = Math.min(el.clientHeight, maxHeightPx || el.clientHeight)
       setSheetStyle({ height: `${heightPx}px` })

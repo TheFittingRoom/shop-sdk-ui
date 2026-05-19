@@ -111,16 +111,16 @@ export default function FittingRoomOverlay() {
   // to, so every tuck control stays hidden.
   const canTuck = useMemo<boolean>(
     () =>
-      selectedItems.some(
-        (top) =>
-          !!top.styleCategory?.tuckable &&
-          selectedItems.some(
-            (other) =>
-              !!other.styleCategory &&
-              !other.styleCategory.tuckable &&
-              other.styleCategory.layer_order > top.styleCategory!.layer_order,
-          ),
-      ),
+      selectedItems.some((top) => {
+        const topCategory = top.styleCategory
+        if (!topCategory?.tuckable) return false
+        return selectedItems.some(
+          (other) =>
+            !!other.styleCategory &&
+            !other.styleCategory.tuckable &&
+            other.styleCategory.layer_order > topCategory.layer_order,
+        )
+      }),
     [selectedItems],
   )
 

@@ -52,7 +52,7 @@ export function _init() {
 }
 
 export interface WidgetProps {
-  attributes: Record<string, any>
+  attributes: Record<string, string | null>
 }
 
 export enum WidgetName {

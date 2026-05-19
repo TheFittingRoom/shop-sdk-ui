@@ -570,8 +570,12 @@ function MobileLayout({
       if (!bottomFrameInnerEl) {
         return
       }
+      const parentEl = bottomFrameInnerEl.parentElement
+      if (!parentEl) {
+        return
+      }
       const maxHeightPx = Number(
-        window.getComputedStyle(bottomFrameInnerEl.parentElement!).getPropertyValue('max-height').replace('px', ''),
+        window.getComputedStyle(parentEl).getPropertyValue('max-height').replace('px', ''),
       )
       const heightPx = Math.min(bottomFrameInnerEl.clientHeight, maxHeightPx)
       const bottomFrameStyle: StyleProp = {
@@ -1255,15 +1259,15 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
           <TextT variant="base" t="quick-view.zoom_in" />
         </Button>
       ) : null}
-      {zoomOpen ? (
+      {zoomOpen && frameUrls && frameUrls.length > 0 ? (
         <ZoomModal
-          frameUrls={frameUrls!}
+          frameUrls={frameUrls}
           selectedFrameIndex={selectedFrameIndex}
           setSelectedFrameIndex={setSelectedFrameIndex}
           onClose={() => setZoomOpen(false)}
         />
       ) : null}
-      {isReady ? (
+      {frameUrls && selectedFrameIndex != null ? (
         <div css={css.bottomContainer} style={layoutData.bottomContainerStyle}>
           {isMobileLayout ? (
             <>&nbsp;</>
@@ -1272,9 +1276,9 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
               <input
                 type="range"
                 min={0}
-                max={frameUrls!.length - 1}
+                max={frameUrls.length - 1}
                 step={1}
-                value={selectedFrameIndex!}
+                value={selectedFrameIndex}
                 onChange={(e) => setSelectedFrameIndex(Number(e.target.value))}
                 css={css.sliderInput}
               />
