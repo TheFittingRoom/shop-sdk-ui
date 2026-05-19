@@ -181,7 +181,10 @@ function BrowseView({
   }))
   return (
     <div css={css.container}>
-      {resolved.groups.length > 0 ? (
+      {/* Hold the section-nav back until product data has finished loading —
+          while groups are still resolving the active-section readout flickers
+          as rails appear and shift. */}
+      {!resolved.isLoading && resolved.groups.length > 0 ? (
         <SectionNav sections={sections} activeName={activeSectionName} onSelect={scrollToSection} />
       ) : null}
       <div ref={railsAreaRef} css={css.railsArea} onScroll={recomputeActiveSection}>
