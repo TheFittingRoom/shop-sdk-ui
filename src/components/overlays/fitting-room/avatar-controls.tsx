@@ -238,7 +238,10 @@ export function MobileTuckControl({ canTuck, forceUntuck, onToggleUntuck }: Mobi
       position: 'absolute',
       bottom: '12px',
       right: '12px',
-      zIndex: 2,
+      // No z-index: the pill sits above the avatar image (later sibling than
+      // the frame viewer) but below the product-details sheet, which is a
+      // later sibling in the try-on view — so the sheet hides the pill when
+      // it expands over the image.
     },
     pill: pillBaseStyle(theme),
     pillIcon: {
