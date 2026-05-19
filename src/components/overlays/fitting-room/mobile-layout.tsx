@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button, ButtonT } from '@/components/button'
 import { Text } from '@/components/text'
 import { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
@@ -11,6 +11,7 @@ import { MobileTuckControl } from './avatar-controls'
 import { CardRail } from './card-rail'
 import { DetailAccordion } from './detail-accordion'
 import { DetailMode } from './detail-accordion-item'
+import { SectionNav } from './section-nav'
 
 export type MobileMode = 'browse' | 'try-on'
 
@@ -110,6 +111,43 @@ function BrowseView({
   onRemoveItem: (externalId: string) => void
   onTryItOn: () => void
 }) {
+  const railsAreaRef = useRef<HTMLDivElement>(null)
+  // group name → its wrapper element in the rails scroll area, for the
+  // section-nav scroll-spy and jump-to-section.
+  const sectionRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+  const [activeSectionName, setActiveSectionName] = useState<string | null>(null)
+
+  const sections = resolved.groups.map((g) => ({ name: g.group.name, label: g.group.label }))
+
+  // The active section is the last one whose top edge has scrolled to or past
+  // the rails area's top edge — i.e. the section currently occupying the top
+  // of the viewport. Null (before any section reaches the top) leaves the nav
+  // showing the first section.
+  const recomputeActiveSection = useCallback(() => {
+    const container = railsAreaRef.current
+    if (!container) return
+    const containerTop = container.getBoundingClientRect().top
+    let active: string | null = null
+    for (const [name, el] of sectionRefs.current) {
+      if (el.getBoundingClientRect().top - containerTop <= 1) {
+        active = name
+      }
+    }
+    setActiveSectionName(active)
+  }, [])
+
+  useLayoutEffect(() => {
+    recomputeActiveSection()
+  }, [recomputeActiveSection, resolved.groups])
+
+  const scrollToSection = useCallback((name: string) => {
+    const container = railsAreaRef.current
+    const el = sectionRefs.current.get(name)
+    if (!container || !el) return
+    const delta = el.getBoundingClientRect().top - container.getBoundingClientRect().top
+    container.scrollBy({ top: delta, behavior: 'smooth' })
+  }, [])
+
   const css = useCss((_theme) => ({
     container: {
       display: 'flex',
@@ -134,15 +172,25 @@ function BrowseView({
   }))
   return (
     <div css={css.container}>
-      <div css={css.railsArea}>
+      {resolved.groups.length > 0 ? (
+        <SectionNav sections={sections} activeName={activeSectionName} onSelect={scrollToSection} />
+      ) : null}
+      <div ref={railsAreaRef} css={css.railsArea} onScroll={recomputeActiveSection}>
         {resolved.groups.map((group) => (
-          <CardRail
+          <div
             key={group.group.name}
-            group={group}
-            availabilityByExternalId={availabilityByExternalId}
-            onSelectItem={onSelectItem}
-            onRemoveItem={onRemoveItem}
-          />
+            ref={(el) => {
+              if (el) sectionRefs.current.set(group.group.name, el)
+              else sectionRefs.current.delete(group.group.name)
+            }}
+          >
+            <CardRail
+              group={group}
+              availabilityByExternalId={availabilityByExternalId}
+              onSelectItem={onSelectItem}
+              onRemoveItem={onRemoveItem}
+            />
+          </div>
         ))}
       </div>
       {/* Hold the CTA back until the card rails have resolved — otherwise it
