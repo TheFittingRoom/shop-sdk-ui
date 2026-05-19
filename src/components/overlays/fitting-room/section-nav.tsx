@@ -16,6 +16,16 @@ interface SectionNavProps {
   onSelect: (name: string) => void
 }
 
+// Hamburger menu icon — three horizontal lines. Inline SVG using
+// currentColor so it inherits the pill's text colour, like Chevron.
+function MenuIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M4 7H20M4 12H20M4 17H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 // SectionNav is the dark jump-to-section control at the top of the mobile
 // browse view. It shows the section currently at the top of the scroll
 // viewport; tapping opens a drop-down of every section that scroll-jumps to
@@ -70,7 +80,7 @@ export function SectionNav({ sections, activeName, onSelect }: SectionNavProps) 
       textTransform: 'uppercase',
       whiteSpace: 'nowrap',
     },
-    chevron: {
+    icon: {
       display: 'inline-flex',
       alignItems: 'center',
       flex: 'none',
@@ -115,8 +125,8 @@ export function SectionNav({ sections, activeName, onSelect }: SectionNavProps) 
     <div ref={wrapperRef} css={css.wrapper}>
       <Button variant="base" css={css.bar} onClick={() => setOpen((o) => !o)}>
         <span>{activeLabel}</span>
-        <span css={css.chevron}>
-          <Chevron direction={open ? 'up' : 'down'} size={20} />
+        <span css={css.icon}>
+          {open ? <Chevron direction="up" size={20} /> : <MenuIcon size={20} />}
         </span>
       </Button>
       {open ? (
