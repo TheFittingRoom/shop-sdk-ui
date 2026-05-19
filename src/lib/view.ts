@@ -6,7 +6,6 @@ import LandingOverlay from '@/components/overlays/landing'
 import SignInOverlay from '@/components/overlays/sign-in'
 import QuickViewOverlay from '@/components/overlays/quick-view'
 import AddToFittingRoomCompactWidget from '@/components/widgets/add-to-fitting-room-compact'
-import AddToFittingRoomWidget from '@/components/widgets/add-to-fitting-room'
 import FittingRoomIconWidget from '@/components/widgets/fitting-room-icon'
 import FittingRoomWidget from '@/components/widgets/fitting-room'
 import SizeRecWidget from '@/components/widgets/size-rec'
@@ -57,7 +56,6 @@ export interface WidgetProps {
 }
 
 export enum WidgetName {
-  ADD_TO_FITTING_ROOM = 'add-to-fitting-room',
   ADD_TO_FITTING_ROOM_COMPACT = 'add-to-fitting-room-compact',
   FITTING_ROOM = 'fitting-room',
   FITTING_ROOM_ICON = 'fitting-room-icon',
@@ -66,7 +64,6 @@ export enum WidgetName {
 }
 
 export const WIDGETS: Record<WidgetName, React.FC<WidgetProps>> = {
-  [WidgetName.ADD_TO_FITTING_ROOM]: AddToFittingRoomWidget,
   [WidgetName.ADD_TO_FITTING_ROOM_COMPACT]: AddToFittingRoomCompactWidget,
   [WidgetName.FITTING_ROOM]: FittingRoomWidget,
   [WidgetName.FITTING_ROOM_ICON]: FittingRoomIconWidget,
