@@ -47,17 +47,20 @@ export function SectionNav({ sections, activeName, onSelect }: SectionNavProps) 
   const css = useCss((theme) => ({
     wrapper: {
       flex: 'none',
+      // A compact pill anchored to the right edge of the browse view, rather
+      // than a full-width bar. alignSelf opts out of the column's stretch.
+      alignSelf: 'flex-end',
       position: 'relative',
       // Above the rails so the drop-down covers the section content below.
       zIndex: 5,
+      margin: '12px 16px 0 0',
     },
     bar: {
-      width: '100%',
-      display: 'flex',
+      display: 'inline-flex',
       alignItems: 'center',
-      justifyContent: 'space-between',
       gap: '8px',
-      padding: '12px 16px',
+      padding: '10px 16px',
+      borderRadius: '999px',
       backgroundColor: theme.color_fg_text,
       color: '#FFFFFF',
       border: 'none',
@@ -66,6 +69,7 @@ export function SectionNav({ sections, activeName, onSelect }: SectionNavProps) 
       fontWeight: '500',
       letterSpacing: '0.5px',
       textTransform: 'uppercase',
+      whiteSpace: 'nowrap',
     },
     chevron: {
       display: 'inline-flex',
@@ -74,27 +78,32 @@ export function SectionNav({ sections, activeName, onSelect }: SectionNavProps) 
     },
     dropdown: {
       position: 'absolute',
-      top: '100%',
-      left: 0,
+      top: 'calc(100% + 6px)',
       right: 0,
+      // At least as wide as the pill, growing to fit the longest label.
+      minWidth: '100%',
       backgroundColor: theme.color_fg_text,
+      borderRadius: '16px',
       maxHeight: '60vh',
       overflowY: 'auto',
       boxShadow: '0 6px 16px rgba(0, 0, 0, 0.25)',
     },
     item: {
-      width: '100%',
       display: 'block',
+      width: '100%',
       textAlign: 'left',
-      padding: '12px 16px',
+      whiteSpace: 'nowrap',
+      padding: '12px 18px',
       backgroundColor: 'transparent',
       color: '#FFFFFF',
       border: 'none',
-      borderTop: '1px solid rgba(255, 255, 255, 0.12)',
       cursor: 'pointer',
       fontSize: '13px',
       letterSpacing: '0.5px',
       textTransform: 'uppercase',
+      '&:not(:first-of-type)': {
+        borderTop: '1px solid rgba(255, 255, 255, 0.12)',
+      },
     },
     itemActive: {
       backgroundColor: 'rgba(255, 255, 255, 0.16)',
