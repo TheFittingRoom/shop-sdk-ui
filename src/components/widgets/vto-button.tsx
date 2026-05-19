@@ -1,5 +1,6 @@
 import { TextT } from '@/components/text'
 import { TfrIcon } from '@/lib/asset'
+import { ensureFittingRoomItem } from '@/lib/fitting-room-storage'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
@@ -13,7 +14,8 @@ const logger = getLogger('widgets/vto-button')
 // otherwise it opens the single-garment quick-view ("Quick View Try On").
 export default function VtoButtonWidget(_props: WidgetProps) {
   const openOverlay = useMainStore((state) => state.openOverlay)
-  const currentProductId = getStaticData().currentProduct?.externalId ?? null
+  const currentProduct = getStaticData().currentProduct ?? null
+  const currentProductId = currentProduct?.externalId ?? null
   // "Other" items = fitting-room entries that aren't the current product.
   const hasOtherFittingRoomItems = useMainStore((state) =>
     state.fittingRoom.some((item) => item.externalId !== currentProductId),
@@ -47,13 +49,23 @@ export default function VtoButtonWidget(_props: WidgetProps) {
   }))
 
   const handleClick = () => {
-    if (hasOtherFittingRoomItems) {
-      logger.logDebug('{{ts}} - Opening fitting-room overlay')
-      openOverlay(OverlayName.FITTING_ROOM)
-    } else {
+    if (!hasOtherFittingRoomItems) {
       logger.logDebug('{{ts}} - Opening quick-view overlay')
       openOverlay(OverlayName.QUICK_VIEW)
+      return
     }
+    logger.logDebug('{{ts}} - Opening fitting-room overlay')
+    if (!currentProductId) {
+      openOverlay(OverlayName.FITTING_ROOM)
+      return
+    }
+    // Make sure the product the shopper is viewing is in the fitting room so
+    // the overlay can preselect it. The add is async (it resolves the chosen
+    // size/colour); the overlay's preselect effect waits for it to land.
+    ensureFittingRoomItem(currentProductId, currentProduct?.handle ?? null, true).catch((error) => {
+      logger.logError('Failed to add current product to fitting room', { error })
+    })
+    openOverlay(OverlayName.FITTING_ROOM, { preselectExternalId: currentProductId })
   }
 
   return (

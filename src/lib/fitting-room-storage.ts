@@ -60,14 +60,9 @@ export function _init(): void {
   useMainStore.setState({ fittingRoom: items })
 }
 
-export async function toggleFittingRoomItem(productId: string, handle: string | null, isPdp: boolean): Promise<void> {
+// The add path shared by toggleFittingRoomItem and ensureFittingRoomItem.
+async function addFittingRoomItem(productId: string, handle: string | null, isPdp: boolean): Promise<void> {
   const state = useMainStore.getState()
-  const isInFittingRoom = state.fittingRoom.some((item) => item.externalId === productId)
-  if (isInFittingRoom) {
-    logger.logDebug('{{ts}} - Removing from fitting room', { productId })
-    state.removeFromFittingRoom(productId)
-    return
-  }
   logger.logDebug('{{ts}} - Adding to fitting room', { productId, handle, isPdp })
 
   let size: string | null = null
@@ -113,4 +108,30 @@ export async function toggleFittingRoomItem(productId: string, handle: string | 
     colorwaySizeAssetId,
     addedAt: Date.now(),
   })
+}
+
+export async function toggleFittingRoomItem(productId: string, handle: string | null, isPdp: boolean): Promise<void> {
+  const state = useMainStore.getState()
+  const isInFittingRoom = state.fittingRoom.some((item) => item.externalId === productId)
+  if (isInFittingRoom) {
+    logger.logDebug('{{ts}} - Removing from fitting room', { productId })
+    state.removeFromFittingRoom(productId)
+    return
+  }
+  await addFittingRoomItem(productId, handle, isPdp)
+}
+
+// Add the product to the fitting room if it isn't already there — never
+// removes. Used when opening the fitting-room overlay from the PDP "Try It
+// On" CTA, where the current product must be present so it can be preselected.
+export async function ensureFittingRoomItem(
+  productId: string,
+  handle: string | null,
+  isPdp: boolean,
+): Promise<void> {
+  const state = useMainStore.getState()
+  if (state.fittingRoom.some((item) => item.externalId === productId)) {
+    return
+  }
+  await addFittingRoomItem(productId, handle, isPdp)
 }

@@ -1,3 +1,7 @@
+/* Inter — the SDK's own typeface, matching the Figma designs. Loaded here so
+   overlay text renders in Inter regardless of the host page's fonts. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 body.tfr-modal-open {
   overflow: hidden;
   position: fixed;

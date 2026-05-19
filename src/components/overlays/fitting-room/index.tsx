@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ButtonT } from '@/components/button'
 import { Loading } from '@/components/content/loading'
 import { LinkT } from '@/components/link'
@@ -52,7 +52,13 @@ function measureTopOffset(): number {
   }
 }
 
-export default function FittingRoomOverlay() {
+export interface FittingRoomOverlayProps {
+  // externalId of a product to preselect on open — set when the overlay is
+  // opened from the PDP "Try It On" CTA so the viewed product joins the outfit.
+  preselectExternalId?: string
+}
+
+export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomOverlayProps) {
   const deviceLayout = useMainStore((state) => state.deviceLayout)
   const userIsLoggedIn = useMainStore((state) => state.userIsLoggedIn)
   const userHasAvatar = useMainStore((state) => state.userHasAvatar)
@@ -300,6 +306,22 @@ export default function FittingRoomOverlay() {
       setOpenAccordionItemId(null)
     }
   }, [openAccordionItemId, selectedExternalIds])
+
+  // Preselect the current PDP product when the overlay was opened from the
+  // "Try It On" CTA. The CTA adds the product to the fitting room asynchronously,
+  // so wait until it resolves into `resolved.items`, then run the normal
+  // selection path (auto-size-rec, accordion open) exactly once.
+  const preselectAppliedRef = useRef(false)
+  useEffect(() => {
+    if (preselectAppliedRef.current || !preselectExternalId) {
+      return
+    }
+    if (!resolved.items.some((i) => i.externalId === preselectExternalId)) {
+      return
+    }
+    preselectAppliedRef.current = true
+    handleSelectItem(preselectExternalId)
+  }, [preselectExternalId, resolved.items, handleSelectItem])
 
   // Derive the current outfit. Memoized so identity is stable when nothing
   // material changed (avoids re-firing the request effect on every render).

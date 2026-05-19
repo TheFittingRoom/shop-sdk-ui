@@ -14,14 +14,14 @@ export interface ThemeData {
   font_family: string
 }
 export const themeData: ThemeData = {
-  brand_font_family: 'TN web use only, Times New Roman, serif',
+  brand_font_family: "'Inter', sans-serif",
   brand_link_text_decoration: 'underline',
   brand_button_background_color: '#FFA273',
   brand_button_text_color: '#21201F',
   color_danger: '#900B09',
   color_fg_text: '#21201F',
   color_tfr_800: '#265A64',
-  font_family: 'sans-serif',
+  font_family: "'Inter', sans-serif",
 }
 
 export function _init(initThemeData: Partial<ThemeData> | null) {

@@ -14,7 +14,7 @@ export const Text = forwardRef<HTMLSpanElement, TextProps>(({ children, variant,
   const variantCss = useVariantCss<TextVariant>(variant, (theme) => ({
     base: {
       color: theme.color_fg_text,
-      fontFamily: 'sans-serif',
+      fontFamily: theme.font_family,
       fontSize: '14px',
     },
     brand: {
@@ -24,6 +24,7 @@ export const Text = forwardRef<HTMLSpanElement, TextProps>(({ children, variant,
     },
     error: {
       color: theme.color_danger,
+      fontFamily: theme.font_family,
       fontSize: '14px',
     },
   }))
