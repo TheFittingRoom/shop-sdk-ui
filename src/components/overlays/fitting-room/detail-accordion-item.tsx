@@ -50,9 +50,13 @@ export function DetailAccordionItem({
   const productData = useMemo(() => buildVtoProductDataFromResolved(item), [item])
 
   const selectedSizeLabel = useMemo(() => {
-    if (!productData) return null
+    if (!productData) {
+      return null
+    }
     const csaId = item.storage.colorwaySizeAssetId
-    if (csaId == null) return null
+    if (csaId == null) {
+      return null
+    }
     for (const sizeRec of productData.sizes) {
       if (sizeRec.colors.some((c) => c.colorwaySizeAssetId === csaId)) {
         return sizeRec.sizeLabel
@@ -63,12 +67,18 @@ export function DetailAccordionItem({
 
   // Currently-selected price: look up via stored colorwaySizeAssetId.
   const currentPrice = useMemo(() => {
-    if (!productData) return null
+    if (!productData) {
+      return null
+    }
     const csaId = item.storage.colorwaySizeAssetId
-    if (csaId == null) return null
+    if (csaId == null) {
+      return null
+    }
     for (const sizeRec of productData.sizes) {
       const c = sizeRec.colors.find((c) => c.colorwaySizeAssetId === csaId)
-      if (c) return c.priceFormatted
+      if (c) {
+        return c.priceFormatted
+      }
     }
     return null
   }, [productData, item.storage.colorwaySizeAssetId])

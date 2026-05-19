@@ -96,7 +96,9 @@ export function ProductCard({ item, availability, onClick, onRemove }: ProductCa
   const selected = availability === 'selected'
 
   const handleClick = () => {
-    if (disabled) return
+    if (disabled) {
+      return
+    }
     onClick()
   }
 

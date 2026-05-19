@@ -36,7 +36,9 @@ export function SectionNav({ sections, activeName, onSelect }: SectionNavProps) 
 
   // Click-outside dismisses the drop-down.
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      return
+    }
     const onDocClick = (e: MouseEvent) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
         setOpen(false)

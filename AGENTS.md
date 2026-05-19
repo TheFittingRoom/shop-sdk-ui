@@ -7,11 +7,13 @@ and renders a `<tfr-widget>` custom element.
 ## Build and distribution
 
 - Vite library build → `dist/index.js` (single ESM bundle, unminified) plus inlined CSS.
-- `npm run check` runs `tsc --noEmit` then ESLint — the one-stop validation
-  command. `npm run lint` / `lint:fix` run ESLint alone (flat config,
-  `eslint.config.js`). `npm run build` cleans + builds. CI runs `check` +
-  `build`. ESLint ignores `src/api/gen/` (tygo-generated). Non-null
-  assertions and `any` are errors; `react-hooks/exhaustive-deps` is a warning.
+- `npm run check` runs `tsc --noEmit`, ESLint, then `prettier --check` — the
+  one-stop validation command. `npm run lint` / `lint:fix` run ESLint alone
+  (flat config, `eslint.config.js`); `npm run format` / `format:check` run
+  Prettier alone (`.prettierrc`; `.prettierignore` excludes `src/api/gen/`).
+  `npm run build` cleans + builds. CI runs `check` + `build`. ESLint ignores
+  `src/api/gen/` (tygo-generated). Non-null assertions and `any` are errors;
+  control statements must be braced; `react-hooks/exhaustive-deps` is a warning.
 - Consumers load the SDK via `<script type="module">` from a jsdelivr URL backed by the npm package `@thefittingroom/shop-ui`.
 
 ### Release flow

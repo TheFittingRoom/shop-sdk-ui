@@ -88,12 +88,16 @@ export function DesktopLayout({
   const [avatarWidth, setAvatarWidth] = useState<number>(AVATAR_MIN_WIDTH_PX)
   useLayoutEffect(() => {
     const el = containerRef.current
-    if (!el) return
+    if (!el) {
+      return
+    }
     const observer = new ResizeObserver(() => {
       // The grid container has no padding — the avatar cell spans the full
       // overlay height, flush to the top and bottom edges.
       const availableHeightPx = el.clientHeight
-      if (availableHeightPx <= 0) return
+      if (availableHeightPx <= 0) {
+        return
+      }
       const target = Math.floor(availableHeightPx * AVATAR_ASPECT_RATIO)
       setAvatarWidth(Math.min(AVATAR_MAX_WIDTH_PX, Math.max(AVATAR_MIN_WIDTH_PX, target)))
     })

@@ -52,9 +52,13 @@ export function useVtoRequests(): UseVtoRequestsHandle {
   const clearError = useCallback(() => setLastError(null), [])
 
   const request = useCallback((items: VtoCompositionItem[], priority: boolean) => {
-    if (items.length === 0) return
+    if (items.length === 0) {
+      return
+    }
     const key = outfitKey(items)
-    if (requestedKeysRef.current.has(key)) return
+    if (requestedKeysRef.current.has(key)) {
+      return
+    }
 
     const exec = () => {
       requestedKeysRef.current.add(key)
@@ -75,7 +79,9 @@ export function useVtoRequests(): UseVtoRequestsHandle {
     if (priority) {
       // The selection changed — drop prefetch timers queued for the previous
       // outfit so they don't fire after this priority request.
-      for (const timer of pendingPrefetchTimersRef.current) clearTimeout(timer)
+      for (const timer of pendingPrefetchTimersRef.current) {
+        clearTimeout(timer)
+      }
       pendingPrefetchTimersRef.current.clear()
       lastPriorityTimeRef.current = Date.now()
       exec()
@@ -89,7 +95,9 @@ export function useVtoRequests(): UseVtoRequestsHandle {
     if (last) {
       const now = Date.now()
       const minNext = last + getStaticData().config.api.vtoPrefetchDelayMs
-      if (now < minNext) delay = minNext - now
+      if (now < minNext) {
+        delay = minNext - now
+      }
     }
     if (delay > 0) {
       const timer = setTimeout(() => {
@@ -107,17 +115,23 @@ export function useVtoRequests(): UseVtoRequestsHandle {
   useEffect(() => {
     const timers = pendingPrefetchTimersRef.current
     return () => {
-      for (const timer of timers) clearTimeout(timer)
+      for (const timer of timers) {
+        clearTimeout(timer)
+      }
       timers.clear()
     }
   }, [])
 
   const framesForOutfit = useCallback(
     (items: VtoCompositionItem[]): string[] | null => {
-      if (items.length === 0) return null
+      if (items.length === 0) {
+        return null
+      }
       const key = outfitKey(items)
       const frames = framesByKey[key]
-      if (!frames || frames.length === 0) return null
+      if (!frames || frames.length === 0) {
+        return null
+      }
       const baseUrl = getStaticData().config.frames.baseUrl
       return frames.map((u) => applyFrameBaseUrl(u, baseUrl))
     },

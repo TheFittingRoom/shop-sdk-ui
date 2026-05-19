@@ -63,7 +63,9 @@ export function AvatarControls({
 
   // Click-outside dismisses the popover.
   useEffect(() => {
-    if (!popoverOpen) return
+    if (!popoverOpen) {
+      return
+    }
     const onDocClick = (e: MouseEvent) => {
       if (popoverWrapperRef.current && !popoverWrapperRef.current.contains(e.target as Node)) {
         setPopoverOpen(false)
@@ -251,7 +253,9 @@ export function MobileTuckControl({ canTuck, forceUntuck, onToggleUntuck }: Mobi
       flex: 'none',
     },
   }))
-  if (!canTuck) return null
+  if (!canTuck) {
+    return null
+  }
   return (
     <div css={css.wrapper}>
       <Button variant="base" css={css.pill} onClick={onToggleUntuck}>

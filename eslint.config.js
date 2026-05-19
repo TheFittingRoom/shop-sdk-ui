@@ -55,4 +55,11 @@ export default tseslint.config(
     rules: { 'no-console': 'off' },
   },
   prettier,
+  {
+    // eslint-config-prettier turns `curly` off wholesale; re-enable it here,
+    // after prettier. `curly: 'all'` doesn't conflict with Prettier —
+    // Prettier formats braces but never adds or removes them.
+    files: ['src/**/*.{ts,tsx}'],
+    rules: { curly: ['error', 'all'] },
+  },
 )

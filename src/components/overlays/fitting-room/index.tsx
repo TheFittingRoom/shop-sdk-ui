@@ -41,7 +41,9 @@ const logger = getLogger('overlays/fitting-room')
 
 function measureTopOffset(): number {
   const { getOverlayTopOffset } = getStaticData()
-  if (!getOverlayTopOffset) return 0
+  if (!getOverlayTopOffset) {
+    return 0
+  }
   try {
     const offset = getOverlayTopOffset()
     return Number.isFinite(offset) && offset > 0 ? offset : 0
@@ -82,13 +84,17 @@ export default function FittingRoomOverlay() {
   // Scroll lock + top-offset measurement
   useEffect(() => {
     const savedScrollY = window.scrollY
-    if (savedScrollY > 0) window.scrollTo(0, 0)
+    if (savedScrollY > 0) {
+      window.scrollTo(0, 0)
+    }
     setTopOffset(measureTopOffset())
     const onResize = () => setTopOffset(measureTopOffset())
     window.addEventListener('resize', onResize)
     return () => {
       window.removeEventListener('resize', onResize)
-      if (savedScrollY > 0) window.scrollTo(0, savedScrollY)
+      if (savedScrollY > 0) {
+        window.scrollTo(0, savedScrollY)
+      }
     }
   }, [])
 
@@ -102,7 +108,9 @@ export default function FittingRoomOverlay() {
     indexed.sort((a, b) => {
       const aOrder = a.item.styleCategoryGroup?.display_order ?? Number.MAX_SAFE_INTEGER
       const bOrder = b.item.styleCategoryGroup?.display_order ?? Number.MAX_SAFE_INTEGER
-      if (aOrder !== bOrder) return aOrder - bOrder
+      if (aOrder !== bOrder) {
+        return aOrder - bOrder
+      }
       return a.idx - b.idx
     })
     return indexed.map(({ item }) => item)
@@ -117,7 +125,9 @@ export default function FittingRoomOverlay() {
     () =>
       selectedItems.some((top) => {
         const topCategory = top.styleCategory
-        if (!topCategory?.tuckable) return false
+        if (!topCategory?.tuckable) {
+          return false
+        }
         return selectedItems.some(
           (other) =>
             !!other.styleCategory &&
@@ -142,11 +152,17 @@ export default function FittingRoomOverlay() {
   // write back via updateFittingRoomItem so the choice persists.
   const ensureSizeForItem = useCallback(
     (item: ResolvedFittingRoomItem) => {
-      if (item.storage.colorwaySizeAssetId != null) return
+      if (item.storage.colorwaySizeAssetId != null) {
+        return
+      }
       const productData = buildVtoProductDataFromResolved(item)
-      if (!productData) return
+      if (!productData) {
+        return
+      }
       const csa = findRecommendedColorSize(productData, item.storage.color)
-      if (!csa) return
+      if (!csa) {
+        return
+      }
       const sizeRec = item.loadedProduct?.sizeFitRecommendation
       const sizeLabel = sizeRec ? getSizeLabelFromSize(sizeRec.recommended_size) : productData.recommendedSizeLabel
       updateFittingRoomItem(item.externalId, {
@@ -167,12 +183,16 @@ export default function FittingRoomOverlay() {
   const handleSelectItem = useCallback(
     (externalId: string) => {
       const item = resolved.items.find((i) => i.externalId === externalId)
-      if (!item) return
+      if (!item) {
+        return
+      }
       const isSelected = selectedExternalIds.has(externalId)
       const nextSelected = new Set(selectedExternalIds)
       if (isSelected) {
         nextSelected.delete(externalId)
-        if (openAccordionItemId === externalId) setOpenAccordionItemId(null)
+        if (openAccordionItemId === externalId) {
+          setOpenAccordionItemId(null)
+        }
       } else {
         nextSelected.add(externalId)
         ensureSizeForItem(item)
@@ -191,11 +211,17 @@ export default function FittingRoomOverlay() {
   const handleChangeSize = useCallback(
     (externalId: string, sizeLabel: string) => {
       const item = resolved.items.find((i) => i.externalId === externalId)
-      if (!item) return
+      if (!item) {
+        return
+      }
       const productData = buildVtoProductDataFromResolved(item)
-      if (!productData) return
+      if (!productData) {
+        return
+      }
       const csa = findCsaByLabel(productData, sizeLabel, item.storage.color)
-      if (!csa) return
+      if (!csa) {
+        return
+      }
       updateFittingRoomItem(externalId, {
         colorwaySizeAssetId: csa.colorwaySizeAssetId,
         size: sizeLabel,
@@ -241,12 +267,16 @@ export default function FittingRoomOverlay() {
   const handleRemoveItem = useCallback(
     (externalId: string) => {
       setSelectedExternalIds((prev) => {
-        if (!prev.has(externalId)) return prev
+        if (!prev.has(externalId)) {
+          return prev
+        }
         const next = new Set(prev)
         next.delete(externalId)
         return next
       })
-      if (openAccordionItemId === externalId) setOpenAccordionItemId(null)
+      if (openAccordionItemId === externalId) {
+        setOpenAccordionItemId(null)
+      }
     },
     [openAccordionItemId],
   )
@@ -283,8 +313,12 @@ export default function FittingRoomOverlay() {
   // can't fire compositions (the redirect kicks in elsewhere). The alternate
   // pre-warm is speculative and gated behind config.features.vtoPrefetch.
   useEffect(() => {
-    if (!userIsLoggedIn || !userHasAvatar) return
-    if (outfit.items.length === 0) return
+    if (!userIsLoggedIn || !userHasAvatar) {
+      return
+    }
+    if (outfit.items.length === 0) {
+      return
+    }
     requestVtoComposition(toWireItems(outfit.items), true)
     if (getStaticData().config.features.vtoPrefetch) {
       for (const alt of outfit.alternates) {
@@ -298,7 +332,9 @@ export default function FittingRoomOverlay() {
   const frameUrls = useMemo<string[] | null>(() => {
     if (outfit.items.length === 0) {
       const bareFrames = userProfile?.avatar_frames
-      if (!bareFrames || bareFrames.length === 0) return null
+      if (!bareFrames || bareFrames.length === 0) {
+        return null
+      }
       const baseUrl = getStaticData().config.frames.baseUrl
       return bareFrames.map((u) => applyFrameBaseUrl(u, baseUrl))
     }

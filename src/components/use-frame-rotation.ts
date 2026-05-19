@@ -16,14 +16,18 @@ export function useFrameRotation(
 
   const rotateLeft = useCallback(() => {
     setSelectedFrameIndex((prev) => {
-      if (prev == null || frameCount === 0) return prev
+      if (prev == null || frameCount === 0) {
+        return prev
+      }
       return prev === 0 ? frameCount - 1 : prev - 1
     })
   }, [frameCount, setSelectedFrameIndex])
 
   const rotateRight = useCallback(() => {
     setSelectedFrameIndex((prev) => {
-      if (prev == null || frameCount === 0) return prev
+      if (prev == null || frameCount === 0) {
+        return prev
+      }
       return prev === frameCount - 1 ? 0 : prev + 1
     })
   }, [frameCount, setSelectedFrameIndex])
@@ -35,8 +39,11 @@ export function useFrameRotation(
       const onMove = (move: MouseEvent) => {
         const deltaX = move.clientX - startX
         if (Math.abs(deltaX) >= DRAG_STEP_PX) {
-          if (deltaX > 0) rotateRight()
-          else rotateLeft()
+          if (deltaX > 0) {
+            rotateRight()
+          } else {
+            rotateLeft()
+          }
           startX = move.clientX
         }
       }
@@ -57,8 +64,11 @@ export function useFrameRotation(
       const onMove = (move: TouchEvent) => {
         const deltaX = move.touches[0].clientX - startX
         if (Math.abs(deltaX) >= DRAG_STEP_PX) {
-          if (deltaX > 0) rotateRight()
-          else rotateLeft()
+          if (deltaX > 0) {
+            rotateRight()
+          } else {
+            rotateLeft()
+          }
           startX = move.touches[0].clientX
         }
       }

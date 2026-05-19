@@ -40,9 +40,13 @@ export function CardRail({ group, availabilityByExternalId, onSelectItem, onRemo
   // Re-measure on mount, on container resize, and when the item set or
   // collapsed state changes (all of which can change scrollWidth).
   useLayoutEffect(() => {
-    if (collapsed) return
+    if (collapsed) {
+      return
+    }
     const el = scrollRef.current
-    if (!el) return
+    if (!el) {
+      return
+    }
     updateScrollState()
     const observer = new ResizeObserver(updateScrollState)
     observer.observe(el)
@@ -51,7 +55,9 @@ export function CardRail({ group, availabilityByExternalId, onSelectItem, onRemo
 
   const scrollByPage = useCallback((dir: 1 | -1) => {
     const el = scrollRef.current
-    if (!el) return
+    if (!el) {
+      return
+    }
     el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' })
   }, [])
 

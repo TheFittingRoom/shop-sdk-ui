@@ -132,7 +132,9 @@ function BrowseView({
   // section stays current.
   const recomputeActiveSection = useCallback(() => {
     const container = railsAreaRef.current
-    if (!container) return
+    if (!container) {
+      return
+    }
     const containerTop = container.getBoundingClientRect().top
     let active: string | null = null
     for (const [name, el] of sectionRefs.current) {
@@ -155,7 +157,9 @@ function BrowseView({
   const scrollToSection = useCallback((name: string) => {
     const container = railsAreaRef.current
     const el = sectionRefs.current.get(name)
-    if (!container || !el) return
+    if (!container || !el) {
+      return
+    }
     const delta = el.getBoundingClientRect().top - container.getBoundingClientRect().top
     container.scrollBy({ top: delta - SECTION_SCROLL_TOP_GAP_PX, behavior: 'smooth' })
   }, [])
@@ -197,8 +201,11 @@ function BrowseView({
           <div
             key={group.group.name}
             ref={(el) => {
-              if (el) sectionRefs.current.set(group.group.name, el)
-              else sectionRefs.current.delete(group.group.name)
+              if (el) {
+                sectionRefs.current.set(group.group.name, el)
+              } else {
+                sectionRefs.current.delete(group.group.name)
+              }
             }}
           >
             <CardRail
@@ -264,9 +271,13 @@ function TryOnView({
   useEffect(() => {
     function refresh() {
       const el = innerRef.current
-      if (!el) return
+      if (!el) {
+        return
+      }
       const parentEl = el.parentElement
-      if (!parentEl) return
+      if (!parentEl) {
+        return
+      }
       const maxHeightPx = Number(window.getComputedStyle(parentEl).getPropertyValue('max-height').replace('px', ''))
       const heightPx = Math.min(el.clientHeight, maxHeightPx || el.clientHeight)
       setSheetStyle({ height: `${heightPx}px` })

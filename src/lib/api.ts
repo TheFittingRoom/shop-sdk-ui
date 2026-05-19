@@ -142,7 +142,9 @@ async function execApiRequest<T>(params: ApiRequestParams): Promise<T> {
   try {
     response = await fetch(url, options)
   } finally {
-    if (timeoutHandle) clearTimeout(timeoutHandle)
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle)
+    }
   }
 
   if (!response.ok) {
