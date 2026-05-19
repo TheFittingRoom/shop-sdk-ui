@@ -101,12 +101,16 @@ export function AvatarPane({ frameUrls, hasSelection, controls, mobileFullscreen
     if (mobileFullscreen) {
       return (
         <div css={css.mobileContainer}>
-          <div css={css.mobileFrameSlot}>{viewer}</div>
+          {/* controls sit inside the frame slot so they anchor to the bottom
+              of the VTO image, not the bottom of the whole column. */}
+          <div css={css.mobileFrameSlot}>
+            {viewer}
+            {controls}
+          </div>
           {/* The nbsp keeps this div non-empty: the merchant theme's global
               `div:empty { display: none }` rule (higher specificity than an
               emotion class) would otherwise hide the filler entirely. */}
           <div css={css.bottomFiller}>&nbsp;</div>
-          {controls}
         </div>
       )
     }

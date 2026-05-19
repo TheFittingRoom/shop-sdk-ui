@@ -229,14 +229,14 @@ interface MobileTuckControlProps {
 
 // Mobile try-on tuck/untuck pill. Unlike the desktop AvatarControls cluster
 // this is a single, always-expanded pill — no collapse animation and none of
-// the other controls (See Selected Items, Zoom). Anchored top-right of the
-// avatar pane, mirroring the back-arrow at top-left.
+// the other controls (See Selected Items, Zoom). Anchored bottom-right of the
+// VTO image.
 export function MobileTuckControl({ canTuck, forceUntuck, onToggleUntuck }: MobileTuckControlProps) {
   const { t } = useTranslation()
   const css = useCss((theme) => ({
     wrapper: {
       position: 'absolute',
-      top: '12px',
+      bottom: '12px',
       right: '12px',
       zIndex: 2,
     },
