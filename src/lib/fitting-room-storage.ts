@@ -124,11 +124,7 @@ export async function toggleFittingRoomItem(productId: string, handle: string | 
 // Add the product to the fitting room if it isn't already there — never
 // removes. Used when opening the fitting-room overlay from the PDP "Try It
 // On" CTA, where the current product must be present so it can be preselected.
-export async function ensureFittingRoomItem(
-  productId: string,
-  handle: string | null,
-  isPdp: boolean,
-): Promise<void> {
+export async function ensureFittingRoomItem(productId: string, handle: string | null, isPdp: boolean): Promise<void> {
   const state = useMainStore.getState()
   if (state.fittingRoom.some((item) => item.externalId === productId)) {
     return
