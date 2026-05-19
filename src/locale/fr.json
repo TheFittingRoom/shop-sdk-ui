@@ -68,7 +68,8 @@
     "view_product_details": "Voir les détails du produit",
     "hide_product_details": "Masquer les détails du produit",
     "no_recommendation": "Il n'y a actuellement pas de tailles bien ajustées disponibles pour cet article.",
-    "vto_error": "Impossible de charger l'essayage. Veuillez réessayer."
+    "vto_error": "Impossible de charger l'essayage. Veuillez réessayer.",
+    "zoom_in": "Agrandir"
   },
   "size-rec": {
     "recommended_size": "Taille recommandée : {{size}}",

@@ -9,7 +9,7 @@ import { AvatarPane } from './avatar-pane'
 import { CardRail } from './card-rail'
 import { DetailAccordion } from './detail-accordion'
 import { DetailMode } from './detail-accordion-item'
-import { ZoomModal } from './zoom-modal'
+import { ZoomModal } from '@/components/zoom-modal'
 
 // Avatar frames are rendered at portrait 2:3 (width:height). We size the
 // avatar column by computing width = available height * (2/3); the details

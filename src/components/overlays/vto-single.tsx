@@ -11,12 +11,14 @@ import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
 import { SizeSelector } from '@/components/size-selector'
 import { Snackbar } from '@/components/snackbar'
 import { Text, TextT } from '@/components/text'
+import { ZoomModal } from '@/components/zoom-modal'
 import {
   AVATAR_BOTTOM_BACKGROUND_URL,
   CloseIcon,
   DragHandleIcon,
   InfoIcon,
   TfrNameSvg,
+  ZoomIcon,
 } from '@/lib/asset'
 import { getAuthManager } from '@/lib/firebase'
 import { useTranslation } from '@/lib/locale'
@@ -1030,10 +1032,36 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
     bottomContainerStyle: {},
   })
   const [selectedFrameIndex, setSelectedFrameIndex] = useState<number | null>(null)
+  const [zoomOpen, setZoomOpen] = useState<boolean>(false)
   const css = useCss((theme) => ({
     topContainer: {
       flex: 'none',
       height: '100%',
+      // Positioning context for the zoom pill overlaid on the avatar.
+      position: 'relative',
+    },
+    zoomPill: {
+      position: 'absolute',
+      top: '16px',
+      right: '16px',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '8px 16px',
+      borderRadius: '24px',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      border: `1px solid ${theme.color_fg_text}`,
+      fontSize: '12px',
+      fontWeight: '500',
+      letterSpacing: '0.5px',
+      textTransform: 'uppercase',
+      cursor: 'pointer',
+      zIndex: 2,
+    },
+    zoomPillIcon: {
+      width: '14px',
+      height: '14px',
+      flex: 'none',
     },
     bottomContainer: {
       position: 'absolute',
@@ -1158,6 +1186,20 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
         imageStyle={layoutData.imageStyle}
         loadingT="vto-single.avatar_loading"
       />
+      {isReady && !isMobileLayout ? (
+        <Button variant="base" css={css.zoomPill} onClick={() => setZoomOpen(true)}>
+          <ZoomIcon css={css.zoomPillIcon} />
+          <TextT variant="base" t="vto-single.zoom_in" />
+        </Button>
+      ) : null}
+      {zoomOpen ? (
+        <ZoomModal
+          frameUrls={frameUrls!}
+          selectedFrameIndex={selectedFrameIndex}
+          setSelectedFrameIndex={setSelectedFrameIndex}
+          onClose={() => setZoomOpen(false)}
+        />
+      ) : null}
       {isReady ? (
         <div css={css.bottomContainer} style={layoutData.bottomContainerStyle}>
           {isMobileLayout ? (
