@@ -7,6 +7,7 @@ import { SheetSnap } from '@/lib/use-mobile-sheet-snap'
 import { useCss, StyleProp } from '@/lib/theme'
 import { Availability } from '@/lib/fitting-room-outfit'
 import { AvatarPane } from './avatar-pane'
+import { MobileTuckControl } from './avatar-controls'
 import { CardRail } from './card-rail'
 import { DetailAccordion } from './detail-accordion'
 import { DetailMode } from './detail-accordion-item'
@@ -279,7 +280,14 @@ function TryOnView({
 
   return (
     <div css={css.container}>
-      <AvatarPane hasSelection={selectedItems.length > 0} frameUrls={frameUrls} mobileFullscreen />
+      <AvatarPane
+        hasSelection={selectedItems.length > 0}
+        frameUrls={frameUrls}
+        mobileFullscreen
+        controls={
+          <MobileTuckControl canTuck={canTuck} forceUntuck={forceUntuck} onToggleUntuck={onToggleUntuck} />
+        }
+      />
       <Button variant="base" css={css.backButton} onClick={onBackToBrowse} aria-label="Back to browse">
         <LeftArrowIcon css={css.backArrow} />
       </Button>

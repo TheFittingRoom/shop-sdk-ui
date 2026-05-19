@@ -4,7 +4,29 @@ import { Text } from '@/components/text'
 import { SelectedItemsIcon, TuckIcon, ZoomIcon } from '@/lib/asset'
 import { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useTranslation } from '@/lib/locale'
-import { useCss } from '@/lib/theme'
+import { CssProp, ThemeData, useCss } from '@/lib/theme'
+
+// Shared pill look for the avatar control buttons (desktop cluster + the
+// mobile tuck pill). Callers add their own positioning and, on desktop, the
+// collapse transition.
+function pillBaseStyle(theme: ThemeData): CssProp {
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 16px',
+    borderRadius: '24px',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    border: `1px solid ${theme.color_fg_text}`,
+    fontSize: '12px',
+    fontWeight: '500',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase',
+    cursor: 'pointer',
+    userSelect: 'none',
+    WebkitUserSelect: 'none',
+  }
+}
 
 interface AvatarControlsProps {
   selectedItems: ResolvedFittingRoomItem[]
@@ -65,20 +87,7 @@ export function AvatarControls({
       alignItems: 'flex-end',
     },
     pill: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '8px 16px',
-      borderRadius: '24px',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      border: `1px solid ${theme.color_fg_text}`,
-      fontSize: '12px',
-      fontWeight: '500',
-      letterSpacing: '0.5px',
-      textTransform: 'uppercase',
-      cursor: 'pointer',
-      userSelect: 'none',
-      WebkitUserSelect: 'none',
+      ...pillBaseStyle(theme),
       transition: 'padding 500ms cubic-bezier(0.22, 1, 0.36, 1), gap 500ms cubic-bezier(0.22, 1, 0.36, 1)',
     },
     pillCollapsed: {
@@ -206,6 +215,44 @@ export function AvatarControls({
         <Text variant="base" css={labelCss(expanded)}>
           {t(zoomed ? 'fitting_room.zoom_out' : 'fitting_room.zoom_in')}
         </Text>
+      </Button>
+    </div>
+  )
+}
+
+interface MobileTuckControlProps {
+  // The outfit has something to tuck into — when false, nothing renders.
+  canTuck: boolean
+  forceUntuck: boolean
+  onToggleUntuck: () => void
+}
+
+// Mobile try-on tuck/untuck pill. Unlike the desktop AvatarControls cluster
+// this is a single, always-expanded pill — no collapse animation and none of
+// the other controls (See Selected Items, Zoom). Anchored top-right of the
+// avatar pane, mirroring the back-arrow at top-left.
+export function MobileTuckControl({ canTuck, forceUntuck, onToggleUntuck }: MobileTuckControlProps) {
+  const { t } = useTranslation()
+  const css = useCss((theme) => ({
+    wrapper: {
+      position: 'absolute',
+      top: '12px',
+      right: '12px',
+      zIndex: 2,
+    },
+    pill: pillBaseStyle(theme),
+    pillIcon: {
+      width: '14px',
+      height: '14px',
+      flex: 'none',
+    },
+  }))
+  if (!canTuck) return null
+  return (
+    <div css={css.wrapper}>
+      <Button variant="base" css={css.pill} onClick={onToggleUntuck}>
+        <TuckIcon css={css.pillIcon} />
+        <Text variant="base">{t(forceUntuck ? 'fitting_room.tuck_in' : 'fitting_room.untuck')}</Text>
       </Button>
     </div>
   )
