@@ -8,7 +8,8 @@ import { getExternalAssetUrl } from '@/lib/asset'
 import { useTranslation } from '@/lib/locale'
 import { useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
-import { OverlayName, OverlayProps } from '@/lib/view'
+import type { OverlayProps } from '@/lib/view'
+import { OverlayName } from '@/lib/view'
 
 export interface LandingOverlayProps extends OverlayProps {
   returnToOverlay?: OverlayName

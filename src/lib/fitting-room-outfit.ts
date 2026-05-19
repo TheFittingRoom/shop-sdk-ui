@@ -1,5 +1,5 @@
-import { StyleCategory, StyleCategoryGroup } from '@/api/gen/responses'
-import { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
+import type { StyleCategory, StyleCategoryGroup } from '@/api/gen/responses'
+import type { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 
 export type Availability = 'available' | 'selected' | 'disabled'
 
@@ -19,11 +19,16 @@ export interface Outfit {
 // `StyleCategory.includes` / `excludes` are gen'd as `any[]` (Go []enums.StyleCategory).
 // Normalize to plain strings so the rule check is straightforward.
 function asStringList(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
+  if (!Array.isArray(value)) {
+    return []
+  }
   const out: string[] = []
   for (const v of value) {
-    if (typeof v === 'string') out.push(v)
-    else if (v != null) out.push(String(v))
+    if (typeof v === 'string') {
+      out.push(v)
+    } else if (v != null) {
+      out.push(String(v))
+    }
   }
   return out
 }
@@ -82,8 +87,12 @@ export function computeAvailability(
 
   const itemCat = item.styleCategory
   for (const sel of resolved.items) {
-    if (!selectedExternalIds.has(sel.externalId)) continue
-    if (!sel.styleCategory) continue
+    if (!selectedExternalIds.has(sel.externalId)) {
+      continue
+    }
+    if (!sel.styleCategory) {
+      continue
+    }
     if (!pairCompatible(sel.styleCategory, itemCat, sel.styleCategoryGroup)) {
       return 'disabled'
     }
@@ -97,8 +106,12 @@ interface OutfitBuilderEntry {
 }
 
 function makeOutfitItem(r: ResolvedFittingRoomItem, forceUntuck: boolean): OutfitBuilderEntry | null {
-  if (!r.styleCategory) return null
-  if (r.storage.colorwaySizeAssetId == null) return null
+  if (!r.styleCategory) {
+    return null
+  }
+  if (r.storage.colorwaySizeAssetId == null) {
+    return null
+  }
   const tuckable = !!r.styleCategory.tuckable
   const untucked = forceUntuck && tuckable
   const layerOrder = untucked ? r.styleCategory.layer_order_untucked : r.styleCategory.layer_order
@@ -124,10 +137,16 @@ export function buildOutfit(
   let lastAddedResolved: ResolvedFittingRoomItem | null = null
 
   for (const r of resolved.items) {
-    if (!selectedExternalIds.has(r.externalId)) continue
-    if (r.externalId === lastAddedExternalId) lastAddedResolved = r
+    if (!selectedExternalIds.has(r.externalId)) {
+      continue
+    }
+    if (r.externalId === lastAddedExternalId) {
+      lastAddedResolved = r
+    }
     const entry = makeOutfitItem(r, forceUntuck)
-    if (entry) entries.push(entry)
+    if (entry) {
+      entries.push(entry)
+    }
   }
 
   entries.sort((a, b) => a.layerOrder - b.layerOrder)
@@ -146,10 +165,16 @@ export function buildAlternateOutfits(
   primary: OutfitItem[],
   lastAddedResolved: ResolvedFittingRoomItem | null,
 ): OutfitItem[][] {
-  if (!lastAddedResolved || !lastAddedResolved.loadedProduct) return []
+  if (!lastAddedResolved || !lastAddedResolved.loadedProduct) {
+    return []
+  }
   const currentCsaId = lastAddedResolved.storage.colorwaySizeAssetId
-  if (currentCsaId == null) return []
-  if (!primary.some((i) => i.externalId === lastAddedResolved.externalId)) return []
+  if (currentCsaId == null) {
+    return []
+  }
+  if (!primary.some((i) => i.externalId === lastAddedResolved.externalId)) {
+    return []
+  }
 
   const sizeRec = lastAddedResolved.loadedProduct.sizeFitRecommendation
   let currentColorwayId: number | null = null
@@ -166,11 +191,11 @@ export function buildAlternateOutfits(
     const altCsa = sz.colorway_size_assets.find(
       (c) => c.id !== currentCsaId && (currentColorwayId == null || c.colorway_id === currentColorwayId),
     )
-    if (!altCsa) continue
+    if (!altCsa) {
+      continue
+    }
     const alternate = primary.map((it) =>
-      it.externalId === lastAddedResolved.externalId
-        ? { ...it, colorwaySizeAssetId: altCsa.id }
-        : it,
+      it.externalId === lastAddedResolved.externalId ? { ...it, colorwaySizeAssetId: altCsa.id } : it,
     )
     out.push(alternate)
   }

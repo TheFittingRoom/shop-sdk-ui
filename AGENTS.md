@@ -7,7 +7,13 @@ and renders a `<tfr-widget>` custom element.
 ## Build and distribution
 
 - Vite library build → `dist/index.js` (single ESM bundle, unminified) plus inlined CSS.
-- `npm run check` = `tsc --noEmit`. `npm run build` cleans + builds. CI runs both.
+- `npm run check` runs `tsc --noEmit`, ESLint, then `prettier --check` — the
+  one-stop validation command. `npm run lint` / `lint:fix` run ESLint alone
+  (flat config, `eslint.config.js`); `npm run format` / `format:check` run
+  Prettier alone (`.prettierrc`; `.prettierignore` excludes `src/api/gen/`).
+  `npm run build` cleans + builds. CI runs `check` + `build`. ESLint ignores
+  `src/api/gen/` (tygo-generated). Non-null assertions and `any` are errors;
+  control statements must be braced; `react-hooks/exhaustive-deps` is a warning.
 - Consumers load the SDK via `<script type="module">` from a jsdelivr URL backed by the npm package `@thefittingroom/shop-ui`.
 
 ### Release flow
@@ -119,7 +125,7 @@ response. The SDK prepends the configured `frames.baseUrl` (per-env in
 `src/lib/util.ts`. It also strips the host from any legacy host-prefixed URLs,
 so both shapes work.
 
-Used in both VTO overlays (`vto-single.tsx` and `fitting-room/`). Anywhere else
+Used in both VTO overlays (`quick-view.tsx` and `fitting-room/`). Anywhere else
 that turns a bare frame path into an `<img src>` should call `applyFrameBaseUrl`
 too.
 
@@ -146,7 +152,7 @@ and component-level dedup by `outfitKey` (items joined on
 applies the config-driven prefetch throttle (`config.api.vtoPrefetchDelayMs`),
 and cancels still-queued prefetch timers when a new priority request fires.
 The fitting room passes multi-garment outfits plus prefetch alternates;
-`vto-single.tsx` passes a one-item outfit per size/color (`untucked` always
+`quick-view.tsx` passes a one-item outfit per size/color (`untucked` always
 `false`) — it holds no `framesByKey`/`requestedKeysRef`/`compositionKey` of
 its own. `useCache` on `execApiRequest` stays **off** for this endpoint; the
 in-flight dedup above plus the backend's content-hash cache cover repeat
@@ -190,7 +196,7 @@ gen / Firestore-conventions notes above are easy to drift from when
 files move or shapes change — keep AGENTS.md edits in the same change as
 the code they describe.
 
-- [ ] `npm run check` (tsc --noEmit) clean
+- [ ] `npm run check` (tsc --noEmit + ESLint) clean
 - [ ] `npm run build` produces `dist/index.js` without errors
 - [ ] If consumed any new or changed backend types: `npm run gen-types`
       ran and the `src/api/gen/*` diff is committed in the same change

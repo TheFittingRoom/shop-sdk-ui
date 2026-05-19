@@ -15,7 +15,9 @@ export function useMobileSheetSnap(initial: SheetSnap = 'collapsed') {
       const initialSnap = snap
       const onTouchMove = (moveEvent: TouchEvent) => {
         const deltaY = moveEvent.touches[0].clientY - startY
-        if (Math.abs(deltaY) < 30) return
+        if (Math.abs(deltaY) < 30) {
+          return
+        }
         if (deltaY > 0) {
           if (initialSnap === 'full' || initialSnap === 'expanded') {
             setSnap('collapsed')

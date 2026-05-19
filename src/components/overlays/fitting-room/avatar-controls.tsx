@@ -2,9 +2,32 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/button'
 import { Text } from '@/components/text'
 import { SelectedItemsIcon, TuckIcon, ZoomIcon } from '@/lib/asset'
-import { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
+import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useTranslation } from '@/lib/locale'
+import type { CssProp, ThemeData } from '@/lib/theme'
 import { useCss } from '@/lib/theme'
+
+// Shared pill look for the avatar control buttons (desktop cluster + the
+// mobile tuck pill). Callers add their own positioning and, on desktop, the
+// collapse transition.
+function pillBaseStyle(theme: ThemeData): CssProp {
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 16px',
+    borderRadius: '24px',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    border: `1px solid ${theme.color_fg_text}`,
+    fontSize: '12px',
+    fontWeight: '500',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase',
+    cursor: 'pointer',
+    userSelect: 'none',
+    WebkitUserSelect: 'none',
+  }
+}
 
 interface AvatarControlsProps {
   selectedItems: ResolvedFittingRoomItem[]
@@ -40,7 +63,9 @@ export function AvatarControls({
 
   // Click-outside dismisses the popover.
   useEffect(() => {
-    if (!popoverOpen) return
+    if (!popoverOpen) {
+      return
+    }
     const onDocClick = (e: MouseEvent) => {
       if (popoverWrapperRef.current && !popoverWrapperRef.current.contains(e.target as Node)) {
         setPopoverOpen(false)
@@ -65,20 +90,7 @@ export function AvatarControls({
       alignItems: 'flex-end',
     },
     pill: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '8px 16px',
-      borderRadius: '24px',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      border: `1px solid ${theme.color_fg_text}`,
-      fontSize: '12px',
-      fontWeight: '500',
-      letterSpacing: '0.5px',
-      textTransform: 'uppercase',
-      cursor: 'pointer',
-      userSelect: 'none',
-      WebkitUserSelect: 'none',
+      ...pillBaseStyle(theme),
       transition: 'padding 500ms cubic-bezier(0.22, 1, 0.36, 1), gap 500ms cubic-bezier(0.22, 1, 0.36, 1)',
     },
     pillCollapsed: {
@@ -206,6 +218,49 @@ export function AvatarControls({
         <Text variant="base" css={labelCss(expanded)}>
           {t(zoomed ? 'fitting_room.zoom_out' : 'fitting_room.zoom_in')}
         </Text>
+      </Button>
+    </div>
+  )
+}
+
+interface MobileTuckControlProps {
+  // The outfit has something to tuck into — when false, nothing renders.
+  canTuck: boolean
+  forceUntuck: boolean
+  onToggleUntuck: () => void
+}
+
+// Mobile try-on tuck/untuck pill. Unlike the desktop AvatarControls cluster
+// this is a single, always-expanded pill — no collapse animation and none of
+// the other controls (See Selected Items, Zoom). Anchored bottom-right of the
+// VTO image.
+export function MobileTuckControl({ canTuck, forceUntuck, onToggleUntuck }: MobileTuckControlProps) {
+  const { t } = useTranslation()
+  const css = useCss((theme) => ({
+    wrapper: {
+      position: 'absolute',
+      bottom: '12px',
+      right: '12px',
+      // No z-index: the pill sits above the avatar image (later sibling than
+      // the frame viewer) but below the product-details sheet, which is a
+      // later sibling in the try-on view — so the sheet hides the pill when
+      // it expands over the image.
+    },
+    pill: pillBaseStyle(theme),
+    pillIcon: {
+      width: '14px',
+      height: '14px',
+      flex: 'none',
+    },
+  }))
+  if (!canTuck) {
+    return null
+  }
+  return (
+    <div css={css.wrapper}>
+      <Button variant="base" css={css.pill} onClick={onToggleUntuck}>
+        <TuckIcon css={css.pillIcon} />
+        <Text variant="base">{t(forceUntuck ? 'fitting_room.tuck_in' : 'fitting_room.untuck')}</Text>
       </Button>
     </div>
   )

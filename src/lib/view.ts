@@ -4,9 +4,8 @@ import ForgotPasswordOverlay from '@/components/overlays/forgot-password'
 import GetAppOverlay from '@/components/overlays/get-app'
 import LandingOverlay from '@/components/overlays/landing'
 import SignInOverlay from '@/components/overlays/sign-in'
-import VtoSingleOverlay from '@/components/overlays/vto-single'
+import QuickViewOverlay from '@/components/overlays/quick-view'
 import AddToFittingRoomCompactWidget from '@/components/widgets/add-to-fitting-room-compact'
-import AddToFittingRoomWidget from '@/components/widgets/add-to-fitting-room'
 import FittingRoomIconWidget from '@/components/widgets/fitting-room-icon'
 import FittingRoomWidget from '@/components/widgets/fitting-room'
 import SizeRecWidget from '@/components/widgets/size-rec'
@@ -36,7 +35,10 @@ export function _init() {
     }
     if (isTouch) {
       if (isMobileDevice) {
-        return { isMobileDevice, deviceLayout: isPortrait ? DeviceLayout.MOBILE_PORTRAIT : DeviceLayout.MOBILE_LANDSCAPE }
+        return {
+          isMobileDevice,
+          deviceLayout: isPortrait ? DeviceLayout.MOBILE_PORTRAIT : DeviceLayout.MOBILE_LANDSCAPE,
+        }
       }
       return { isMobileDevice, deviceLayout: isPortrait ? DeviceLayout.TABLET_PORTRAIT : DeviceLayout.TABLET_LANDSCAPE }
     }
@@ -53,11 +55,10 @@ export function _init() {
 }
 
 export interface WidgetProps {
-  attributes: Record<string, any>
+  attributes: Record<string, string | null>
 }
 
 export enum WidgetName {
-  ADD_TO_FITTING_ROOM = 'add-to-fitting-room',
   ADD_TO_FITTING_ROOM_COMPACT = 'add-to-fitting-room-compact',
   FITTING_ROOM = 'fitting-room',
   FITTING_ROOM_ICON = 'fitting-room-icon',
@@ -66,7 +67,6 @@ export enum WidgetName {
 }
 
 export const WIDGETS: Record<WidgetName, React.FC<WidgetProps>> = {
-  [WidgetName.ADD_TO_FITTING_ROOM]: AddToFittingRoomWidget,
   [WidgetName.ADD_TO_FITTING_ROOM_COMPACT]: AddToFittingRoomCompactWidget,
   [WidgetName.FITTING_ROOM]: FittingRoomWidget,
   [WidgetName.FITTING_ROOM_ICON]: FittingRoomIconWidget,
@@ -80,7 +80,7 @@ export enum OverlayName {
   GET_APP = 'get-app',
   LANDING = 'landing',
   SIGN_IN = 'sign-in',
-  VTO_SINGLE = 'vto-single',
+  QUICK_VIEW = 'quick-view',
 }
 
 export type OverlayProps = Record<string, unknown>
@@ -91,5 +91,5 @@ export const OVERLAYS: Record<OverlayName, React.FC<OverlayProps>> = {
   [OverlayName.GET_APP]: GetAppOverlay,
   [OverlayName.LANDING]: LandingOverlay,
   [OverlayName.SIGN_IN]: SignInOverlay,
-  [OverlayName.VTO_SINGLE]: VtoSingleOverlay,
+  [OverlayName.QUICK_VIEW]: QuickViewOverlay,
 }

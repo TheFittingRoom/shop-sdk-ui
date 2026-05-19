@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from 'react'
+import type { ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { AvatarFrameViewer } from '@/components/avatar-frame-viewer'
 import { Button } from '@/components/button'
@@ -9,20 +10,27 @@ import { ItemFitText } from '@/components/item-fit-text'
 import { LinkT } from '@/components/link'
 import { ModalTitlebar, SidecarModalFrame } from '@/components/modal'
 import { SizeSelector } from '@/components/size-selector'
+import { Snackbar } from '@/components/snackbar'
 import { Text, TextT } from '@/components/text'
+import { ZoomModal } from '@/components/zoom-modal'
 import {
   AVATAR_BOTTOM_BACKGROUND_URL,
   CloseIcon,
   DragHandleIcon,
+  FittingRoomIcon,
   InfoIcon,
   TfrNameSvg,
+  ZoomIcon,
 } from '@/lib/asset'
 import { getAuthManager } from '@/lib/firebase'
+import { toggleFittingRoomItem } from '@/lib/fitting-room-storage'
 import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
-import { loadProductDataToStore, VtoProductData, VtoSizeColorData, VtoSizeData } from '@/lib/product'
+import type { VtoProductData, VtoSizeColorData, VtoSizeData } from '@/lib/product'
+import { loadProductDataToStore } from '@/lib/product'
 import { getStaticData, useMainStore } from '@/lib/store'
-import { getThemeData, useCss, CssProp, StyleProp } from '@/lib/theme'
+import type { CssProp, StyleProp } from '@/lib/theme'
+import { getThemeData, useCss } from '@/lib/theme'
 import { getSizeLabelFromSize } from '@/lib/util'
 import { useMobileSheetSnap } from '@/lib/use-mobile-sheet-snap'
 import { DeviceLayout, OverlayName } from '@/lib/view'
@@ -37,9 +45,9 @@ const AVATAR_IMAGE_ASPECT_RATIO = 2 / 3 // width:height
 const AVATAR_GUTTER_HEIGHT_PX = 100
 const CONTENT_AREA_WIDTH_PX = 550
 
-const logger = getLogger('overlays/vto-single')
+const logger = getLogger('overlays/quick-view')
 
-export default function VtoSingleOverlay() {
+export default function QuickViewOverlay() {
   const userIsLoggedIn = useMainStore((state) => state.userIsLoggedIn)
   const userHasAvatar = useMainStore((state) => state.userHasAvatar)
   const userProfile = useMainStore((state) => state.userProfile)
@@ -53,16 +61,16 @@ export default function VtoSingleOverlay() {
   const [modalStyle, setModalStyle] = useState<StyleProp>({})
   // Shared VTO request flow: dedup, prefetch throttle, and frame storage.
   // Single-garment compositions are just one-item outfits (untucked: false).
-  const { request: vtoRequest, framesForOutfit } = useVtoRequests()
+  const { request: vtoRequest, framesForOutfit, lastError: vtoError, clearError: clearVtoError } = useVtoRequests()
 
   // Redirect if not logged in or no avatar
   useEffect(() => {
     if (!userIsLoggedIn) {
-      openOverlay(OverlayName.LANDING, { returnToOverlay: OverlayName.VTO_SINGLE })
+      openOverlay(OverlayName.LANDING, { returnToOverlay: OverlayName.QUICK_VIEW })
       return
     }
     if (userIsLoggedIn && userHasAvatar === false) {
-      openOverlay(OverlayName.GET_APP, { returnToOverlay: OverlayName.VTO_SINGLE, noAvatar: true })
+      openOverlay(OverlayName.GET_APP, { returnToOverlay: OverlayName.QUICK_VIEW, noAvatar: true })
       return
     }
   }, [userIsLoggedIn, userHasAvatar, openOverlay])
@@ -203,7 +211,7 @@ export default function VtoSingleOverlay() {
     if (vtoProductData !== null) {
       return
     }
-    setupInitialVtoData()
+    void setupInitialVtoData()
   }, [storeProductData, vtoProductData, userProfile])
 
   // Derive selected color/size data from selections
@@ -341,6 +349,7 @@ export default function VtoSingleOverlay() {
         onAddToCart={handleAddToCartClick}
         onSignOut={handleSignOutClick}
       />
+      {vtoError ? <Snackbar messageKey="quick-view.vto_error" onDismiss={clearVtoError} /> : null}
     </SidecarModalFrame>
   )
 }
@@ -372,18 +381,71 @@ function NoFitLayout({ onClose, onSignOut }: { onClose: () => void; onSignOut: (
   return (
     <div css={css.mainContainer}>
       <div css={css.titlebarContainer}>
-        <ModalTitlebar title={t('try_it_on')} onCloseClick={onClose} />
+        <ModalTitlebar title={t('quick-view.title')} onCloseClick={onClose} />
       </div>
       <div css={css.contentContainer}>
         <div>&nbsp;</div>
         <div css={css.messageContainer}>
-          <TextT variant="base" t="vto-single.no_recommendation" />
+          <TextT variant="base" t="quick-view.no_recommendation" />
         </div>
         <div css={css.footerContainer}>
           <Footer onSignOutClick={onSignOut} />
         </div>
       </div>
     </div>
+  )
+}
+
+// FittingRoomToggleButton sits beneath the Add to Cart CTA: it adds or
+// removes the current PDP product from the fitting room (the localStorage
+// item set), with a hanger icon and a state-aware label.
+function FittingRoomToggleButton() {
+  const { currentProduct } = getStaticData()
+  const productId = currentProduct?.externalId ?? null
+  const isInFittingRoom = useMainStore((state) =>
+    productId == null ? false : state.fittingRoom.some((item) => item.externalId === productId),
+  )
+  const css = useCss((theme) => ({
+    button: {
+      marginTop: '10px',
+      width: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '10px',
+      padding: '13px',
+      backgroundColor: '#FFFFFF',
+      border: `1px solid ${theme.color_fg_text}`,
+      borderRadius: '30px',
+      cursor: 'pointer',
+    },
+    icon: {
+      color: theme.color_fg_text,
+      width: '20px',
+      height: '20px',
+    },
+    text: {
+      fontSize: '14px',
+      textTransform: 'uppercase',
+    },
+  }))
+
+  if (productId == null) {
+    return null
+  }
+
+  const handleClick = () => {
+    // quick-view always renders for the current PDP product, so isPdp=true.
+    toggleFittingRoomItem(productId, currentProduct?.handle ?? null, true).catch((error) => {
+      logger.logError('toggleFittingRoomItem failed', { error })
+    })
+  }
+
+  return (
+    <button type="button" onClick={handleClick} css={css.button}>
+      <FittingRoomIcon css={css.icon} />
+      <TextT variant="base" css={css.text} t={isInFittingRoom ? 'added_to_fitting_room' : 'add_to_fitting_room'} />
+    </button>
   )
 }
 
@@ -418,8 +480,11 @@ function MobileLayout({
   onAddToCart,
   onSignOut,
 }: LayoutProps) {
-  const { snap: contentView, setSnap: setContentView, handleTouchStart: handleBottomFrameTouchStart } =
-    useMobileSheetSnap('collapsed')
+  const {
+    snap: contentView,
+    setSnap: setContentView,
+    handleTouchStart: handleBottomFrameTouchStart,
+  } = useMobileSheetSnap('collapsed')
   const bottomFrameInnerRef = useRef<HTMLDivElement>(null)
   const [bottomFrameOuterStyle, setBottomFrameOuterStyle] = useState<StyleProp>({})
   const [bottomFrameInnerStyle, setBottomFrameInnerStyle] = useState<StyleProp>({})
@@ -507,9 +572,11 @@ function MobileLayout({
       if (!bottomFrameInnerEl) {
         return
       }
-      const maxHeightPx = Number(
-        window.getComputedStyle(bottomFrameInnerEl.parentElement!).getPropertyValue('max-height').replace('px', ''),
-      )
+      const parentEl = bottomFrameInnerEl.parentElement
+      if (!parentEl) {
+        return
+      }
+      const maxHeightPx = Number(window.getComputedStyle(parentEl).getPropertyValue('max-height').replace('px', ''))
       const heightPx = Math.min(bottomFrameInnerEl.clientHeight, maxHeightPx)
       const bottomFrameStyle: StyleProp = {
         height: `${heightPx}px`,
@@ -676,12 +743,13 @@ function MobileContentExpanded({
       </div>
       <div css={css.buttonContainer}>
         <AddToCartButton onClick={onAddToCart} />
+        <FittingRoomToggleButton />
       </div>
       <div css={css.productDetailsContainer}>
         <LinkT
           variant="base"
           css={css.productDetailsText}
-          t="vto-single.view_product_details"
+          t="quick-view.view_product_details"
           onClick={handleProductDetailsClick}
         />
       </div>
@@ -809,12 +877,13 @@ function MobileContentFull({
       </div>
       <div css={css.buttonContainer}>
         <AddToCartButton onClick={onAddToCart} />
+        <FittingRoomToggleButton />
       </div>
       <div css={css.productDetailsContainer}>
         <LinkT
           variant="base"
           css={css.productDetailsText}
-          t="vto-single.hide_product_details"
+          t="quick-view.hide_product_details"
           onClick={handleProductDetailsClick}
         />
       </div>
@@ -949,7 +1018,7 @@ function DesktopLayout({
     <div css={css.mainContainer}>
       <Avatar frameUrls={frameUrls} setModalStyle={setModalStyle} />
       <div css={css.rightContainer}>
-        <ModalTitlebar title={t('try_it_on')} onCloseClick={onClose} />
+        <ModalTitlebar title={t('quick-view.title')} onCloseClick={onClose} />
         <div css={css.contentContainer}>
           <div css={css.productNameContainer}>
             <Text variant="brand" css={css.productNameText}>
@@ -995,6 +1064,7 @@ function DesktopLayout({
           {fitChartNode}
           <div css={css.buttonContainer}>
             <AddToCartButton onClick={onAddToCart} />
+            <FittingRoomToggleButton />
           </div>
           <div css={css.descriptionContainer}>
             <ProductDescriptionText loadedProductData={loadedProductData} />
@@ -1028,10 +1098,37 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
     bottomContainerStyle: {},
   })
   const [selectedFrameIndex, setSelectedFrameIndex] = useState<number | null>(null)
+  const [zoomOpen, setZoomOpen] = useState<boolean>(false)
   const css = useCss((theme) => ({
     topContainer: {
       flex: 'none',
       height: '100%',
+      // Positioning context for the zoom pill overlaid on the avatar.
+      position: 'relative',
+    },
+    zoomPill: {
+      position: 'absolute',
+      // Bottom-right of the avatar image, clear of the slider gutter below it.
+      bottom: `${AVATAR_GUTTER_HEIGHT_PX + 16}px`,
+      right: '16px',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '8px 16px',
+      borderRadius: '24px',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      border: `1px solid ${theme.color_fg_text}`,
+      fontSize: '12px',
+      fontWeight: '500',
+      letterSpacing: '0.5px',
+      textTransform: 'uppercase',
+      cursor: 'pointer',
+      zIndex: 2,
+    },
+    zoomPillIcon: {
+      width: '14px',
+      height: '14px',
+      flex: 'none',
     },
     bottomContainer: {
       position: 'absolute',
@@ -1154,9 +1251,23 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
         setSelectedFrameIndex={setSelectedFrameIndex}
         imageContainerStyle={layoutData.imageContainerStyle}
         imageStyle={layoutData.imageStyle}
-        loadingT="vto-single.avatar_loading"
+        loadingT="quick-view.avatar_loading"
       />
-      {isReady ? (
+      {isReady && !isMobileLayout ? (
+        <Button variant="base" css={css.zoomPill} onClick={() => setZoomOpen(true)}>
+          <ZoomIcon css={css.zoomPillIcon} />
+          <TextT variant="base" t="quick-view.zoom_in" />
+        </Button>
+      ) : null}
+      {zoomOpen && frameUrls && frameUrls.length > 0 ? (
+        <ZoomModal
+          frameUrls={frameUrls}
+          selectedFrameIndex={selectedFrameIndex}
+          setSelectedFrameIndex={setSelectedFrameIndex}
+          onClose={() => setZoomOpen(false)}
+        />
+      ) : null}
+      {frameUrls && selectedFrameIndex != null ? (
         <div css={css.bottomContainer} style={layoutData.bottomContainerStyle}>
           {isMobileLayout ? (
             <>&nbsp;</>
@@ -1165,13 +1276,13 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
               <input
                 type="range"
                 min={0}
-                max={frameUrls!.length - 1}
+                max={frameUrls.length - 1}
                 step={1}
-                value={selectedFrameIndex!}
+                value={selectedFrameIndex}
                 onChange={(e) => setSelectedFrameIndex(Number(e.target.value))}
                 css={css.sliderInput}
               />
-              <TextT variant="base" t="vto-single.slide_to_rotate" css={css.sliderText} />
+              <TextT variant="base" t="quick-view.slide_to_rotate" css={css.sliderText} />
             </>
           )}
         </div>
@@ -1250,7 +1361,7 @@ function ColorSelector({ availableColorLabels, selectedColorLabel, onChangeColor
   return (
     <div css={css.colorContainer}>
       <label>
-        <TextT variant="base" css={css.colorLabelText} t="vto-single.color_label" />
+        <TextT variant="base" css={css.colorLabelText} t="quick-view.color_label" />
         <select value={selectedColorLabel ?? ''} onChange={handleColorSelectChange} css={css.colorSelect}>
           {availableColorLabels.map((colorLabel) => (
             <option key={colorLabel} value={colorLabel}>
@@ -1323,7 +1434,7 @@ function Footer({ onSignOutClick }: FooterProps) {
 
   return (
     <div css={css.container}>
-      <LinkT variant="underline" css={css.signOutLink} onClick={onSignOutClick} t="vto-single.sign_out" />
+      <LinkT variant="underline" css={css.signOutLink} onClick={onSignOutClick} t="quick-view.sign_out" />
       <TfrNameSvg css={css.tfrIcon} />
     </div>
   )

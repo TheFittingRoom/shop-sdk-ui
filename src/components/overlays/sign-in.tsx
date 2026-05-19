@@ -9,7 +9,8 @@ import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import { useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
-import { OverlayName, OverlayProps } from '@/lib/view'
+import type { OverlayProps } from '@/lib/view'
+import { OverlayName } from '@/lib/view'
 
 export interface SignInOverlayProps extends OverlayProps {
   returnToOverlay?: OverlayName
@@ -119,7 +120,7 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
 
       const email = emailEl.value
       const password = passwordEl.value
-      loginUser(email, password)
+      void loginUser(email, password)
     },
     [returnToOverlay, closeOverlay, openOverlay, t],
   )
@@ -152,11 +153,14 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
             css={{ ...css.input, ...(passwordError ? css.inputError : {}) }}
           />
         </div>
-        <div css={css.passwordErrorContainer}>
-          {passwordError && <Text variant="error">{passwordError}</Text>}
-        </div>
+        <div css={css.passwordErrorContainer}>{passwordError && <Text variant="error">{passwordError}</Text>}</div>
         <div css={css.forgotPasswordContainer}>
-          <LinkT onClick={handleForgotPasswordClick} variant="underline" css={css.forgotPasswordLink} t="sign-in.forgot_password" />
+          <LinkT
+            onClick={handleForgotPasswordClick}
+            variant="underline"
+            css={css.forgotPasswordLink}
+            t="sign-in.forgot_password"
+          />
         </div>
         <div css={css.signInButtonContainer}>
           <ButtonT type="submit" variant="primary" t="sign-in.sign_in" />

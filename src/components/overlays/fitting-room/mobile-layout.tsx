@@ -1,17 +1,24 @@
-import { useRef, useEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button, ButtonT } from '@/components/button'
 import { Text } from '@/components/text'
-import { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
+import type { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { DragHandleIcon, LeftArrowIcon } from '@/lib/asset'
-import { SheetSnap } from '@/lib/use-mobile-sheet-snap'
-import { useCss, StyleProp } from '@/lib/theme'
-import { Availability } from '@/lib/fitting-room-outfit'
+import type { SheetSnap } from '@/lib/use-mobile-sheet-snap'
+import type { StyleProp } from '@/lib/theme'
+import { useCss } from '@/lib/theme'
+import type { Availability } from '@/lib/fitting-room-outfit'
 import { AvatarPane } from './avatar-pane'
+import { MobileTuckControl } from './avatar-controls'
 import { CardRail } from './card-rail'
 import { DetailAccordion } from './detail-accordion'
-import { DetailMode } from './detail-accordion-item'
+import type { DetailMode } from './detail-accordion-item'
+import { SectionNav } from './section-nav'
 
 export type MobileMode = 'browse' | 'try-on'
+
+// When jumping to a section, stop this far short of the very top so the
+// floating section-nav pill doesn't sit over the section title.
+const SECTION_SCROLL_TOP_GAP_PX = 50
 
 interface MobileLayoutProps {
   mode: MobileMode
@@ -109,12 +116,62 @@ function BrowseView({
   onRemoveItem: (externalId: string) => void
   onTryItOn: () => void
 }) {
+  const railsAreaRef = useRef<HTMLDivElement>(null)
+  // group name → its wrapper element in the rails scroll area, for the
+  // section-nav scroll-spy and jump-to-section.
+  const sectionRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+  const [activeSectionName, setActiveSectionName] = useState<string | null>(null)
+
+  const sections = resolved.groups.map((g) => ({ name: g.group.name, label: g.group.label }))
+
+  // The active section is the topmost one whose top edge is still at or below
+  // the rails-area top — i.e. the section whose start (content-area top) is
+  // still visible. Once a section's top scrolls above the fold it's no longer
+  // current; the next section, whose top is now visible, takes over. When
+  // every section's top has scrolled off (deep in the last section), the last
+  // section stays current.
+  const recomputeActiveSection = useCallback(() => {
+    const container = railsAreaRef.current
+    if (!container) {
+      return
+    }
+    const containerTop = container.getBoundingClientRect().top
+    let active: string | null = null
+    for (const [name, el] of sectionRefs.current) {
+      if (el.getBoundingClientRect().top >= containerTop - 1) {
+        active = name
+        break
+      }
+    }
+    if (active == null) {
+      const groups = resolved.groups
+      active = groups.length > 0 ? groups[groups.length - 1].group.name : null
+    }
+    setActiveSectionName(active)
+  }, [resolved.groups])
+
+  useLayoutEffect(() => {
+    recomputeActiveSection()
+  }, [recomputeActiveSection, resolved.groups])
+
+  const scrollToSection = useCallback((name: string) => {
+    const container = railsAreaRef.current
+    const el = sectionRefs.current.get(name)
+    if (!container || !el) {
+      return
+    }
+    const delta = el.getBoundingClientRect().top - container.getBoundingClientRect().top
+    container.scrollBy({ top: delta - SECTION_SCROLL_TOP_GAP_PX, behavior: 'smooth' })
+  }, [])
+
   const css = useCss((_theme) => ({
     container: {
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
       width: '100%',
+      // Positioning context for the floating SectionNav pill.
+      position: 'relative',
     },
     railsArea: {
       flex: 1,
@@ -133,15 +190,31 @@ function BrowseView({
   }))
   return (
     <div css={css.container}>
-      <div css={css.railsArea}>
+      {/* Hold the section-nav back until product data has finished loading —
+          while groups are still resolving the active-section readout flickers
+          as rails appear and shift. */}
+      {!resolved.isLoading && resolved.groups.length > 0 ? (
+        <SectionNav sections={sections} activeName={activeSectionName} onSelect={scrollToSection} />
+      ) : null}
+      <div ref={railsAreaRef} css={css.railsArea} onScroll={recomputeActiveSection}>
         {resolved.groups.map((group) => (
-          <CardRail
+          <div
             key={group.group.name}
-            group={group}
-            availabilityByExternalId={availabilityByExternalId}
-            onSelectItem={onSelectItem}
-            onRemoveItem={onRemoveItem}
-          />
+            ref={(el) => {
+              if (el) {
+                sectionRefs.current.set(group.group.name, el)
+              } else {
+                sectionRefs.current.delete(group.group.name)
+              }
+            }}
+          >
+            <CardRail
+              group={group}
+              availabilityByExternalId={availabilityByExternalId}
+              onSelectItem={onSelectItem}
+              onRemoveItem={onRemoveItem}
+            />
+          </div>
         ))}
       </div>
       {/* Hold the CTA back until the card rails have resolved — otherwise it
@@ -198,10 +271,14 @@ function TryOnView({
   useEffect(() => {
     function refresh() {
       const el = innerRef.current
-      if (!el) return
-      const maxHeightPx = Number(
-        window.getComputedStyle(el.parentElement!).getPropertyValue('max-height').replace('px', ''),
-      )
+      if (!el) {
+        return
+      }
+      const parentEl = el.parentElement
+      if (!parentEl) {
+        return
+      }
+      const maxHeightPx = Number(window.getComputedStyle(parentEl).getPropertyValue('max-height').replace('px', ''))
       const heightPx = Math.min(el.clientHeight, maxHeightPx || el.clientHeight)
       setSheetStyle({ height: `${heightPx}px` })
     }
@@ -236,7 +313,7 @@ function TryOnView({
     },
     sheetOuter: {
       position: 'absolute',
-      // 8px gap to either side, matching vto-single's mobile sheet.
+      // 8px gap to either side, matching quick-view's mobile sheet.
       left: '8px',
       right: '8px',
       bottom: 0,
@@ -279,7 +356,12 @@ function TryOnView({
 
   return (
     <div css={css.container}>
-      <AvatarPane hasSelection={selectedItems.length > 0} frameUrls={frameUrls} mobileFullscreen />
+      <AvatarPane
+        hasSelection={selectedItems.length > 0}
+        frameUrls={frameUrls}
+        mobileFullscreen
+        controls={<MobileTuckControl canTuck={canTuck} forceUntuck={forceUntuck} onToggleUntuck={onToggleUntuck} />}
+      />
       <Button variant="base" css={css.backButton} onClick={onBackToBrowse} aria-label="Back to browse">
         <LeftArrowIcon css={css.backArrow} />
       </Button>

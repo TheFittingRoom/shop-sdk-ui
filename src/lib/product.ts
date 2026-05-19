@@ -1,14 +1,7 @@
-import {
-  getSizeRecommendation as apiGetSizeRecommendation,
-  FitClassification,
-  MeasurementLocationFit,
-  SizeFit,
-  SizeFitRecommendation,
-} from '@/lib/api'
-import {
-  getStyleByExternalId,
-  FirestoreStyle,
-} from '@/lib/database'
+import type { FitClassification, MeasurementLocationFit, SizeFit, SizeFitRecommendation } from '@/lib/api'
+import { getSizeRecommendation as apiGetSizeRecommendation } from '@/lib/api'
+import type { FirestoreStyle } from '@/lib/database'
+import { getStyleByExternalId } from '@/lib/database'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 
@@ -28,7 +21,7 @@ export interface LoadedProductError {
 
 // --- VTO sizing view-model -------------------------------------------------
 // VtoProductData is the display shape the shared leaf widgets (SizeSelector,
-// ItemFitText, ItemFitDetails) consume. vto-single builds it from store
+// ItemFitText, ItemFitDetails) consume. quick-view builds it from store
 // product data; the fitting room builds it from a ResolvedFittingRoomItem
 // (see buildVtoProductDataFromResolved in fitting-room-data.ts).
 
@@ -94,7 +87,7 @@ export function loadProductDataToStore(externalId: string): void {
     try {
       const productData = await loadProductData(externalId)
       useMainStore.getState().setProductData(productData.externalId, productData)
-      logger.logDebug(`Loaded product data for externalId: ${externalId}`, { productData });
+      logger.logDebug(`Loaded product data for externalId: ${externalId}`, { productData })
     } catch (error) {
       logger.logError(`Error loading product data for externalId: ${externalId}`, { error })
     }
@@ -104,5 +97,5 @@ export function loadProductDataToStore(externalId: string): void {
     // Already loaded or cannot load yet
     return
   }
-  loadAndStore()
+  void loadAndStore()
 }

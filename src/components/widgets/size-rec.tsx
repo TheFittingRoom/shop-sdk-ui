@@ -3,15 +3,16 @@ import { LinkT } from '@/components/link'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { getSizeLabelFromSize } from '@/lib/util'
-import { OverlayName, WidgetProps } from '@/lib/view'
+import type { WidgetProps } from '@/lib/view'
+import { OverlayName } from '@/lib/view'
 
 const logger = getLogger('size-rec')
 
-export default function SizeRecWidget({}: WidgetProps) {
+export default function SizeRecWidget(_props: WidgetProps) {
   const openOverlay = useMainStore((state) => state.openOverlay)
   const openedOverlays = useMainStore((state) => state.openedOverlays)
   const storeProductData = useMainStore((state) => state.productData)
-  const hasOpenedVtoSingleOverlay = openedOverlays.includes(OverlayName.VTO_SINGLE)
+  const hasOpenedQuickViewOverlay = openedOverlays.includes(OverlayName.QUICK_VIEW)
 
   // Get size recommendation
   const sizeRecommendationRecord = useMemo(() => {
@@ -32,12 +33,12 @@ export default function SizeRecWidget({}: WidgetProps) {
   }, [storeProductData])
 
   const handleLinkClick = useCallback(() => {
-    openOverlay(OverlayName.VTO_SINGLE)
+    openOverlay(OverlayName.QUICK_VIEW)
   }, [openOverlay])
 
   // RENDERING:
 
-  if (!sizeRecommendationRecord || !hasOpenedVtoSingleOverlay) {
+  if (!sizeRecommendationRecord || !hasOpenedQuickViewOverlay) {
     return null
   }
   const sizeLabel = getSizeLabelFromSize(sizeRecommendationRecord.recommended_size)

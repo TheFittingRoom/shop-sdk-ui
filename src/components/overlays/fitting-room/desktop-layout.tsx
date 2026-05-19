@@ -1,14 +1,15 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { LinkT } from '@/components/link'
 import { TfrIcon } from '@/lib/asset'
-import { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
+import type { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useCss } from '@/lib/theme'
-import { Availability } from '@/lib/fitting-room-outfit'
+import type { Availability } from '@/lib/fitting-room-outfit'
 import { AvatarControls } from './avatar-controls'
 import { AvatarPane } from './avatar-pane'
 import { CardRail } from './card-rail'
 import { DetailAccordion } from './detail-accordion'
-import { DetailMode } from './detail-accordion-item'
+import type { DetailMode } from './detail-accordion-item'
+import { ZoomModal } from '@/components/zoom-modal'
 
 // Avatar frames are rendered at portrait 2:3 (width:height). We size the
 // avatar column by computing width = available height * (2/3); the details
@@ -35,7 +36,6 @@ interface DesktopLayoutProps {
   forceUntuck: boolean
   // The outfit has something to tuck into — computed in FittingRoomOverlay.
   canTuck: boolean
-  zoomed: boolean
   frameUrls: string[] | null
   onSelectItem: (externalId: string) => void
   onRemoveItem: (externalId: string) => void
@@ -44,7 +44,6 @@ interface DesktopLayoutProps {
   onChangeSize: (externalId: string, sizeLabel: string) => void
   onAddToCart: (externalId: string) => void
   onToggleUntuck: () => void
-  onToggleZoom: () => void
   onSignOut: () => void
 }
 
@@ -58,7 +57,6 @@ export function DesktopLayout({
   detailMode,
   forceUntuck,
   canTuck,
-  zoomed,
   frameUrls,
   onSelectItem,
   onRemoveItem,
@@ -67,16 +65,19 @@ export function DesktopLayout({
   onChangeSize,
   onAddToCart,
   onToggleUntuck,
-  onToggleZoom,
   onSignOut,
 }: DesktopLayoutProps) {
   const hasSelection = selectedItems.length > 0
   // Avatar-pane hover collapses the AvatarControls pills to icon-only when
   // the cursor isn't over the image pane.
   const [avatarHovered, setAvatarHovered] = useState<boolean>(false)
+  // Zoom modal open state, and the avatar frame index lifted from AvatarPane
+  // so the zoom modal can show whichever frame is currently displayed.
+  const [zoomOpen, setZoomOpen] = useState<boolean>(false)
+  const [selectedFrameIndex, setSelectedFrameIndex] = useState<number | null>(null)
 
   // Measure container height so we can derive a width for the avatar column
-  // that matches the portrait frame aspect (mirrors what vto-single's Avatar
+  // that matches the portrait frame aspect (mirrors what quick-view's Avatar
   // does for its sidecar layout). Without this, fixed grid columns squeeze
   // the avatar column to near-zero on narrower viewports.
   //
@@ -87,12 +88,16 @@ export function DesktopLayout({
   const [avatarWidth, setAvatarWidth] = useState<number>(AVATAR_MIN_WIDTH_PX)
   useLayoutEffect(() => {
     const el = containerRef.current
-    if (!el) return
+    if (!el) {
+      return
+    }
     const observer = new ResizeObserver(() => {
       // The grid container has no padding — the avatar cell spans the full
       // overlay height, flush to the top and bottom edges.
       const availableHeightPx = el.clientHeight
-      if (availableHeightPx <= 0) return
+      if (availableHeightPx <= 0) {
+        return
+      }
       const target = Math.floor(availableHeightPx * AVATAR_ASPECT_RATIO)
       setAvatarWidth(Math.min(AVATAR_MAX_WIDTH_PX, Math.max(AVATAR_MIN_WIDTH_PX, target)))
     })
@@ -103,11 +108,9 @@ export function DesktopLayout({
   // gridTemplateColumns must be applied as inline style — useCss memoizes its
   // result on mount and never re-derives, so dynamic values (like the resize-
   // observer-driven avatarWidth) wouldn't propagate through it.
-  const gridTemplateColumns = zoomed
-    ? '1fr'
-    : hasSelection
-      ? `${avatarWidth}px minmax(${DETAILS_MIN_WIDTH_PX}px, ${DETAILS_FR}fr) ${CARDS_FR}fr`
-      : `${avatarWidth}px 1fr`
+  const gridTemplateColumns = hasSelection
+    ? `${avatarWidth}px minmax(${DETAILS_MIN_WIDTH_PX}px, ${DETAILS_FR}fr) ${CARDS_FR}fr`
+    : `${avatarWidth}px 1fr`
 
   const css = useCss((_theme) => ({
     container: {
@@ -179,10 +182,10 @@ export function DesktopLayout({
       selectedItems={selectedItems}
       canTuck={canTuck}
       forceUntuck={forceUntuck}
-      zoomed={zoomed}
+      zoomed={zoomOpen}
       expanded={avatarHovered}
       onToggleUntuck={onToggleUntuck}
-      onToggleZoom={onToggleZoom}
+      onToggleZoom={() => setZoomOpen(true)}
       onRemoveItem={onRemoveItem}
     />
   ) : null
@@ -194,9 +197,15 @@ export function DesktopLayout({
         onMouseEnter={() => setAvatarHovered(true)}
         onMouseLeave={() => setAvatarHovered(false)}
       >
-        <AvatarPane hasSelection={hasSelection} frameUrls={frameUrls} controls={controls} />
+        <AvatarPane
+          hasSelection={hasSelection}
+          frameUrls={frameUrls}
+          controls={controls}
+          selectedFrameIndex={selectedFrameIndex}
+          setSelectedFrameIndex={setSelectedFrameIndex}
+        />
       </div>
-      {!zoomed && hasSelection ? (
+      {hasSelection ? (
         <div css={css.detailColumn}>
           <DetailAccordion
             items={selectedItems}
@@ -214,22 +223,28 @@ export function DesktopLayout({
           />
         </div>
       ) : null}
-      {!zoomed ? (
-        <div css={css.railsColumn}>
-          <span css={css.signOutWrapper} onClick={onSignOut}>
-            <TfrIcon css={css.signOutIcon} />
-            <LinkT variant="underline" css={css.signOut} t="fitting_room.sign_out" />
-          </span>
-          {resolved.groups.map((group) => (
-            <CardRail
-              key={group.group.name}
-              group={group}
-              availabilityByExternalId={availabilityByExternalId}
-              onSelectItem={onSelectItem}
-              onRemoveItem={onRemoveItem}
-            />
-          ))}
-        </div>
+      <div css={css.railsColumn}>
+        <span css={css.signOutWrapper} onClick={onSignOut}>
+          <TfrIcon css={css.signOutIcon} />
+          <LinkT variant="underline" css={css.signOut} t="fitting_room.sign_out" />
+        </span>
+        {resolved.groups.map((group) => (
+          <CardRail
+            key={group.group.name}
+            group={group}
+            availabilityByExternalId={availabilityByExternalId}
+            onSelectItem={onSelectItem}
+            onRemoveItem={onRemoveItem}
+          />
+        ))}
+      </div>
+      {zoomOpen && frameUrls && frameUrls.length > 0 ? (
+        <ZoomModal
+          frameUrls={frameUrls}
+          selectedFrameIndex={selectedFrameIndex}
+          setSelectedFrameIndex={setSelectedFrameIndex}
+          onClose={() => setZoomOpen(false)}
+        />
       ) : null}
     </div>
   )

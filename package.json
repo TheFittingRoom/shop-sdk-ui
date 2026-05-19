@@ -17,9 +17,13 @@
     "watch": "vite build --mode production --watch",
     "serve": "serve . -p 5173 --cors",
     "watch-serve": "trap 'kill 0' EXIT; npm run watch & npm run serve & wait",
-    "check": "tsc --noEmit",
+    "check": "tsc --noEmit && npm run lint && npm run format:check",
     "gen-types": "sh scripts/gen-types.sh",
-    "promote-latest": "sh scripts/promote-latest.sh"
+    "promote-latest": "sh scripts/promote-latest.sh",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src"
   },
   "engines": {
     "node": ">=22"
@@ -28,13 +32,20 @@
     "access": "public"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@types/react-modal": "^3.16.3",
     "@vitejs/plugin-react": "^5.1.2",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^9.1.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^17.6.0",
     "prettier": "^3.6.2",
     "serve": "^14.2.5",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.59.4",
     "vite": "^7.3.0",
     "vite-plugin-svgr": "^4.5.0"
   },

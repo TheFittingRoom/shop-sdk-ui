@@ -6,9 +6,10 @@ import { ItemFitText } from '@/components/item-fit-text'
 import { LinkT } from '@/components/link'
 import { SizeSelector } from '@/components/size-selector'
 import { Text, TextT } from '@/components/text'
-import { buildVtoProductDataFromResolved, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
+import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
+import { buildVtoProductDataFromResolved } from '@/lib/fitting-room-data'
 import { useTranslation } from '@/lib/locale'
-import { VtoProductData } from '@/lib/product'
+import type { VtoProductData } from '@/lib/product'
 import { useCss } from '@/lib/theme'
 import { Chevron } from './chevron'
 
@@ -49,9 +50,13 @@ export function DetailAccordionItem({
   const productData = useMemo(() => buildVtoProductDataFromResolved(item), [item])
 
   const selectedSizeLabel = useMemo(() => {
-    if (!productData) return null
+    if (!productData) {
+      return null
+    }
     const csaId = item.storage.colorwaySizeAssetId
-    if (csaId == null) return null
+    if (csaId == null) {
+      return null
+    }
     for (const sizeRec of productData.sizes) {
       if (sizeRec.colors.some((c) => c.colorwaySizeAssetId === csaId)) {
         return sizeRec.sizeLabel
@@ -62,12 +67,18 @@ export function DetailAccordionItem({
 
   // Currently-selected price: look up via stored colorwaySizeAssetId.
   const currentPrice = useMemo(() => {
-    if (!productData) return null
+    if (!productData) {
+      return null
+    }
     const csaId = item.storage.colorwaySizeAssetId
-    if (csaId == null) return null
+    if (csaId == null) {
+      return null
+    }
     for (const sizeRec of productData.sizes) {
       const c = sizeRec.colors.find((c) => c.colorwaySizeAssetId === csaId)
-      if (c) return c.priceFormatted
+      if (c) {
+        return c.priceFormatted
+      }
     }
     return null
   }, [productData, item.storage.colorwaySizeAssetId])
@@ -477,50 +488,52 @@ function MobileAccordionItem({
         <div css={css.content}>
           <div css={css.body}>
             {productData ? (
-            <>
-              <div css={css.sizeRow}>
-                <SizeSelector
-                  loadedProductData={productData}
-                  selectedSizeLabel={selectedSizeLabel}
-                  onChangeSize={onChangeSize}
-                />
-              </div>
-              <ItemFitText loadedProductData={productData} />
-              <div css={css.fitDetailsContainer}>
-                <ItemFitDetails loadedProductData={productData} selectedSizeLabel={selectedSizeLabel} />
-              </div>
-              <div css={css.buttonContainer}>
-                <AddToCartButton onClick={onAddToCart} />
-              </div>
-              {/* Tuck CTA sits directly below ADD TO CART, always visible
+              <>
+                <div css={css.sizeRow}>
+                  <SizeSelector
+                    loadedProductData={productData}
+                    selectedSizeLabel={selectedSizeLabel}
+                    onChangeSize={onChangeSize}
+                  />
+                </div>
+                <ItemFitText loadedProductData={productData} />
+                <div css={css.fitDetailsContainer}>
+                  <ItemFitDetails loadedProductData={productData} selectedSizeLabel={selectedSizeLabel} />
+                </div>
+                <div css={css.buttonContainer}>
+                  <AddToCartButton onClick={onAddToCart} />
+                </div>
+                {/* Tuck CTA sits directly below ADD TO CART, always visible
                   when the outfit can be tucked (canTuck-gated via `tuckable`)
                   — no longer hidden behind "view product details". */}
-              {tuckable ? (
-                <Button variant="base" css={css.tuckButton} onClick={onToggleUntuck}>
-                  {t(tuckLabelKey)}
-                </Button>
-              ) : null}
-              <LinkT
-                variant="base"
-                css={css.detailsLink}
-                t={detailMode === 'compact' ? 'fitting_room.view_product_details' : 'fitting_room.hide_product_details'}
-                onClick={handleViewDetailsClick}
-              />
-              {detailMode === 'expanded' ? (
-                <div css={css.expandedBlock}>
-                  <Text variant="brand" css={css.expandedTitle}>
-                    {productData.productName}
-                  </Text>
-                  {currentPrice ? (
-                    <Text variant="base" css={css.expandedPrice}>
-                      {currentPrice}
+                {tuckable ? (
+                  <Button variant="base" css={css.tuckButton} onClick={onToggleUntuck}>
+                    {t(tuckLabelKey)}
+                  </Button>
+                ) : null}
+                <LinkT
+                  variant="base"
+                  css={css.detailsLink}
+                  t={
+                    detailMode === 'compact' ? 'fitting_room.view_product_details' : 'fitting_room.hide_product_details'
+                  }
+                  onClick={handleViewDetailsClick}
+                />
+                {detailMode === 'expanded' ? (
+                  <div css={css.expandedBlock}>
+                    <Text variant="brand" css={css.expandedTitle}>
+                      {productData.productName}
                     </Text>
-                  ) : null}
-                  <Text variant="base" css={css.expandedDescription}>
-                    <span dangerouslySetInnerHTML={{ __html: productData.productDescriptionHtml }} />
-                  </Text>
-                </div>
-              ) : null}
+                    {currentPrice ? (
+                      <Text variant="base" css={css.expandedPrice}>
+                        {currentPrice}
+                      </Text>
+                    ) : null}
+                    <Text variant="base" css={css.expandedDescription}>
+                      <span dangerouslySetInnerHTML={{ __html: productData.productDescriptionHtml }} />
+                    </Text>
+                  </div>
+                ) : null}
               </>
             ) : (
               <TextT variant="base" t="loading" />

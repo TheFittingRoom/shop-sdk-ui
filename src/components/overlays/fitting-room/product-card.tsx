@@ -1,9 +1,9 @@
 import { Button } from '@/components/button'
 import { Text } from '@/components/text'
 import { CloseIcon } from '@/lib/asset'
-import { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
+import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useCss } from '@/lib/theme'
-import { Availability } from '@/lib/fitting-room-outfit'
+import type { Availability } from '@/lib/fitting-room-outfit'
 
 interface ProductCardProps {
   item: ResolvedFittingRoomItem
@@ -96,7 +96,9 @@ export function ProductCard({ item, availability, onClick, onRemove }: ProductCa
   const selected = availability === 'selected'
 
   const handleClick = () => {
-    if (disabled) return
+    if (disabled) {
+      return
+    }
     onClick()
   }
 
@@ -134,9 +136,7 @@ export function ProductCard({ item, availability, onClick, onRemove }: ProductCa
         onClick={handleClick}
         disabled={disabled}
       >
-        <div css={css.imageContainer}>
-          {imageUrl ? <img src={imageUrl} css={css.image} alt={name} /> : null}
-        </div>
+        <div css={css.imageContainer}>{imageUrl ? <img src={imageUrl} css={css.image} alt={name} /> : null}</div>
         <Text variant="base" css={css.nameText}>
           {name}
         </Text>

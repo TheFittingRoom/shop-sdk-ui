@@ -59,7 +59,8 @@
     "need_help": "Need help?",
     "contact_us": "Contact us."
   },
-  "vto-single": {
+  "quick-view": {
+    "title": "Quick View Try On",
     "avatar_loading": "Finding your perfect fit...",
     "slide_to_rotate": "Slide to rotate",
     "sign_out": "Sign out",
@@ -67,7 +68,9 @@
     "add_to_cart": "Add to cart",
     "view_product_details": "View product details",
     "hide_product_details": "Hide product details",
-    "no_recommendation": "There are currently no well fitting sizes available for this item."
+    "no_recommendation": "There are currently no well fitting sizes available for this item.",
+    "vto_error": "Couldn't load the try-on. Please try again.",
+    "zoom_in": "Zoom In"
   },
   "size-rec": {
     "recommended_size": "Recommended Size: {{size}}",

@@ -60,11 +60,7 @@ export function _init(): void {
   useMainStore.setState({ fittingRoom: items })
 }
 
-export async function toggleFittingRoomItem(
-  productId: string,
-  handle: string | null,
-  isPdp: boolean,
-): Promise<void> {
+export async function toggleFittingRoomItem(productId: string, handle: string | null, isPdp: boolean): Promise<void> {
   const state = useMainStore.getState()
   const isInFittingRoom = state.fittingRoom.some((item) => item.externalId === productId)
   if (isInFittingRoom) {
@@ -95,9 +91,7 @@ export async function toggleFittingRoomItem(
 
       const stored = state.productData[productId]
       if (stored && !('error' in stored) && size != null) {
-        const sizeRec = stored.sizeFitRecommendation.available_sizes.find(
-          (s) => getSizeLabelFromSize(s) === size,
-        )
+        const sizeRec = stored.sizeFitRecommendation.available_sizes.find((s) => getSizeLabelFromSize(s) === size)
         if (sizeRec) {
           const csa = sizeRec.colorway_size_assets.find((c) => {
             const variant = currentProduct.variants.find((v) => v.sku === c.sku)

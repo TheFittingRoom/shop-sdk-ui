@@ -1,6 +1,7 @@
 import { forwardRef } from 'react'
 import { useTranslation } from '@/lib/locale'
-import { CssProp, useVariantCss } from '@/lib/theme'
+import type { CssProp } from '@/lib/theme'
+import { useVariantCss } from '@/lib/theme'
 
 export type LinkVariant = 'base' | 'brand' | 'underline' | 'semibold'
 
@@ -57,9 +58,5 @@ export interface LinkTProps extends Omit<LinkProps, 'children'> {
 export function LinkT({ t, vars, ...props }: LinkTProps) {
   const { t: translate } = useTranslation()
   const translatedText = translate(t, vars)
-  return (
-    <Link {...props}>
-      {translatedText}
-    </Link>
-  )
+  return <Link {...props}>{translatedText}</Link>
 }

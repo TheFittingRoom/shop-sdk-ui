@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Button } from '@/components/button'
-import { VtoProductData } from '@/lib/product'
+import type { VtoProductData } from '@/lib/product'
 import { useCss } from '@/lib/theme'
 
 interface SizeSelectorProps {

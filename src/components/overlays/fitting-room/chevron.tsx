@@ -27,13 +27,7 @@ export function Chevron({ direction, size = 24 }: ChevronProps) {
         transform: `rotate(${ROTATION_DEG[direction]}deg)`,
       }}
     >
-      <path
-        d="M6 9L12 15L18 9"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }

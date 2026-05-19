@@ -1,4 +1,4 @@
-import {
+import type {
   // FirestoreColorwaySizeAsset,
   // FirestoreGarmentCategory,
   // FirestoreMeasurementLocation,
@@ -99,7 +99,7 @@ interface ApiRequestParams {
   useToken?: boolean
   method: RequestInit['method']
   endpoint: string
-  body?: Record<string, any>
+  body?: Record<string, unknown>
   // Abort the request after this many ms. Used by long-running synchronous
   // endpoints (VTO) so a hung backend doesn't leave the request pending
   // forever. Omitted = no client-side timeout (browser default).
@@ -142,7 +142,9 @@ async function execApiRequest<T>(params: ApiRequestParams): Promise<T> {
   try {
     response = await fetch(url, options)
   } finally {
-    if (timeoutHandle) clearTimeout(timeoutHandle)
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle)
+    }
   }
 
   if (!response.ok) {

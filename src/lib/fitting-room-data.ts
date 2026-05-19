@@ -1,22 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
-import { FittingRoomItem } from '@/lib/fitting-room-storage'
+import type { FittingRoomItem } from '@/lib/fitting-room-storage'
 import { getLogger } from '@/lib/logger'
-import {
+import type {
   LoadedProductData,
   LoadedProductError,
-  loadProductDataToStore,
   VtoProductData,
   VtoSizeColorData,
   VtoSizeData,
 } from '@/lib/product'
-import { getStaticData, useMainStore, ExternalProduct, MerchantProductError } from '@/lib/store'
-import {
-  loadStyleCategoryIndex,
-  peekStyleCategoryIndex,
-  StyleCategory,
-  StyleCategoryGroup,
-  StyleCategoryIndex,
-} from '@/lib/style-categories'
+import { loadProductDataToStore } from '@/lib/product'
+import type { ExternalProduct, MerchantProductError } from '@/lib/store'
+import { getStaticData, useMainStore } from '@/lib/store'
+import type { StyleCategory, StyleCategoryGroup, StyleCategoryIndex } from '@/lib/style-categories'
+import { loadStyleCategoryIndex, peekStyleCategoryIndex } from '@/lib/style-categories'
 import { getSizeLabelFromSize } from '@/lib/util'
 
 const logger = getLogger('fitting-room-data')
@@ -68,7 +64,9 @@ export async function loadFittingRoomData(): Promise<void> {
   const { productLookup } = getStaticData()
   if (!productLookup) {
     for (const item of items) {
-      if (state.merchantProductData[item.externalId]) continue
+      if (state.merchantProductData[item.externalId]) {
+        continue
+      }
       state.setMerchantProductData(item.externalId, {
         error: new Error('No productLookup callback configured'),
       })
@@ -77,7 +75,9 @@ export async function loadFittingRoomData(): Promise<void> {
   }
 
   const itemsNeedingLookup = items.filter((item) => !state.merchantProductData[item.externalId])
-  const itemsWithHandle = itemsNeedingLookup.filter((item) => !!item.handle)
+  const itemsWithHandle = itemsNeedingLookup.filter(
+    (item): item is FittingRoomItem & { handle: string } => !!item.handle,
+  )
   const itemsWithoutHandle = itemsNeedingLookup.filter((item) => !item.handle)
 
   for (const item of itemsWithoutHandle) {
@@ -90,7 +90,7 @@ export async function loadFittingRoomData(): Promise<void> {
     return
   }
 
-  const handles = itemsWithHandle.map((item) => item.handle!)
+  const handles = itemsWithHandle.map((item) => item.handle)
   try {
     const products = await productLookup(handles)
     const byExternalId = new Map<string, ExternalProduct>()
@@ -230,12 +230,7 @@ export function useResolvedFittingRoom(): ResolvedFittingRoom {
     // isLoading: any item missing both merchant + loaded data, or style-category
     // index not yet loaded. Item-level errors don't count as "loading".
     const isLoading =
-      !index ||
-      items.some(
-        (i) =>
-          (!i.merchantProduct && !i.merchantError) ||
-          (!i.loadedProduct && !i.loadedError),
-      )
+      !index || items.some((i) => (!i.merchantProduct && !i.merchantError) || (!i.loadedProduct && !i.loadedError))
 
     // Group items by style-category group, preserving group order from the index.
     const groups: ResolvedFittingRoomGroup[] = []
@@ -284,11 +279,11 @@ export function useResolvedFittingRoom(): ResolvedFittingRoom {
 // VtoProductData shape that the shared leaf widgets (SizeSelector, ItemFitText,
 // ItemFitDetails) consume. Returns null if the item hasn't loaded fully enough
 // to display sizing info.
-export function buildVtoProductDataFromResolved(
-  item: ResolvedFittingRoomItem,
-): VtoProductData | null {
+export function buildVtoProductDataFromResolved(item: ResolvedFittingRoomItem): VtoProductData | null {
   const { merchantProduct, loadedProduct } = item
-  if (!merchantProduct || !loadedProduct) return null
+  if (!merchantProduct || !loadedProduct) {
+    return null
+  }
 
   const sizeRec = loadedProduct.sizeFitRecommendation
   const recommendedSizeId = sizeRec.recommended_size.id || null
@@ -301,13 +296,19 @@ export function buildVtoProductDataFromResolved(
   const sizes: VtoSizeData[] = []
   for (const sizeRecord of sizeRec.available_sizes) {
     const sizeLabel = getSizeLabelFromSize(sizeRecord)
-    if (!sizeLabel) continue
+    if (!sizeLabel) {
+      continue
+    }
     const fit = sizeRec.fits.find((f) => f.size_id === sizeRecord.id)
-    if (!fit) continue
+    if (!fit) {
+      continue
+    }
     const colors: VtoSizeColorData[] = []
     for (const csa of sizeRecord.colorway_size_assets) {
       const variant = merchantProduct.variants.find((v) => v.sku === csa.sku)
-      if (!variant) continue
+      if (!variant) {
+        continue
+      }
       colors.push({
         colorwaySizeAssetId: csa.id,
         colorLabel: variant.color || null,
@@ -315,7 +316,9 @@ export function buildVtoProductDataFromResolved(
         priceFormatted: variant.priceFormatted,
       })
     }
-    if (colors.length === 0) continue
+    if (colors.length === 0) {
+      continue
+    }
     sizes.push({
       sizeId: sizeRecord.id,
       sizeLabel,
@@ -324,7 +327,9 @@ export function buildVtoProductDataFromResolved(
       colors,
     })
   }
-  if (sizes.length === 0) return null
+  if (sizes.length === 0) {
+    return null
+  }
 
   return {
     productName: merchantProduct.productName,
@@ -340,15 +345,12 @@ export function buildVtoProductDataFromResolved(
 // findRecommendedColorSize returns the CSA + price for the recommended size
 // using the currently-stored color preference, falling back to the first
 // colorway when the preferred color is missing.
-export function findRecommendedColorSize(
-  data: VtoProductData,
-  preferredColor: string | null,
-): VtoSizeColorData | null {
+export function findRecommendedColorSize(data: VtoProductData, preferredColor: string | null): VtoSizeColorData | null {
   const recommended = data.sizes.find((s) => s.isRecommended)
-  if (!recommended || recommended.colors.length === 0) return null
-  return (
-    recommended.colors.find((c) => c.colorLabel === preferredColor) ?? recommended.colors[0]
-  )
+  if (!recommended || recommended.colors.length === 0) {
+    return null
+  }
+  return recommended.colors.find((c) => c.colorLabel === preferredColor) ?? recommended.colors[0]
 }
 
 // findCsaByLabel returns the CSA matching the given size label + color (or
@@ -359,6 +361,8 @@ export function findCsaByLabel(
   preferredColor: string | null,
 ): VtoSizeColorData | null {
   const sizeRecord = data.sizes.find((s) => s.sizeLabel === sizeLabel)
-  if (!sizeRecord || sizeRecord.colors.length === 0) return null
+  if (!sizeRecord || sizeRecord.colors.length === 0) {
+    return null
+  }
   return sizeRecord.colors.find((c) => c.colorLabel === preferredColor) ?? sizeRecord.colors[0]
 }

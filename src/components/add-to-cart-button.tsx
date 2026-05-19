@@ -5,5 +5,5 @@ interface AddToCartButtonProps {
 }
 
 export function AddToCartButton({ onClick }: AddToCartButtonProps) {
-  return <ButtonT variant="brand" t="vto-single.add_to_cart" onClick={onClick} />
+  return <ButtonT variant="brand" t="quick-view.add_to_cart" onClick={onClick} />
 }

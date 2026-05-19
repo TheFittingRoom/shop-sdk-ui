@@ -1,9 +1,11 @@
 import { create } from 'zustand'
-import { Config } from '@/lib/config'
-import { AuthUser, UserProfile } from '@/lib/firebase'
-import { FittingRoomItem, writeFittingRoom } from '@/lib/fitting-room-storage'
-import { LoadedProductData, LoadedProductError } from '@/lib/product'
-import { DeviceLayout, OverlayName } from '@/lib/view'
+import type { Config } from '@/lib/config'
+import type { AuthUser, UserProfile } from '@/lib/firebase'
+import type { FittingRoomItem } from '@/lib/fitting-room-storage'
+import { writeFittingRoom } from '@/lib/fitting-room-storage'
+import type { LoadedProductData, LoadedProductError } from '@/lib/product'
+import type { OverlayName } from '@/lib/view'
+import { DeviceLayout } from '@/lib/view'
 
 export interface ExternalProductVariant {
   sku: string

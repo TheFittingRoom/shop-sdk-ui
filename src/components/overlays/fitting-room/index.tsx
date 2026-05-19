@@ -3,14 +3,15 @@ import { ButtonT } from '@/components/button'
 import { Loading } from '@/components/content/loading'
 import { LinkT } from '@/components/link'
 import { ModalFrame } from '@/components/modal'
+import { Snackbar } from '@/components/snackbar'
 import { TextT } from '@/components/text'
-import { VtoCompositionItem } from '@/lib/api'
+import type { VtoCompositionItem } from '@/lib/api'
 import { getAuthManager } from '@/lib/firebase'
+import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import {
   buildVtoProductDataFromResolved,
   findCsaByLabel,
   findRecommendedColorSize,
-  ResolvedFittingRoomItem,
   useResolvedFittingRoom,
 } from '@/lib/fitting-room-data'
 import { getLogger } from '@/lib/logger'
@@ -19,10 +20,12 @@ import { useCss } from '@/lib/theme'
 import { useMobileSheetSnap } from '@/lib/use-mobile-sheet-snap'
 import { applyFrameBaseUrl, getSizeLabelFromSize } from '@/lib/util'
 import { DeviceLayout, OverlayName } from '@/lib/view'
-import { Availability, buildOutfit, computeAvailability, OutfitItem } from '@/lib/fitting-room-outfit'
+import type { Availability, OutfitItem } from '@/lib/fitting-room-outfit'
+import { buildOutfit, computeAvailability } from '@/lib/fitting-room-outfit'
 import { DesktopLayout } from './desktop-layout'
-import { DetailMode } from './detail-accordion-item'
-import { MobileLayout, MobileMode } from './mobile-layout'
+import type { DetailMode } from './detail-accordion-item'
+import type { MobileMode } from './mobile-layout'
+import { MobileLayout } from './mobile-layout'
 import { useVtoRequests } from '@/lib/use-vto-requests'
 
 // Map our local OutfitItem shape (which carries the externalId for UI bookkeeping)
@@ -38,7 +41,9 @@ const logger = getLogger('overlays/fitting-room')
 
 function measureTopOffset(): number {
   const { getOverlayTopOffset } = getStaticData()
-  if (!getOverlayTopOffset) return 0
+  if (!getOverlayTopOffset) {
+    return 0
+  }
   try {
     const offset = getOverlayTopOffset()
     return Number.isFinite(offset) && offset > 0 ? offset : 0
@@ -64,27 +69,32 @@ export default function FittingRoomOverlay() {
   const [forceUntuck, setForceUntuck] = useState<boolean>(false)
   const [lastAddedExternalId, setLastAddedExternalId] = useState<string | null>(null)
   const [mobileMode, setMobileMode] = useState<MobileMode>('browse')
-  const [zoomed, setZoomed] = useState<boolean>(false)
 
-  const { snap: sheetSnap, setSnap: setSheetSnap, handleTouchStart: sheetTouchStart } =
-    useMobileSheetSnap('collapsed')
+  const { snap: sheetSnap, setSnap: setSheetSnap, handleTouchStart: sheetTouchStart } = useMobileSheetSnap('collapsed')
 
-  const isMobileLayout =
-    deviceLayout === DeviceLayout.MOBILE_PORTRAIT || deviceLayout === DeviceLayout.TABLET_PORTRAIT
+  const isMobileLayout = deviceLayout === DeviceLayout.MOBILE_PORTRAIT || deviceLayout === DeviceLayout.TABLET_PORTRAIT
 
-  const { request: requestVtoComposition, framesForOutfit, lastError: vtoError, clearError: clearVtoError } =
-    useVtoRequests()
+  const {
+    request: requestVtoComposition,
+    framesForOutfit,
+    lastError: vtoError,
+    clearError: clearVtoError,
+  } = useVtoRequests()
 
   // Scroll lock + top-offset measurement
   useEffect(() => {
     const savedScrollY = window.scrollY
-    if (savedScrollY > 0) window.scrollTo(0, 0)
+    if (savedScrollY > 0) {
+      window.scrollTo(0, 0)
+    }
     setTopOffset(measureTopOffset())
     const onResize = () => setTopOffset(measureTopOffset())
     window.addEventListener('resize', onResize)
     return () => {
       window.removeEventListener('resize', onResize)
-      if (savedScrollY > 0) window.scrollTo(0, savedScrollY)
+      if (savedScrollY > 0) {
+        window.scrollTo(0, savedScrollY)
+      }
     }
   }, [])
 
@@ -98,7 +108,9 @@ export default function FittingRoomOverlay() {
     indexed.sort((a, b) => {
       const aOrder = a.item.styleCategoryGroup?.display_order ?? Number.MAX_SAFE_INTEGER
       const bOrder = b.item.styleCategoryGroup?.display_order ?? Number.MAX_SAFE_INTEGER
-      if (aOrder !== bOrder) return aOrder - bOrder
+      if (aOrder !== bOrder) {
+        return aOrder - bOrder
+      }
       return a.idx - b.idx
     })
     return indexed.map(({ item }) => item)
@@ -111,16 +123,18 @@ export default function FittingRoomOverlay() {
   // to, so every tuck control stays hidden.
   const canTuck = useMemo<boolean>(
     () =>
-      selectedItems.some(
-        (top) =>
-          !!top.styleCategory?.tuckable &&
-          selectedItems.some(
-            (other) =>
-              !!other.styleCategory &&
-              !other.styleCategory.tuckable &&
-              other.styleCategory.layer_order > top.styleCategory!.layer_order,
-          ),
-      ),
+      selectedItems.some((top) => {
+        const topCategory = top.styleCategory
+        if (!topCategory?.tuckable) {
+          return false
+        }
+        return selectedItems.some(
+          (other) =>
+            !!other.styleCategory &&
+            !other.styleCategory.tuckable &&
+            other.styleCategory.layer_order > topCategory.layer_order,
+        )
+      }),
     [selectedItems],
   )
 
@@ -138,15 +152,19 @@ export default function FittingRoomOverlay() {
   // write back via updateFittingRoomItem so the choice persists.
   const ensureSizeForItem = useCallback(
     (item: ResolvedFittingRoomItem) => {
-      if (item.storage.colorwaySizeAssetId != null) return
+      if (item.storage.colorwaySizeAssetId != null) {
+        return
+      }
       const productData = buildVtoProductDataFromResolved(item)
-      if (!productData) return
+      if (!productData) {
+        return
+      }
       const csa = findRecommendedColorSize(productData, item.storage.color)
-      if (!csa) return
+      if (!csa) {
+        return
+      }
       const sizeRec = item.loadedProduct?.sizeFitRecommendation
-      const sizeLabel = sizeRec
-        ? getSizeLabelFromSize(sizeRec.recommended_size)
-        : productData.recommendedSizeLabel
+      const sizeLabel = sizeRec ? getSizeLabelFromSize(sizeRec.recommended_size) : productData.recommendedSizeLabel
       updateFittingRoomItem(item.externalId, {
         colorwaySizeAssetId: csa.colorwaySizeAssetId,
         size: sizeLabel,
@@ -165,12 +183,16 @@ export default function FittingRoomOverlay() {
   const handleSelectItem = useCallback(
     (externalId: string) => {
       const item = resolved.items.find((i) => i.externalId === externalId)
-      if (!item) return
+      if (!item) {
+        return
+      }
       const isSelected = selectedExternalIds.has(externalId)
       const nextSelected = new Set(selectedExternalIds)
       if (isSelected) {
         nextSelected.delete(externalId)
-        if (openAccordionItemId === externalId) setOpenAccordionItemId(null)
+        if (openAccordionItemId === externalId) {
+          setOpenAccordionItemId(null)
+        }
       } else {
         nextSelected.add(externalId)
         ensureSizeForItem(item)
@@ -189,11 +211,17 @@ export default function FittingRoomOverlay() {
   const handleChangeSize = useCallback(
     (externalId: string, sizeLabel: string) => {
       const item = resolved.items.find((i) => i.externalId === externalId)
-      if (!item) return
+      if (!item) {
+        return
+      }
       const productData = buildVtoProductDataFromResolved(item)
-      if (!productData) return
+      if (!productData) {
+        return
+      }
       const csa = findCsaByLabel(productData, sizeLabel, item.storage.color)
-      if (!csa) return
+      if (!csa) {
+        return
+      }
       updateFittingRoomItem(externalId, {
         colorwaySizeAssetId: csa.colorwaySizeAssetId,
         size: sizeLabel,
@@ -236,19 +264,19 @@ export default function FittingRoomOverlay() {
     setForceUntuck((prev) => !prev)
   }, [])
 
-  const handleToggleZoom = useCallback(() => {
-    setZoomed((prev) => !prev)
-  }, [])
-
   const handleRemoveItem = useCallback(
     (externalId: string) => {
       setSelectedExternalIds((prev) => {
-        if (!prev.has(externalId)) return prev
+        if (!prev.has(externalId)) {
+          return prev
+        }
         const next = new Set(prev)
         next.delete(externalId)
         return next
       })
-      if (openAccordionItemId === externalId) setOpenAccordionItemId(null)
+      if (openAccordionItemId === externalId) {
+        setOpenAccordionItemId(null)
+      }
     },
     [openAccordionItemId],
   )
@@ -285,8 +313,12 @@ export default function FittingRoomOverlay() {
   // can't fire compositions (the redirect kicks in elsewhere). The alternate
   // pre-warm is speculative and gated behind config.features.vtoPrefetch.
   useEffect(() => {
-    if (!userIsLoggedIn || !userHasAvatar) return
-    if (outfit.items.length === 0) return
+    if (!userIsLoggedIn || !userHasAvatar) {
+      return
+    }
+    if (outfit.items.length === 0) {
+      return
+    }
     requestVtoComposition(toWireItems(outfit.items), true)
     if (getStaticData().config.features.vtoPrefetch) {
       for (const alt of outfit.alternates) {
@@ -300,14 +332,16 @@ export default function FittingRoomOverlay() {
   const frameUrls = useMemo<string[] | null>(() => {
     if (outfit.items.length === 0) {
       const bareFrames = userProfile?.avatar_frames
-      if (!bareFrames || bareFrames.length === 0) return null
+      if (!bareFrames || bareFrames.length === 0) {
+        return null
+      }
       const baseUrl = getStaticData().config.frames.baseUrl
       return bareFrames.map((u) => applyFrameBaseUrl(u, baseUrl))
     }
     return framesForOutfit(toWireItems(outfit.items))
   }, [outfit, framesForOutfit, userProfile])
 
-  // Auth gate: fire at overlay-open time (mirrors vto-single). Anonymous
+  // Auth gate: fire at overlay-open time (mirrors quick-view). Anonymous
   // users get bounced to LANDING; logged-in-but-no-avatar users get bounced
   // to GET_APP. Both pass returnToOverlay=FITTING_ROOM so the post-auth
   // flow brings them back here. userHasAvatar starts as null while the
@@ -375,29 +409,6 @@ export default function FittingRoomOverlay() {
       textDecoration: 'underline',
       marginTop: '8px',
     },
-    snackbar: {
-      position: 'absolute',
-      left: '50%',
-      bottom: '24px',
-      transform: 'translateX(-50%)',
-      padding: '12px 20px',
-      borderRadius: '24px',
-      backgroundColor: theme.color_fg_text,
-      color: '#FFFFFF',
-      fontSize: '13px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      zIndex: 10,
-      maxWidth: 'calc(100% - 32px)',
-    },
-    snackbarDismiss: {
-      background: 'none',
-      border: 'none',
-      color: '#FFFFFF',
-      fontSize: '16px',
-      cursor: 'pointer',
-    },
   }))
 
   // Browse mode sits below the merchant's page header (topOffset). Try-on
@@ -425,28 +436,18 @@ export default function FittingRoomOverlay() {
   // While the auth gate effect is deciding where to send us (or while the
   // user profile is still loading), don't render the overlay's body — we'd
   // either flash an empty rails view or briefly render the layout before
-  // the redirect lands. Match vto-single's gating behavior.
+  // the redirect lands. Match quick-view's gating behavior.
   const authResolved = userIsLoggedIn && userHasAvatar === true
   if (!authResolved) {
     return (
-      <ModalFrame
-        isOpen
-        onRequestClose={closeOverlay}
-        overlayStyle={overlayStyle}
-        contentStyle={contentStyle}
-      >
+      <ModalFrame isOpen onRequestClose={closeOverlay} overlayStyle={overlayStyle} contentStyle={contentStyle}>
         <Loading />
       </ModalFrame>
     )
   }
 
   return (
-    <ModalFrame
-      isOpen
-      onRequestClose={closeOverlay}
-      overlayStyle={overlayStyle}
-      contentStyle={contentStyle}
-    >
+    <ModalFrame isOpen onRequestClose={closeOverlay} overlayStyle={overlayStyle} contentStyle={contentStyle}>
       <div css={css.body}>
         {resolved.items.length === 0 ? (
           <div css={css.empty}>
@@ -457,12 +458,7 @@ export default function FittingRoomOverlay() {
                 <ButtonT variant="primary" t="fitting_room.shop_now" onClick={handleShopNow} />
               </div>
               {userIsLoggedIn ? (
-                <LinkT
-                  variant="underline"
-                  css={css.emptySignOut}
-                  t="fitting_room.sign_out"
-                  onClick={handleSignOut}
-                />
+                <LinkT variant="underline" css={css.emptySignOut} t="fitting_room.sign_out" onClick={handleSignOut} />
               ) : null}
             </div>
           </div>
@@ -498,7 +494,6 @@ export default function FittingRoomOverlay() {
             detailMode={detailMode}
             forceUntuck={forceUntuck}
             canTuck={canTuck}
-            zoomed={zoomed}
             frameUrls={frameUrls}
             onSelectItem={handleSelectItem}
             onRemoveItem={handleRemoveItem}
@@ -507,18 +502,10 @@ export default function FittingRoomOverlay() {
             onChangeSize={handleChangeSize}
             onAddToCart={handleAddToCart}
             onToggleUntuck={handleToggleUntuck}
-            onToggleZoom={handleToggleZoom}
             onSignOut={handleSignOut}
           />
         )}
-        {vtoError ? (
-          <div css={css.snackbar}>
-            <TextT variant="base" t="fitting_room.vto_error" />
-            <button css={css.snackbarDismiss} onClick={clearVtoError} aria-label="Dismiss">
-              ×
-            </button>
-          </div>
-        ) : null}
+        {vtoError ? <Snackbar messageKey="fitting_room.vto_error" onDismiss={clearVtoError} /> : null}
       </div>
     </ModalFrame>
   )

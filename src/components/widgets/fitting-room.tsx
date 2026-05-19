@@ -3,11 +3,12 @@ import { FittingRoomIcon } from '@/lib/asset'
 import { getLogger } from '@/lib/logger'
 import { useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
-import { OverlayName, WidgetProps } from '@/lib/view'
+import type { WidgetProps } from '@/lib/view'
+import { OverlayName } from '@/lib/view'
 
 const logger = getLogger('widgets/fitting-room')
 
-export default function FittingRoomWidget({}: WidgetProps) {
+export default function FittingRoomWidget(_props: WidgetProps) {
   const count = useMainStore((state) => state.fittingRoom.length)
   const openOverlay = useMainStore((state) => state.openOverlay)
 

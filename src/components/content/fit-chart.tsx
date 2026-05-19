@@ -295,7 +295,7 @@ export function FitChart({ onRequestClose }: FitChartProps) {
               <div css={css.scalePointGoodFit}>&nbsp;</div>
               <div css={css.scaleLineGoodFit}>&nbsp;</div>
             </div>
-            <div  css={css.scaleSegment}>
+            <div css={css.scaleSegment}>
               <div css={css.scaleLineGoodFit}>&nbsp;</div>
             </div>
             <div css={css.scaleSegment}>

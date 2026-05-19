@@ -1,6 +1,7 @@
 import { forwardRef } from 'react'
 import { useTranslation } from '@/lib/locale'
-import { CssProp, useVariantCss } from '@/lib/theme'
+import type { CssProp } from '@/lib/theme'
+import { useVariantCss } from '@/lib/theme'
 
 export type TextVariant = 'base' | 'brand' | 'error'
 
@@ -42,9 +43,5 @@ export interface TextTProps extends Omit<TextProps, 'children'> {
 export function TextT({ t, vars, ...props }: TextTProps) {
   const { t: translate } = useTranslation()
   const translatedText = translate(t, vars)
-  return (
-    <Text {...props}>
-      {translatedText}
-    </Text>
-  )
+  return <Text {...props}>{translatedText}</Text>
 }

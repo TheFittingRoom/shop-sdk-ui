@@ -1,4 +1,5 @@
-import { ReactNode, useState } from 'react'
+import type { Dispatch, ReactNode, SetStateAction } from 'react'
+import { useState } from 'react'
 import { AvatarFrameViewer } from '@/components/avatar-frame-viewer'
 import { Loading } from '@/components/content/loading'
 import { TextT } from '@/components/text'
@@ -14,8 +15,13 @@ interface AvatarPaneProps {
   controls?: ReactNode
   // Mobile try-on: anchor the avatar frame to the top at its natural 2:3
   // aspect and fill the area below it with the avatar-bottom background
-  // texture (matches vto-single's mobile layout).
+  // texture (matches quick-view's mobile layout).
   mobileFullscreen?: boolean
+  // Optional controlled frame index. When omitted, AvatarPane keeps its own
+  // internal state; desktop passes these so the zoom modal can show the
+  // currently-displayed frame.
+  selectedFrameIndex?: number | null
+  setSelectedFrameIndex?: Dispatch<SetStateAction<number | null>>
 }
 
 // AvatarPane is the left-column avatar area on desktop and the background of
@@ -23,8 +29,18 @@ interface AvatarPaneProps {
 // - No selection: show a "select items to try on" placeholder.
 // - Outfit pending (no frames yet): show "Finding your perfect fit..." loader.
 // - Outfit ready: render the frame carousel via <AvatarFrameViewer>.
-export function AvatarPane({ frameUrls, hasSelection, controls, mobileFullscreen }: AvatarPaneProps) {
-  const [selectedFrameIndex, setSelectedFrameIndex] = useState<number | null>(null)
+export function AvatarPane({
+  frameUrls,
+  hasSelection,
+  controls,
+  mobileFullscreen,
+  selectedFrameIndex: indexProp,
+  setSelectedFrameIndex: setIndexProp,
+}: AvatarPaneProps) {
+  const [localFrameIndex, setLocalFrameIndex] = useState<number | null>(null)
+  // Controlled when the caller supplies an index; otherwise self-managed.
+  const selectedFrameIndex = indexProp !== undefined ? indexProp : localFrameIndex
+  const setSelectedFrameIndex = setIndexProp ?? setLocalFrameIndex
 
   const css = useCss((theme) => ({
     container: {
@@ -95,18 +111,22 @@ export function AvatarPane({ frameUrls, hasSelection, controls, mobileFullscreen
         setSelectedFrameIndex={setSelectedFrameIndex}
         imageContainerStyle={css.frameContainer}
         imageStyle={css.frameImage}
-        loadingT="vto-single.avatar_loading"
+        loadingT="quick-view.avatar_loading"
       />
     )
     if (mobileFullscreen) {
       return (
         <div css={css.mobileContainer}>
-          <div css={css.mobileFrameSlot}>{viewer}</div>
+          {/* controls sit inside the frame slot so they anchor to the bottom
+              of the VTO image, not the bottom of the whole column. */}
+          <div css={css.mobileFrameSlot}>
+            {viewer}
+            {controls}
+          </div>
           {/* The nbsp keeps this div non-empty: the merchant theme's global
               `div:empty { display: none }` rule (higher specificity than an
               emotion class) would otherwise hide the filler entirely. */}
           <div css={css.bottomFiller}>&nbsp;</div>
-          {controls}
         </div>
       )
     }
@@ -123,7 +143,7 @@ export function AvatarPane({ frameUrls, hasSelection, controls, mobileFullscreen
   if (hasSelection) {
     return (
       <div css={css.container}>
-        <Loading t="vto-single.avatar_loading" />
+        <Loading t="quick-view.avatar_loading" />
       </div>
     )
   }
