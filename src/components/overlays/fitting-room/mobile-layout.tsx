@@ -161,6 +161,8 @@ function BrowseView({
       flexDirection: 'column',
       height: '100%',
       width: '100%',
+      // Positioning context for the floating SectionNav pill.
+      position: 'relative',
     },
     railsArea: {
       flex: 1,

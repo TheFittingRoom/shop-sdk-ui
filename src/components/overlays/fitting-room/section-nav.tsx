@@ -46,14 +46,13 @@ export function SectionNav({ sections, activeName, onSelect }: SectionNavProps) 
 
   const css = useCss((theme) => ({
     wrapper: {
-      flex: 'none',
-      // A compact pill anchored to the right edge of the browse view, rather
-      // than a full-width bar. alignSelf opts out of the column's stretch.
-      alignSelf: 'flex-end',
-      position: 'relative',
-      // Above the rails so the drop-down covers the section content below.
+      // Floats over the card rails at the top-right instead of taking its own
+      // row in the browse-view column (BrowseView's container is relative).
+      position: 'absolute',
+      top: '12px',
+      right: '16px',
+      // Above the rails so the pill and its drop-down sit over the content.
       zIndex: 5,
-      margin: '12px 16px 0 0',
     },
     bar: {
       display: 'inline-flex',
