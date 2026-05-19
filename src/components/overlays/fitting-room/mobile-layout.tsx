@@ -119,22 +119,29 @@ function BrowseView({
 
   const sections = resolved.groups.map((g) => ({ name: g.group.name, label: g.group.label }))
 
-  // The active section is the last one whose top edge has scrolled to or past
-  // the rails area's top edge — i.e. the section currently occupying the top
-  // of the viewport. Null (before any section reaches the top) leaves the nav
-  // showing the first section.
+  // The active section is the topmost one whose top edge is still at or below
+  // the rails-area top — i.e. the section whose start (content-area top) is
+  // still visible. Once a section's top scrolls above the fold it's no longer
+  // current; the next section, whose top is now visible, takes over. When
+  // every section's top has scrolled off (deep in the last section), the last
+  // section stays current.
   const recomputeActiveSection = useCallback(() => {
     const container = railsAreaRef.current
     if (!container) return
     const containerTop = container.getBoundingClientRect().top
     let active: string | null = null
     for (const [name, el] of sectionRefs.current) {
-      if (el.getBoundingClientRect().top - containerTop <= 1) {
+      if (el.getBoundingClientRect().top >= containerTop - 1) {
         active = name
+        break
       }
     }
+    if (active == null) {
+      const groups = resolved.groups
+      active = groups.length > 0 ? groups[groups.length - 1].group.name : null
+    }
     setActiveSectionName(active)
-  }, [])
+  }, [resolved.groups])
 
   useLayoutEffect(() => {
     recomputeActiveSection()
