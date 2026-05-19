@@ -9,3 +9,7 @@ node_modules/
 go.mod
 go.sum
 firebase-service-account/*
+
+playwright-report/
+test-results/
+tests/e2e/.cache/

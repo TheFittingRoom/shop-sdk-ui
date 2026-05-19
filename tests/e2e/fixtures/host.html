@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>TFR SDK e2e test host</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 24px;
+      }
+      main {
+        max-width: 640px;
+      }
+      form {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      label {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <!-- Minimal Shopify-free analog of shopify/assets/tfr.js. The PDP-flavoured
+         widgets need a size/colour selector + an add-to-cart button to behave
+         realistically; the SDK reads them through the currentProduct callbacks
+         supplied below. -->
+      <h1>Test host</h1>
+      <form id="product-form">
+        <label
+          >Size:
+          <select name="Size">
+            <option value="S">S</option>
+            <option value="M" selected>M</option>
+          </select>
+        </label>
+        <label
+          >Color:
+          <select name="Color">
+            <option value="Blue" selected>Blue</option>
+            <option value="Red">Red</option>
+          </select>
+        </label>
+        <button name="add" type="submit">Add to cart</button>
+      </form>
+
+      <tfr-widget widget="size-rec"></tfr-widget>
+      <tfr-widget widget="add-to-fitting-room-compact"></tfr-widget>
+      <tfr-widget widget="vto-button"></tfr-widget>
+      <tfr-widget widget="fitting-room-icon"></tfr-widget>
+    </main>
+
+    <script type="module">
+      // Per-test config is injected via Playwright's `addInitScript` before this
+      // module runs. The SDK only reads `testHooks` from `InitParams` — the
+      // `window.__TFR_TEST_CONFIG__` lookup lives here in the test fixture,
+      // never inside src/.
+      const cfg = window.__TFR_TEST_CONFIG__ || {}
+
+      // Build the currentProduct adapter with the callbacks tests expect.
+      let currentProduct = null
+      if (cfg.currentProduct) {
+        const cp = cfg.currentProduct
+        currentProduct = {
+          ...cp,
+          getSelectedOptions: () => {
+            const size = document.querySelector('select[name="Size"]')?.value || ''
+            const color = document.querySelector('select[name="Color"]')?.value || null
+            return { size, color }
+          },
+          addToCart: async (opts) => {
+            window.__TFR_TEST_PDP_ADD__ = opts
+          },
+        }
+      }
+
+      try {
+        const { init } = await import('/dist/index.js')
+        const ok = await init({
+          brandId: cfg.brandId ?? 1,
+          environment: cfg.environment ?? 'demo',
+          debug: true,
+          currentProduct,
+          productLookup: async () => [],
+          addToCart: async (externalId, opts) => {
+            window.__TFR_TEST_LAST_ADD__ = { externalId, opts }
+          },
+          getOverlayTopOffset: () => 0,
+          testHooks: cfg.testHooks,
+        })
+        window.__TFR_TEST_INIT_OK__ = ok
+        window.dispatchEvent(new CustomEvent('tfr:test:init-complete', { detail: { ok } }))
+      } catch (error) {
+        window.__TFR_TEST_INIT_ERROR__ = String(error)
+        window.dispatchEvent(new CustomEvent('tfr:test:init-error', { detail: { error: String(error) } }))
+      }
+    </script>
+  </body>
+</html>

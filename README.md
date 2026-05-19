@@ -18,12 +18,29 @@ npm ci
 | Script | What it does |
 |---|---|
 | `npm run build` | Clean + production build into `dist/` |
-| `npm run check` | Type-check (`tsc --noEmit`) |
+| `npm run check` | Type-check (`tsc --noEmit`) + ESLint + Prettier |
 | `npm run watch` | Vite build in watch mode |
 | `npm run serve` | Static-serve the repo on `:5173` with CORS |
 | `npm run watch-serve` | Both `watch` and `serve` together; Ctrl+C stops both |
+| `npm run test` / `npm run test:e2e` | Playwright e2e suite (Chromium) against the built bundle |
+| `npm run test:e2e:ui` | Playwright UI runner for local debugging |
 | `npm run gen-types` | Regenerate `src/api/gen/*.ts` from `tfr-backend` Go types |
 | `npm run promote-latest [version]` | Move npm dist-tag `latest` onto a published version (defaults to current `package.json` version) |
+
+## Running e2e tests
+
+First-time setup: `npm install && npx playwright install chromium` (the
+second command downloads the Chromium binary once; cached afterwards). Then
+`npm run test:e2e` runs the suite. Specs live under `tests/e2e/`; they boot
+the built bundle in headless Chromium against a static fixture page
+(`tests/e2e/fixtures/host.html`) that mimics the minimal contract the Shopify
+theme provides. Firebase is mocked via `InitParams.testHooks`
+(see `src/lib/firebase-mock.ts`); REST endpoints are mocked via
+`page.route()`. See AGENTS.md for the architecture and constraints.
+
+For an interactive debug loop, `npm run watch-serve &` in one terminal and
+`npm run test:e2e:ui` in another — Playwright reuses the live-rebuilt
+`:5173`.
 
 ## Release process
 
