@@ -16,11 +16,13 @@ import {
   AVATAR_BOTTOM_BACKGROUND_URL,
   CloseIcon,
   DragHandleIcon,
+  FittingRoomIcon,
   InfoIcon,
   TfrNameSvg,
   ZoomIcon,
 } from '@/lib/asset'
 import { getAuthManager } from '@/lib/firebase'
+import { toggleFittingRoomItem } from '@/lib/fitting-room-storage'
 import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import { loadProductDataToStore, VtoProductData, VtoSizeColorData, VtoSizeData } from '@/lib/product'
@@ -391,6 +393,63 @@ function NoFitLayout({ onClose, onSignOut }: { onClose: () => void; onSignOut: (
   )
 }
 
+// FittingRoomToggleButton sits beneath the Add to Cart CTA: it adds or
+// removes the current PDP product from the fitting room (the localStorage
+// item set), with a hanger icon and a state-aware label.
+function FittingRoomToggleButton() {
+  const { currentProduct } = getStaticData()
+  const productId = currentProduct?.externalId ?? null
+  const isInFittingRoom = useMainStore((state) =>
+    productId == null ? false : state.fittingRoom.some((item) => item.externalId === productId),
+  )
+  const css = useCss((theme) => ({
+    button: {
+      marginTop: '10px',
+      width: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '10px',
+      padding: '13px',
+      backgroundColor: '#FFFFFF',
+      border: `1px solid ${theme.color_fg_text}`,
+      borderRadius: '30px',
+      cursor: 'pointer',
+    },
+    icon: {
+      color: theme.color_fg_text,
+      width: '20px',
+      height: '20px',
+    },
+    text: {
+      fontSize: '14px',
+      textTransform: 'uppercase',
+    },
+  }))
+
+  if (productId == null) {
+    return null
+  }
+
+  const handleClick = () => {
+    // vto-single always renders for the current PDP product, so isPdp=true.
+    toggleFittingRoomItem(productId, currentProduct?.handle ?? null, true).catch((error) => {
+      logger.logError('toggleFittingRoomItem failed', { error })
+    })
+  }
+
+  return (
+    <button type="button" onClick={handleClick} css={css.button}>
+      <FittingRoomIcon css={css.icon} />
+      <TextT
+        variant="base"
+        css={css.text}
+        t={isInFittingRoom ? 'added_to_fitting_room' : 'add_to_fitting_room'}
+      />
+    </button>
+  )
+}
+
 interface LayoutProps {
   loadedProductData: VtoProductData
   selectedColorSizeRecord: VtoSizeColorData
@@ -680,6 +739,7 @@ function MobileContentExpanded({
       </div>
       <div css={css.buttonContainer}>
         <AddToCartButton onClick={onAddToCart} />
+        <FittingRoomToggleButton />
       </div>
       <div css={css.productDetailsContainer}>
         <LinkT
@@ -813,6 +873,7 @@ function MobileContentFull({
       </div>
       <div css={css.buttonContainer}>
         <AddToCartButton onClick={onAddToCart} />
+        <FittingRoomToggleButton />
       </div>
       <div css={css.productDetailsContainer}>
         <LinkT
@@ -999,6 +1060,7 @@ function DesktopLayout({
           {fitChartNode}
           <div css={css.buttonContainer}>
             <AddToCartButton onClick={onAddToCart} />
+            <FittingRoomToggleButton />
           </div>
           <div css={css.descriptionContainer}>
             <ProductDescriptionText loadedProductData={loadedProductData} />
