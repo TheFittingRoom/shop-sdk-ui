@@ -125,9 +125,7 @@ export function SectionNav({ sections, activeName, onSelect }: SectionNavProps) 
     <div ref={wrapperRef} css={css.wrapper}>
       <Button variant="base" css={css.bar} onClick={() => setOpen((o) => !o)}>
         <span>{activeLabel}</span>
-        <span css={css.icon}>
-          {open ? <Chevron direction="up" size={20} /> : <MenuIcon size={20} />}
-        </span>
+        <span css={css.icon}>{open ? <Chevron direction="up" size={20} /> : <MenuIcon size={20} />}</span>
       </Button>
       {open ? (
         <div css={css.dropdown}>

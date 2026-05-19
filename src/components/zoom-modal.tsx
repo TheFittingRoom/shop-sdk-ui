@@ -1,4 +1,5 @@
-import { Dispatch, SetStateAction, useEffect } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
+import { useEffect } from 'react'
 import { useFrameRotation } from '@/components/use-frame-rotation'
 import { ChevronLeftIcon, ChevronRightIcon } from '@/lib/asset'
 import { useCss } from '@/lib/theme'

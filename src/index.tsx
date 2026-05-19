@@ -10,12 +10,13 @@ import { _init as initFittingRoom } from '@/lib/fitting-room-storage'
 import { i18n } from '@/lib/locale'
 import { _init as initLogger, getLogger } from '@/lib/logger'
 import { _init as initProduct } from '@/lib/product'
-import { _init as initStore, useMainStore, AddToCart, ExternalProduct, GetOverlayTopOffset, ProductLookup } from '@/lib/store'
-import { _init as initTheme, ThemeData } from '@/lib/theme'
+import type { AddToCart, ExternalProduct, GetOverlayTopOffset, ProductLookup } from '@/lib/store'
+import { _init as initStore, useMainStore } from '@/lib/store'
+import type { ThemeData } from '@/lib/theme'
+import { _init as initTheme } from '@/lib/theme'
 import { _init as initView } from '@/lib/view'
 
 // Import styles
-// @ts-ignore
 import css from '@/style.css?inline'
 
 class TfrWidgetElement extends HTMLElement {
@@ -52,7 +53,17 @@ export interface InitParams {
 export async function init(initParams: InitParams): Promise<boolean> {
   const logger = getLogger('init')
   try {
-    const { brandId, currentProduct, environment, lang = null, theme = null, debug, productLookup, getOverlayTopOffset, addToCart } = initParams
+    const {
+      brandId,
+      currentProduct,
+      environment,
+      lang = null,
+      theme = null,
+      debug,
+      productLookup,
+      getOverlayTopOffset,
+      addToCart,
+    } = initParams
 
     // Validate init params
     if (!brandId || typeof brandId !== 'number' || isNaN(brandId) || brandId <= 0) {

@@ -1,7 +1,7 @@
 import { TextT } from '@/components/text'
-import { VtoProductData } from '@/lib/product'
+import type { VtoProductData } from '@/lib/product'
 import { useTranslation } from '@/lib/locale'
-import { CssProp } from '@/lib/theme'
+import type { CssProp } from '@/lib/theme'
 
 interface ItemFitTextProps {
   loadedProductData: VtoProductData

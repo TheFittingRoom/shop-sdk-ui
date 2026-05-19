@@ -1,9 +1,9 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { Button } from '@/components/button'
 import { Text } from '@/components/text'
-import { ResolvedFittingRoomGroup } from '@/lib/fitting-room-data'
+import type { ResolvedFittingRoomGroup } from '@/lib/fitting-room-data'
 import { useCss } from '@/lib/theme'
-import { Availability } from '@/lib/fitting-room-outfit'
+import type { Availability } from '@/lib/fitting-room-outfit'
 import { Chevron } from './chevron'
 import { ProductCard } from './product-card'
 

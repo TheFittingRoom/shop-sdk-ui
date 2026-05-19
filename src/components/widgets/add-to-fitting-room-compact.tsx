@@ -4,7 +4,7 @@ import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
-import { WidgetProps } from '@/lib/view'
+import type { WidgetProps } from '@/lib/view'
 
 const logger = getLogger('widgets/add-to-fitting-room-compact')
 
@@ -15,7 +15,7 @@ export default function AddToFittingRoomCompactWidget({ attributes }: WidgetProp
   const attrProductHandle = attributes['product-handle'] as string | undefined
   const productId = attrProductId || currentProduct?.externalId || null
   const isPdp = productId != null && productId === currentProduct?.externalId
-  const productHandle = attrProductHandle || (isPdp ? currentProduct?.handle ?? null : null)
+  const productHandle = attrProductHandle || (isPdp ? (currentProduct?.handle ?? null) : null)
 
   const isInFittingRoom = useMainStore((state) =>
     productId == null ? false : state.fittingRoom.some((item) => item.externalId === productId),

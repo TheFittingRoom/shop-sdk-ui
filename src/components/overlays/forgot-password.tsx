@@ -1,4 +1,5 @@
-import { ReactNode, useCallback, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { ButtonT } from '@/components/button'
 import { LinkT } from '@/components/link'
 import { ContentModal } from '@/components/modal'
@@ -8,7 +9,8 @@ import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import { useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
-import { OverlayName, OverlayProps } from '@/lib/view'
+import type { OverlayProps } from '@/lib/view'
+import { OverlayName } from '@/lib/view'
 
 const CONTACT_US_LINK = 'mailto:info@thefittingroom.tech?subject=Forgot%20Password%20Assistance'
 
@@ -98,7 +100,7 @@ export default function ForgotPasswordOverlay({ returnToOverlay }: ForgotPasswor
       }
 
       const email = emailEl.value
-      resetUserPassword(email)
+      void resetUserPassword(email)
     },
     [t],
   )

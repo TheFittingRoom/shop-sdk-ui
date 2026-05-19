@@ -1,5 +1,5 @@
-import { StyleCategory, StyleCategoryGroup } from '@/api/gen/responses'
-import { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
+import type { StyleCategory, StyleCategoryGroup } from '@/api/gen/responses'
+import type { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 
 export type Availability = 'available' | 'selected' | 'disabled'
 
@@ -168,9 +168,7 @@ export function buildAlternateOutfits(
     )
     if (!altCsa) continue
     const alternate = primary.map((it) =>
-      it.externalId === lastAddedResolved.externalId
-        ? { ...it, colorwaySizeAssetId: altCsa.id }
-        : it,
+      it.externalId === lastAddedResolved.externalId ? { ...it, colorwaySizeAssetId: altCsa.id } : it,
     )
     out.push(alternate)
   }

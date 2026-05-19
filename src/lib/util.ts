@@ -1,4 +1,4 @@
-import { Size } from '@/lib/api'
+import type { Size } from '@/lib/api'
 
 export function getSizeLabelFromSize(size: Size): string | null {
   if (size.label) {

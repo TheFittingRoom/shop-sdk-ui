@@ -3,7 +3,7 @@ import { initReactI18next, useTranslation } from 'react-i18next'
 import en from '@/locale/en.json'
 import fr from '@/locale/fr.json'
 
-i18n.use(initReactI18next).init({
+void i18n.use(initReactI18next).init({
   lng: 'en',
   fallbackLng: 'en',
   resources: {

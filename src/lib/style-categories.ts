@@ -1,4 +1,4 @@
-import { StyleCategory, StyleCategoryGroup } from '@/api/gen/responses'
+import type { StyleCategory, StyleCategoryGroup } from '@/api/gen/responses'
 import { getStyleCategories, getStyleCategoryGroups } from '@/lib/api'
 import { getLogger } from '@/lib/logger'
 

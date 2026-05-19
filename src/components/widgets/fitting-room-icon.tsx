@@ -3,11 +3,12 @@ import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import { useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
-import { OverlayName, WidgetProps } from '@/lib/view'
+import type { WidgetProps } from '@/lib/view'
+import { OverlayName } from '@/lib/view'
 
 const logger = getLogger('widgets/fitting-room-icon')
 
-export default function FittingRoomIconWidget({}: WidgetProps) {
+export default function FittingRoomIconWidget(_props: WidgetProps) {
   const { t } = useTranslation()
   const count = useMainStore((state) => state.fittingRoom.length)
   const isOpen = useMainStore((state) => state.activeOverlay === OverlayName.FITTING_ROOM)

@@ -1,22 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
-import { FittingRoomItem } from '@/lib/fitting-room-storage'
+import type { FittingRoomItem } from '@/lib/fitting-room-storage'
 import { getLogger } from '@/lib/logger'
-import {
+import type {
   LoadedProductData,
   LoadedProductError,
-  loadProductDataToStore,
   VtoProductData,
   VtoSizeColorData,
   VtoSizeData,
 } from '@/lib/product'
-import { getStaticData, useMainStore, ExternalProduct, MerchantProductError } from '@/lib/store'
-import {
-  loadStyleCategoryIndex,
-  peekStyleCategoryIndex,
-  StyleCategory,
-  StyleCategoryGroup,
-  StyleCategoryIndex,
-} from '@/lib/style-categories'
+import { loadProductDataToStore } from '@/lib/product'
+import type { ExternalProduct, MerchantProductError } from '@/lib/store'
+import { getStaticData, useMainStore } from '@/lib/store'
+import type { StyleCategory, StyleCategoryGroup, StyleCategoryIndex } from '@/lib/style-categories'
+import { loadStyleCategoryIndex, peekStyleCategoryIndex } from '@/lib/style-categories'
 import { getSizeLabelFromSize } from '@/lib/util'
 
 const logger = getLogger('fitting-room-data')
@@ -232,12 +228,7 @@ export function useResolvedFittingRoom(): ResolvedFittingRoom {
     // isLoading: any item missing both merchant + loaded data, or style-category
     // index not yet loaded. Item-level errors don't count as "loading".
     const isLoading =
-      !index ||
-      items.some(
-        (i) =>
-          (!i.merchantProduct && !i.merchantError) ||
-          (!i.loadedProduct && !i.loadedError),
-      )
+      !index || items.some((i) => (!i.merchantProduct && !i.merchantError) || (!i.loadedProduct && !i.loadedError))
 
     // Group items by style-category group, preserving group order from the index.
     const groups: ResolvedFittingRoomGroup[] = []
@@ -286,9 +277,7 @@ export function useResolvedFittingRoom(): ResolvedFittingRoom {
 // VtoProductData shape that the shared leaf widgets (SizeSelector, ItemFitText,
 // ItemFitDetails) consume. Returns null if the item hasn't loaded fully enough
 // to display sizing info.
-export function buildVtoProductDataFromResolved(
-  item: ResolvedFittingRoomItem,
-): VtoProductData | null {
+export function buildVtoProductDataFromResolved(item: ResolvedFittingRoomItem): VtoProductData | null {
   const { merchantProduct, loadedProduct } = item
   if (!merchantProduct || !loadedProduct) return null
 
@@ -342,15 +331,10 @@ export function buildVtoProductDataFromResolved(
 // findRecommendedColorSize returns the CSA + price for the recommended size
 // using the currently-stored color preference, falling back to the first
 // colorway when the preferred color is missing.
-export function findRecommendedColorSize(
-  data: VtoProductData,
-  preferredColor: string | null,
-): VtoSizeColorData | null {
+export function findRecommendedColorSize(data: VtoProductData, preferredColor: string | null): VtoSizeColorData | null {
   const recommended = data.sizes.find((s) => s.isRecommended)
   if (!recommended || recommended.colors.length === 0) return null
-  return (
-    recommended.colors.find((c) => c.colorLabel === preferredColor) ?? recommended.colors[0]
-  )
+  return recommended.colors.find((c) => c.colorLabel === preferredColor) ?? recommended.colors[0]
 }
 
 // findCsaByLabel returns the CSA matching the given size label + color (or

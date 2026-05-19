@@ -1,4 +1,5 @@
-import { Dispatch, ReactNode, SetStateAction, useState } from 'react'
+import type { Dispatch, ReactNode, SetStateAction } from 'react'
+import { useState } from 'react'
 import { AvatarFrameViewer } from '@/components/avatar-frame-viewer'
 import { Loading } from '@/components/content/loading'
 import { TextT } from '@/components/text'

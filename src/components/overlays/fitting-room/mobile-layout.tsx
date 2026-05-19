@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button, ButtonT } from '@/components/button'
 import { Text } from '@/components/text'
-import { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
+import type { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { DragHandleIcon, LeftArrowIcon } from '@/lib/asset'
-import { SheetSnap } from '@/lib/use-mobile-sheet-snap'
-import { useCss, StyleProp } from '@/lib/theme'
-import { Availability } from '@/lib/fitting-room-outfit'
+import type { SheetSnap } from '@/lib/use-mobile-sheet-snap'
+import type { StyleProp } from '@/lib/theme'
+import { useCss } from '@/lib/theme'
+import type { Availability } from '@/lib/fitting-room-outfit'
 import { AvatarPane } from './avatar-pane'
 import { MobileTuckControl } from './avatar-controls'
 import { CardRail } from './card-rail'
 import { DetailAccordion } from './detail-accordion'
-import { DetailMode } from './detail-accordion-item'
+import type { DetailMode } from './detail-accordion-item'
 import { SectionNav } from './section-nav'
 
 export type MobileMode = 'browse' | 'try-on'
@@ -266,9 +267,7 @@ function TryOnView({
       if (!el) return
       const parentEl = el.parentElement
       if (!parentEl) return
-      const maxHeightPx = Number(
-        window.getComputedStyle(parentEl).getPropertyValue('max-height').replace('px', ''),
-      )
+      const maxHeightPx = Number(window.getComputedStyle(parentEl).getPropertyValue('max-height').replace('px', ''))
       const heightPx = Math.min(el.clientHeight, maxHeightPx || el.clientHeight)
       setSheetStyle({ height: `${heightPx}px` })
     }
@@ -350,9 +349,7 @@ function TryOnView({
         hasSelection={selectedItems.length > 0}
         frameUrls={frameUrls}
         mobileFullscreen
-        controls={
-          <MobileTuckControl canTuck={canTuck} forceUntuck={forceUntuck} onToggleUntuck={onToggleUntuck} />
-        }
+        controls={<MobileTuckControl canTuck={canTuck} forceUntuck={forceUntuck} onToggleUntuck={onToggleUntuck} />}
       />
       <Button variant="base" css={css.backButton} onClick={onBackToBrowse} aria-label="Back to browse">
         <LeftArrowIcon css={css.backArrow} />

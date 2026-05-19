@@ -1,4 +1,4 @@
-import { FirestoreStyle, FirestoreColorwaySizeAsset } from '@/api/gen/responses'
+import type { FirestoreStyle, FirestoreColorwaySizeAsset } from '@/api/gen/responses'
 import { getFirestoreManager, where } from '@/lib/firebase'
 
 export type { FirestoreStyle, FirestoreColorwaySizeAsset }

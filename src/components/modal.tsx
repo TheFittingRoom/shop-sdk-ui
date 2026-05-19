@@ -1,9 +1,10 @@
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import ModalBase from 'react-modal'
 import { Text } from '@/components/text'
 import { ArrowBackIcon, CloseIcon } from '@/lib/asset'
 import { useMainStore } from '@/lib/store'
-import { useCss, StyleProp } from '@/lib/theme'
+import type { StyleProp } from '@/lib/theme'
+import { useCss } from '@/lib/theme'
 import { DeviceLayout } from '@/lib/view'
 
 export interface ModalFrameProps {
@@ -203,11 +204,7 @@ export function SidecarModalFrame({ contentStyle, onRequestClose, children }: Si
     ...contentStyle,
   }
   return (
-    <ModalFrame
-      isOpen
-      onRequestClose={onRequestClose}
-      contentStyle={applyContentStyle}
-    >
+    <ModalFrame isOpen onRequestClose={onRequestClose} contentStyle={applyContentStyle}>
       {children}
     </ModalFrame>
   )

@@ -1,8 +1,10 @@
-import { useEffect, Dispatch, SetStateAction } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
+import { useEffect } from 'react'
 import { Loading } from '@/components/content/loading'
 import { useFrameRotation } from '@/components/use-frame-rotation'
 import { ChevronLeftIcon, ChevronRightIcon } from '@/lib/asset'
-import { useCss, StyleProp } from '@/lib/theme'
+import type { StyleProp } from '@/lib/theme'
+import { useCss } from '@/lib/theme'
 
 interface AvatarFrameViewerProps {
   frameUrls: string[] | null

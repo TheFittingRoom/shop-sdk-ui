@@ -2,9 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/button'
 import { Text } from '@/components/text'
 import { SelectedItemsIcon, TuckIcon, ZoomIcon } from '@/lib/asset'
-import { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
+import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useTranslation } from '@/lib/locale'
-import { CssProp, ThemeData, useCss } from '@/lib/theme'
+import type { CssProp, ThemeData } from '@/lib/theme'
+import { useCss } from '@/lib/theme'
 
 // Shared pill look for the avatar control buttons (desktop cluster + the
 // mobile tuck pill). Callers add their own positioning and, on desktop, the

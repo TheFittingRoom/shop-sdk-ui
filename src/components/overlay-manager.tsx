@@ -1,5 +1,6 @@
 import { useMainStore } from '@/lib/store'
-import { OVERLAYS, OverlayName } from '@/lib/view'
+import type { OverlayName } from '@/lib/view'
+import { OVERLAYS } from '@/lib/view'
 
 export function OverlayManager() {
   const activeOverlay = useMainStore((state) => state.activeOverlay)

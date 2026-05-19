@@ -1,4 +1,5 @@
-import { useCallback, Dispatch, SetStateAction, MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from 'react'
+import type { Dispatch, SetStateAction, MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from 'react'
+import { useCallback } from 'react'
 
 // Pointer pixels of horizontal drag per one frame of rotation.
 const DRAG_STEP_PX = 50

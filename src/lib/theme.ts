@@ -1,5 +1,7 @@
-import { useMemo, CSSProperties } from 'react'
-import { keyframes, CSSObject } from '@emotion/react'
+import type { CSSProperties } from 'react'
+import { useMemo } from 'react'
+import type { CSSObject } from '@emotion/react'
+import { keyframes } from '@emotion/react'
 
 export interface ThemeData {
   brand_font_family: string

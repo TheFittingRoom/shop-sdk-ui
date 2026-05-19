@@ -1,6 +1,7 @@
-import { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
+import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useCss } from '@/lib/theme'
-import { DetailAccordionItem, DetailMode, Platform } from './detail-accordion-item'
+import type { DetailMode, Platform } from './detail-accordion-item'
+import { DetailAccordionItem } from './detail-accordion-item'
 
 interface DetailAccordionProps {
   items: ResolvedFittingRoomItem[]

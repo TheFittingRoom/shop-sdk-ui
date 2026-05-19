@@ -35,7 +35,10 @@ export function _init() {
     }
     if (isTouch) {
       if (isMobileDevice) {
-        return { isMobileDevice, deviceLayout: isPortrait ? DeviceLayout.MOBILE_PORTRAIT : DeviceLayout.MOBILE_LANDSCAPE }
+        return {
+          isMobileDevice,
+          deviceLayout: isPortrait ? DeviceLayout.MOBILE_PORTRAIT : DeviceLayout.MOBILE_LANDSCAPE,
+        }
       }
       return { isMobileDevice, deviceLayout: isPortrait ? DeviceLayout.TABLET_PORTRAIT : DeviceLayout.TABLET_LANDSCAPE }
     }

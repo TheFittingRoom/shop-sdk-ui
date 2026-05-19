@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { requestVto as apiRequestVto, VtoCompositionItem } from '@/lib/api'
+import type { VtoCompositionItem } from '@/lib/api'
+import { requestVto as apiRequestVto } from '@/lib/api'
 import { getLogger } from '@/lib/logger'
 import { getStaticData } from '@/lib/store'
 import { applyFrameBaseUrl } from '@/lib/util'

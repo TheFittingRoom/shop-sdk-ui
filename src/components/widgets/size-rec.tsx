@@ -3,11 +3,12 @@ import { LinkT } from '@/components/link'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { getSizeLabelFromSize } from '@/lib/util'
-import { OverlayName, WidgetProps } from '@/lib/view'
+import type { WidgetProps } from '@/lib/view'
+import { OverlayName } from '@/lib/view'
 
 const logger = getLogger('size-rec')
 
-export default function SizeRecWidget({}: WidgetProps) {
+export default function SizeRecWidget(_props: WidgetProps) {
   const openOverlay = useMainStore((state) => state.openOverlay)
   const openedOverlays = useMainStore((state) => state.openedOverlays)
   const storeProductData = useMainStore((state) => state.productData)

@@ -1,4 +1,5 @@
-import { ReactNode, useCallback } from 'react'
+import type { ReactNode } from 'react'
+import { useCallback } from 'react'
 import { Button } from '@/components/button'
 import { LinkT } from '@/components/link'
 import { ContentModal } from '@/components/modal'
@@ -7,7 +8,8 @@ import { PoweredByFooter } from '@/components/content/powered-by-footer'
 import { getExternalAssetUrl } from '@/lib/asset'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
-import { OverlayName, OverlayProps } from '@/lib/view'
+import type { OverlayProps } from '@/lib/view'
+import { OverlayName } from '@/lib/view'
 
 export interface GetAppOverlayProps extends OverlayProps {
   returnToOverlay?: OverlayName

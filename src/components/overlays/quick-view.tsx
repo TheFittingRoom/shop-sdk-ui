@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from 'react'
+import type { ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { AvatarFrameViewer } from '@/components/avatar-frame-viewer'
 import { Button } from '@/components/button'
@@ -25,9 +26,11 @@ import { getAuthManager } from '@/lib/firebase'
 import { toggleFittingRoomItem } from '@/lib/fitting-room-storage'
 import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
-import { loadProductDataToStore, VtoProductData, VtoSizeColorData, VtoSizeData } from '@/lib/product'
+import type { VtoProductData, VtoSizeColorData, VtoSizeData } from '@/lib/product'
+import { loadProductDataToStore } from '@/lib/product'
 import { getStaticData, useMainStore } from '@/lib/store'
-import { getThemeData, useCss, CssProp, StyleProp } from '@/lib/theme'
+import type { CssProp, StyleProp } from '@/lib/theme'
+import { getThemeData, useCss } from '@/lib/theme'
 import { getSizeLabelFromSize } from '@/lib/util'
 import { useMobileSheetSnap } from '@/lib/use-mobile-sheet-snap'
 import { DeviceLayout, OverlayName } from '@/lib/view'
@@ -208,7 +211,7 @@ export default function QuickViewOverlay() {
     if (vtoProductData !== null) {
       return
     }
-    setupInitialVtoData()
+    void setupInitialVtoData()
   }, [storeProductData, vtoProductData, userProfile])
 
   // Derive selected color/size data from selections
@@ -441,11 +444,7 @@ function FittingRoomToggleButton() {
   return (
     <button type="button" onClick={handleClick} css={css.button}>
       <FittingRoomIcon css={css.icon} />
-      <TextT
-        variant="base"
-        css={css.text}
-        t={isInFittingRoom ? 'added_to_fitting_room' : 'add_to_fitting_room'}
-      />
+      <TextT variant="base" css={css.text} t={isInFittingRoom ? 'added_to_fitting_room' : 'add_to_fitting_room'} />
     </button>
   )
 }
@@ -481,8 +480,11 @@ function MobileLayout({
   onAddToCart,
   onSignOut,
 }: LayoutProps) {
-  const { snap: contentView, setSnap: setContentView, handleTouchStart: handleBottomFrameTouchStart } =
-    useMobileSheetSnap('collapsed')
+  const {
+    snap: contentView,
+    setSnap: setContentView,
+    handleTouchStart: handleBottomFrameTouchStart,
+  } = useMobileSheetSnap('collapsed')
   const bottomFrameInnerRef = useRef<HTMLDivElement>(null)
   const [bottomFrameOuterStyle, setBottomFrameOuterStyle] = useState<StyleProp>({})
   const [bottomFrameInnerStyle, setBottomFrameInnerStyle] = useState<StyleProp>({})
@@ -574,9 +576,7 @@ function MobileLayout({
       if (!parentEl) {
         return
       }
-      const maxHeightPx = Number(
-        window.getComputedStyle(parentEl).getPropertyValue('max-height').replace('px', ''),
-      )
+      const maxHeightPx = Number(window.getComputedStyle(parentEl).getPropertyValue('max-height').replace('px', ''))
       const heightPx = Math.min(bottomFrameInnerEl.clientHeight, maxHeightPx)
       const bottomFrameStyle: StyleProp = {
         height: `${heightPx}px`,

@@ -1,14 +1,14 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { LinkT } from '@/components/link'
 import { TfrIcon } from '@/lib/asset'
-import { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
+import type { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useCss } from '@/lib/theme'
-import { Availability } from '@/lib/fitting-room-outfit'
+import type { Availability } from '@/lib/fitting-room-outfit'
 import { AvatarControls } from './avatar-controls'
 import { AvatarPane } from './avatar-pane'
 import { CardRail } from './card-rail'
 import { DetailAccordion } from './detail-accordion'
-import { DetailMode } from './detail-accordion-item'
+import type { DetailMode } from './detail-accordion-item'
 import { ZoomModal } from '@/components/zoom-modal'
 
 // Avatar frames are rendered at portrait 2:3 (width:height). We size the

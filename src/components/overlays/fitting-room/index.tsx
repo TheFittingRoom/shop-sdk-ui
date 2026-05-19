@@ -5,13 +5,13 @@ import { LinkT } from '@/components/link'
 import { ModalFrame } from '@/components/modal'
 import { Snackbar } from '@/components/snackbar'
 import { TextT } from '@/components/text'
-import { VtoCompositionItem } from '@/lib/api'
+import type { VtoCompositionItem } from '@/lib/api'
 import { getAuthManager } from '@/lib/firebase'
+import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import {
   buildVtoProductDataFromResolved,
   findCsaByLabel,
   findRecommendedColorSize,
-  ResolvedFittingRoomItem,
   useResolvedFittingRoom,
 } from '@/lib/fitting-room-data'
 import { getLogger } from '@/lib/logger'
@@ -20,10 +20,12 @@ import { useCss } from '@/lib/theme'
 import { useMobileSheetSnap } from '@/lib/use-mobile-sheet-snap'
 import { applyFrameBaseUrl, getSizeLabelFromSize } from '@/lib/util'
 import { DeviceLayout, OverlayName } from '@/lib/view'
-import { Availability, buildOutfit, computeAvailability, OutfitItem } from '@/lib/fitting-room-outfit'
+import type { Availability, OutfitItem } from '@/lib/fitting-room-outfit'
+import { buildOutfit, computeAvailability } from '@/lib/fitting-room-outfit'
 import { DesktopLayout } from './desktop-layout'
-import { DetailMode } from './detail-accordion-item'
-import { MobileLayout, MobileMode } from './mobile-layout'
+import type { DetailMode } from './detail-accordion-item'
+import type { MobileMode } from './mobile-layout'
+import { MobileLayout } from './mobile-layout'
 import { useVtoRequests } from '@/lib/use-vto-requests'
 
 // Map our local OutfitItem shape (which carries the externalId for UI bookkeeping)
@@ -66,14 +68,16 @@ export default function FittingRoomOverlay() {
   const [lastAddedExternalId, setLastAddedExternalId] = useState<string | null>(null)
   const [mobileMode, setMobileMode] = useState<MobileMode>('browse')
 
-  const { snap: sheetSnap, setSnap: setSheetSnap, handleTouchStart: sheetTouchStart } =
-    useMobileSheetSnap('collapsed')
+  const { snap: sheetSnap, setSnap: setSheetSnap, handleTouchStart: sheetTouchStart } = useMobileSheetSnap('collapsed')
 
-  const isMobileLayout =
-    deviceLayout === DeviceLayout.MOBILE_PORTRAIT || deviceLayout === DeviceLayout.TABLET_PORTRAIT
+  const isMobileLayout = deviceLayout === DeviceLayout.MOBILE_PORTRAIT || deviceLayout === DeviceLayout.TABLET_PORTRAIT
 
-  const { request: requestVtoComposition, framesForOutfit, lastError: vtoError, clearError: clearVtoError } =
-    useVtoRequests()
+  const {
+    request: requestVtoComposition,
+    framesForOutfit,
+    lastError: vtoError,
+    clearError: clearVtoError,
+  } = useVtoRequests()
 
   // Scroll lock + top-offset measurement
   useEffect(() => {
@@ -144,9 +148,7 @@ export default function FittingRoomOverlay() {
       const csa = findRecommendedColorSize(productData, item.storage.color)
       if (!csa) return
       const sizeRec = item.loadedProduct?.sizeFitRecommendation
-      const sizeLabel = sizeRec
-        ? getSizeLabelFromSize(sizeRec.recommended_size)
-        : productData.recommendedSizeLabel
+      const sizeLabel = sizeRec ? getSizeLabelFromSize(sizeRec.recommended_size) : productData.recommendedSizeLabel
       updateFittingRoomItem(item.externalId, {
         colorwaySizeAssetId: csa.colorwaySizeAssetId,
         size: sizeLabel,
@@ -402,24 +404,14 @@ export default function FittingRoomOverlay() {
   const authResolved = userIsLoggedIn && userHasAvatar === true
   if (!authResolved) {
     return (
-      <ModalFrame
-        isOpen
-        onRequestClose={closeOverlay}
-        overlayStyle={overlayStyle}
-        contentStyle={contentStyle}
-      >
+      <ModalFrame isOpen onRequestClose={closeOverlay} overlayStyle={overlayStyle} contentStyle={contentStyle}>
         <Loading />
       </ModalFrame>
     )
   }
 
   return (
-    <ModalFrame
-      isOpen
-      onRequestClose={closeOverlay}
-      overlayStyle={overlayStyle}
-      contentStyle={contentStyle}
-    >
+    <ModalFrame isOpen onRequestClose={closeOverlay} overlayStyle={overlayStyle} contentStyle={contentStyle}>
       <div css={css.body}>
         {resolved.items.length === 0 ? (
           <div css={css.empty}>
@@ -430,12 +422,7 @@ export default function FittingRoomOverlay() {
                 <ButtonT variant="primary" t="fitting_room.shop_now" onClick={handleShopNow} />
               </div>
               {userIsLoggedIn ? (
-                <LinkT
-                  variant="underline"
-                  css={css.emptySignOut}
-                  t="fitting_room.sign_out"
-                  onClick={handleSignOut}
-                />
+                <LinkT variant="underline" css={css.emptySignOut} t="fitting_room.sign_out" onClick={handleSignOut} />
               ) : null}
             </div>
           </div>

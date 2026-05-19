@@ -1,24 +1,16 @@
 import dayjs from 'dayjs'
-import { initializeApp, FirebaseApp, FirebaseOptions } from 'firebase/app'
-import {
+import type { FirebaseApp, FirebaseOptions } from 'firebase/app'
+import { initializeApp } from 'firebase/app'
+import type {
   DocumentData,
   Firestore,
   QueryFieldFilterConstraint,
   QuerySnapshot,
   Unsubscribe,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  getFirestore,
-  onSnapshot,
-  query,
-  setDoc,
-  where,
 } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, getFirestore, onSnapshot, query, setDoc, where } from 'firebase/firestore'
+import type { Auth, User } from 'firebase/auth'
 import {
-  Auth,
-  User,
   browserLocalPersistence,
   confirmPasswordReset,
   getAuth,
@@ -26,7 +18,7 @@ import {
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
 } from 'firebase/auth'
-import { FirestoreUser } from '@/api/gen/responses'
+import type { FirestoreUser } from '@/api/gen/responses'
 import { getLogger } from '@/lib/logger'
 import { getStaticData } from '@/lib/store'
 
@@ -64,7 +56,10 @@ export class FirestoreManager {
     this.firestore = firestore
   }
 
-  public async getDocData<T extends DocumentData = DocumentData>(collectionName: string, docId: string): Promise<T | null> {
+  public async getDocData<T extends DocumentData = DocumentData>(
+    collectionName: string,
+    docId: string,
+  ): Promise<T | null> {
     const docRef = this.doc(collectionName, docId)
     const docSnap = await getDoc(docRef)
     if (docSnap.exists()) {
@@ -74,12 +69,20 @@ export class FirestoreManager {
     }
   }
 
-  public async setDocData<T extends DocumentData = DocumentData>(collectionName: string, docId: string, data: T): Promise<void> {
+  public async setDocData<T extends DocumentData = DocumentData>(
+    collectionName: string,
+    docId: string,
+    data: T,
+  ): Promise<void> {
     const docRef = this.doc(collectionName, docId)
     await setDoc(docRef, data)
   }
 
-  public async mergeDocData<T extends DocumentData = DocumentData>(collectionName: string, docId: string, data: Partial<T>): Promise<void> {
+  public async mergeDocData<T extends DocumentData = DocumentData>(
+    collectionName: string,
+    docId: string,
+    data: Partial<T>,
+  ): Promise<void> {
     const docRef = this.doc(collectionName, docId)
     await setDoc(docRef, data, { merge: true })
   }
@@ -187,10 +190,7 @@ export class AuthManager {
       return this.userProfile
     }
     const firestore = getFirestoreManager()
-    const profile = await firestore.getDocData<UserProfile>(
-      'users',
-      this.auth.currentUser.uid,
-    )
+    const profile = await firestore.getDocData<UserProfile>('users', this.auth.currentUser.uid)
     this.userProfile = profile
     return this.userProfile
   }
@@ -229,7 +229,7 @@ export class AuthManager {
       })
 
       // Track user login activity
-      ;(async () => {
+      void (async () => {
         try {
           const firestore = getFirestoreManager()
           const userLoggingDocId = authUser.uid
