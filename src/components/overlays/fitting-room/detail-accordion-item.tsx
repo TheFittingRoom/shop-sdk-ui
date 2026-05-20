@@ -223,6 +223,11 @@ function DesktopAccordionItem({
     },
     // Padding matches quick-view's sizeRecommendationFrame (32px / 56px) so
     // the "fit box" feels visually consistent between the two overlays.
+    //
+    // No flex `gap` — the three text lines (recommended size, fit text,
+    // select-a-size prompt) sit tight against each other (matching
+    // quick-view), with explicit marginTop on the size selector + fit
+    // details below them to introduce the larger break.
     sizeBox: {
       width: '100%',
       border: `1px solid ${theme.color_fg_text}`,
@@ -230,7 +235,6 @@ function DesktopAccordionItem({
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      gap: '12px',
       marginTop: '8px',
       textAlign: 'center',
     },
@@ -241,21 +245,29 @@ function DesktopAccordionItem({
     recommendedSize: {
       fontSize: '13px',
       fontWeight: '600',
+      lineHeight: 'normal',
     },
     selectPrompt: {
       fontSize: '12px',
+      lineHeight: 'normal',
     },
     fitText: {
       fontSize: '12px',
+      lineHeight: 'normal',
+      // Tight 8px lift to the recommended-size line above; matches
+      // quick-view's `itemFitContainer` marginTop.
+      marginTop: '8px',
     },
     fitDetails: {
       width: '100%',
+      marginTop: '24px',
     },
     sizeRow: {
       display: 'flex',
       gap: '8px',
       alignItems: 'center',
       justifyContent: 'center',
+      marginTop: '24px',
     },
     cartContainer: {
       width: '100%',
