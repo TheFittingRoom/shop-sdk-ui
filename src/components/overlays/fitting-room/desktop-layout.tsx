@@ -42,6 +42,7 @@ interface DesktopLayoutProps {
   onOpenAccordionItem: (externalId: string | null) => void
   onChangeDetailMode: (mode: DetailMode) => void
   onChangeSize: (externalId: string, sizeLabel: string) => void
+  onChangeColor: (externalId: string, colorLabel: string | null) => void
   onAddToCart: (externalId: string) => void
   onToggleUntuck: () => void
   onSignOut: () => void
@@ -63,6 +64,7 @@ export function DesktopLayout({
   onOpenAccordionItem,
   onChangeDetailMode,
   onChangeSize,
+  onChangeColor,
   onAddToCart,
   onToggleUntuck,
   onSignOut,
@@ -218,6 +220,7 @@ export function DesktopLayout({
             onOpenItem={onOpenAccordionItem}
             onChangeDetailMode={onChangeDetailMode}
             onChangeSize={onChangeSize}
+            onChangeColor={onChangeColor}
             onAddToCart={onAddToCart}
             onToggleUntuck={onToggleUntuck}
           />

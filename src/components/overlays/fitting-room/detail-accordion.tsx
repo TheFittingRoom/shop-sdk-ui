@@ -15,6 +15,7 @@ interface DetailAccordionProps {
   onOpenItem: (externalId: string | null) => void
   onChangeDetailMode: (mode: DetailMode) => void
   onChangeSize: (externalId: string, sizeLabel: string) => void
+  onChangeColor: (externalId: string, colorLabel: string | null) => void
   onAddToCart: (externalId: string) => void
   onToggleUntuck: () => void
 }
@@ -33,6 +34,7 @@ export function DetailAccordion({
   onOpenItem,
   onChangeDetailMode,
   onChangeSize,
+  onChangeColor,
   onAddToCart,
   onToggleUntuck,
 }: DetailAccordionProps) {
@@ -63,6 +65,7 @@ export function DetailAccordion({
             onToggleOpen={() => onOpenItem(isOpen ? null : item.externalId)}
             onChangeDetailMode={onChangeDetailMode}
             onChangeSize={(label) => onChangeSize(item.externalId, label)}
+            onChangeColor={(label) => onChangeColor(item.externalId, label)}
             onAddToCart={() => onAddToCart(item.externalId)}
             onToggleUntuck={onToggleUntuck}
           />

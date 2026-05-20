@@ -1,8 +1,15 @@
-import type { Dispatch, SetStateAction } from 'react'
-import { useEffect } from 'react'
+import type { Dispatch, MouseEvent as ReactMouseEvent, SetStateAction } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useFrameRotation } from '@/components/use-frame-rotation'
 import { ChevronLeftIcon, ChevronRightIcon } from '@/lib/asset'
 import { useCss } from '@/lib/theme'
+
+// Pointer-pixel thresholds for the zoom modal's axis-locking image drag.
+// AXIS_LOCK_PX: how far the pointer moves before committing to scroll-or-rotate.
+// ROTATE_STEP_PX: pointer-px of horizontal travel per frame of rotation
+// (mirrors DRAG_STEP_PX in use-frame-rotation so the feel matches).
+const AXIS_LOCK_PX = 8
+const ROTATE_STEP_PX = 50
 
 interface ZoomModalProps {
   frameUrls: string[]
@@ -31,9 +38,66 @@ export function ZoomModal({ frameUrls, selectedFrameIndex, setSelectedFrameIndex
     return () => document.removeEventListener('keydown', onKeyDown, true)
   }, [onClose])
 
-  const { rotateLeft, rotateRight, handleMouseDragStart, handleTouchDragStart } = useFrameRotation(
-    frameUrls,
-    setSelectedFrameIndex,
+  const { rotateLeft, rotateRight } = useFrameRotation(frameUrls, setSelectedFrameIndex)
+
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+
+  // Image-drag handler with an axis lock: after the first AXIS_LOCK_PX of
+  // pointer travel, commit to either *scrolling* the inset scroll area
+  // (vertical-dominant drag) or *rotating* through frames (horizontal-dominant
+  // drag) for the rest of the gesture. This keeps the two interactions from
+  // fighting each other when the image overflows the inset.
+  //
+  // Touch is intentionally not wired up here — the scroll area is
+  // `overflow: auto`, so native touch scrolling pans the image; on mobile the
+  // chevrons handle rotation. Hijacking touchstart breaks native scrolling.
+  const handleImageMouseDown = useCallback(
+    (e: ReactMouseEvent) => {
+      e.preventDefault()
+      const startX = e.clientX
+      const startY = e.clientY
+      const scrollArea = scrollAreaRef.current
+      const startScrollTop = scrollArea?.scrollTop ?? 0
+      let mode: 'unknown' | 'scroll' | 'rotate' = 'unknown'
+      let lastRotateX = startX
+
+      const onMove = (move: MouseEvent) => {
+        const deltaX = move.clientX - startX
+        const deltaY = move.clientY - startY
+        if (mode === 'unknown') {
+          const absX = Math.abs(deltaX)
+          const absY = Math.abs(deltaY)
+          if (absX < AXIS_LOCK_PX && absY < AXIS_LOCK_PX) {
+            return
+          }
+          mode = absY > absX ? 'scroll' : 'rotate'
+          lastRotateX = move.clientX
+        }
+        if (mode === 'scroll' && scrollArea) {
+          // Pulling the image down should move the content downward under
+          // the pointer — i.e. scroll the viewport *upward*. scrollTop
+          // decreases as deltaY grows.
+          scrollArea.scrollTop = startScrollTop - deltaY
+        } else if (mode === 'rotate') {
+          const rotateDelta = move.clientX - lastRotateX
+          if (Math.abs(rotateDelta) >= ROTATE_STEP_PX) {
+            if (rotateDelta > 0) {
+              rotateRight()
+            } else {
+              rotateLeft()
+            }
+            lastRotateX = move.clientX
+          }
+        }
+      }
+      const onUp = () => {
+        window.removeEventListener('mousemove', onMove)
+        window.removeEventListener('mouseup', onUp)
+      }
+      window.addEventListener('mousemove', onMove)
+      window.addEventListener('mouseup', onUp)
+    },
+    [rotateLeft, rotateRight],
   )
 
   const css = useCss((_theme) => ({
@@ -117,15 +181,9 @@ export function ZoomModal({ frameUrls, selectedFrameIndex, setSelectedFrameIndex
 
   return (
     <div css={css.backdrop}>
-      <div css={css.scrollArea}>
+      <div ref={scrollAreaRef} css={css.scrollArea}>
         <div css={css.imageWrap}>
-          <img
-            src={imageUrl}
-            css={css.image}
-            alt=""
-            onMouseDown={handleMouseDragStart}
-            onTouchStart={handleTouchDragStart}
-          />
+          <img src={imageUrl} css={css.image} alt="" onMouseDown={handleImageMouseDown} />
         </div>
       </div>
       <div css={{ ...css.chevron, ...css.chevronLeft }} onClick={rotateLeft}>
