@@ -242,17 +242,20 @@ function DesktopAccordionItem({
       width: '100%',
       marginTop: '8px',
     },
+    // 14px on these three text lines matches quick-view's fit-box (which
+    // relies on Text's base-variant default — 14px). Same look across both
+    // overlays.
     recommendedSize: {
-      fontSize: '13px',
+      fontSize: '14px',
       fontWeight: '600',
       lineHeight: 'normal',
     },
     selectPrompt: {
-      fontSize: '12px',
+      fontSize: '14px',
       lineHeight: 'normal',
     },
     fitText: {
-      fontSize: '12px',
+      fontSize: '14px',
       lineHeight: 'normal',
       // Tight 8px lift to the recommended-size line above; matches
       // quick-view's `itemFitContainer` marginTop.
