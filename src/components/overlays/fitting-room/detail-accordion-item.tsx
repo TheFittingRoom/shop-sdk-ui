@@ -242,21 +242,25 @@ function DesktopAccordionItem({
       width: '100%',
       marginTop: '8px',
     },
-    // 14px on these three text lines matches quick-view's fit-box (which
-    // relies on Text's base-variant default — 14px). Same look across both
-    // overlays.
+    // 14px / line-height 1.5 on these three text lines matches quick-view's
+    // fit-box. Quick-view's first line wraps an InfoIcon button alongside
+    // the recommended-size text, which stretches that line vertically; the
+    // simpler line-height bump here matches the *visual* line spacing
+    // without dragging the icon in. The two lines below it inherit
+    // line-height from their containers in quick-view, which the host page's
+    // body styles tend to set looser than Inter's intrinsic `normal` (~1.21).
     recommendedSize: {
       fontSize: '14px',
       fontWeight: '600',
-      lineHeight: 'normal',
+      lineHeight: 1.5,
     },
     selectPrompt: {
       fontSize: '14px',
-      lineHeight: 'normal',
+      lineHeight: 1.5,
     },
     fitText: {
       fontSize: '14px',
-      lineHeight: 'normal',
+      lineHeight: 1.5,
       // Tight 8px lift to the recommended-size line above; matches
       // quick-view's `itemFitContainer` marginTop.
       marginTop: '8px',
