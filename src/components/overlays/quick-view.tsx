@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { AvatarFrameViewer } from '@/components/avatar-frame-viewer'
 import { Button } from '@/components/button'
+import { ColorSelector } from '@/components/color-selector'
 import { FitChart } from '@/components/content/fit-chart'
 import { Loading } from '@/components/content/loading'
 import { ItemFitDetails } from '@/components/item-fit-details'
@@ -28,6 +29,7 @@ import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import type { VtoProductData, VtoSizeColorData, VtoSizeData } from '@/lib/product'
 import { loadProductDataToStore } from '@/lib/product'
+import { loadStyleCategoryIndex } from '@/lib/style-categories'
 import { getStaticData, useMainStore } from '@/lib/store'
 import type { CssProp, StyleProp } from '@/lib/theme'
 import { getThemeData, useCss } from '@/lib/theme'
@@ -106,8 +108,13 @@ export default function QuickViewOverlay() {
         // Get user selections from page
         const { color: selectedColor } = await currentProduct.getSelectedOptions()
 
-        // Assemble vto product data
-        const styleCategoryLabel = storeProduct.style.style_category_label || null
+        // Assemble vto product data. The product-summary row shows the
+        // style-category *group* label (e.g. "Top"), not the per-category
+        // label — match the Figma. We resolve the group via the cached
+        // style-category index; loadStyleCategoryIndex is idempotent + cached.
+        const styleCategoryIndex = await loadStyleCategoryIndex()
+        const styleCategoryGroup = styleCategoryIndex.groupForCategory(storeProduct.style.style_category_name)
+        const styleCategoryLabel = styleCategoryGroup?.label ?? null
         const sizeRecommendationRecord = storeProduct.sizeFitRecommendation
         {
           const recommendedSizeId = sizeRecommendationRecord.recommended_size.id || null
@@ -1326,50 +1333,6 @@ function ProductSummaryRow({ loadedProductData }: ProductSummaryRowProps) {
           {loadedProductData.productName}
         </Text>
       </div>
-    </div>
-  )
-}
-
-interface ColorSelectorProps {
-  availableColorLabels: string[]
-  selectedColorLabel: string | null
-  onChangeColor: (newColorLabel: string | null) => void
-}
-
-function ColorSelector({ availableColorLabels, selectedColorLabel, onChangeColor }: ColorSelectorProps) {
-  const css = useCss((theme) => ({
-    colorContainer: {},
-    colorLabelText: {
-      fontSize: '12px',
-    },
-    colorSelect: {
-      border: 'none',
-      color: theme.color_fg_text,
-      fontFamily: theme.font_family,
-      fontSize: '12px',
-    },
-  }))
-
-  const handleColorSelectChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newColorLabel = e.target.value || null
-    onChangeColor(newColorLabel)
-  }, [])
-
-  if (availableColorLabels.length < 2) {
-    return null
-  }
-  return (
-    <div css={css.colorContainer}>
-      <label>
-        <TextT variant="base" css={css.colorLabelText} t="quick-view.color_label" />
-        <select value={selectedColorLabel ?? ''} onChange={handleColorSelectChange} css={css.colorSelect}>
-          {availableColorLabels.map((colorLabel) => (
-            <option key={colorLabel} value={colorLabel}>
-              {colorLabel}
-            </option>
-          ))}
-        </select>
-      </label>
     </div>
   )
 }

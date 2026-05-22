@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { Button } from '@/components/button'
+import { ColorSelector } from '@/components/color-selector'
 import { ItemFitDetails } from '@/components/item-fit-details'
 import { ItemFitText } from '@/components/item-fit-text'
 import { LinkT } from '@/components/link'
@@ -29,6 +30,7 @@ interface DetailAccordionItemProps {
   onToggleOpen: () => void
   onChangeDetailMode: (mode: DetailMode) => void
   onChangeSize: (sizeLabel: string) => void
+  onChangeColor: (colorLabel: string | null) => void
   onAddToCart: () => void
   onToggleUntuck: () => void
 }
@@ -44,6 +46,7 @@ export function DetailAccordionItem({
   onToggleOpen,
   onChangeDetailMode,
   onChangeSize,
+  onChangeColor,
   onAddToCart,
   onToggleUntuck,
 }: DetailAccordionItemProps) {
@@ -83,6 +86,19 @@ export function DetailAccordionItem({
     return null
   }, [productData, item.storage.colorwaySizeAssetId])
 
+  // Available colours for the currently-selected size. Drives the colour
+  // dropdown; ColorSelector hides itself when there are fewer than two.
+  const availableColorLabels = useMemo<string[]>(() => {
+    if (!productData || !selectedSizeLabel) {
+      return []
+    }
+    const sizeRec = productData.sizes.find((s) => s.sizeLabel === selectedSizeLabel)
+    if (!sizeRec) {
+      return []
+    }
+    return sizeRec.colors.map((c) => c.colorLabel).filter((label): label is string => !!label)
+  }, [productData, selectedSizeLabel])
+
   const categoryLabel = item.styleCategory?.label_singular ?? item.styleCategory?.label ?? ''
   const productName = item.merchantProduct?.productName ?? item.externalId
   // Mobile tuck CTA shows only when this item is tuckable AND the outfit has
@@ -97,8 +113,11 @@ export function DetailAccordionItem({
         productData={productData}
         currentPrice={currentPrice}
         selectedSizeLabel={selectedSizeLabel}
+        availableColorLabels={availableColorLabels}
+        selectedColorLabel={item.storage.color}
         onToggleOpen={onToggleOpen}
         onChangeSize={onChangeSize}
+        onChangeColor={onChangeColor}
         onAddToCart={onAddToCart}
       />
     )
@@ -111,6 +130,8 @@ export function DetailAccordionItem({
       productName={productName}
       productData={productData}
       selectedSizeLabel={selectedSizeLabel}
+      availableColorLabels={availableColorLabels}
+      selectedColorLabel={item.storage.color}
       currentPrice={currentPrice}
       detailMode={detailMode}
       isMobileQuickRow={isMobileQuickRow}
@@ -119,6 +140,7 @@ export function DetailAccordionItem({
       onToggleOpen={onToggleOpen}
       onChangeDetailMode={onChangeDetailMode}
       onChangeSize={onChangeSize}
+      onChangeColor={onChangeColor}
       onAddToCart={onAddToCart}
       onToggleUntuck={onToggleUntuck}
     />
@@ -131,8 +153,11 @@ interface DesktopProps {
   productData: VtoProductData | null
   currentPrice: string | null
   selectedSizeLabel: string | null
+  availableColorLabels: string[]
+  selectedColorLabel: string | null
   onToggleOpen: () => void
   onChangeSize: (sizeLabel: string) => void
+  onChangeColor: (colorLabel: string | null) => void
   onAddToCart: () => void
 }
 
@@ -142,8 +167,11 @@ function DesktopAccordionItem({
   productData,
   currentPrice,
   selectedSizeLabel,
+  availableColorLabels,
+  selectedColorLabel,
   onToggleOpen,
   onChangeSize,
+  onChangeColor,
   onAddToCart,
 }: DesktopProps) {
   // Subtle neutral grey used both as the accordion header background and as
@@ -193,35 +221,60 @@ function DesktopAccordionItem({
     price: {
       fontSize: '15px',
     },
+    // Padding matches quick-view's sizeRecommendationFrame (32px / 56px) so
+    // the "fit box" feels visually consistent between the two overlays.
+    //
+    // No flex `gap` — the three text lines (recommended size, fit text,
+    // select-a-size prompt) sit tight against each other (matching
+    // quick-view), with explicit marginTop on the size selector + fit
+    // details below them to introduce the larger break.
     sizeBox: {
       width: '100%',
       border: `1px solid ${theme.color_fg_text}`,
-      padding: '20px 24px',
+      padding: '32px 56px',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      gap: '12px',
       marginTop: '8px',
       textAlign: 'center',
     },
+    colorSelectorContainer: {
+      width: '100%',
+      marginTop: '8px',
+    },
+    // 14px / line-height 1.5 on these three text lines matches quick-view's
+    // fit-box. Quick-view's first line wraps an InfoIcon button alongside
+    // the recommended-size text, which stretches that line vertically; the
+    // simpler line-height bump here matches the *visual* line spacing
+    // without dragging the icon in. The two lines below it inherit
+    // line-height from their containers in quick-view, which the host page's
+    // body styles tend to set looser than Inter's intrinsic `normal` (~1.21).
     recommendedSize: {
-      fontSize: '13px',
+      fontSize: '14px',
       fontWeight: '600',
+      lineHeight: 1.5,
     },
     selectPrompt: {
-      fontSize: '12px',
+      fontSize: '14px',
+      lineHeight: 1.5,
     },
     fitText: {
-      fontSize: '12px',
+      fontSize: '14px',
+      lineHeight: 1.5,
+      // Tight 8px lift to the recommended-size line above; matches
+      // quick-view's `itemFitContainer` marginTop.
+      marginTop: '8px',
     },
     fitDetails: {
       width: '100%',
+      marginTop: '24px',
     },
     sizeRow: {
       display: 'flex',
       gap: '8px',
       alignItems: 'center',
       justifyContent: 'center',
+      marginTop: '24px',
     },
     cartContainer: {
       width: '100%',
@@ -257,6 +310,13 @@ function DesktopAccordionItem({
                   {currentPrice}
                 </Text>
               ) : null}
+              <div css={css.colorSelectorContainer}>
+                <ColorSelector
+                  availableColorLabels={availableColorLabels}
+                  selectedColorLabel={selectedColorLabel}
+                  onChangeColor={onChangeColor}
+                />
+              </div>
               <div css={css.sizeBox}>
                 <Text variant="base" css={css.recommendedSize}>
                   Recommended Size: {productData.recommendedSizeLabel}
@@ -296,6 +356,8 @@ interface MobileProps {
   productName: string
   productData: VtoProductData | null
   selectedSizeLabel: string | null
+  availableColorLabels: string[]
+  selectedColorLabel: string | null
   currentPrice: string | null
   detailMode: DetailMode
   isMobileQuickRow: boolean
@@ -304,6 +366,7 @@ interface MobileProps {
   onToggleOpen: () => void
   onChangeDetailMode: (mode: DetailMode) => void
   onChangeSize: (sizeLabel: string) => void
+  onChangeColor: (colorLabel: string | null) => void
   onAddToCart: () => void
   onToggleUntuck: () => void
 }
@@ -314,6 +377,8 @@ function MobileAccordionItem({
   productName,
   productData,
   selectedSizeLabel,
+  availableColorLabels,
+  selectedColorLabel,
   currentPrice,
   detailMode,
   isMobileQuickRow,
@@ -322,6 +387,7 @@ function MobileAccordionItem({
   onToggleOpen,
   onChangeDetailMode,
   onChangeSize,
+  onChangeColor,
   onAddToCart,
   onToggleUntuck,
 }: MobileProps) {
@@ -496,6 +562,11 @@ function MobileAccordionItem({
                     onChangeSize={onChangeSize}
                   />
                 </div>
+                <ColorSelector
+                  availableColorLabels={availableColorLabels}
+                  selectedColorLabel={selectedColorLabel}
+                  onChangeColor={onChangeColor}
+                />
                 <ItemFitText loadedProductData={productData} />
                 <div css={css.fitDetailsContainer}>
                   <ItemFitDetails loadedProductData={productData} selectedSizeLabel={selectedSizeLabel} />

@@ -40,6 +40,7 @@ interface MobileLayoutProps {
   onOpenAccordionItem: (externalId: string | null) => void
   onChangeDetailMode: (mode: DetailMode) => void
   onChangeSize: (externalId: string, sizeLabel: string) => void
+  onChangeColor: (externalId: string, colorLabel: string | null) => void
   onAddToCart: (externalId: string) => void
   onToggleUntuck: () => void
 }
@@ -66,6 +67,7 @@ export function MobileLayout({
   onOpenAccordionItem,
   onChangeDetailMode,
   onChangeSize,
+  onChangeColor,
   onAddToCart,
   onToggleUntuck,
 }: MobileLayoutProps) {
@@ -95,6 +97,7 @@ export function MobileLayout({
       onOpenAccordionItem={onOpenAccordionItem}
       onChangeDetailMode={onChangeDetailMode}
       onChangeSize={onChangeSize}
+      onChangeColor={onChangeColor}
       onAddToCart={onAddToCart}
       onToggleUntuck={onToggleUntuck}
     />
@@ -242,6 +245,7 @@ function TryOnView({
   onOpenAccordionItem,
   onChangeDetailMode,
   onChangeSize,
+  onChangeColor,
   onAddToCart,
   onToggleUntuck,
 }: {
@@ -257,6 +261,7 @@ function TryOnView({
   onOpenAccordionItem: (externalId: string | null) => void
   onChangeDetailMode: (mode: DetailMode) => void
   onChangeSize: (externalId: string, sizeLabel: string) => void
+  onChangeColor: (externalId: string, colorLabel: string | null) => void
   onAddToCart: (externalId: string) => void
   onToggleUntuck: () => void
 }) {
@@ -387,6 +392,7 @@ function TryOnView({
                 onOpenItem={onOpenAccordionItem}
                 onChangeDetailMode={onChangeDetailMode}
                 onChangeSize={onChangeSize}
+                onChangeColor={onChangeColor}
                 onAddToCart={onAddToCart}
                 onToggleUntuck={onToggleUntuck}
               />

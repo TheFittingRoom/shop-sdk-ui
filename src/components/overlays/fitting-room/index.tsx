@@ -237,6 +237,31 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
     [resolved.items, updateFittingRoomItem],
   )
 
+  // Mirror handleChangeSize but vary the colour for the currently-stored size.
+  // Resolves to a CSA via findCsaByLabel and writes the new size/color/csaId.
+  const handleChangeColor = useCallback(
+    (externalId: string, colorLabel: string | null) => {
+      const item = resolved.items.find((i) => i.externalId === externalId)
+      if (!item || !item.storage.size) {
+        return
+      }
+      const productData = buildVtoProductDataFromResolved(item)
+      if (!productData) {
+        return
+      }
+      const csa = findCsaByLabel(productData, item.storage.size, colorLabel)
+      if (!csa) {
+        return
+      }
+      updateFittingRoomItem(externalId, {
+        colorwaySizeAssetId: csa.colorwaySizeAssetId,
+        size: item.storage.size,
+        color: csa.colorLabel,
+      })
+    },
+    [resolved.items, updateFittingRoomItem],
+  )
+
   // Wire to the merchant's addToCart callback (StaticData) when configured.
   // The fitting-room may add ANY item, not just currentProduct — so we use the
   // top-level `addToCart` callback rather than `currentProduct.addToCart`.
@@ -504,6 +529,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             onOpenAccordionItem={setOpenAccordionItemId}
             onChangeDetailMode={setDetailMode}
             onChangeSize={handleChangeSize}
+            onChangeColor={handleChangeColor}
             onAddToCart={handleAddToCart}
             onToggleUntuck={handleToggleUntuck}
           />
@@ -522,6 +548,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             onOpenAccordionItem={setOpenAccordionItemId}
             onChangeDetailMode={setDetailMode}
             onChangeSize={handleChangeSize}
+            onChangeColor={handleChangeColor}
             onAddToCart={handleAddToCart}
             onToggleUntuck={handleToggleUntuck}
             onSignOut={handleSignOut}
