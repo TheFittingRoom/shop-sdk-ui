@@ -109,12 +109,14 @@ export default function QuickViewOverlay() {
         const { color: selectedColor } = await currentProduct.getSelectedOptions()
 
         // Assemble vto product data. The product-summary row shows the
-        // style-category *group* label (e.g. "Top"), not the per-category
-        // label — match the Figma. We resolve the group via the cached
-        // style-category index; loadStyleCategoryIndex is idempotent + cached.
+        // per-category *singular* label (e.g. "Top"), matching what the
+        // fitting-room accordion header uses. The style-category group's
+        // label is plural ("Tops") and lacks a singular form, so we go
+        // through `byName` for the StyleCategory itself, which carries
+        // `label_singular`.
         const styleCategoryIndex = await loadStyleCategoryIndex()
-        const styleCategoryGroup = styleCategoryIndex.groupForCategory(storeProduct.style.style_category_name)
-        const styleCategoryLabel = styleCategoryGroup?.label ?? null
+        const styleCategoryRecord = styleCategoryIndex.byName(storeProduct.style.style_category_name)
+        const styleCategoryLabel = styleCategoryRecord?.label_singular ?? styleCategoryRecord?.label ?? null
         const sizeRecommendationRecord = storeProduct.sizeFitRecommendation
         {
           const recommendedSizeId = sizeRecommendationRecord.recommended_size.id || null
@@ -948,7 +950,9 @@ function DesktopLayout({
     },
     productNameContainer: {},
     productNameText: {
+      fontFamily: "'Inter', sans-serif",
       fontSize: '32px',
+      fontWeight: 300,
     },
     priceContainer: {
       marginTop: '8px',
@@ -982,17 +986,27 @@ function DesktopLayout({
       marginTop: '8px',
       lineHeight: 'normal',
     },
-    itemFitText: {},
+    itemFitText: {
+      fontFamily: "'Inter', sans-serif",
+      fontWeight: 300,
+    },
     selectSizeLabelContainer: {
       lineHeight: 'normal',
     },
-    selectSizeLabelText: {},
+    selectSizeLabelText: {
+      fontFamily: "'Inter', sans-serif",
+      fontWeight: 300,
+    },
     sizeSelectorContainer: {
       marginTop: '24px',
     },
     itemFitDetailsContainer: {
       marginTop: '24px',
       width: '100%',
+      // Cascades into <ItemFitDetails>; the bold recommended-size line above
+      // and the size-selector buttons stay at their own weights.
+      fontFamily: "'Inter', sans-serif",
+      fontWeight: 300,
     },
     fitChartContainer: {
       marginTop: '16px',
@@ -1314,10 +1328,14 @@ function ProductSummaryRow({ loadedProductData }: ProductSummaryRowProps) {
     },
     labelContainer: {},
     labelText: {
+      fontFamily: "'Times New Roman', serif",
+      fontSize: '16px',
       color: '#1A1A1A',
     },
     nameContainer: {},
     nameText: {
+      fontFamily: "'Times New Roman', serif",
+      fontSize: '16px',
       color: '#9F9F9F',
     },
   }))
