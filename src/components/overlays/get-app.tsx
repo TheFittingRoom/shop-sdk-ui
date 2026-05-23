@@ -56,7 +56,7 @@ export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverl
 
   const handleSignInClick = useCallback(() => {
     openOverlay(OverlayName.SIGN_IN, { returnToOverlay })
-  }, [returnToOverlay])
+  }, [openOverlay, returnToOverlay])
   const handleGetAppAppleClick = useCallback(() => {
     const url = getStaticData().config.links.appAppleStoreUrl
     window.open(url, '_blank')

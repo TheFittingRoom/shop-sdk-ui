@@ -43,6 +43,10 @@ export { keyframes }
 // frozen. Closures over component state or props won't update. For style
 // values that need to react to state (e.g. dynamic grid template), apply
 // them via inline `style` instead of routing through useCss.
+/* eslint-disable react-hooks/exhaustive-deps -- both functions intentionally
+   memoize once on mount; the callback identity is ignored on purpose so that
+   `useCss((theme) => ({...}))` doesn't re-run every render. See useCss
+   docstring above. Reactive style values must use inline `style` instead. */
 export function useCss<T extends Record<string, CssProp>>(callback: (themeData: ThemeData) => T): T {
   return useMemo(() => callback(themeData), [])
 }
@@ -56,3 +60,4 @@ export function useVariantCss<T extends string, U extends Record<T, CssProp> = R
     return variants[variant]
   }, [variant])
 }
+/* eslint-enable react-hooks/exhaustive-deps */

@@ -299,7 +299,7 @@ export default function QuickViewOverlay() {
     authManager.logout().catch((error) => {
       logger.logError('Error during logout:', { error })
     })
-  }, [closeOverlay, openOverlay])
+  }, [closeOverlay])
   const handleAddToCartClick = useCallback(async () => {
     try {
       if (!selectedSizeLabel) {
@@ -315,7 +315,7 @@ export default function QuickViewOverlay() {
     } catch (error) {
       logger.logError('Error adding to cart:', { error })
     }
-  }, [selectedColorLabel, selectedSizeLabel])
+  }, [closeOverlay, selectedColorLabel, selectedSizeLabel])
 
   // RENDERING:
 
@@ -1259,7 +1259,7 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
     return () => {
       window.removeEventListener('resize', refreshLayoutData)
     }
-  }, [isMobileLayout])
+  }, [isMobileLayout, setModalStyle])
 
   // RENDERING:
 

@@ -59,7 +59,7 @@ export function ItemFitDetails({ loadedProductData, selectedSizeLabel }: ItemFit
         </div>
       )
     })
-  }, [loadedProductData, selectedSizeLabel])
+  }, [loadedProductData, selectedSizeLabel, t, css.detailCell, css.firstLine, css.line])
 
   return <div css={css.container}>{fitLineNodeList}</div>
 }

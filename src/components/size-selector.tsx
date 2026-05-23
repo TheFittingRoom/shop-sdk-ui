@@ -47,7 +47,7 @@ export function SizeSelector({ loadedProductData, selectedSizeLabel, onChangeSiz
           </Button>
         )
       }),
-    [loadedProductData.sizes, selectedSizeLabel, onChangeSize],
+    [loadedProductData.sizes, selectedSizeLabel, onChangeSize, css.button, css.selectedButton],
   )
   return <div css={css.container}>{sizeSelectorNodeList}</div>
 }
