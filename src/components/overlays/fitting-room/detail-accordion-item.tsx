@@ -195,8 +195,9 @@ function DesktopAccordionItem({
     },
     categoryLabel: {
       fontFamily: "'Times New Roman', serif",
-      fontSize: '16px',
+      fontSize: '20px',
       fontWeight: '400',
+      letterSpacing: '0.04em',
     },
     chevron: {
       display: 'inline-flex',
@@ -426,11 +427,13 @@ function MobileAccordionItem({
       fontFamily: "'Times New Roman', serif",
       fontSize: '15px',
       fontWeight: '400',
+      letterSpacing: '0.04em',
       flex: 'none',
     },
     productName: {
       fontFamily: "'Times New Roman', serif",
       fontSize: '15px',
+      letterSpacing: '0.04em',
       color: '#8A8A8A',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
