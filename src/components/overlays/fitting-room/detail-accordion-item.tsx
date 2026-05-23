@@ -194,6 +194,7 @@ function DesktopAccordionItem({
       backgroundColor: ACCORDION_SHADE,
     },
     categoryLabel: {
+      fontFamily: "'Times New Roman', serif",
       fontSize: '16px',
       fontWeight: '400',
     },
@@ -422,11 +423,13 @@ function MobileAccordionItem({
       minWidth: 0,
     },
     categoryLabel: {
+      fontFamily: "'Times New Roman', serif",
       fontSize: '15px',
       fontWeight: '400',
       flex: 'none',
     },
     productName: {
+      fontFamily: "'Times New Roman', serif",
       fontSize: '15px',
       color: '#8A8A8A',
       overflow: 'hidden',
