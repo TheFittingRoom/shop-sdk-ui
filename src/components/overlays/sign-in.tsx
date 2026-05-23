@@ -126,10 +126,10 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
   )
   const handleForgotPasswordClick = useCallback(() => {
     openOverlay(OverlayName.FORGOT_PASSWORD, { returnToOverlay })
-  }, [returnToOverlay])
+  }, [openOverlay, returnToOverlay])
   const handleGetAppClick = useCallback(() => {
     openOverlay(OverlayName.GET_APP, { returnToOverlay })
-  }, [returnToOverlay])
+  }, [openOverlay, returnToOverlay])
 
   return (
     <ContentModal onRequestClose={closeOverlay} title={<TfrTitle />}>

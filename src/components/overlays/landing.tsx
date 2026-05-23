@@ -47,10 +47,10 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
 
   const handleGetAppClick = useCallback(() => {
     openOverlay(OverlayName.GET_APP, { returnToOverlay })
-  }, [returnToOverlay])
+  }, [openOverlay, returnToOverlay])
   const handleSignInClick = useCallback(() => {
     openOverlay(OverlayName.SIGN_IN, { returnToOverlay })
-  }, [returnToOverlay])
+  }, [openOverlay, returnToOverlay])
 
   return (
     <ContentModal onRequestClose={closeOverlay} title={<TextT variant="brand" css={css.titleText} t="try_it_on" />}>

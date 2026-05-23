@@ -194,8 +194,10 @@ function DesktopAccordionItem({
       backgroundColor: ACCORDION_SHADE,
     },
     categoryLabel: {
-      fontSize: '16px',
+      fontFamily: "'Times New Roman', serif",
+      fontSize: '20px',
       fontWeight: '400',
+      letterSpacing: '0.04em',
     },
     chevron: {
       display: 'inline-flex',
@@ -216,6 +218,7 @@ function DesktopAccordionItem({
     },
     productName: {
       fontSize: '24px',
+      fontWeight: '300',
       lineHeight: '1.2',
     },
     price: {
@@ -256,10 +259,12 @@ function DesktopAccordionItem({
     },
     selectPrompt: {
       fontSize: '14px',
+      fontWeight: '300',
       lineHeight: 1.5,
     },
     fitText: {
       fontSize: '14px',
+      fontWeight: '300',
       lineHeight: 1.5,
       // Tight 8px lift to the recommended-size line above; matches
       // quick-view's `itemFitContainer` marginTop.
@@ -267,6 +272,10 @@ function DesktopAccordionItem({
     },
     fitDetails: {
       width: '100%',
+      // Cascades to the text inside <ItemFitDetails>; the size-selector
+      // buttons and the bold recommended-size line above stay at their
+      // own weights.
+      fontWeight: 300,
       marginTop: '24px',
     },
     sizeRow: {
@@ -422,12 +431,16 @@ function MobileAccordionItem({
       minWidth: 0,
     },
     categoryLabel: {
-      fontSize: '15px',
+      fontFamily: "'Times New Roman', serif",
+      fontSize: '16px',
       fontWeight: '400',
+      letterSpacing: '0.04em',
       flex: 'none',
     },
     productName: {
-      fontSize: '15px',
+      fontFamily: "'Times New Roman', serif",
+      fontSize: '16px',
+      letterSpacing: '0.04em',
       color: '#8A8A8A',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
