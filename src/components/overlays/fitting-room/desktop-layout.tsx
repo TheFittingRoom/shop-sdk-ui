@@ -37,6 +37,7 @@ interface DesktopLayoutProps {
   // The outfit has something to tuck into — computed in FittingRoomOverlay.
   canTuck: boolean
   frameUrls: string[] | null
+  autoRotateTrigger: number | undefined
   onSelectItem: (externalId: string) => void
   onRemoveItem: (externalId: string) => void
   onOpenAccordionItem: (externalId: string | null) => void
@@ -59,6 +60,7 @@ export function DesktopLayout({
   forceUntuck,
   canTuck,
   frameUrls,
+  autoRotateTrigger,
   onSelectItem,
   onRemoveItem,
   onOpenAccordionItem,
@@ -205,6 +207,7 @@ export function DesktopLayout({
           controls={controls}
           selectedFrameIndex={selectedFrameIndex}
           setSelectedFrameIndex={setSelectedFrameIndex}
+          autoRotateTrigger={autoRotateTrigger}
         />
       </div>
       {hasSelection ? (

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { AvatarFrameViewer } from '@/components/avatar-frame-viewer'
+import { useAutoRotate } from '@/components/use-auto-rotate'
 import { Button } from '@/components/button'
 import { ColorSelector } from '@/components/color-selector'
 import { FitChart } from '@/components/content/fit-chart'
@@ -1163,6 +1164,10 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
   })
   const [selectedFrameIndex, setSelectedFrameIndex] = useState<number | null>(null)
   const [zoomOpen, setZoomOpen] = useState<boolean>(false)
+  // Quick-view is a single-product VTO — only "add" is the initial load, so a
+  // constant trigger fires the auto-rotate exactly once per Avatar mount and
+  // never re-fires (size/color changes don't bump it).
+  const cancelAutoRotate = useAutoRotate(1, frameUrls, setSelectedFrameIndex)
   const css = useCss((theme) => ({
     topContainer: {
       flex: 'none',
@@ -1323,6 +1328,7 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
         imageContainerStyle={layoutData.imageContainerStyle}
         imageStyle={layoutData.imageStyle}
         loadingT="quick-view.avatar_loading"
+        onUserInteract={cancelAutoRotate}
       />
       {isReady && !isMobileLayout ? (
         <Button variant="base" css={css.zoomPill} onClick={() => setZoomOpen(true)}>

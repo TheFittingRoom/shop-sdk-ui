@@ -30,29 +30,38 @@ export function applyDragSteps(deltaX: number, rotateLeft: () => void, rotateRig
 // frame carousel (avatar frame viewer, zoom modal). The caller owns the
 // selected-index state; this hook only steps it. rotateLeft/rotateRight wrap
 // around and no-op while the index is still null (frames not ready).
+//
+// `onUserInteract` (optional) is called whenever a user-driven action (chevron
+// tap, drag start, drag step) advances the frame. Used by the AvatarFrameViewer
+// surface to cancel an in-flight auto-rotate animation as soon as the user
+// takes manual control. Pure rotateLeft/rotateRight callers (e.g. zoom modal
+// chevrons) can omit it.
 export function useFrameRotation(
   frameUrls: string[] | null,
   setSelectedFrameIndex: Dispatch<SetStateAction<number | null>>,
+  onUserInteract?: () => void,
 ) {
   const frameCount = frameUrls?.length ?? 0
 
   const rotateLeft = useCallback(() => {
+    onUserInteract?.()
     setSelectedFrameIndex((prev) => {
       if (prev == null || frameCount === 0) {
         return prev
       }
       return prev === 0 ? frameCount - 1 : prev - 1
     })
-  }, [frameCount, setSelectedFrameIndex])
+  }, [frameCount, onUserInteract, setSelectedFrameIndex])
 
   const rotateRight = useCallback(() => {
+    onUserInteract?.()
     setSelectedFrameIndex((prev) => {
       if (prev == null || frameCount === 0) {
         return prev
       }
       return prev === frameCount - 1 ? 0 : prev + 1
     })
-  }, [frameCount, setSelectedFrameIndex])
+  }, [frameCount, onUserInteract, setSelectedFrameIndex])
 
   const handleMouseDragStart = useCallback(
     (e: ReactMouseEvent) => {

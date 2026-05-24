@@ -71,6 +71,11 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
 
   const [topOffset, setTopOffset] = useState<number>(0)
   const [selectedExternalIds, setSelectedExternalIds] = useState<Set<string>>(() => new Set())
+  // Bumped each time a product is added to the outfit (in handleSelectItem's
+  // add branch). The AvatarPane → useAutoRotate hook plays one full rotation
+  // each time this number changes. Undefined while dormant so the bare-
+  // avatar baseline doesn't auto-rotate before any add has happened.
+  const [autoRotateTrigger, setAutoRotateTrigger] = useState<number | undefined>(undefined)
   const [openAccordionItemId, setOpenAccordionItemId] = useState<string | null>(null)
   const [detailMode, setDetailMode] = useState<DetailMode>('compact')
   const [forceUntuck, setForceUntuck] = useState<boolean>(false)
@@ -204,6 +209,11 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
         nextSelected.add(externalId)
         ensureSizeForItem(item)
         setLastAddedExternalId(externalId)
+        // Trigger a one-shot auto-rotation when the new product's VTO frames
+        // arrive (see useAutoRotate). Size/color changes don't bump this so
+        // they don't fire a rotation; remove + re-add does because each add
+        // increments.
+        setAutoRotateTrigger((n) => (n ?? 0) + 1)
         // Desktop: open accordion to the newly-added item. Mobile: stay in browse.
         if (!isMobileLayout) {
           setOpenAccordionItemId(externalId)
@@ -525,6 +535,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             forceUntuck={forceUntuck}
             canTuck={canTuck}
             frameUrls={frameUrls}
+            autoRotateTrigger={autoRotateTrigger}
             sheetSnap={sheetSnap}
             sheetTouchStart={sheetTouchStart}
             onSelectItem={handleSelectItem}
@@ -548,6 +559,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             forceUntuck={forceUntuck}
             canTuck={canTuck}
             frameUrls={frameUrls}
+            autoRotateTrigger={autoRotateTrigger}
             onSelectItem={handleSelectItem}
             onRemoveItem={handleRemoveItem}
             onOpenAccordionItem={setOpenAccordionItemId}

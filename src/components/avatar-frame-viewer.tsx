@@ -13,6 +13,10 @@ interface AvatarFrameViewerProps {
   imageContainerStyle: StyleProp
   imageStyle: StyleProp
   loadingT?: string
+  // Optional callback fired the moment the user manually moves the frame
+  // (chevron tap or drag). Used by parents that run useAutoRotate to halt
+  // an in-flight rotation as soon as the user takes control.
+  onUserInteract?: () => void
 }
 
 // AvatarFrameViewer renders a single avatar/VTO frame from `frameUrls` with
@@ -27,6 +31,7 @@ export function AvatarFrameViewer({
   imageContainerStyle,
   imageStyle,
   loadingT = 'quick-view.avatar_loading',
+  onUserInteract,
 }: AvatarFrameViewerProps) {
   const css = useCss((_theme) => ({
     imageContainer: {
@@ -66,26 +71,21 @@ export function AvatarFrameViewer({
     },
   }))
 
-  // Auto-rotate avatar on initial frame load
+  // Default to frame 0 when frames first arrive — otherwise the viewer
+  // would sit on the Loading state forever for callers that don't drive
+  // selectedFrameIndex. The auto-rotate animation lives in useAutoRotate
+  // on the parent (Avatar in quick-view, AvatarPane in fitting-room) —
+  // see use-auto-rotate.ts for why it's hosted up there.
   useEffect(() => {
-    if (!frameUrls || frameUrls.length === 0 || selectedFrameIndex != null) {
-      return
+    if (frameUrls && frameUrls.length > 0 && selectedFrameIndex == null) {
+      setSelectedFrameIndex(0)
     }
-    let currentFrameIndex = 0
-    setSelectedFrameIndex(currentFrameIndex)
-    const intervalId = setInterval(() => {
-      currentFrameIndex = (currentFrameIndex + 1) % frameUrls.length
-      setSelectedFrameIndex(currentFrameIndex)
-      if (currentFrameIndex === 0) {
-        clearInterval(intervalId)
-      }
-    }, 500)
-    return () => clearInterval(intervalId)
   }, [frameUrls, selectedFrameIndex, setSelectedFrameIndex])
 
   const { rotateLeft, rotateRight, handleMouseDragStart, handleTouchDragStart } = useFrameRotation(
     frameUrls,
     setSelectedFrameIndex,
+    onUserInteract,
   )
 
   if (!frameUrls || selectedFrameIndex == null) {
