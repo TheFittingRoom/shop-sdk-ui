@@ -12,8 +12,9 @@ const AXIS_LOCK_PX = 8
 // has earned and returns how many pixels were consumed. The caller advances
 // its `startX` by the returned amount so leftover sub-step travel rolls over
 // into the next move event. This is the multi-step fix: a fast swipe of N×
-// DRAG_STEP_PX in a single move event rotates N frames, not 1.
-function applyDragSteps(deltaX: number, rotateLeft: () => void, rotateRight: () => void): number {
+// DRAG_STEP_PX in a single move event rotates N frames, not 1. Exported so
+// the zoom modal's own axis-locking drag handler uses the same step size.
+export function applyDragSteps(deltaX: number, rotateLeft: () => void, rotateRight: () => void): number {
   const steps = Math.floor(Math.abs(deltaX) / DRAG_STEP_PX)
   if (steps === 0) {
     return 0
