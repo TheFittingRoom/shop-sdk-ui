@@ -7,7 +7,7 @@ import { _init as initAsset } from '@/lib/asset'
 import { getConfig, EnvName } from '@/lib/config'
 import { _init as initFirebase, getAuthManager } from '@/lib/firebase'
 import type { TestHooks } from '@/lib/firebase-mock'
-import { _init as initFittingRoom } from '@/lib/fitting-room-storage'
+import { _init as initFittingRoom, syncCurrentProductSelection } from '@/lib/fitting-room-storage'
 import { i18n } from '@/lib/locale'
 import { _init as initLogger, getLogger } from '@/lib/logger'
 import { _init as initProduct } from '@/lib/product'
@@ -173,9 +173,12 @@ export async function logout() {
   logger.logInfo('User logged out')
 }
 
+export { syncCurrentProductSelection }
+
 const TFR = {
   init,
   logout,
+  syncCurrentProductSelection,
 }
 
 export default TFR
