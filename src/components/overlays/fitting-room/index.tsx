@@ -348,15 +348,20 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   }, [openAccordionItemId, selectedExternalIds])
 
   // Preselect the current PDP product when the overlay was opened from the
-  // "Try It On" CTA. The CTA adds the product to the fitting room asynchronously,
-  // so wait until it resolves into `resolved.items`, then run the normal
-  // selection path (auto-size-rec, accordion open) exactly once.
+  // "Try It On" CTA. The CTA adds the product to the fitting room
+  // asynchronously, so wait until both the storage entry AND its backing data
+  // (merchantProduct + loadedProduct) have landed before running the normal
+  // selection path. Without the load-complete gate, ensureSizeForItem fires
+  // too early (buildVtoProductDataFromResolved returns null without
+  // loadedProduct), leaves the new item's CSA as null, and the outfit
+  // builder silently drops it — producing a bare avatar with no VTO.
   const preselectAppliedRef = useRef(false)
   useEffect(() => {
     if (preselectAppliedRef.current || !preselectExternalId) {
       return
     }
-    if (!resolved.items.some((i) => i.externalId === preselectExternalId)) {
+    const item = resolved.items.find((i) => i.externalId === preselectExternalId)
+    if (!item || !item.merchantProduct || !item.loadedProduct) {
       return
     }
     preselectAppliedRef.current = true
