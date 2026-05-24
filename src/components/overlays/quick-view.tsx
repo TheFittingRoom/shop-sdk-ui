@@ -676,13 +676,23 @@ interface MobileContentProps {
   onSignOut: () => void
 }
 
-function MobileContentCollapsed({ loadedProductData, selectedSizeLabel, onChangeSize }: MobileContentProps) {
+function MobileContentCollapsed({
+  loadedProductData,
+  availableColorLabels,
+  selectedColorLabel,
+  selectedSizeLabel,
+  onChangeColor,
+  onChangeSize,
+}: MobileContentProps) {
   const css = useCss((_theme) => ({
     selectSizeLabelContainer: {
       marginTop: '8px',
     },
     selectSizeLabelText: {},
     sizeSelectorContainer: {
+      marginTop: '8px',
+    },
+    colorSelectorContainer: {
       marginTop: '8px',
     },
   }))
@@ -698,14 +708,24 @@ function MobileContentCollapsed({ loadedProductData, selectedSizeLabel, onChange
           onChangeSize={onChangeSize}
         />
       </div>
+      <div css={css.colorSelectorContainer}>
+        <ColorSelector
+          availableColorLabels={availableColorLabels}
+          selectedColorLabel={selectedColorLabel}
+          onChangeColor={onChangeColor}
+        />
+      </div>
     </>
   )
 }
 
 function MobileContentExpanded({
   loadedProductData,
+  availableColorLabels,
+  selectedColorLabel,
   selectedSizeLabel,
   onChangeContentView,
+  onChangeColor,
   onChangeSize,
   onAddToCart,
 }: MobileContentProps) {
@@ -715,6 +735,9 @@ function MobileContentExpanded({
     },
     selectSizeLabelText: {},
     sizeSelectorContainer: {
+      marginTop: '8px',
+    },
+    colorSelectorContainer: {
       marginTop: '8px',
     },
     itemFitTextContainer: {
@@ -755,6 +778,13 @@ function MobileContentExpanded({
           loadedProductData={loadedProductData}
           selectedSizeLabel={selectedSizeLabel}
           onChangeSize={onChangeSize}
+        />
+      </div>
+      <div css={css.colorSelectorContainer}>
+        <ColorSelector
+          availableColorLabels={availableColorLabels}
+          selectedColorLabel={selectedColorLabel}
+          onChangeColor={onChangeColor}
         />
       </div>
       <div css={css.itemFitTextContainer}>
