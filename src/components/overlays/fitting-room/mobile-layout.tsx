@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button, ButtonT } from '@/components/button'
-import { Text } from '@/components/text'
+import { Text, TextT } from '@/components/text'
 import type { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
-import { DragHandleIcon, LeftArrowIcon } from '@/lib/asset'
+import { CloseIcon, DragHandleIcon, LeftArrowIcon, TfrIcon } from '@/lib/asset'
+import { LinkT } from '@/components/link'
 import type { SheetSnap } from '@/lib/use-mobile-sheet-snap'
 import type { StyleProp } from '@/lib/theme'
 import { useCss } from '@/lib/theme'
@@ -44,6 +45,8 @@ interface MobileLayoutProps {
   onChangeColor: (externalId: string, colorLabel: string | null) => void
   onAddToCart: (externalId: string) => void
   onToggleUntuck: () => void
+  onSignOut: () => void
+  onClearAll: () => void
 }
 
 // MobileLayout switches between two view modes inside the same overlay:
@@ -72,6 +75,8 @@ export function MobileLayout({
   onChangeColor,
   onAddToCart,
   onToggleUntuck,
+  onSignOut,
+  onClearAll,
 }: MobileLayoutProps) {
   if (mode === 'browse') {
     return (
@@ -82,6 +87,8 @@ export function MobileLayout({
         onSelectItem={onSelectItem}
         onRemoveItem={onRemoveItem}
         onTryItOn={onTryItOn}
+        onSignOut={onSignOut}
+        onClearAll={onClearAll}
       />
     )
   }
@@ -114,6 +121,8 @@ function BrowseView({
   onSelectItem,
   onRemoveItem,
   onTryItOn,
+  onSignOut,
+  onClearAll,
 }: {
   resolved: ResolvedFittingRoom
   availabilityByExternalId: Record<string, Availability>
@@ -121,6 +130,8 @@ function BrowseView({
   onSelectItem: (externalId: string) => void
   onRemoveItem: (externalId: string) => void
   onTryItOn: () => void
+  onSignOut: () => void
+  onClearAll: () => void
 }) {
   const railsAreaRef = useRef<HTMLDivElement>(null)
   // group name → its wrapper element in the rails scroll area, for the
@@ -170,13 +181,13 @@ function BrowseView({
     container.scrollBy({ top: delta - SECTION_SCROLL_TOP_GAP_PX, behavior: 'smooth' })
   }, [])
 
-  const css = useCss((_theme) => ({
+  const css = useCss((theme) => ({
     container: {
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
       width: '100%',
-      // Positioning context for the floating SectionNav pill.
+      // Positioning context for the floating SectionNav + Clear All pills.
       position: 'relative',
     },
     railsArea: {
@@ -186,6 +197,65 @@ function BrowseView({
       display: 'flex',
       flexDirection: 'column',
       gap: '24px',
+    },
+    // Sign Out lives at the very bottom of the scrollable card list — same
+    // pattern as desktop. Centered icon+link in TFR teal. Scrolls into view
+    // once the shopper reaches the end of their items.
+    signOutWrapper: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px',
+      cursor: 'pointer',
+      color: theme.color_tfr_800,
+      marginTop: '8px',
+    },
+    signOutIcon: {
+      width: '12px',
+      height: '22px',
+      fill: theme.color_tfr_800,
+      flex: 'none',
+    },
+    signOutText: {
+      color: theme.color_tfr_800,
+      fontSize: '14px',
+    },
+    // Clear All — black pill matching the section-menu pill at the top-right.
+    // Positioned absolute over the BrowseView container, in the bottom-right
+    // corner with enough offset to clear the Try It On CTA bar below it.
+    clearAllPill: {
+      position: 'absolute',
+      bottom: '96px',
+      right: '16px',
+      zIndex: 5,
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '6px 16px',
+      borderRadius: '999px',
+      backgroundColor: theme.color_fg_text,
+      color: '#FFFFFF',
+      border: 'none',
+      cursor: 'pointer',
+      fontSize: '13px',
+      fontWeight: '500',
+      letterSpacing: '0.5px',
+      textTransform: 'uppercase',
+      whiteSpace: 'nowrap',
+    },
+    clearAllText: {
+      color: '#FFFFFF',
+    },
+    clearAllIcon: {
+      width: '12px',
+      height: '12px',
+      flex: 'none',
+      // close-icon.svg's <path>s have a hardcoded dark fill, not
+      // currentColor, so we override the descendant fills directly to make
+      // the X show up against the dark pill background.
+      '& path': {
+        fill: '#FFFFFF',
+      },
     },
     bottomBar: {
       flex: 'none',
@@ -222,7 +292,22 @@ function BrowseView({
             />
           </div>
         ))}
+        {/* Bottom of the scrollable card list — same pattern as desktop. */}
+        <span css={css.signOutWrapper} onClick={onSignOut}>
+          <TfrIcon css={css.signOutIcon} />
+          <LinkT variant="underline" css={css.signOutText} t="fitting_room.sign_out" />
+        </span>
       </div>
+      {/* Floating Clear All pill — bottom-right of the BrowseView container,
+          mirrors the SectionNav pill at the top-right. The pill carries the
+          uppercase + font-size styling; the explicit color override on the
+          inner TextT is needed because Text's `base` variant sets its own
+          color (theme.color_fg_text) which would otherwise win over the
+          pill's white. */}
+      <Button variant="base" css={css.clearAllPill} onClick={onClearAll}>
+        <TextT variant="base" css={css.clearAllText} t="fitting_room.clear_all" />
+        <CloseIcon css={css.clearAllIcon} />
+      </Button>
       {/* Hold the CTA back until the card rails have resolved — otherwise it
           briefly renders alone (with an empty rails area collapsed to zero
           height) and floats up to the top of the overlay. */}

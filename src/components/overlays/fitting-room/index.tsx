@@ -563,6 +563,8 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             onChangeColor={handleChangeColor}
             onAddToCart={handleAddToCart}
             onToggleUntuck={handleToggleUntuck}
+            onSignOut={handleSignOut}
+            onClearAll={handleClearAll}
           />
         ) : (
           <DesktopLayout

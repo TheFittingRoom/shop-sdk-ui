@@ -110,8 +110,26 @@ export function ProductCard({ item, availability, onClick, onRemove }: ProductCa
   // default. Falls back through: variant.imageUrl → product.imageUrl, and
   // variant.priceFormatted → variants[0].priceFormatted, so single-colour
   // products and items without per-variant images still render.
+  //
+  // When storage.color is null (catalog-add path — no PDP to read color
+  // from), match the color that ensureSizeForItem will auto-pick on tap:
+  // the recommended size's first CSA. Without this, the card shows the
+  // merchant's featured image (often a different color) and then "jumps"
+  // to the auto-picked color the moment the shopper taps it. If
+  // loadedProduct hasn't landed yet, fall through to the existing
+  // product.imageUrl fallback and let the card re-render once it does.
+  let effectiveColor = item.storage.color
+  if (!effectiveColor && item.loadedProduct) {
+    const sizeRec = item.loadedProduct.sizeFitRecommendation
+    const recommendedSize = sizeRec.available_sizes.find((s) => s.id === sizeRec.recommended_size.id)
+    const firstCsa = recommendedSize?.colorway_size_assets[0]
+    if (firstCsa) {
+      const variant = item.merchantProduct?.variants.find((v) => v.sku === firstCsa.sku)
+      effectiveColor = variant?.color ?? null
+    }
+  }
   const selectedVariant = item.merchantProduct?.variants.find(
-    (v) => v.color === item.storage.color && (!item.storage.size || v.size === item.storage.size),
+    (v) => v.color === effectiveColor && (!item.storage.size || v.size === item.storage.size),
   )
   const imageUrl = selectedVariant?.imageUrl ?? item.merchantProduct?.imageUrl ?? null
   const price = selectedVariant?.priceFormatted ?? item.merchantProduct?.variants[0]?.priceFormatted ?? null
