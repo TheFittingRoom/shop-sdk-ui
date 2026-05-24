@@ -1190,6 +1190,10 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
       letterSpacing: '0.5px',
       textTransform: 'uppercase',
       cursor: 'pointer',
+      // Rapid clicks on the rotation chevrons can otherwise spill a triple-
+      // click selection into this label.
+      userSelect: 'none',
+      WebkitUserSelect: 'none',
       zIndex: 2,
     },
     zoomPillIcon: {
