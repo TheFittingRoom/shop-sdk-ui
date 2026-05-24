@@ -66,6 +66,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   const closeOverlay = useMainStore((state) => state.closeOverlay)
   const openOverlay = useMainStore((state) => state.openOverlay)
   const updateFittingRoomItem = useMainStore((state) => state.updateFittingRoomItem)
+  const removeFromFittingRoom = useMainStore((state) => state.removeFromFittingRoom)
   const resolved = useResolvedFittingRoom()
 
   const [topOffset, setTopOffset] = useState<number>(0)
@@ -308,8 +309,12 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
       if (openAccordionItemId === externalId) {
         setOpenAccordionItemId(null)
       }
+      // Drop the item from persisted storage so the rail card disappears
+      // and the removal survives an overlay reopen / page reload. Without
+      // this the X only deselected the item within the current overlay.
+      removeFromFittingRoom(externalId)
     },
-    [openAccordionItemId],
+    [openAccordionItemId, removeFromFittingRoom],
   )
 
   const handleTryItOn = useCallback(() => {
