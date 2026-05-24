@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef } from 'react'
 // renderer returns. Per-frame tick is derived as duration / frameCount, so a
 // 6-frame product and a 24-frame product both complete in the same wall-clock
 // time (and shorter frame sets just feel less granular).
-const AUTO_ROTATE_DURATION_MS = 6000
+const AUTO_ROTATE_DURATION_MS = 4000
 
 // useAutoRotate plays one full rotation through `frameUrls` (0 → length-1 → 0)
 // each time `trigger` changes from its previous fired value AND frames are
