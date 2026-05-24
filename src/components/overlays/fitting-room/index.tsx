@@ -67,6 +67,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   const openOverlay = useMainStore((state) => state.openOverlay)
   const updateFittingRoomItem = useMainStore((state) => state.updateFittingRoomItem)
   const removeFromFittingRoom = useMainStore((state) => state.removeFromFittingRoom)
+  const clearFittingRoom = useMainStore((state) => state.clearFittingRoom)
   const resolved = useResolvedFittingRoom()
 
   const [topOffset, setTopOffset] = useState<number>(0)
@@ -432,6 +433,15 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
     })
   }, [closeOverlay])
 
+  // Clear All: wipe every entry from fitting-room storage AND reset overlay-
+  // local state (selected set, open accordion) so the UI reflects the empty
+  // room immediately without waiting for the next render-cycle decision.
+  const handleClearAll = useCallback(() => {
+    clearFittingRoom()
+    setSelectedExternalIds(new Set())
+    setOpenAccordionItemId(null)
+  }, [clearFittingRoom])
+
   const handleShopNow = useCallback(() => {
     closeOverlay()
   }, [closeOverlay])
@@ -574,6 +584,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             onAddToCart={handleAddToCart}
             onToggleUntuck={handleToggleUntuck}
             onSignOut={handleSignOut}
+            onClearAll={handleClearAll}
           />
         )}
         {vtoError ? <Snackbar messageKey="fitting_room.vto_error" onDismiss={clearVtoError} /> : null}
