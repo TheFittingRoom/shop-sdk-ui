@@ -951,7 +951,7 @@ function DesktopLayout({
     productNameContainer: {},
     productNameText: {
       fontFamily: "'Inter', sans-serif",
-      fontSize: '32px',
+      fontSize: '24px',
       fontWeight: 300,
     },
     priceContainer: {
