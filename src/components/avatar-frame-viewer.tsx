@@ -105,10 +105,22 @@ export function AvatarFrameViewer({
           selection — otherwise the second/third click in a fast tap-tap-tap
           starts dragging a selection that extends across nearby overlay text
           (the avatar-control pill labels in the same VTO frame). */}
-      <div css={css.chevronLeftContainer} onMouseDown={(e) => e.preventDefault()} onClick={rotateLeft}>
+      <div
+        role="button"
+        aria-label="Rotate left"
+        css={css.chevronLeftContainer}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={rotateLeft}
+      >
         <ChevronLeftIcon css={css.chevronIcon} />
       </div>
-      <div css={css.chevronRightContainer} onMouseDown={(e) => e.preventDefault()} onClick={rotateRight}>
+      <div
+        role="button"
+        aria-label="Rotate right"
+        css={css.chevronRightContainer}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={rotateRight}
+      >
         <ChevronRightIcon css={css.chevronIcon} />
       </div>
     </div>
