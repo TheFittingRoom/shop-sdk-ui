@@ -3,7 +3,7 @@ import type { Config } from '@/lib/config'
 import type { AuthUser, UserProfile } from '@/lib/firebase'
 import type { TestHooks } from '@/lib/firebase-mock'
 import type { FittingRoomItem } from '@/lib/fitting-room-storage'
-import { writeFittingRoom } from '@/lib/fitting-room-storage'
+import { readFittingRoom, writeFittingRoom } from '@/lib/fitting-room-storage'
 import type { LoadedProductData, LoadedProductError } from '@/lib/product'
 import type { OverlayName } from '@/lib/view'
 import { DeviceLayout } from '@/lib/view'
@@ -144,26 +144,37 @@ export const useMainStore = create<MainStoreState>((set) => ({
     })),
 
   // Fitting room:
+  //
+  // Each mutation reads the latest localStorage state before applying the
+  // change, so two tabs adding different products at the same time merge
+  // instead of last-write-wins. The in-memory Zustand value is just a
+  // cache of "what was in localStorage the last time we touched it".
+  // Cross-tab UI freshness (Tab B's open fitting-room sees Tab A's add
+  // without a mutation of its own) is handled by the `storage` event
+  // listener registered in fitting-room-storage.ts::_init.
   fittingRoom: [],
   addToFittingRoom: (item: FittingRoomItem) =>
-    set((prevState) => {
-      const filtered = prevState.fittingRoom.filter((existing) => existing.externalId !== item.externalId)
-      const next = [...filtered, item]
-      writeFittingRoom(getStaticData().brandId, next)
+    set(() => {
+      const brandId = getStaticData().brandId
+      const fresh = readFittingRoom(brandId)
+      const next = [...fresh.filter((existing) => existing.externalId !== item.externalId), item]
+      writeFittingRoom(brandId, next)
       return { fittingRoom: next }
     }),
   removeFromFittingRoom: (externalId: string) =>
-    set((prevState) => {
-      const next = prevState.fittingRoom.filter((existing) => existing.externalId !== externalId)
-      writeFittingRoom(getStaticData().brandId, next)
+    set(() => {
+      const brandId = getStaticData().brandId
+      const fresh = readFittingRoom(brandId)
+      const next = fresh.filter((existing) => existing.externalId !== externalId)
+      writeFittingRoom(brandId, next)
       return { fittingRoom: next }
     }),
   updateFittingRoomItem: (externalId: string, patch: Partial<FittingRoomItem>) =>
-    set((prevState) => {
-      const next = prevState.fittingRoom.map((existing) =>
-        existing.externalId === externalId ? { ...existing, ...patch } : existing,
-      )
-      writeFittingRoom(getStaticData().brandId, next)
+    set(() => {
+      const brandId = getStaticData().brandId
+      const fresh = readFittingRoom(brandId)
+      const next = fresh.map((existing) => (existing.externalId === externalId ? { ...existing, ...patch } : existing))
+      writeFittingRoom(brandId, next)
       return { fittingRoom: next }
     }),
   clearFittingRoom: () =>

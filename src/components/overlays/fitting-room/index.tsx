@@ -66,10 +66,16 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   const closeOverlay = useMainStore((state) => state.closeOverlay)
   const openOverlay = useMainStore((state) => state.openOverlay)
   const updateFittingRoomItem = useMainStore((state) => state.updateFittingRoomItem)
+  const removeFromFittingRoom = useMainStore((state) => state.removeFromFittingRoom)
   const resolved = useResolvedFittingRoom()
 
   const [topOffset, setTopOffset] = useState<number>(0)
   const [selectedExternalIds, setSelectedExternalIds] = useState<Set<string>>(() => new Set())
+  // Bumped each time a product is added to the outfit (in handleSelectItem's
+  // add branch). The AvatarPane → useAutoRotate hook plays one full rotation
+  // each time this number changes. Undefined while dormant so the bare-
+  // avatar baseline doesn't auto-rotate before any add has happened.
+  const [autoRotateTrigger, setAutoRotateTrigger] = useState<number | undefined>(undefined)
   const [openAccordionItemId, setOpenAccordionItemId] = useState<string | null>(null)
   const [detailMode, setDetailMode] = useState<DetailMode>('compact')
   const [forceUntuck, setForceUntuck] = useState<boolean>(false)
@@ -203,6 +209,11 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
         nextSelected.add(externalId)
         ensureSizeForItem(item)
         setLastAddedExternalId(externalId)
+        // Trigger a one-shot auto-rotation when the new product's VTO frames
+        // arrive (see useAutoRotate). Size/color changes don't bump this so
+        // they don't fire a rotation; remove + re-add does because each add
+        // increments.
+        setAutoRotateTrigger((n) => (n ?? 0) + 1)
         // Desktop: open accordion to the newly-added item. Mobile: stay in browse.
         if (!isMobileLayout) {
           setOpenAccordionItemId(externalId)
@@ -308,8 +319,12 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
       if (openAccordionItemId === externalId) {
         setOpenAccordionItemId(null)
       }
+      // Drop the item from persisted storage so the rail card disappears
+      // and the removal survives an overlay reopen / page reload. Without
+      // this the X only deselected the item within the current overlay.
+      removeFromFittingRoom(externalId)
     },
-    [openAccordionItemId],
+    [openAccordionItemId, removeFromFittingRoom],
   )
 
   const handleTryItOn = useCallback(() => {
@@ -333,15 +348,20 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   }, [openAccordionItemId, selectedExternalIds])
 
   // Preselect the current PDP product when the overlay was opened from the
-  // "Try It On" CTA. The CTA adds the product to the fitting room asynchronously,
-  // so wait until it resolves into `resolved.items`, then run the normal
-  // selection path (auto-size-rec, accordion open) exactly once.
+  // "Try It On" CTA. The CTA adds the product to the fitting room
+  // asynchronously, so wait until both the storage entry AND its backing data
+  // (merchantProduct + loadedProduct) have landed before running the normal
+  // selection path. Without the load-complete gate, ensureSizeForItem fires
+  // too early (buildVtoProductDataFromResolved returns null without
+  // loadedProduct), leaves the new item's CSA as null, and the outfit
+  // builder silently drops it — producing a bare avatar with no VTO.
   const preselectAppliedRef = useRef(false)
   useEffect(() => {
     if (preselectAppliedRef.current || !preselectExternalId) {
       return
     }
-    if (!resolved.items.some((i) => i.externalId === preselectExternalId)) {
+    const item = resolved.items.find((i) => i.externalId === preselectExternalId)
+    if (!item || !item.merchantProduct || !item.loadedProduct) {
       return
     }
     preselectAppliedRef.current = true
@@ -520,6 +540,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             forceUntuck={forceUntuck}
             canTuck={canTuck}
             frameUrls={frameUrls}
+            autoRotateTrigger={autoRotateTrigger}
             sheetSnap={sheetSnap}
             sheetTouchStart={sheetTouchStart}
             onSelectItem={handleSelectItem}
@@ -543,6 +564,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             forceUntuck={forceUntuck}
             canTuck={canTuck}
             frameUrls={frameUrls}
+            autoRotateTrigger={autoRotateTrigger}
             onSelectItem={handleSelectItem}
             onRemoveItem={handleRemoveItem}
             onOpenAccordionItem={setOpenAccordionItemId}

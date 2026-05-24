@@ -103,11 +103,18 @@ export function ProductCard({ item, availability, onClick, onRemove }: ProductCa
   }
 
   const name = item.merchantProduct?.productName ?? item.externalId
-  const imageUrl = item.merchantProduct?.imageUrl ?? null
 
-  // Pick a price from variants if available — first variant's price is fine
-  // for the rail; the accordion shows the precise selected-size price.
-  const price = item.merchantProduct?.variants[0]?.priceFormatted ?? null
+  // Look up the variant that matches the stored color (and size when known).
+  // Used for both the card image and the price so a multi-colour product
+  // shows the right colour swatch the shopper picked, not the merchant's
+  // default. Falls back through: variant.imageUrl → product.imageUrl, and
+  // variant.priceFormatted → variants[0].priceFormatted, so single-colour
+  // products and items without per-variant images still render.
+  const selectedVariant = item.merchantProduct?.variants.find(
+    (v) => v.color === item.storage.color && (!item.storage.size || v.size === item.storage.size),
+  )
+  const imageUrl = selectedVariant?.imageUrl ?? item.merchantProduct?.imageUrl ?? null
+  const price = selectedVariant?.priceFormatted ?? item.merchantProduct?.variants[0]?.priceFormatted ?? null
 
   return (
     <div

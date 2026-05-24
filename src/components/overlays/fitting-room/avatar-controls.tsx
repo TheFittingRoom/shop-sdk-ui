@@ -111,6 +111,11 @@ export function AvatarControls({
       // frame, which subpixel-shimmered. The max-width clip alone reveals
       // the label cleanly at full opacity.
       transition: 'max-width 500ms cubic-bezier(0.22, 1, 0.36, 1)',
+      // Belt-and-suspenders with pillBaseStyle on the parent — rapid clicks
+      // on the avatar's rotation chevrons can otherwise extend a triple-
+      // click selection into these labels.
+      userSelect: 'none',
+      WebkitUserSelect: 'none',
     },
     pillLabelCollapsed: {
       maxWidth: 0,

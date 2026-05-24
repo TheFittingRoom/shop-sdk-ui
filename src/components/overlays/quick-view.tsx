@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { AvatarFrameViewer } from '@/components/avatar-frame-viewer'
+import { useAutoRotate } from '@/components/use-auto-rotate'
 import { Button } from '@/components/button'
 import { ColorSelector } from '@/components/color-selector'
 import { FitChart } from '@/components/content/fit-chart'
@@ -47,6 +48,19 @@ const AVATAR_IMAGE_ASPECT_RATIO = 2 / 3 // width:height
 const AVATAR_GUTTER_HEIGHT_PX = 100
 const CONTENT_AREA_WIDTH_PX = 550
 
+// Rotation slider below the desktop avatar. Hidden 2026-05-24 — fitting-room
+// has no equivalent and the drag-on-image gesture already handles rotation.
+// Flip to true to restore the slider; the surrounding gutter, styles, and
+// frame-index state all stay wired up for that.
+const SHOW_ROTATION_SLIDER = false
+
+// On desktop, image height = screen height − gutter (and width is derived from
+// that), so collapsing the gutter when the slider is hidden lets the avatar
+// fill the available height. The mobile branch keeps `AVATAR_GUTTER_HEIGHT_PX`
+// regardless — its gutter exists to leave room for the collapsed product-
+// details popover, not for the slider.
+const DESKTOP_AVATAR_GUTTER_HEIGHT_PX = SHOW_ROTATION_SLIDER ? AVATAR_GUTTER_HEIGHT_PX : 0
+
 const logger = getLogger('overlays/quick-view')
 
 export default function QuickViewOverlay() {
@@ -57,6 +71,8 @@ export default function QuickViewOverlay() {
   const deviceLayout = useMainStore((state) => state.deviceLayout)
   const openOverlay = useMainStore((state) => state.openOverlay)
   const closeOverlay = useMainStore((state) => state.closeOverlay)
+  const updateFittingRoomItem = useMainStore((state) => state.updateFittingRoomItem)
+  const fittingRoomItems = useMainStore((state) => state.fittingRoom)
   const [vtoProductData, setVtoProductData] = useState<VtoProductData | false | null>(null)
   const [selectedSizeLabel, setSelectedSizeLabel] = useState<string | null>(null)
   const [selectedColorLabel, setSelectedColorLabel] = useState<string | null>(null)
@@ -300,6 +316,36 @@ export default function QuickViewOverlay() {
       logger.logError('Error during logout:', { error })
     })
   }, [closeOverlay])
+  // Wrap the color setter so a color change inside quick-view also persists
+  // to the fitting-room storage entry for the current product (when it's
+  // already in the room). Without this, changing color here and then opening
+  // the fitting-room overlay later would show the *previously stored* color,
+  // not what the shopper actually picked — and the rail card would render
+  // the wrong variant image.
+  const handleChangeColor = useCallback(
+    (newColorLabel: string | null) => {
+      setSelectedColorLabel(newColorLabel)
+      const currentProduct = getStaticData().currentProduct
+      if (!currentProduct) {
+        return
+      }
+      const inRoom = fittingRoomItems.some((item) => item.externalId === currentProduct.externalId)
+      if (!inRoom || !vtoProductData || !selectedSizeLabel) {
+        return
+      }
+      const sizeRec = vtoProductData.sizes.find((s) => s.sizeLabel === selectedSizeLabel)
+      const csa = sizeRec?.colors.find((c) => c.colorLabel === newColorLabel)
+      if (!csa) {
+        return
+      }
+      updateFittingRoomItem(currentProduct.externalId, {
+        colorwaySizeAssetId: csa.colorwaySizeAssetId,
+        size: selectedSizeLabel,
+        color: csa.colorLabel,
+      })
+    },
+    [fittingRoomItems, selectedSizeLabel, updateFittingRoomItem, vtoProductData],
+  )
   const handleAddToCartClick = useCallback(async () => {
     try {
       if (!selectedSizeLabel) {
@@ -353,7 +399,7 @@ export default function QuickViewOverlay() {
         frameUrls={frameUrls}
         setModalStyle={setModalStyle}
         onClose={closeOverlay}
-        onChangeColor={setSelectedColorLabel}
+        onChangeColor={handleChangeColor}
         onChangeSize={setSelectedSizeLabel}
         onAddToCart={handleAddToCartClick}
         onSignOut={handleSignOutClick}
@@ -663,13 +709,23 @@ interface MobileContentProps {
   onSignOut: () => void
 }
 
-function MobileContentCollapsed({ loadedProductData, selectedSizeLabel, onChangeSize }: MobileContentProps) {
+function MobileContentCollapsed({
+  loadedProductData,
+  availableColorLabels,
+  selectedColorLabel,
+  selectedSizeLabel,
+  onChangeColor,
+  onChangeSize,
+}: MobileContentProps) {
   const css = useCss((_theme) => ({
     selectSizeLabelContainer: {
       marginTop: '8px',
     },
     selectSizeLabelText: {},
     sizeSelectorContainer: {
+      marginTop: '8px',
+    },
+    colorSelectorContainer: {
       marginTop: '8px',
     },
   }))
@@ -685,14 +741,24 @@ function MobileContentCollapsed({ loadedProductData, selectedSizeLabel, onChange
           onChangeSize={onChangeSize}
         />
       </div>
+      <div css={css.colorSelectorContainer}>
+        <ColorSelector
+          availableColorLabels={availableColorLabels}
+          selectedColorLabel={selectedColorLabel}
+          onChangeColor={onChangeColor}
+        />
+      </div>
     </>
   )
 }
 
 function MobileContentExpanded({
   loadedProductData,
+  availableColorLabels,
+  selectedColorLabel,
   selectedSizeLabel,
   onChangeContentView,
+  onChangeColor,
   onChangeSize,
   onAddToCart,
 }: MobileContentProps) {
@@ -702,6 +768,9 @@ function MobileContentExpanded({
     },
     selectSizeLabelText: {},
     sizeSelectorContainer: {
+      marginTop: '8px',
+    },
+    colorSelectorContainer: {
       marginTop: '8px',
     },
     itemFitTextContainer: {
@@ -742,6 +811,13 @@ function MobileContentExpanded({
           loadedProductData={loadedProductData}
           selectedSizeLabel={selectedSizeLabel}
           onChangeSize={onChangeSize}
+        />
+      </div>
+      <div css={css.colorSelectorContainer}>
+        <ColorSelector
+          availableColorLabels={availableColorLabels}
+          selectedColorLabel={selectedColorLabel}
+          onChangeColor={onChangeColor}
         />
       </div>
       <div css={css.itemFitTextContainer}>
@@ -951,7 +1027,7 @@ function DesktopLayout({
     productNameContainer: {},
     productNameText: {
       fontFamily: "'Inter', sans-serif",
-      fontSize: '32px',
+      fontSize: '24px',
       fontWeight: 300,
     },
     priceContainer: {
@@ -1120,6 +1196,10 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
   })
   const [selectedFrameIndex, setSelectedFrameIndex] = useState<number | null>(null)
   const [zoomOpen, setZoomOpen] = useState<boolean>(false)
+  // Quick-view is a single-product VTO — only "add" is the initial load, so a
+  // constant trigger fires the auto-rotate exactly once per Avatar mount and
+  // never re-fires (size/color changes don't bump it).
+  const cancelAutoRotate = useAutoRotate(1, frameUrls, selectedFrameIndex, setSelectedFrameIndex)
   const css = useCss((theme) => ({
     topContainer: {
       flex: 'none',
@@ -1129,8 +1209,11 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
     },
     zoomPill: {
       position: 'absolute',
-      // Bottom-right of the avatar image, clear of the slider gutter below it.
-      bottom: `${AVATAR_GUTTER_HEIGHT_PX + 16}px`,
+      // Bottom-right of the avatar image, 16px above the image's bottom edge.
+      // When the rotation slider is on, that's also `clear of the gutter` —
+      // when the slider is hidden, the gutter collapses to 0 and the 16px
+      // offset alone keeps the pill inset from the image's true bottom.
+      bottom: `${DESKTOP_AVATAR_GUTTER_HEIGHT_PX + 16}px`,
       right: '16px',
       display: 'inline-flex',
       alignItems: 'center',
@@ -1144,6 +1227,10 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
       letterSpacing: '0.5px',
       textTransform: 'uppercase',
       cursor: 'pointer',
+      // Rapid clicks on the rotation chevrons can otherwise spill a triple-
+      // click selection into this label.
+      userSelect: 'none',
+      WebkitUserSelect: 'none',
       zIndex: 2,
     },
     zoomPillIcon: {
@@ -1222,7 +1309,7 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
         }
       } else {
         const screenHeightPx = window.innerHeight
-        const bottomContainerHeightPx = AVATAR_GUTTER_HEIGHT_PX
+        const bottomContainerHeightPx = DESKTOP_AVATAR_GUTTER_HEIGHT_PX
         const imageHeightPx = screenHeightPx - bottomContainerHeightPx
         const imageWidthPx = Math.floor(imageHeightPx * AVATAR_IMAGE_ASPECT_RATIO)
         const modalWidthPx = imageWidthPx + CONTENT_AREA_WIDTH_PX
@@ -1273,6 +1360,7 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
         imageContainerStyle={layoutData.imageContainerStyle}
         imageStyle={layoutData.imageStyle}
         loadingT="quick-view.avatar_loading"
+        onUserInteract={cancelAutoRotate}
       />
       {isReady && !isMobileLayout ? (
         <Button variant="base" css={css.zoomPill} onClick={() => setZoomOpen(true)}>
@@ -1288,7 +1376,7 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
           onClose={() => setZoomOpen(false)}
         />
       ) : null}
-      {frameUrls && selectedFrameIndex != null ? (
+      {frameUrls && selectedFrameIndex != null && (isMobileLayout || SHOW_ROTATION_SLIDER) ? (
         <div css={css.bottomContainer} style={layoutData.bottomContainerStyle}>
           {isMobileLayout ? (
             <>&nbsp;</>

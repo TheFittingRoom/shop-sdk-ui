@@ -13,6 +13,10 @@ interface AvatarFrameViewerProps {
   imageContainerStyle: StyleProp
   imageStyle: StyleProp
   loadingT?: string
+  // Optional callback fired the moment the user manually moves the frame
+  // (chevron tap or drag). Used by parents that run useAutoRotate to halt
+  // an in-flight rotation as soon as the user takes control.
+  onUserInteract?: () => void
 }
 
 // AvatarFrameViewer renders a single avatar/VTO frame from `frameUrls` with
@@ -27,6 +31,7 @@ export function AvatarFrameViewer({
   imageContainerStyle,
   imageStyle,
   loadingT = 'quick-view.avatar_loading',
+  onUserInteract,
 }: AvatarFrameViewerProps) {
   const css = useCss((_theme) => ({
     imageContainer: {
@@ -35,6 +40,12 @@ export function AvatarFrameViewer({
     image: {
       objectFit: 'contain',
       cursor: 'grab',
+      // Reserve horizontal touch gestures for our rotation handler — the
+      // browser can still pan vertically natively. Without this, the
+      // browser may start consuming a horizontal swipe as a scroll/zoom
+      // before our touchmove listener can preventDefault, which produced
+      // the "janky first swipe" reports.
+      touchAction: 'pan-y',
     },
     chevronLeftContainer: {
       position: 'absolute',
@@ -42,6 +53,8 @@ export function AvatarFrameViewer({
       left: '0',
       transform: 'translateY(-50%)',
       cursor: 'pointer',
+      userSelect: 'none',
+      WebkitUserSelect: 'none',
     },
     chevronRightContainer: {
       position: 'absolute',
@@ -49,6 +62,8 @@ export function AvatarFrameViewer({
       right: '0',
       transform: 'translateY(-50%)',
       cursor: 'pointer',
+      userSelect: 'none',
+      WebkitUserSelect: 'none',
     },
     chevronIcon: {
       width: '48px',
@@ -56,26 +71,21 @@ export function AvatarFrameViewer({
     },
   }))
 
-  // Auto-rotate avatar on initial frame load
+  // Default to frame 0 when frames first arrive — otherwise the viewer
+  // would sit on the Loading state forever for callers that don't drive
+  // selectedFrameIndex. The auto-rotate animation lives in useAutoRotate
+  // on the parent (Avatar in quick-view, AvatarPane in fitting-room) —
+  // see use-auto-rotate.ts for why it's hosted up there.
   useEffect(() => {
-    if (!frameUrls || frameUrls.length === 0 || selectedFrameIndex != null) {
-      return
+    if (frameUrls && frameUrls.length > 0 && selectedFrameIndex == null) {
+      setSelectedFrameIndex(0)
     }
-    let currentFrameIndex = 0
-    setSelectedFrameIndex(currentFrameIndex)
-    const intervalId = setInterval(() => {
-      currentFrameIndex = (currentFrameIndex + 1) % frameUrls.length
-      setSelectedFrameIndex(currentFrameIndex)
-      if (currentFrameIndex === 0) {
-        clearInterval(intervalId)
-      }
-    }, 500)
-    return () => clearInterval(intervalId)
   }, [frameUrls, selectedFrameIndex, setSelectedFrameIndex])
 
   const { rotateLeft, rotateRight, handleMouseDragStart, handleTouchDragStart } = useFrameRotation(
     frameUrls,
     setSelectedFrameIndex,
+    onUserInteract,
   )
 
   if (!frameUrls || selectedFrameIndex == null) {
@@ -91,10 +101,26 @@ export function AvatarFrameViewer({
         onMouseDown={handleMouseDragStart}
         onTouchStart={handleTouchDragStart}
       />
-      <div css={css.chevronLeftContainer} onClick={rotateLeft}>
+      {/* onMouseDown preventDefault keeps rapid clicks from initiating a text
+          selection — otherwise the second/third click in a fast tap-tap-tap
+          starts dragging a selection that extends across nearby overlay text
+          (the avatar-control pill labels in the same VTO frame). */}
+      <div
+        role="button"
+        aria-label="Rotate left"
+        css={css.chevronLeftContainer}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={rotateLeft}
+      >
         <ChevronLeftIcon css={css.chevronIcon} />
       </div>
-      <div css={css.chevronRightContainer} onClick={rotateRight}>
+      <div
+        role="button"
+        aria-label="Rotate right"
+        css={css.chevronRightContainer}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={rotateRight}
+      >
         <ChevronRightIcon css={css.chevronIcon} />
       </div>
     </div>

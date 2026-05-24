@@ -31,6 +31,7 @@ interface MobileLayoutProps {
   // The outfit has something to tuck into — computed in FittingRoomOverlay.
   canTuck: boolean
   frameUrls: string[] | null
+  autoRotateTrigger: number | undefined
   sheetSnap: SheetSnap
   sheetTouchStart: (e: React.TouchEvent<HTMLElement>) => void
   onSelectItem: (externalId: string) => void
@@ -58,6 +59,7 @@ export function MobileLayout({
   forceUntuck,
   canTuck,
   frameUrls,
+  autoRotateTrigger,
   sheetSnap,
   sheetTouchStart,
   onSelectItem,
@@ -91,6 +93,7 @@ export function MobileLayout({
       forceUntuck={forceUntuck}
       canTuck={canTuck}
       frameUrls={frameUrls}
+      autoRotateTrigger={autoRotateTrigger}
       sheetSnap={sheetSnap}
       sheetTouchStart={sheetTouchStart}
       onBackToBrowse={onBackToBrowse}
@@ -239,6 +242,7 @@ function TryOnView({
   forceUntuck,
   canTuck,
   frameUrls,
+  autoRotateTrigger,
   sheetSnap,
   sheetTouchStart,
   onBackToBrowse,
@@ -255,6 +259,7 @@ function TryOnView({
   forceUntuck: boolean
   canTuck: boolean
   frameUrls: string[] | null
+  autoRotateTrigger: number | undefined
   sheetSnap: SheetSnap
   sheetTouchStart: (e: React.TouchEvent<HTMLElement>) => void
   onBackToBrowse: () => void
@@ -364,6 +369,7 @@ function TryOnView({
       <AvatarPane
         hasSelection={selectedItems.length > 0}
         frameUrls={frameUrls}
+        autoRotateTrigger={autoRotateTrigger}
         mobileFullscreen
         controls={<MobileTuckControl canTuck={canTuck} forceUntuck={forceUntuck} onToggleUntuck={onToggleUntuck} />}
       />

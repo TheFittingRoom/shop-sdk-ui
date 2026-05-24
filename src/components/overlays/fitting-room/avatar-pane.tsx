@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { AvatarFrameViewer } from '@/components/avatar-frame-viewer'
 import { Loading } from '@/components/content/loading'
 import { TextT } from '@/components/text'
+import { useAutoRotate } from '@/components/use-auto-rotate'
 import { AVATAR_BOTTOM_BACKGROUND_URL } from '@/lib/asset'
 import { useCss } from '@/lib/theme'
 
@@ -22,6 +23,12 @@ interface AvatarPaneProps {
   // currently-displayed frame.
   selectedFrameIndex?: number | null
   setSelectedFrameIndex?: Dispatch<SetStateAction<number | null>>
+  // Bump this from the parent each time a new product is added to the
+  // outfit to trigger an auto-rotate animation. Undefined when dormant
+  // (bare-avatar baseline before the first product is added). Size/color
+  // changes — which replace frameUrls without bumping the trigger — are
+  // ignored. See use-auto-rotate.ts for the contract.
+  autoRotateTrigger?: number
 }
 
 // AvatarPane is the left-column avatar area on desktop and the background of
@@ -36,11 +43,17 @@ export function AvatarPane({
   mobileFullscreen,
   selectedFrameIndex: indexProp,
   setSelectedFrameIndex: setIndexProp,
+  autoRotateTrigger,
 }: AvatarPaneProps) {
   const [localFrameIndex, setLocalFrameIndex] = useState<number | null>(null)
   // Controlled when the caller supplies an index; otherwise self-managed.
   const selectedFrameIndex = indexProp !== undefined ? indexProp : localFrameIndex
   const setSelectedFrameIndex = setIndexProp ?? setLocalFrameIndex
+
+  // AvatarPane stays mounted across frameUrls null↔ready loading transitions
+  // (the inner viewer unmounts during the "Finding your perfect fit" loader),
+  // so the trigger-comparison ref inside this hook persists correctly.
+  const cancelAutoRotate = useAutoRotate(autoRotateTrigger, frameUrls, selectedFrameIndex, setSelectedFrameIndex)
 
   const css = useCss((theme) => ({
     container: {
@@ -112,6 +125,7 @@ export function AvatarPane({
         imageContainerStyle={css.frameContainer}
         imageStyle={css.frameImage}
         loadingT="quick-view.avatar_loading"
+        onUserInteract={cancelAutoRotate}
       />
     )
     if (mobileFullscreen) {

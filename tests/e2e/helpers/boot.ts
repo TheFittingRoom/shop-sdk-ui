@@ -16,6 +16,12 @@ export interface BootSdkOptions {
   currentProduct?: typeof TEST_CURRENT_PRODUCT | null
   loggedIn?: boolean // default true (seeds TestHooks.auth with the standard test user)
   apiOverrides?: ApiMockOverrides
+  // Pre-seeded firestore documents. Keyed by collection → docId → data. The
+  // MockFirestoreManager's queryDocs returns every doc in the collection
+  // regardless of constraints, so doc IDs are arbitrary — the doc shape just
+  // needs the fields the SDK actually reads. See fixtures/seed.ts for
+  // ready-made shapes (e.g. TEST_SEEDED_STYLE).
+  firestoreDocs?: Record<string, Record<string, unknown>>
 }
 
 /**
@@ -24,7 +30,13 @@ export interface BootSdkOptions {
  * the host fixture dispatches).
  */
 export async function bootSdk(page: Page, options: BootSdkOptions = {}): Promise<void> {
-  const { brandId = TEST_BRAND_ID, currentProduct = TEST_CURRENT_PRODUCT, loggedIn = true, apiOverrides } = options
+  const {
+    brandId = TEST_BRAND_ID,
+    currentProduct = TEST_CURRENT_PRODUCT,
+    loggedIn = true,
+    apiOverrides,
+    firestoreDocs,
+  } = options
 
   await installApiMocks(page, apiOverrides)
 
@@ -32,12 +44,19 @@ export async function bootSdk(page: Page, options: BootSdkOptions = {}): Promise
   // script runs. The fixture HTML reads `__TFR_TEST_CONFIG__` and threads it
   // into `init({ ..., testHooks })`.
   await page.addInitScript(
-    ({ brandId, currentProduct, loggedIn, uid, email, idToken, profile }) => {
+    ({ brandId, currentProduct, loggedIn, uid, email, idToken, profile, firestoreDocs }) => {
+      const testHooks: Record<string, unknown> = {}
+      if (loggedIn) {
+        testHooks.auth = { uid, email, idToken, profile }
+      }
+      if (firestoreDocs) {
+        testHooks.firestore = { docs: firestoreDocs }
+      }
       ;(window as unknown as { __TFR_TEST_CONFIG__: unknown }).__TFR_TEST_CONFIG__ = {
         brandId,
         environment: 'demo',
         currentProduct,
-        testHooks: loggedIn ? { auth: { uid, email, idToken, profile } } : {},
+        testHooks,
       }
     },
     {
@@ -48,6 +67,7 @@ export async function bootSdk(page: Page, options: BootSdkOptions = {}): Promise
       email: TEST_EMAIL,
       idToken: TEST_ID_TOKEN,
       profile: TEST_USER_PROFILE,
+      firestoreDocs: firestoreDocs ?? null,
     },
   )
 

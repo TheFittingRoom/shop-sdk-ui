@@ -1,15 +1,13 @@
 import type { Dispatch, MouseEvent as ReactMouseEvent, SetStateAction } from 'react'
 import { useCallback, useEffect, useRef } from 'react'
-import { useFrameRotation } from '@/components/use-frame-rotation'
+import { applyDragSteps, useFrameRotation } from '@/components/use-frame-rotation'
 import { ChevronLeftIcon, ChevronRightIcon } from '@/lib/asset'
 import { useCss } from '@/lib/theme'
 
-// Pointer-pixel thresholds for the zoom modal's axis-locking image drag.
-// AXIS_LOCK_PX: how far the pointer moves before committing to scroll-or-rotate.
-// ROTATE_STEP_PX: pointer-px of horizontal travel per frame of rotation
-// (mirrors DRAG_STEP_PX in use-frame-rotation so the feel matches).
+// How far the pointer moves before the axis-lock commits to scroll-or-rotate.
+// The horizontal step size is owned by applyDragSteps in use-frame-rotation
+// so the rotation feel matches the non-zoomed avatar.
 const AXIS_LOCK_PX = 8
-const ROTATE_STEP_PX = 50
 
 interface ZoomModalProps {
   frameUrls: string[]
@@ -79,15 +77,7 @@ export function ZoomModal({ frameUrls, selectedFrameIndex, setSelectedFrameIndex
           // decreases as deltaY grows.
           scrollArea.scrollTop = startScrollTop - deltaY
         } else if (mode === 'rotate') {
-          const rotateDelta = move.clientX - lastRotateX
-          if (Math.abs(rotateDelta) >= ROTATE_STEP_PX) {
-            if (rotateDelta > 0) {
-              rotateRight()
-            } else {
-              rotateLeft()
-            }
-            lastRotateX = move.clientX
-          }
+          lastRotateX += applyDragSteps(move.clientX - lastRotateX, rotateLeft, rotateRight)
         }
       }
       const onUp = () => {
@@ -137,6 +127,10 @@ export function ZoomModal({ frameUrls, selectedFrameIndex, setSelectedFrameIndex
       display: 'flex',
       cursor: 'pointer',
       zIndex: 1,
+      // Rapid clicks shouldn't initiate a text-selection drag into the
+      // close-button glyph or any other overlay text.
+      userSelect: 'none',
+      WebkitUserSelect: 'none',
     },
     chevronLeft: {
       left: '8px',
@@ -186,10 +180,10 @@ export function ZoomModal({ frameUrls, selectedFrameIndex, setSelectedFrameIndex
           <img src={imageUrl} css={css.image} alt="" onMouseDown={handleImageMouseDown} />
         </div>
       </div>
-      <div css={{ ...css.chevron, ...css.chevronLeft }} onClick={rotateLeft}>
+      <div css={{ ...css.chevron, ...css.chevronLeft }} onMouseDown={(e) => e.preventDefault()} onClick={rotateLeft}>
         <ChevronLeftIcon css={css.chevronIcon} />
       </div>
-      <div css={{ ...css.chevron, ...css.chevronRight }} onClick={rotateRight}>
+      <div css={{ ...css.chevron, ...css.chevronRight }} onMouseDown={(e) => e.preventDefault()} onClick={rotateRight}>
         <ChevronRightIcon css={css.chevronIcon} />
       </div>
       <button css={css.close} onClick={onClose} aria-label="Close zoom">
