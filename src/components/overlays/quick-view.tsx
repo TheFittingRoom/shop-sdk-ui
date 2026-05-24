@@ -1167,7 +1167,7 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
   // Quick-view is a single-product VTO — only "add" is the initial load, so a
   // constant trigger fires the auto-rotate exactly once per Avatar mount and
   // never re-fires (size/color changes don't bump it).
-  const cancelAutoRotate = useAutoRotate(1, frameUrls, setSelectedFrameIndex)
+  const cancelAutoRotate = useAutoRotate(1, frameUrls, selectedFrameIndex, setSelectedFrameIndex)
   const css = useCss((theme) => ({
     topContainer: {
       flex: 'none',

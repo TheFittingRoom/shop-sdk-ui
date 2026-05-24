@@ -53,7 +53,7 @@ export function AvatarPane({
   // AvatarPane stays mounted across frameUrls null↔ready loading transitions
   // (the inner viewer unmounts during the "Finding your perfect fit" loader),
   // so the trigger-comparison ref inside this hook persists correctly.
-  const cancelAutoRotate = useAutoRotate(autoRotateTrigger, frameUrls, setSelectedFrameIndex)
+  const cancelAutoRotate = useAutoRotate(autoRotateTrigger, frameUrls, selectedFrameIndex, setSelectedFrameIndex)
 
   const css = useCss((theme) => ({
     container: {
