@@ -1,7 +1,11 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { useCallback, useEffect, useRef } from 'react'
 
-const AUTO_ROTATE_TICK_MS = 500
+// Total time for one full rotation, regardless of how many frames the VTO
+// renderer returns. Per-frame tick is derived as duration / frameCount, so a
+// 6-frame product and a 24-frame product both complete in the same wall-clock
+// time (and shorter frame sets just feel less granular).
+const AUTO_ROTATE_DURATION_MS = 6000
 
 // useAutoRotate plays one full rotation through `frameUrls` (0 → length-1 → 0)
 // each time `trigger` changes from its previous fired value AND frames are
@@ -71,6 +75,7 @@ export function useAutoRotate(
     // rotation un-played. Recording on the first tick means a never-fired
     // interval (Strict Mode's first run) leaves the ref unchanged, so the
     // second run fires fresh and *that's* the interval that survives.
+    const tickMs = Math.round(AUTO_ROTATE_DURATION_MS / frameCount)
     let currentFrameIndex = 0
     let didFirstTick = false
     setSelectedFrameIndex(0)
@@ -86,7 +91,7 @@ export function useAutoRotate(
         // Completed a full cycle.
         cancelAutoRotate()
       }
-    }, AUTO_ROTATE_TICK_MS)
+    }, tickMs)
     return cancelAutoRotate
   }, [trigger, frameCount, setSelectedFrameIndex, cancelAutoRotate])
 
