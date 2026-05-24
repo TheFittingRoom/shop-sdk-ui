@@ -47,6 +47,19 @@ const AVATAR_IMAGE_ASPECT_RATIO = 2 / 3 // width:height
 const AVATAR_GUTTER_HEIGHT_PX = 100
 const CONTENT_AREA_WIDTH_PX = 550
 
+// Rotation slider below the desktop avatar. Hidden 2026-05-24 — fitting-room
+// has no equivalent and the drag-on-image gesture already handles rotation.
+// Flip to true to restore the slider; the surrounding gutter, styles, and
+// frame-index state all stay wired up for that.
+const SHOW_ROTATION_SLIDER = false
+
+// On desktop, image height = screen height − gutter (and width is derived from
+// that), so collapsing the gutter when the slider is hidden lets the avatar
+// fill the available height. The mobile branch keeps `AVATAR_GUTTER_HEIGHT_PX`
+// regardless — its gutter exists to leave room for the collapsed product-
+// details popover, not for the slider.
+const DESKTOP_AVATAR_GUTTER_HEIGHT_PX = SHOW_ROTATION_SLIDER ? AVATAR_GUTTER_HEIGHT_PX : 0
+
 const logger = getLogger('overlays/quick-view')
 
 export default function QuickViewOverlay() {
@@ -1129,8 +1142,11 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
     },
     zoomPill: {
       position: 'absolute',
-      // Bottom-right of the avatar image, clear of the slider gutter below it.
-      bottom: `${AVATAR_GUTTER_HEIGHT_PX + 16}px`,
+      // Bottom-right of the avatar image, 16px above the image's bottom edge.
+      // When the rotation slider is on, that's also `clear of the gutter` —
+      // when the slider is hidden, the gutter collapses to 0 and the 16px
+      // offset alone keeps the pill inset from the image's true bottom.
+      bottom: `${DESKTOP_AVATAR_GUTTER_HEIGHT_PX + 16}px`,
       right: '16px',
       display: 'inline-flex',
       alignItems: 'center',
@@ -1222,7 +1238,7 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
         }
       } else {
         const screenHeightPx = window.innerHeight
-        const bottomContainerHeightPx = AVATAR_GUTTER_HEIGHT_PX
+        const bottomContainerHeightPx = DESKTOP_AVATAR_GUTTER_HEIGHT_PX
         const imageHeightPx = screenHeightPx - bottomContainerHeightPx
         const imageWidthPx = Math.floor(imageHeightPx * AVATAR_IMAGE_ASPECT_RATIO)
         const modalWidthPx = imageWidthPx + CONTENT_AREA_WIDTH_PX
@@ -1288,7 +1304,7 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
           onClose={() => setZoomOpen(false)}
         />
       ) : null}
-      {frameUrls && selectedFrameIndex != null ? (
+      {frameUrls && selectedFrameIndex != null && (isMobileLayout || SHOW_ROTATION_SLIDER) ? (
         <div css={css.bottomContainer} style={layoutData.bottomContainerStyle}>
           {isMobileLayout ? (
             <>&nbsp;</>
