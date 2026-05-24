@@ -35,6 +35,12 @@ export function AvatarFrameViewer({
     image: {
       objectFit: 'contain',
       cursor: 'grab',
+      // Reserve horizontal touch gestures for our rotation handler — the
+      // browser can still pan vertically natively. Without this, the
+      // browser may start consuming a horizontal swipe as a scroll/zoom
+      // before our touchmove listener can preventDefault, which produced
+      // the "janky first swipe" reports.
+      touchAction: 'pan-y',
     },
     chevronLeftContainer: {
       position: 'absolute',
