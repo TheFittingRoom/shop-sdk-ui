@@ -220,9 +220,10 @@ function BrowseView({
       color: theme.color_tfr_800,
       fontSize: '14px',
     },
-    // Clear All — black pill matching the section-menu pill at the top-right.
-    // Positioned absolute over the BrowseView container, in the bottom-right
-    // corner with enough offset to clear the Try It On CTA bar below it.
+    // Clear All — white pill with thin black border, black text. Positioned
+    // absolute over the BrowseView container, bottom-right, offset to clear
+    // the Try It On CTA bar below it. Pill shape matches the SectionNav
+    // pill at the top-right, but inverted on color for visual contrast.
     clearAllPill: {
       position: 'absolute',
       bottom: '96px',
@@ -233,9 +234,9 @@ function BrowseView({
       gap: '8px',
       padding: '6px 16px',
       borderRadius: '999px',
-      backgroundColor: theme.color_fg_text,
-      color: '#FFFFFF',
-      border: 'none',
+      backgroundColor: '#FFFFFF',
+      color: theme.color_fg_text,
+      border: `1px solid ${theme.color_fg_text}`,
       cursor: 'pointer',
       fontSize: '13px',
       fontWeight: '500',
@@ -244,18 +245,14 @@ function BrowseView({
       whiteSpace: 'nowrap',
     },
     clearAllText: {
-      color: '#FFFFFF',
+      color: theme.color_fg_text,
     },
     clearAllIcon: {
       width: '12px',
       height: '12px',
       flex: 'none',
-      // close-icon.svg's <path>s have a hardcoded dark fill, not
-      // currentColor, so we override the descendant fills directly to make
-      // the X show up against the dark pill background.
-      '& path': {
-        fill: '#FFFFFF',
-      },
+      // close-icon.svg's <path>s have a hardcoded dark fill — already matches
+      // the new black-on-white pill, no override needed.
     },
     bottomBar: {
       flex: 'none',
