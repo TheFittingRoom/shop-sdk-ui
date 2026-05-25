@@ -251,23 +251,32 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
 
   // Mirror handleChangeSize but vary the colour for the currently-stored size.
   // Resolves to a CSA via findCsaByLabel and writes the new size/color/csaId.
+  // When the item has no stored size yet (catalog-add path — shopper hasn't
+  // opened the accordion to pick one), fall back to the recommended size
+  // from the size-fit recommendation. Without this fallback, the rail-card
+  // swatch row's colour click would early-return and silently do nothing
+  // for fresh-from-catalog items.
   const handleChangeColor = useCallback(
     (externalId: string, colorLabel: string | null) => {
       const item = resolved.items.find((i) => i.externalId === externalId)
-      if (!item || !item.storage.size) {
+      if (!item) {
         return
       }
       const productData = buildVtoProductDataFromResolved(item)
       if (!productData) {
         return
       }
-      const csa = findCsaByLabel(productData, item.storage.size, colorLabel)
+      const effectiveSize = item.storage.size ?? productData.recommendedSizeLabel
+      if (!effectiveSize) {
+        return
+      }
+      const csa = findCsaByLabel(productData, effectiveSize, colorLabel)
       if (!csa) {
         return
       }
       updateFittingRoomItem(externalId, {
         colorwaySizeAssetId: csa.colorwaySizeAssetId,
-        size: item.storage.size,
+        size: effectiveSize,
         color: csa.colorLabel,
       })
     },
