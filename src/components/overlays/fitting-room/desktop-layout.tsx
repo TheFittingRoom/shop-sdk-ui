@@ -47,6 +47,7 @@ interface DesktopLayoutProps {
   onAddToCart: (externalId: string) => void
   onToggleUntuck: () => void
   onSignOut: () => void
+  onClearAll: () => void
 }
 
 // DesktopLayout. 2-column when no items selected (avatar + card rails);
@@ -70,6 +71,7 @@ export function DesktopLayout({
   onAddToCart,
   onToggleUntuck,
   onSignOut,
+  onClearAll,
 }: DesktopLayoutProps) {
   const hasSelection = selectedItems.length > 0
   // Avatar-pane hover collapses the AvatarControls pills to icon-only when
@@ -152,32 +154,44 @@ export function DesktopLayout({
       gap: '24px',
       padding: `26px ${EDGE_INSET_PX}px ${EDGE_INSET_PX}px 8px`,
     },
-    // Sign-out is overlaid on the top-right corner of the rails column so it
-    // shares a row with the first card-rail header rather than reserving its
-    // own row. It scrolls away with the content, which is fine — it only
-    // needs to overlap that first header.
-    signOutWrapper: {
-      position: 'absolute',
-      // Near the overlay top, partially overlapping the first card-rail
-      // header row below it.
-      top: '15px',
-      right: '24px',
-      zIndex: 3,
+    // Shared icon+link visual for the rails column's two utility actions
+    // (Clear All in the top-right corner, Sign Out at the bottom). Callers
+    // add their own positioning on top.
+    utilityLink: {
       display: 'inline-flex',
       alignItems: 'center',
       gap: '8px',
       cursor: 'pointer',
       color: _theme.color_tfr_800,
     },
-    signOutIcon: {
+    utilityIcon: {
       width: '12px',
       height: '22px',
       fill: _theme.color_tfr_800,
       flex: 'none',
     },
-    signOut: {
+    utilityText: {
       color: _theme.color_tfr_800,
       fontSize: '14px',
+    },
+    // Clear All is overlaid on the top-right corner of the rails column so it
+    // shares a row with the first card-rail header rather than reserving its
+    // own row. It scrolls away with the content, which is fine — it only
+    // needs to overlap that first header.
+    clearAllWrapper: {
+      position: 'absolute',
+      top: '15px',
+      right: '24px',
+      zIndex: 3,
+    },
+    // Sign Out sits at the bottom of the rails column, after the last card
+    // rail. It scrolls with the content — visible once the shopper reaches
+    // the end of their items. marginTop: auto in a flex column would only
+    // help with a non-scrolling parent; here the scroll context makes a
+    // top margin enough to separate it from the last rail above.
+    signOutWrapper: {
+      marginTop: '8px',
+      justifyContent: 'center',
     },
   }))
 
@@ -230,9 +244,8 @@ export function DesktopLayout({
         </div>
       ) : null}
       <div css={css.railsColumn}>
-        <span css={css.signOutWrapper} onClick={onSignOut}>
-          <TfrIcon css={css.signOutIcon} />
-          <LinkT variant="underline" css={css.signOut} t="fitting_room.sign_out" />
+        <span css={{ ...css.utilityLink, ...css.clearAllWrapper }} onClick={onClearAll}>
+          <LinkT variant="underline" css={css.utilityText} t="fitting_room.clear_all" />
         </span>
         {resolved.groups.map((group) => (
           <CardRail
@@ -243,6 +256,10 @@ export function DesktopLayout({
             onRemoveItem={onRemoveItem}
           />
         ))}
+        <span css={{ ...css.utilityLink, ...css.signOutWrapper }} onClick={onSignOut}>
+          <TfrIcon css={css.utilityIcon} />
+          <LinkT variant="underline" css={css.utilityText} t="fitting_room.sign_out" />
+        </span>
       </div>
       {zoomOpen && frameUrls && frameUrls.length > 0 ? (
         <ZoomModal

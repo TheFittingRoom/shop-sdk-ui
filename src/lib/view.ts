@@ -10,7 +10,7 @@ import FittingRoomIconWidget from '@/components/widgets/fitting-room-icon'
 import FittingRoomWidget from '@/components/widgets/fitting-room'
 import SizeRecWidget from '@/components/widgets/size-rec'
 import VtoButtonWidget from '@/components/widgets/vto-button'
-import { useMainStore } from '@/lib/store'
+import { getStaticData, useMainStore } from '@/lib/store'
 
 export enum DeviceLayout {
   MOBILE_PORTRAIT = 'mobile-portrait',
@@ -22,6 +22,18 @@ export enum DeviceLayout {
 
 export function _init() {
   function getDeviceData() {
+    // Test-only override. When InitParams.testHooks.device is set, skip the
+    // Bowser/touch detection below and use the caller's chosen layout. Used
+    // by the e2e suite and by `?tfr-test-device=…` on the demo theme so
+    // mobile/tablet layouts can be exercised in environments where the real
+    // signals (mobile UA, touch capability) aren't available.
+    const testDevice = getStaticData().testHooks?.device
+    if (testDevice) {
+      return {
+        isMobileDevice: testDevice.isMobileDevice ?? testDevice.layout.startsWith('mobile'),
+        deviceLayout: testDevice.layout as DeviceLayout,
+      }
+    }
     const bowserParser = Bowser.getParser(window.navigator.userAgent)
     const { width, height } = window.screen
 
