@@ -20,6 +20,9 @@ const logger = getLogger('firebase-mock')
  * `auth` omitted → simulates a logged-out shopper.
  * `auth.profile` provided → auto-seeds `firestore.docs.users[uid]` so callers
  * only need to specify the profile once.
+ * `device` provided → overrides view.ts's Bowser/touch-based DeviceLayout
+ * detection. Lets tests (or `?tfr-test-device=…` on the theme URL) force a
+ * specific layout without spoofing user-agent + touch capability.
  */
 export interface TestHooks {
   auth?: {
@@ -30,6 +33,14 @@ export interface TestHooks {
   }
   firestore?: {
     docs?: Record<string, Record<string, Record<string, unknown>>>
+  }
+  // `layout` is a string union of the DeviceLayout enum values; using a string
+  // type here avoids a cycle (TestHooks → DeviceLayout → ... → TestHooks via
+  // store.ts). view.ts casts to DeviceLayout at the use site.
+  device?: {
+    layout: 'mobile-portrait' | 'mobile-landscape' | 'tablet-portrait' | 'tablet-landscape' | 'desktop'
+    // Defaults to `layout.startsWith('mobile')` when omitted.
+    isMobileDevice?: boolean
   }
 }
 

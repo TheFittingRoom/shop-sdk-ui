@@ -287,10 +287,13 @@ export function getAuthManager(): IAuthManager {
 export async function _init() {
   const { brandId, config, testHooks } = getStaticData()
 
-  // Test-only hatch: when InitParams.testHooks is set, swap in mock managers
-  // and skip Firebase entirely. Production callers never set this field, so
-  // the real init path below runs unchanged. See src/lib/firebase-mock.ts.
-  if (testHooks !== undefined) {
+  // Test-only hatch: when testHooks.auth or testHooks.firestore is set, swap
+  // in mock managers and skip Firebase entirely. Production callers never set
+  // this field; the real init path below runs unchanged. We check for the
+  // specific keys (not just `testHooks !== undefined`) so other unrelated
+  // hooks — e.g. `testHooks.device` — can be set without accidentally
+  // disabling real Firebase. See src/lib/firebase-mock.ts.
+  if (testHooks && (testHooks.auth !== undefined || testHooks.firestore !== undefined)) {
     const seedDocs: Record<string, Record<string, Record<string, unknown>>> = {
       ...(testHooks.firestore?.docs ?? {}),
     }
