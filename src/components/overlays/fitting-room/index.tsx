@@ -348,6 +348,23 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
     }
   }, [openAccordionItemId, selectedExternalIds])
 
+  // Mobile sheet snap == 'full': auto-open an accordion item so the body has
+  // something to render. Mobile's quickRow content only renders in the
+  // 'expanded' snap; in 'full' the accordion gates on `isOpen` and shows an
+  // empty body when no item is open — which is exactly the state after the
+  // second swipe-up (collapsed → expanded → full) on first try-on, before the
+  // shopper has tapped a row. Prefer the most-recently-added item; fall back
+  // to the first selected. Desktop never reaches sheetSnap='full' (no sheet),
+  // so the snap check alone is enough.
+  useEffect(() => {
+    if (sheetSnap !== 'full' || openAccordionItemId !== null || selectedItems.length === 0) {
+      return
+    }
+    const lastAddedSelected =
+      lastAddedExternalId && selectedExternalIds.has(lastAddedExternalId) ? lastAddedExternalId : null
+    setOpenAccordionItemId(lastAddedSelected ?? selectedItems[0].externalId)
+  }, [sheetSnap, openAccordionItemId, selectedItems, lastAddedExternalId, selectedExternalIds])
+
   // Preselect the current PDP product when the overlay was opened from the
   // "Try It On" CTA. The CTA adds the product to the fitting room
   // asynchronously, so wait until both the storage entry AND its backing data
