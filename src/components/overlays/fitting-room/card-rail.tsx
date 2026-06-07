@@ -12,13 +12,23 @@ interface CardRailProps {
   availabilityByExternalId: Record<string, Availability>
   onSelectItem: (externalId: string) => void
   onRemoveItem: (externalId: string) => void
+  // Optional — both desktop and mobile-browse wire this through so the
+  // per-card swatch row can re-fire the colour change. When absent,
+  // ProductCard skips rendering the swatch row entirely.
+  onChangeColor?: (externalId: string, colorLabel: string | null) => void
 }
 
 // CardRail renders one style-category group as a collapsible section. The
 // items always sit in a single horizontally-scrolling row (desktop and
 // mobile alike). When the row overflows, a translucent chevron handle
 // appears on whichever edge can still be scrolled.
-export function CardRail({ group, availabilityByExternalId, onSelectItem, onRemoveItem }: CardRailProps) {
+export function CardRail({
+  group,
+  availabilityByExternalId,
+  onSelectItem,
+  onRemoveItem,
+  onChangeColor,
+}: CardRailProps) {
   const [collapsed, setCollapsed] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
@@ -134,6 +144,7 @@ export function CardRail({ group, availabilityByExternalId, onSelectItem, onRemo
       availability={availabilityByExternalId[item.externalId] ?? 'disabled'}
       onClick={() => onSelectItem(item.externalId)}
       onRemove={() => onRemoveItem(item.externalId)}
+      onChangeColor={onChangeColor}
     />
   ))
 

@@ -1,22 +1,27 @@
+import { useMemo } from 'react'
 import { Button } from '@/components/button'
 import { Text } from '@/components/text'
 import { CloseIcon } from '@/lib/asset'
 import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useCss } from '@/lib/theme'
 import type { Availability } from '@/lib/fitting-room-outfit'
+import { ColorSwatchRow, type ColorSwatchEntry } from './color-swatch-row'
 
 interface ProductCardProps {
   item: ResolvedFittingRoomItem
   availability: Availability
   onClick: () => void
   onRemove: () => void
+  // Optional — when omitted, the per-card swatch row is hidden entirely.
+  // CardRail passes this through on both desktop and mobile-browse.
+  onChangeColor?: (externalId: string, colorLabel: string | null) => void
 }
 
 // ProductCard renders one garment in the browse rail: image, name, price,
 // plus a top-right X to remove from the fitting room. `availability` drives
 // the border (selected → solid border) and disabled treatment (greyed +
 // non-clickable when other selections rule this one out).
-export function ProductCard({ item, availability, onClick, onRemove }: ProductCardProps) {
+export function ProductCard({ item, availability, onClick, onRemove, onChangeColor }: ProductCardProps) {
   const css = useCss((theme) => ({
     container: {
       position: 'relative',
@@ -134,6 +139,33 @@ export function ProductCard({ item, availability, onClick, onRemove }: ProductCa
   const imageUrl = selectedVariant?.imageUrl ?? item.merchantProduct?.imageUrl ?? null
   const price = selectedVariant?.priceFormatted ?? item.merchantProduct?.variants[0]?.priceFormatted ?? null
 
+  // Deduped per-colour swatch entries derived from the merchant variants.
+  // Take the first variant for each distinct colour as the source of its
+  // swatch metadata — Shopify's Online Store 2.0 native swatches are
+  // option-value-scoped (one swatch per colour, shared across sizes), so the
+  // metadata is the same across same-colour variants. ColorSwatchRow
+  // self-hides for <2 colours, so single-colour products skip the row.
+  const swatchColors = useMemo<ColorSwatchEntry[]>(() => {
+    const variants = item.merchantProduct?.variants
+    if (!variants) {
+      return []
+    }
+    const seen = new Set<string>()
+    const out: ColorSwatchEntry[] = []
+    for (const v of variants) {
+      if (!v.color || seen.has(v.color)) {
+        continue
+      }
+      seen.add(v.color)
+      out.push({ label: v.color, imageUrl: v.swatchImageUrl ?? null, hex: v.swatchHex ?? null })
+    }
+    return out
+  }, [item.merchantProduct?.variants])
+
+  const handleSwatchSelect = (label: string) => {
+    onChangeColor?.(item.externalId, label)
+  }
+
   return (
     <div
       css={{
@@ -171,6 +203,13 @@ export function ProductCard({ item, availability, onClick, onRemove }: ProductCa
           </Text>
         ) : null}
       </Button>
+      {/* Swatch row sits OUTSIDE the cardBody button so swatch clicks don't
+          bubble up into the select-item handler. ColorSwatchRow itself
+          renders nothing when the product has fewer than two colours. Skip
+          rendering entirely when no onChangeColor handler is supplied. */}
+      {onChangeColor ? (
+        <ColorSwatchRow colors={swatchColors} selectedLabel={effectiveColor} onSelect={handleSwatchSelect} />
+      ) : null}
     </div>
   )
 }

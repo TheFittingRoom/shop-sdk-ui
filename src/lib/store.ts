@@ -16,6 +16,14 @@ export interface ExternalProductVariant {
   skuName: string
   priceFormatted: string
   imageUrl: string | null
+  // Optional swatch metadata — populated by themes that fetch Shopify
+  // Online Store 2.0 native swatch fields (typically via the Storefront
+  // GraphQL API). Consumers (e.g. the fitting-room rail card's swatch row)
+  // render: image when present → hex circle when present → text label.
+  // Themes that don't surface these fields leave them undefined and the
+  // swatch row gracefully degrades or hides itself.
+  swatchImageUrl?: string | null
+  swatchHex?: string | null
 }
 
 export interface ExternalProductOptionSelection {

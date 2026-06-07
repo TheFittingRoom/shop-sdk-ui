@@ -86,6 +86,7 @@ export function MobileLayout({
         selectedCount={selectedItems.length}
         onSelectItem={onSelectItem}
         onRemoveItem={onRemoveItem}
+        onChangeColor={onChangeColor}
         onTryItOn={onTryItOn}
         onSignOut={onSignOut}
         onClearAll={onClearAll}
@@ -120,6 +121,7 @@ function BrowseView({
   selectedCount,
   onSelectItem,
   onRemoveItem,
+  onChangeColor,
   onTryItOn,
   onSignOut,
   onClearAll,
@@ -129,6 +131,7 @@ function BrowseView({
   selectedCount: number
   onSelectItem: (externalId: string) => void
   onRemoveItem: (externalId: string) => void
+  onChangeColor: (externalId: string, colorLabel: string | null) => void
   onTryItOn: () => void
   onSignOut: () => void
   onClearAll: () => void
@@ -265,8 +268,9 @@ function BrowseView({
     <div css={css.container}>
       {/* Hold the section-nav back until product data has finished loading —
           while groups are still resolving the active-section readout flickers
-          as rails appear and shift. */}
-      {!resolved.isLoading && resolved.groups.length > 0 ? (
+          as rails appear and shift. Also hide when there's only one section:
+          the dropdown has nothing to navigate to. */}
+      {!resolved.isLoading && resolved.groups.length > 1 ? (
         <SectionNav sections={sections} activeName={activeSectionName} onSelect={scrollToSection} />
       ) : null}
       <div ref={railsAreaRef} css={css.railsArea} onScroll={recomputeActiveSection}>
@@ -286,6 +290,7 @@ function BrowseView({
               availabilityByExternalId={availabilityByExternalId}
               onSelectItem={onSelectItem}
               onRemoveItem={onRemoveItem}
+              onChangeColor={onChangeColor}
             />
           </div>
         ))}
