@@ -95,6 +95,24 @@ export function ProductCard({ item, availability, onClick, onRemove, onChangeCol
       width: '12px',
       height: '12px',
     },
+    // Selected badge — mirrors the X button at the top-right, green-filled
+    // circle at top-left with an inline white checkmark. Only rendered when
+    // availability === 'selected'. Decorative: pointer-events: none so the
+    // shopper still taps the card body underneath to toggle off.
+    selectedBadge: {
+      position: 'absolute',
+      top: '4px',
+      left: '4px',
+      width: '24px',
+      height: '24px',
+      borderRadius: '12px',
+      backgroundColor: '#22C55E',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      pointerEvents: 'none',
+      zIndex: 1,
+    },
   }))
 
   const disabled = availability === 'disabled'
@@ -184,6 +202,19 @@ export function ProductCard({ item, availability, onClick, onRemove, onChangeCol
       >
         <CloseIcon css={css.removeIcon} />
       </button>
+      {selected ? (
+        <div css={css.selectedBadge} aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M3 8.5L6.5 12L13 4.5"
+              stroke="#FFFFFF"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+      ) : null}
       <Button
         variant="base"
         css={{

@@ -70,6 +70,40 @@ function pairCompatible(a: StyleCategory, b: StyleCategory, group: StyleCategory
   return aIncl.includes(bName) || bIncl.includes(aName)
 }
 
+// Same-category items can never coexist in an outfit (one pair of pants,
+// one long-sleeve top, etc), but the UI handles them as a *silent swap* on
+// select: tapping a new same-category card adds it and evicts the previous
+// selection in the same category. This helper returns the externalIds that
+// would be evicted, so both the availability check (which must treat the
+// would-evict items as "not occupying a slot") and the select handler
+// (which performs the eviction) work from the same rule.
+export function getSameCategoryConflicts(
+  item: ResolvedFittingRoomItem,
+  selectedExternalIds: ReadonlySet<string>,
+  resolved: ResolvedFittingRoom,
+): string[] {
+  if (!item.styleCategory) {
+    return []
+  }
+  const itemName = catName(item.styleCategory)
+  const out: string[] = []
+  for (const sel of resolved.items) {
+    if (sel.externalId === item.externalId) {
+      continue
+    }
+    if (!selectedExternalIds.has(sel.externalId)) {
+      continue
+    }
+    if (!sel.styleCategory) {
+      continue
+    }
+    if (catName(sel.styleCategory) === itemName) {
+      out.push(sel.externalId)
+    }
+  }
+  return out
+}
+
 export function computeAvailability(
   item: ResolvedFittingRoomItem,
   selectedExternalIds: ReadonlySet<string>,
@@ -78,16 +112,25 @@ export function computeAvailability(
   if (selectedExternalIds.has(item.externalId)) {
     return 'selected'
   }
-  if (selectedExternalIds.size >= MAX_OUTFIT_ITEMS) {
+  if (!item.styleCategory) {
     return 'disabled'
   }
-  if (!item.styleCategory) {
+
+  // Same-category items would be silently evicted on add. Treat them as
+  // freed slots when computing effective outfit size and when checking
+  // pair-compatibility — they're about to leave the outfit anyway.
+  const sameCategoryEvictions = new Set(getSameCategoryConflicts(item, selectedExternalIds, resolved))
+  const effectiveSize = selectedExternalIds.size - sameCategoryEvictions.size + 1
+  if (effectiveSize > MAX_OUTFIT_ITEMS) {
     return 'disabled'
   }
 
   const itemCat = item.styleCategory
   for (const sel of resolved.items) {
     if (!selectedExternalIds.has(sel.externalId)) {
+      continue
+    }
+    if (sameCategoryEvictions.has(sel.externalId)) {
       continue
     }
     if (!sel.styleCategory) {

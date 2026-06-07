@@ -16,6 +16,11 @@ interface CardRailProps {
   // per-card swatch row can re-fire the colour change. When absent,
   // ProductCard skips rendering the swatch row entirely.
   onChangeColor?: (externalId: string, colorLabel: string | null) => void
+  // Desktop opts in to "selected garments float to the front of the rail",
+  // making the shopper's current outfit picks visible without horizontal
+  // scrolling. Mobile keeps the natural order so cards don't shuffle under
+  // the shopper's finger.
+  sortSelectedFirst?: boolean
 }
 
 // CardRail renders one style-category group as a collapsible section. The
@@ -28,6 +33,7 @@ export function CardRail({
   onSelectItem,
   onRemoveItem,
   onChangeColor,
+  sortSelectedFirst,
 }: CardRailProps) {
   const [collapsed, setCollapsed] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -137,7 +143,18 @@ export function CardRail({
     },
   }))
 
-  const cards = group.items.map((item) => (
+  // Stable sort: selected items float to the front while non-selected items
+  // keep their natural (backend-supplied) order. Array.prototype.sort is
+  // stable in all modern engines, so a 0/1 key on selected-ness is enough.
+  const orderedItems = sortSelectedFirst
+    ? [...group.items].sort((a, b) => {
+        const aSel = availabilityByExternalId[a.externalId] === 'selected' ? 0 : 1
+        const bSel = availabilityByExternalId[b.externalId] === 'selected' ? 0 : 1
+        return aSel - bSel
+      })
+    : group.items
+
+  const cards = orderedItems.map((item) => (
     <ProductCard
       key={item.externalId}
       item={item}

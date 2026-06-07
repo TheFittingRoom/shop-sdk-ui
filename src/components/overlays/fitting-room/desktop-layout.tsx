@@ -255,6 +255,7 @@ export function DesktopLayout({
             onSelectItem={onSelectItem}
             onRemoveItem={onRemoveItem}
             onChangeColor={onChangeColor}
+            sortSelectedFirst
           />
         ))}
         <span css={{ ...css.utilityLink, ...css.signOutWrapper }} onClick={onSignOut}>
