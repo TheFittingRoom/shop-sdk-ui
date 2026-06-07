@@ -268,8 +268,9 @@ function BrowseView({
     <div css={css.container}>
       {/* Hold the section-nav back until product data has finished loading —
           while groups are still resolving the active-section readout flickers
-          as rails appear and shift. */}
-      {!resolved.isLoading && resolved.groups.length > 0 ? (
+          as rails appear and shift. Also hide when there's only one section:
+          the dropdown has nothing to navigate to. */}
+      {!resolved.isLoading && resolved.groups.length > 1 ? (
         <SectionNav sections={sections} activeName={activeSectionName} onSelect={scrollToSection} />
       ) : null}
       <div ref={railsAreaRef} css={css.railsArea} onScroll={recomputeActiveSection}>
