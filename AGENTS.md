@@ -214,6 +214,18 @@ storefront with `?tfr-source=local` — no theme push needed. For changes
 that touch the bootstrap script, callbacks, or markup, push to the
 `shopify` repo's `development` branch.
 
+### Per-variant swatch metadata (`swatchImageUrl`, `swatchHex`)
+
+`ExternalProductVariant` carries two optional swatch fields used by the
+fitting-room rail-card `ColorSwatchRow`. They're populated by
+`tfr.js`'s Storefront GraphQL `productLookup` path — sourced from
+Shopify's Online Store 2.0 native option-value swatch metadata. When
+the merchant hasn't configured a Storefront API token (Headless app +
+public access token) or hasn't linked Colour option values to a Colour
+metaobject, both fields come through `null` and `ColorSwatchRow` falls
+through image → hex → text-label rendering. See `shopify/AGENTS.md` →
+"Colour swatches (Storefront API token)" for the merchant-side setup.
+
 ---
 
 ## Definition of done
