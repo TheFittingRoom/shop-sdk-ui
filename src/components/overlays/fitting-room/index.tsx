@@ -406,11 +406,22 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   // an existing avatar — anonymous / no-avatar users can still browse but
   // can't fire compositions (the redirect kicks in elsewhere). The alternate
   // pre-warm is speculative and gated behind config.features.vtoPrefetch.
+  //
+  // Mobile-browse is also gated: while the user is in the BrowseView the
+  // avatar pane isn't visible, so the render would never reach the screen —
+  // we'd be paying for compositions the shopper can't see. Holding the fire
+  // until they tap "Try It On" (which flips mobileMode to 'try-on') means
+  // the first render kicks off on view entry and shows the loading state
+  // until it lands. Desktop is unaffected (isMobileLayout is false) and
+  // keeps firing eagerly because the avatar pane is always visible there.
   useEffect(() => {
     if (!userIsLoggedIn || !userHasAvatar) {
       return
     }
     if (outfit.items.length === 0) {
+      return
+    }
+    if (isMobileLayout && mobileMode === 'browse') {
       return
     }
     requestVtoComposition(toWireItems(outfit.items), true)
@@ -419,7 +430,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
         requestVtoComposition(toWireItems(alt), false)
       }
     }
-  }, [userIsLoggedIn, userHasAvatar, outfit, requestVtoComposition])
+  }, [userIsLoggedIn, userHasAvatar, isMobileLayout, mobileMode, outfit, requestVtoComposition])
 
   // Frames for the currently-active outfit, OR the bare-avatar frames when
   // nothing is selected (so the user always sees their avatar in the pane).
