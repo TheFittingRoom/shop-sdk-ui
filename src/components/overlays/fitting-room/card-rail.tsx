@@ -12,9 +12,9 @@ interface CardRailProps {
   availabilityByExternalId: Record<string, Availability>
   onSelectItem: (externalId: string) => void
   onRemoveItem: (externalId: string) => void
-  // Optional — desktop wires this through so the per-card swatch row can
-  // re-fire the colour change. Mobile's browse view doesn't yet (deferred).
-  // When absent, ProductCard skips rendering the swatch row entirely.
+  // Optional — both desktop and mobile-browse wire this through so the
+  // per-card swatch row can re-fire the colour change. When absent,
+  // ProductCard skips rendering the swatch row entirely.
   onChangeColor?: (externalId: string, colorLabel: string | null) => void
 }
 

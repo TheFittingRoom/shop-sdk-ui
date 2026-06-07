@@ -13,7 +13,7 @@ interface ProductCardProps {
   onClick: () => void
   onRemove: () => void
   // Optional — when omitted, the per-card swatch row is hidden entirely.
-  // CardRail passes this through on desktop; mobile rails skip it (deferred).
+  // CardRail passes this through on both desktop and mobile-browse.
   onChangeColor?: (externalId: string, colorLabel: string | null) => void
 }
 
@@ -206,8 +206,7 @@ export function ProductCard({ item, availability, onClick, onRemove, onChangeCol
       {/* Swatch row sits OUTSIDE the cardBody button so swatch clicks don't
           bubble up into the select-item handler. ColorSwatchRow itself
           renders nothing when the product has fewer than two colours. Skip
-          rendering entirely when no onChangeColor handler is supplied
-          (mobile rails, which haven't been wired through yet). */}
+          rendering entirely when no onChangeColor handler is supplied. */}
       {onChangeColor ? (
         <ColorSwatchRow colors={swatchColors} selectedLabel={effectiveColor} onSelect={handleSwatchSelect} />
       ) : null}

@@ -86,6 +86,7 @@ export function MobileLayout({
         selectedCount={selectedItems.length}
         onSelectItem={onSelectItem}
         onRemoveItem={onRemoveItem}
+        onChangeColor={onChangeColor}
         onTryItOn={onTryItOn}
         onSignOut={onSignOut}
         onClearAll={onClearAll}
@@ -120,6 +121,7 @@ function BrowseView({
   selectedCount,
   onSelectItem,
   onRemoveItem,
+  onChangeColor,
   onTryItOn,
   onSignOut,
   onClearAll,
@@ -129,6 +131,7 @@ function BrowseView({
   selectedCount: number
   onSelectItem: (externalId: string) => void
   onRemoveItem: (externalId: string) => void
+  onChangeColor: (externalId: string, colorLabel: string | null) => void
   onTryItOn: () => void
   onSignOut: () => void
   onClearAll: () => void
@@ -286,6 +289,7 @@ function BrowseView({
               availabilityByExternalId={availabilityByExternalId}
               onSelectItem={onSelectItem}
               onRemoveItem={onRemoveItem}
+              onChangeColor={onChangeColor}
             />
           </div>
         ))}
