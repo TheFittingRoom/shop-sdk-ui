@@ -6,11 +6,11 @@
   "added_to_fitting_room": "Dans la cabine d'essayage",
   "view_fitting_room": "Cabine d'essayage",
   "first_visit_tooltip": {
-    "body": "Voici votre cabine d'essayage",
+    "body": "Voir les articles ajoutés à votre cabine d'essayage ici",
     "dismiss": "Fermer"
   },
   "first_add_tooltip": {
-    "body": "Ajoutez à votre cabine d'essayage ici",
+    "body": "Ajoutez un article à votre cabine d'essayage ici",
     "dismiss": "Fermer"
   },
   "add_confirmation": {

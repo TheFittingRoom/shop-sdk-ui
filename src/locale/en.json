@@ -6,11 +6,11 @@
   "added_to_fitting_room": "In Fitting Room",
   "view_fitting_room": "Fitting Room",
   "first_visit_tooltip": {
-    "body": "See your fitting room here",
+    "body": "See items added to your fitting room here",
     "dismiss": "Dismiss"
   },
   "first_add_tooltip": {
-    "body": "Add to your fitting room here",
+    "body": "Add item to your fitting room here",
     "dismiss": "Dismiss"
   },
   "add_confirmation": {
