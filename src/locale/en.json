@@ -9,6 +9,10 @@
     "body": "See your fitting room here",
     "dismiss": "Dismiss"
   },
+  "first_add_tooltip": {
+    "body": "Add to your fitting room here",
+    "dismiss": "Dismiss"
+  },
   "add_confirmation": {
     "title": "Your Fitting Room",
     "added_header": "Added to your fitting room",

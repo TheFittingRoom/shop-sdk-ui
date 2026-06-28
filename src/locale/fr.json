@@ -9,6 +9,10 @@
     "body": "Voici votre cabine d'essayage",
     "dismiss": "Fermer"
   },
+  "first_add_tooltip": {
+    "body": "Ajoutez à votre cabine d'essayage ici",
+    "dismiss": "Fermer"
+  },
   "add_confirmation": {
     "title": "Votre cabine d'essayage",
     "added_header": "Ajouté à votre cabine d'essayage",

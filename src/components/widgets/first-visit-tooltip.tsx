@@ -1,10 +1,11 @@
 import type { RefObject } from 'react'
 import { useEffect, useState } from 'react'
 import { Text } from '@/components/text'
-import { useTranslation } from '@/lib/locale'
 import { useCss } from '@/lib/theme'
 
 interface FirstVisitTooltipProps {
+  text: string
+  dismissAriaLabel: string
   onDismiss: () => void
   anchorRef: RefObject<HTMLElement | null>
 }
@@ -15,16 +16,16 @@ const ARROW_WIDTH = 32
 const ARROW_HEIGHT = 16
 const ARROW_GAP = 14
 
-// Tooltip anchored beneath the fitting-room icon, shown once per browser
-// (first time the icon mounts; dismissed by click on icon, close button, or
-// click outside — see fitting-room-icon.tsx for the dismiss wiring).
+// Tooltip anchored beneath an arbitrary element (passed via anchorRef),
+// shown once per browser. Dismiss + first-view bookkeeping lives in the
+// consumer (e.g. fitting-room-icon.tsx for the header icon,
+// add-to-fitting-room-compact.tsx for the hanger).
 //
-// Positioned with `position: fixed` against the icon's screen rect so we can
-// horizontally centre the tooltip under the icon, then clamp to keep both
+// Positioned with `position: fixed` against the anchor's screen rect so we
+// can horizontally centre the tooltip under it, then clamp to keep both
 // edges inside the viewport with a small padding. The arrow then re-anchors
-// to the icon's centre regardless of where the tooltip ended up.
-export function FirstVisitTooltip({ onDismiss, anchorRef }: FirstVisitTooltipProps) {
-  const { t } = useTranslation()
+// to the anchor's centre regardless of where the tooltip ended up.
+export function FirstVisitTooltip({ text, dismissAriaLabel, onDismiss, anchorRef }: FirstVisitTooltipProps) {
   const [pos, setPos] = useState<{ left: number; top: number; arrowLeft: number } | null>(null)
 
   useEffect(() => {
@@ -75,20 +76,22 @@ export function FirstVisitTooltip({ onDismiss, anchorRef }: FirstVisitTooltipPro
       pointerEvents: 'none',
     },
     body: {
-      backgroundColor: theme.color_tfr_800,
-      color: '#FFFFFF',
-      padding: '12px 14px',
+      backgroundColor: '#FFFFFF',
+      color: theme.color_tfr_800,
+      border: `2px solid ${theme.color_tfr_800}`,
+      padding: '6px 10px',
       borderRadius: '8px',
       boxShadow: '0 6px 20px rgba(0, 0, 0, 0.18)',
       display: 'flex',
-      alignItems: 'flex-start',
-      gap: '4px',
+      alignItems: 'center',
+      gap: 0,
     },
     text: {
       flex: 1,
       fontSize: '13px',
       lineHeight: '1.4',
-      color: '#FFFFFF',
+      color: theme.color_tfr_800,
+      textAlign: 'center',
     },
     closeBtn: {
       width: '20px',
@@ -96,7 +99,7 @@ export function FirstVisitTooltip({ onDismiss, anchorRef }: FirstVisitTooltipPro
       borderRadius: '10px',
       border: 'none',
       backgroundColor: 'transparent',
-      color: '#F0F0F0',
+      color: theme.color_tfr_800,
       cursor: 'pointer',
       padding: 0,
       display: 'flex',
@@ -111,12 +114,7 @@ export function FirstVisitTooltip({ onDismiss, anchorRef }: FirstVisitTooltipPro
   }
 
   return (
-    <div
-      css={css.wrapper}
-      style={{ left: `${pos.left}px`, top: `${pos.top}px` }}
-      role="dialog"
-      aria-label={t('first_visit_tooltip.body')}
-    >
+    <div css={css.wrapper} style={{ left: `${pos.left}px`, top: `${pos.top}px` }} role="dialog" aria-label={text}>
       <svg
         css={css.arrow}
         style={{ left: `${pos.arrowLeft}px` }}
@@ -128,9 +126,9 @@ export function FirstVisitTooltip({ onDismiss, anchorRef }: FirstVisitTooltipPro
       </svg>
       <div css={css.body}>
         <Text variant="base" css={css.text}>
-          {t('first_visit_tooltip.body')}
+          {text}
         </Text>
-        <button css={css.closeBtn} onClick={onDismiss} aria-label={t('first_visit_tooltip.dismiss')}>
+        <button css={css.closeBtn} onClick={onDismiss} aria-label={dismissAriaLabel}>
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           </svg>

@@ -205,7 +205,12 @@ export default function FittingRoomIconWidget(_props: WidgetProps) {
           onInteract={cancelDrawerAutoDismiss}
         />
       ) : showTooltip ? (
-        <FirstVisitTooltip onDismiss={dismissTooltip} anchorRef={buttonRef} />
+        <FirstVisitTooltip
+          text={t('first_visit_tooltip.body')}
+          dismissAriaLabel={t('first_visit_tooltip.dismiss')}
+          onDismiss={dismissTooltip}
+          anchorRef={buttonRef}
+        />
       ) : null}
     </div>
   )
