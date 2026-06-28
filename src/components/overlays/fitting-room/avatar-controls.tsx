@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/button'
 import { Text } from '@/components/text'
-import { SelectedItemsIcon, TuckIcon, ZoomIcon } from '@/lib/asset'
+import { SelectedItemsIcon, TrashIcon, TuckIcon, ZoomIcon } from '@/lib/asset'
 import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useTranslation } from '@/lib/locale'
 import type { CssProp, ThemeData } from '@/lib/theme'
@@ -160,7 +160,14 @@ export function AvatarControls({
       border: 'none',
       backgroundColor: 'transparent',
       cursor: 'pointer',
-      fontSize: '14px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 0,
+    },
+    popoverRemoveIcon: {
+      width: '14px',
+      height: '14px',
     },
   }))
 
@@ -197,7 +204,7 @@ export function AvatarControls({
                   {item.merchantProduct?.productName ?? item.externalId}
                 </Text>
                 <button css={css.popoverRemove} onClick={() => onRemoveItem(item.externalId)} aria-label="Remove">
-                  ×
+                  <TrashIcon css={css.popoverRemoveIcon} />
                 </button>
               </div>
             ))

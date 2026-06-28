@@ -60,7 +60,16 @@ export async function loadFittingRoomData(): Promise<void> {
     loadProductDataToStore(item.externalId)
   }
 
-  // Fan out merchant lookups in a single batch for items missing merchant data.
+  await loadMerchantProductData(items)
+}
+
+// Fan out merchant (Shopify, etc) productLookup in a single batch for items
+// missing data. Idempotent: existing store entries are not re-fetched.
+// Extracted from loadFittingRoomData so widgets that surface merchant info
+// outside the overlay (e.g. the add-confirmation drawer) can trigger the
+// same lookup without pulling in the TFR product/style-category loads.
+export async function loadMerchantProductData(items: FittingRoomItem[]): Promise<void> {
+  const state = useMainStore.getState()
   const { productLookup } = getStaticData()
   if (!productLookup) {
     for (const item of items) {

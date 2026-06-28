@@ -5,6 +5,21 @@
   "add_to_fitting_room": "Ajouter à la cabine d'essayage",
   "added_to_fitting_room": "Dans la cabine d'essayage",
   "view_fitting_room": "Cabine d'essayage",
+  "first_visit_tooltip": {
+    "body": "Voir les articles ajoutés à votre cabine d'essayage ici",
+    "dismiss": "Fermer"
+  },
+  "first_add_tooltip": {
+    "body": "Ajoutez un article à votre cabine d'essayage ici",
+    "dismiss": "Fermer"
+  },
+  "add_confirmation": {
+    "title": "Votre cabine d'essayage",
+    "added_header": "Ajouté à votre cabine d'essayage",
+    "cta": "Aller à votre cabine d'essayage",
+    "remove": "Retirer de la cabine d'essayage",
+    "dismiss": "Fermer"
+  },
   "fitting_room": {
     "title": "Cabine d'essayage",
     "empty": "Votre cabine d'essayage est vide.",
@@ -24,6 +39,7 @@
     "avatar_placeholder_selected": "L'avatar apparaîtra ici lorsque la VTO sera connectée.",
     "see_selected_items": "Voir la sélection",
     "no_selection": "Rien de sélectionné.",
+    "toggle_selection": "Activer/désactiver la sélection",
     "tuck_in": "Rentrer",
     "untuck": "Sortir",
     "zoom_in": "Zoom +",

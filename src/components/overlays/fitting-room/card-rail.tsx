@@ -109,7 +109,7 @@ export function CardRail({
     horizontal: {
       display: 'flex',
       flexDirection: 'row',
-      gap: '8px',
+      gap: '16px',
       overflowX: 'auto',
       padding: '4px 0',
       // Native scrollbar hidden — the chevron handles are the affordance.

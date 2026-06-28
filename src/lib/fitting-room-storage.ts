@@ -144,6 +144,7 @@ async function addFittingRoomItem(productId: string, handle: string | null, isPd
     colorwaySizeAssetId: null,
     addedAt: Date.now(),
   })
+  state.setLastAddEvent(productId)
 }
 
 // Re-read currentProduct's selected color and, if the product is already in
