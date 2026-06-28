@@ -40,7 +40,7 @@ export function ProductCard({ item, availability, onClick, onRemove, onChangeCol
       textAlign: 'left',
     },
     containerSelected: {
-      borderColor: '#16A34A',
+      borderColor: theme.color_tfr_800,
     },
     containerDisabled: {
       opacity: 0.35,

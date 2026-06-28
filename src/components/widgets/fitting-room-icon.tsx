@@ -15,13 +15,13 @@ const logger = getLogger('widgets/fitting-room-icon')
 const DRAWER_AUTO_DISMISS_MS = 4000
 const FIRST_VISIT_KEY = 'tfr:first-visit-tooltip-seen:v1'
 
-// Soft green box-shadow pulse — only animates while the first-visit tooltip
-// is showing. Reuses the #22C55E green from the card-select badge / checkbox
-// (the only attention colour in the SDK today).
+// Soft teal box-shadow pulse — only animates while the first-visit tooltip
+// is showing. Reuses the #265A64 TFR teal (theme.color_tfr_800), the same
+// colour the card-select toggle and selected-card border use.
 const pulse = keyframes`
-  0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
-  70%  { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(38, 90, 100, 0.6); }
+  70%  { box-shadow: 0 0 0 10px rgba(38, 90, 100, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(38, 90, 100, 0); }
 `
 
 export default function FittingRoomIconWidget(_props: WidgetProps) {
@@ -35,6 +35,7 @@ export default function FittingRoomIconWidget(_props: WidgetProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [showTooltip, setShowTooltip] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   // First-visit detection. One-shot per browser via localStorage.
   useEffect(() => {
@@ -162,6 +163,7 @@ export default function FittingRoomIconWidget(_props: WidgetProps) {
   return (
     <div ref={wrapperRef} css={css.wrapper}>
       <button
+        ref={buttonRef}
         type="button"
         onClick={handleClick}
         css={{ ...css.button, ...(showTooltip && !drawerOpen ? css.buttonPulsing : {}) }}
@@ -173,7 +175,7 @@ export default function FittingRoomIconWidget(_props: WidgetProps) {
       {drawerOpen ? (
         <AddConfirmationDrawer onDismiss={() => setDrawerOpen(false)} onOpenOverlay={handleOpenFromDrawer} />
       ) : showTooltip ? (
-        <FirstVisitTooltip onDismiss={dismissTooltip} />
+        <FirstVisitTooltip onDismiss={dismissTooltip} anchorRef={buttonRef} />
       ) : null}
     </div>
   )
