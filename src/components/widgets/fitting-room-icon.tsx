@@ -1,5 +1,5 @@
 import { keyframes } from '@emotion/react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { FittingRoomIcon } from '@/lib/asset'
 import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
@@ -13,6 +13,7 @@ import { FirstVisitTooltip } from './first-visit-tooltip'
 const logger = getLogger('widgets/fitting-room-icon')
 
 const DRAWER_AUTO_DISMISS_MS = 4000
+const TOOLTIP_AUTO_DISMISS_MS = 10000
 const FIRST_VISIT_KEY = 'tfr:first-visit-tooltip-seen:v1'
 
 // Soft teal box-shadow pulse — only animates while the first-visit tooltip
@@ -48,14 +49,25 @@ export default function FittingRoomIconWidget(_props: WidgetProps) {
     }
   }, [])
 
-  const dismissTooltip = () => {
+  const dismissTooltip = useCallback(() => {
     setShowTooltip(false)
     try {
       window.localStorage.setItem(FIRST_VISIT_KEY, 'true')
     } catch (error) {
       logger.logWarn('Failed to write first-visit flag', { error })
     }
-  }
+  }, [])
+
+  // Auto-dismiss the tooltip after 10s — the shopper has had time to see it;
+  // we still write the localStorage flag so it doesn't re-appear on the next
+  // page load.
+  useEffect(() => {
+    if (!showTooltip) {
+      return
+    }
+    const timer = window.setTimeout(dismissTooltip, TOOLTIP_AUTO_DISMISS_MS)
+    return () => window.clearTimeout(timer)
+  }, [showTooltip, dismissTooltip])
 
   // Fire the drawer on every add (timestamp changes even for re-adds of the
   // same externalId). Start the auto-dismiss timer in the same effect so a
@@ -88,7 +100,7 @@ export default function FittingRoomIconWidget(_props: WidgetProps) {
     }
     document.addEventListener('mousedown', onDocClick)
     return () => document.removeEventListener('mousedown', onDocClick)
-  }, [drawerOpen, showTooltip])
+  }, [drawerOpen, showTooltip, dismissTooltip])
 
   // When the user removes the last item from inside the drawer, dismiss it.
   useEffect(() => {
