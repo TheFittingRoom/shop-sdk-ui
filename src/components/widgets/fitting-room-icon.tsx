@@ -12,7 +12,7 @@ import { FirstVisitTooltip } from './first-visit-tooltip'
 
 const logger = getLogger('widgets/fitting-room-icon')
 
-const DRAWER_AUTO_DISMISS_MS = 4000
+const DRAWER_AUTO_DISMISS_MS = 6000
 const TOOLTIP_AUTO_DISMISS_MS = 10000
 const FIRST_VISIT_KEY = 'tfr:first-visit-tooltip-seen:v1'
 
@@ -37,6 +37,7 @@ export default function FittingRoomIconWidget(_props: WidgetProps) {
   const [showTooltip, setShowTooltip] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const drawerAutoDismissTimerRef = useRef<number | null>(null)
 
   // First-visit detection. One-shot per browser via localStorage.
   useEffect(() => {
@@ -69,17 +70,30 @@ export default function FittingRoomIconWidget(_props: WidgetProps) {
     return () => window.clearTimeout(timer)
   }, [showTooltip, dismissTooltip])
 
+  const cancelDrawerAutoDismiss = useCallback(() => {
+    if (drawerAutoDismissTimerRef.current !== null) {
+      window.clearTimeout(drawerAutoDismissTimerRef.current)
+      drawerAutoDismissTimerRef.current = null
+    }
+  }, [])
+
   // Fire the drawer on every add (timestamp changes even for re-adds of the
   // same externalId). Start the auto-dismiss timer in the same effect so a
-  // second add resets it.
+  // second add resets it. Once the shopper interacts with the drawer (hover,
+  // pointer, focus) the timer is cancelled — see cancelDrawerAutoDismiss
+  // wired to the drawer below.
   useEffect(() => {
     if (!lastAddEvent) {
       return
     }
     setDrawerOpen(true)
-    const timer = window.setTimeout(() => setDrawerOpen(false), DRAWER_AUTO_DISMISS_MS)
-    return () => window.clearTimeout(timer)
-  }, [lastAddEvent])
+    cancelDrawerAutoDismiss()
+    drawerAutoDismissTimerRef.current = window.setTimeout(() => {
+      setDrawerOpen(false)
+      drawerAutoDismissTimerRef.current = null
+    }, DRAWER_AUTO_DISMISS_MS)
+    return cancelDrawerAutoDismiss
+  }, [lastAddEvent, cancelDrawerAutoDismiss])
 
   // Click-outside dismisses both the drawer and the tooltip. Inside-clicks
   // (icon button itself, drawer rows, trash, CTA, tooltip close) sit inside
@@ -185,7 +199,11 @@ export default function FittingRoomIconWidget(_props: WidgetProps) {
         {count > 0 && <span css={css.badge}>{count}</span>}
       </button>
       {drawerOpen ? (
-        <AddConfirmationDrawer onDismiss={() => setDrawerOpen(false)} onOpenOverlay={handleOpenFromDrawer} />
+        <AddConfirmationDrawer
+          onDismiss={() => setDrawerOpen(false)}
+          onOpenOverlay={handleOpenFromDrawer}
+          onInteract={cancelDrawerAutoDismiss}
+        />
       ) : showTooltip ? (
         <FirstVisitTooltip onDismiss={dismissTooltip} anchorRef={buttonRef} />
       ) : null}
