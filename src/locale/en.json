@@ -5,6 +5,17 @@
   "add_to_fitting_room": "Add to Fitting Room",
   "added_to_fitting_room": "In Fitting Room",
   "view_fitting_room": "Fitting Room",
+  "first_visit_tooltip": {
+    "body": "See your fitting room here",
+    "dismiss": "Dismiss"
+  },
+  "add_confirmation": {
+    "title": "Your Fitting Room",
+    "added_header": "Added to your fitting room",
+    "cta": "Go to your fitting room",
+    "remove": "Remove from fitting room",
+    "dismiss": "Dismiss"
+  },
   "fitting_room": {
     "title": "Fitting Room",
     "empty": "Your fitting room is empty.",
@@ -25,6 +36,7 @@
     "avatar_placeholder_selected": "Avatar render will appear here once VTO is wired up.",
     "see_selected_items": "See Selected Items",
     "no_selection": "Nothing selected yet.",
+    "toggle_selection": "Toggle try-on selection",
     "tuck_in": "Tuck In",
     "untuck": "Untuck",
     "zoom_in": "Zoom In",

@@ -103,6 +103,15 @@ export interface MainStoreState {
   updateFittingRoomItem: (externalId: string, patch: Partial<FittingRoomItem>) => void
   clearFittingRoom: () => void
 
+  // Transient cross-widget signal: the most recent add to the fitting room.
+  // `at` is the wall-clock ms of the add — re-adding the same externalId
+  // changes `at`, so subscribers can re-fire on every add (not just changes
+  // of externalId). Set by addFittingRoomItem in fitting-room-storage.ts;
+  // watched by the fitting-room-icon widget to show the confirmation drawer.
+  // Not persisted to localStorage.
+  lastAddEvent: { externalId: string; at: number } | null
+  setLastAddEvent: (externalId: string) => void
+
   // UI state:
   activeOverlay: OverlayName | null
   activeOverlayProps: Record<string, unknown> | null
@@ -190,6 +199,9 @@ export const useMainStore = create<MainStoreState>((set) => ({
       writeFittingRoom(getStaticData().brandId, [])
       return { fittingRoom: [] }
     }),
+
+  lastAddEvent: null,
+  setLastAddEvent: (externalId: string) => set({ lastAddEvent: { externalId, at: Date.now() } }),
 
   // UI state:
   activeOverlay: null,

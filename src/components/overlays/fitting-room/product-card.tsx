@@ -1,10 +1,12 @@
 import { useMemo } from 'react'
 import { Button } from '@/components/button'
 import { Text } from '@/components/text'
-import { CloseIcon } from '@/lib/asset'
+import { TrashIcon } from '@/lib/asset'
 import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
+import { useTranslation } from '@/lib/locale'
 import { useCss } from '@/lib/theme'
 import type { Availability } from '@/lib/fitting-room-outfit'
+import { CardCheckbox } from './card-checkbox'
 import { ColorSwatchRow, type ColorSwatchEntry } from './color-swatch-row'
 
 interface ProductCardProps {
@@ -22,6 +24,7 @@ interface ProductCardProps {
 // the border (selected → solid border) and disabled treatment (greyed +
 // non-clickable when other selections rule this one out).
 export function ProductCard({ item, availability, onClick, onRemove, onChangeColor }: ProductCardProps) {
+  const { t } = useTranslation()
   const css = useCss((theme) => ({
     container: {
       position: 'relative',
@@ -30,13 +33,14 @@ export function ProductCard({ item, availability, onClick, onRemove, onChangeCol
       display: 'flex',
       flexDirection: 'column',
       gap: '8px',
-      padding: '8px',
-      border: '1px solid transparent',
+      padding: '12px 20px',
+      border: '1.5px solid #E0E0E0',
+      borderRadius: '8px',
       backgroundColor: 'transparent',
       textAlign: 'left',
     },
     containerSelected: {
-      border: `1px solid ${theme.color_fg_text}`,
+      borderColor: '#16A34A',
     },
     containerDisabled: {
       opacity: 0.35,
@@ -77,8 +81,8 @@ export function ProductCard({ item, availability, onClick, onRemove, onChangeCol
     },
     removeButton: {
       position: 'absolute',
-      top: '4px',
-      right: '4px',
+      top: '8px',
+      right: '8px',
       width: '24px',
       height: '24px',
       borderRadius: '12px',
@@ -92,26 +96,8 @@ export function ProductCard({ item, availability, onClick, onRemove, onChangeCol
       zIndex: 1,
     },
     removeIcon: {
-      width: '12px',
-      height: '12px',
-    },
-    // Selected badge — mirrors the X button at the top-right, green-filled
-    // circle at top-left with an inline white checkmark. Only rendered when
-    // availability === 'selected'. Decorative: pointer-events: none so the
-    // shopper still taps the card body underneath to toggle off.
-    selectedBadge: {
-      position: 'absolute',
-      top: '4px',
-      left: '4px',
-      width: '24px',
-      height: '24px',
-      borderRadius: '12px',
-      backgroundColor: '#22C55E',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      pointerEvents: 'none',
-      zIndex: 1,
+      width: '14px',
+      height: '14px',
     },
   }))
 
@@ -200,21 +186,13 @@ export function ProductCard({ item, availability, onClick, onRemove, onChangeCol
         }}
         aria-label="Remove from fitting room"
       >
-        <CloseIcon css={css.removeIcon} />
+        <TrashIcon css={css.removeIcon} />
       </button>
-      {selected ? (
-        <div css={css.selectedBadge} aria-hidden="true">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M3 8.5L6.5 12L13 4.5"
-              stroke="#FFFFFF"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
-      ) : null}
+      <CardCheckbox
+        state={disabled ? 'disabled' : selected ? 'selected' : 'unselected'}
+        onClick={handleClick}
+        ariaLabel={t('fitting_room.toggle_selection')}
+      />
       <Button
         variant="base"
         css={{

@@ -226,6 +226,45 @@ metaobject, both fields come through `null` and `ColorSwatchRow` falls
 through image → hex → text-label rendering. See `shopify/AGENTS.md` →
 "Colour swatches (Storefront API token)" for the merchant-side setup.
 
+## Fitting-room icon widget — three responsibilities
+
+`src/components/widgets/fitting-room-icon.tsx` is no longer just the
+header icon. It also hosts two anchored popovers that need to live next
+to the icon:
+
+- **First-visit tooltip** (`first-visit-tooltip.tsx`) — fires once per
+  browser the first time the widget mounts. Dismiss paths (icon click,
+  tooltip close, click-outside) all write the localStorage flag
+  `tfr:first-visit-tooltip-seen:v1`, a sibling to the existing
+  `tfr:fitting-room:v1`. While showing, the icon button gets a soft
+  green pulsing box-shadow.
+- **Add-confirmation drawer** (`add-confirmation-drawer.tsx`) — fires
+  whenever any item is added to the fitting room from any surface
+  (catalog hanger, PDP, quick-view). Auto-dismisses after 4s; click-
+  outside also dismisses. Items inside use a trash icon for remove
+  (calls `removeFromFittingRoom`); CTA opens the overlay.
+
+### `lastAddEvent` — the cross-widget signal
+
+The drawer is owned by the icon widget but fires in response to adds
+that happen elsewhere (a separate `add-to-fitting-room-compact` widget
+on catalog cards, a PDP widget, etc). They cannot call each other
+directly. The signal funnels through `useMainStore`:
+
+```ts
+lastAddEvent: { externalId: string; at: number } | null
+setLastAddEvent: (externalId: string) => void
+```
+
+Written by `addFittingRoomItem` in `fitting-room-storage.ts` (the
+single funnel for all add paths). The icon widget subscribes; the `at`
+timestamp lets re-adds of the same `externalId` re-fire (object
+reference changes on every add). Not persisted to localStorage.
+
+This is the canonical pattern for transient cross-widget signals — if
+you need another one, use the same `{ id, at }` shape so subscribers
+can dep on the whole object.
+
 ---
 
 ## Definition of done
