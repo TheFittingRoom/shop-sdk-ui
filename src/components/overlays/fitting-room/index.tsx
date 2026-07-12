@@ -30,11 +30,26 @@ import { useVtoRequests } from '@/lib/use-vto-requests'
 
 // Map our local OutfitItem shape (which carries the externalId for UI bookkeeping)
 // to the wire shape expected by the VTO API.
+//
+// Container products fan out: `childCsaIds` was pre-resolved in
+// makeOutfitItem/buildAlternateOutfits from the shopper's (parent CSA)
+// selection. Each child CSA becomes its own wire item, so an N-piece Set
+// contributes N items[] entries instead of 1. Non-container items keep the
+// 1:1 mapping. `untucked` propagates uniformly to every tuckable child in the
+// container — the PDP will surface a single tuck toggle in Phase C, but even
+// today an ambient outfit-wide `forceUntuck` needs to reach every tuckable
+// component of a Set.
 function toWireItems(items: OutfitItem[]): VtoCompositionItem[] {
-  return items.map((i) => ({
-    colorway_size_asset_id: i.colorwaySizeAssetId,
-    ...(i.untucked ? { untucked: true } : {}),
-  }))
+  return items.flatMap((i) => {
+    const untuckFrag = i.untucked ? { untucked: true } : {}
+    if (i.childCsaIds && i.childCsaIds.length > 0) {
+      return i.childCsaIds.map((csaId) => ({
+        colorway_size_asset_id: csaId,
+        ...untuckFrag,
+      }))
+    }
+    return [{ colorway_size_asset_id: i.colorwaySizeAssetId, ...untuckFrag }]
+  })
 }
 
 const logger = getLogger('overlays/fitting-room')

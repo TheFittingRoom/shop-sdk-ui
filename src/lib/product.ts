@@ -4,7 +4,13 @@ import type {
   FirestoreSetSizeMapping,
   FirestoreSize,
 } from '@/api/gen/responses'
-import type { FitClassification, MeasurementLocationFit, SizeFit, SizeFitRecommendation } from '@/lib/api'
+import type {
+  FitClassification,
+  MeasurementLocationFit,
+  SizeFit,
+  SizeFitRecommendation,
+  VtoCompositionItem,
+} from '@/lib/api'
 import { getSizeRecommendation as apiGetSizeRecommendation } from '@/lib/api'
 import type { FirestoreStyle } from '@/lib/database'
 import { getStyleByExternalId } from '@/lib/database'
@@ -113,6 +119,59 @@ export async function loadProductData(externalId: string): Promise<LoadedProduct
     sizeFitRecommendation,
     container,
   }
+}
+
+/**
+ * buildVtoWireItems is the shared helper for callsites that build a single
+ * product's wire-request items from a chosen parent CSA. Returns 1 wire item
+ * for single-garment products; N items for containers (one per expanded
+ * child CSA, with `untucked` propagated to every entry).
+ *
+ * Returns null when the product is a container but expansion fails — caller
+ * should skip the request rather than post an item pointing at the parent
+ * CSA (backend rejects parent CSAs as VTO items).
+ */
+export function buildVtoWireItems(
+  loaded: LoadedProductData,
+  parentCsaId: number,
+  untucked: boolean,
+): VtoCompositionItem[] | null {
+  const untuckFrag = untucked ? { untucked: true as const } : {}
+  if (!loaded.container) {
+    return [{ colorway_size_asset_id: parentCsaId, ...untuckFrag }]
+  }
+  const childCsaIds = resolveContainerExpansion(loaded, parentCsaId)
+  if (!childCsaIds) {
+    return null
+  }
+  return childCsaIds.map((csaId) => ({ colorway_size_asset_id: csaId, ...untuckFrag }))
+}
+
+/**
+ * resolveContainerExpansion is the convenience wrapper for the wire-request
+ * build path: given a loaded product and the shopper's chosen parent CSA id,
+ * look up which parent Size + colorway that CSA belongs to (via the size-rec
+ * response, which the SDK has cached at load time) and then walk the mappings
+ * to N child CSAs.
+ *
+ * Returns null when the style isn't a container, when the parent CSA can't
+ * be located on any size-rec row (stale storage), or when child expansion
+ * fails (see resolveContainerChildCSAs). Callers treat null as "post the
+ * single parent CSA as-is" (non-container path) OR "skip this outfit item"
+ * (broken container), depending on which case null represents.
+ */
+export function resolveContainerExpansion(loaded: LoadedProductData, parentCsaId: number): number[] | null {
+  if (!loaded.container) {
+    return null
+  }
+  for (const sz of loaded.sizeFitRecommendation.available_sizes) {
+    const csa = sz.colorway_size_assets.find((c) => c.id === parentCsaId)
+    if (!csa || !csa.colorway_name) {
+      continue
+    }
+    return resolveContainerChildCSAs(loaded.container, sz.id, csa.colorway_name)
+  }
+  return null
 }
 
 /**

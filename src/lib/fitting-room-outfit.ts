@@ -1,5 +1,6 @@
 import type { StyleCategory, StyleCategoryGroup } from '@/api/gen/responses'
 import type { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
+import { resolveContainerExpansion } from '@/lib/product'
 
 export type Availability = 'available' | 'selected' | 'disabled'
 
@@ -9,6 +10,13 @@ export interface OutfitItem {
   externalId: string
   colorwaySizeAssetId: number
   untucked?: true
+  /**
+   * For container (Suits & Sets) products: pre-resolved child CSA ids the SDK
+   * will emit as separate items[] entries when the wire request is built.
+   * Undefined for single-garment products. Populated at OutfitItem
+   * construction time from the resolved loadedProduct's container data.
+   */
+  childCsaIds?: number[]
 }
 
 export interface Outfit {
@@ -158,10 +166,24 @@ function makeOutfitItem(r: ResolvedFittingRoomItem, forceUntuck: boolean): Outfi
   const tuckable = !!r.styleCategory.tuckable
   const untucked = forceUntuck && tuckable
   const layerOrder = untucked ? r.styleCategory.layer_order_untucked : r.styleCategory.layer_order
+  // Container products: resolve the N child CSAs the shopper's (parent CSA)
+  // selection expands to, and attach so toWireItems can flatten. Drop the
+  // whole item when expansion fails — a container with a broken mapping
+  // cannot render, and sending the parent CSA alone would 400 downstream
+  // (the backend rejects parent CSAs as VTO items).
+  let childCsaIds: number[] | undefined
+  if (r.loadedProduct?.container) {
+    const resolved = resolveContainerExpansion(r.loadedProduct, r.storage.colorwaySizeAssetId)
+    if (!resolved) {
+      return null
+    }
+    childCsaIds = resolved
+  }
   const outfitItem: OutfitItem = {
     externalId: r.externalId,
     colorwaySizeAssetId: r.storage.colorwaySizeAssetId,
     ...(untucked ? { untucked: true as const } : {}),
+    ...(childCsaIds ? { childCsaIds } : {}),
   }
   return { outfitItem, layerOrder }
 }
@@ -237,8 +259,26 @@ export function buildAlternateOutfits(
     if (!altCsa) {
       continue
     }
+    // Container products: the alt is the same set at a different set-size;
+    // re-resolve the N child CSAs at the new (parent size, colorway).
+    // Skip the alt entirely if the merchant's mapping doesn't cover the alt
+    // set-size — half-mapped containers shouldn't produce a broken prefetch.
+    let altChildCsaIds: number[] | undefined
+    if (lastAddedResolved.loadedProduct.container) {
+      const resolved = resolveContainerExpansion(lastAddedResolved.loadedProduct, altCsa.id)
+      if (!resolved) {
+        continue
+      }
+      altChildCsaIds = resolved
+    }
     const alternate = primary.map((it) =>
-      it.externalId === lastAddedResolved.externalId ? { ...it, colorwaySizeAssetId: altCsa.id } : it,
+      it.externalId === lastAddedResolved.externalId
+        ? {
+            ...it,
+            colorwaySizeAssetId: altCsa.id,
+            ...(altChildCsaIds ? { childCsaIds: altChildCsaIds } : {}),
+          }
+        : it,
     )
     out.push(alternate)
   }

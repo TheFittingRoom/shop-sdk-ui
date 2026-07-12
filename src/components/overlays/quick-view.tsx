@@ -28,8 +28,8 @@ import { getAuthManager } from '@/lib/firebase'
 import { toggleFittingRoomItem } from '@/lib/fitting-room-storage'
 import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
-import type { VtoProductData, VtoSizeColorData, VtoSizeData } from '@/lib/product'
-import { loadProductDataToStore } from '@/lib/product'
+import type { LoadedProductData, VtoProductData, VtoSizeColorData, VtoSizeData } from '@/lib/product'
+import { buildVtoWireItems, loadProductDataToStore } from '@/lib/product'
 import { loadStyleCategoryIndex } from '@/lib/style-categories'
 import { getStaticData, useMainStore } from '@/lib/store'
 import type { CssProp, StyleProp } from '@/lib/theme'
@@ -253,14 +253,39 @@ export default function QuickViewOverlay() {
     return { sizeColorRecord, availableColorLabels }
   }, [vtoProductData, selectedSizeLabel, selectedColorLabel])
 
+  // The loaded product data — pulled from the same store slot the
+  // setupInitialVtoData effect reads. Container products need it at
+  // wire-request time to expand into N child CSAs.
+  const loadedProduct = useMemo<LoadedProductData | null>(() => {
+    const { currentProduct } = getStaticData()
+    if (!currentProduct) {
+      return null
+    }
+    const entry = storeProductData[currentProduct.externalId]
+    if (!entry || 'error' in entry) {
+      return null
+    }
+    return entry
+  }, [storeProductData])
+
   // Request VTO for a color/size as a one-item outfit. Dedup, the prefetch
   // throttle, and frame storage all live in the shared useVtoRequests hook;
-  // single-garment compositions are never untucked.
+  // single-garment compositions are never untucked. Container products fan
+  // out at wire-build time via buildVtoWireItems; buildVtoWireItems returns
+  // null when the container's mapping is incomplete and we skip the request
+  // rather than post a broken composition.
   const requestVto = useCallback(
     (sizeColorRecord: VtoSizeColorData, priority: boolean) => {
-      vtoRequest([{ colorway_size_asset_id: sizeColorRecord.colorwaySizeAssetId, untucked: false }], priority)
+      if (!loadedProduct) {
+        return
+      }
+      const wireItems = buildVtoWireItems(loadedProduct, sizeColorRecord.colorwaySizeAssetId, false)
+      if (!wireItems) {
+        return
+      }
+      vtoRequest(wireItems, priority)
     },
-    [vtoRequest],
+    [vtoRequest, loadedProduct],
   )
 
   // Trigger priority VTO request when size/color selection changes
@@ -290,14 +315,18 @@ export default function QuickViewOverlay() {
 
   // Frame URLs for the currently-selected color/size: ask the shared hook
   // for this one-item outfit's rendered frames (already base-URL-rewritten),
-  // then preload the images.
+  // then preload the images. For containers the outfit key is the expanded
+  // set of child CSAs — same as what requestVto posted, so the hook's
+  // per-outfit frames Map has an entry keyed off the same wire shape.
   const frameUrls = useMemo(() => {
-    if (!selectedColorSizeRecord) {
+    if (!selectedColorSizeRecord || !loadedProduct) {
       return null
     }
-    const rewritten = framesForOutfit([
-      { colorway_size_asset_id: selectedColorSizeRecord.colorwaySizeAssetId, untucked: false },
-    ])
+    const wireItems = buildVtoWireItems(loadedProduct, selectedColorSizeRecord.colorwaySizeAssetId, false)
+    if (!wireItems) {
+      return null
+    }
+    const rewritten = framesForOutfit(wireItems)
     if (!rewritten) {
       return null
     }
@@ -307,7 +336,7 @@ export default function QuickViewOverlay() {
       img.src = url
     })
     return rewritten
-  }, [selectedColorSizeRecord, framesForOutfit])
+  }, [selectedColorSizeRecord, framesForOutfit, loadedProduct])
 
   const handleSignOutClick = useCallback(() => {
     closeOverlay()
