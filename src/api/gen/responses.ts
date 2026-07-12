@@ -276,7 +276,6 @@ export interface MeasurementLocation {
   is_required_base_body_measurement: boolean;
   sort_order: number /* int64 */;
   group?: MeasurementLocationGroup;
-  is_placement_measurement: boolean;
 }
 
 //////////
@@ -285,6 +284,45 @@ export interface MeasurementLocation {
 export interface MeasurementLocationGroup {
   name: string;
   label: string;
+}
+
+//////////
+// source: set_template.go
+
+/**
+ * SetTemplate is the API response shape for GET / POST / PUT
+ * /v1/set-templates[/:id]. Full snapshot including all three child
+ * tables.
+ */
+export interface SetTemplate {
+  id: number /* int64 */;
+  brand_id: number /* int64 */;
+  name: string;
+  slots: SetTemplateSlot[];
+  sizes: SetTemplateSize[];
+  mappings: SetTemplateSizeMapping[];
+  created_at: any /* time.Time */;
+  updated_at?: any /* time.Time */;
+}
+export interface SetTemplateSlot {
+  id: number /* int64 */;
+  slot_index: number /* int */;
+  name?: string;
+  style_category_name: any /* enums.StyleCategory */;
+  size_system_id: number /* int64 */;
+  vertical_size_system_id?: number /* int64 */;
+}
+export interface SetTemplateSize {
+  id: number /* int64 */;
+  set_size_index: number /* int */;
+  label: string;
+}
+export interface SetTemplateSizeMapping {
+  id: number /* int64 */;
+  set_size_index: number /* int */;
+  slot_index: number /* int */;
+  slot_size_value_id: number /* int64 */;
+  slot_vertical_size_value_id?: number /* int64 */;
 }
 
 //////////
@@ -388,12 +426,25 @@ export interface Size {
   label: string;
   reference_size_value_id: number /* int64 */;
   reference_size_value?: SizeValue;
+  /**
+   * ContainerReferenceSizeID is populated on container-parent Sizes
+   * instead of ReferenceSizeValueID. FKs to another Size row in the
+   * same style. Zero for single-garment Sizes.
+   */
+  container_reference_size_id: number /* int64 */;
   size_value_id: number /* int64 */;
   size_value?: SizeValue;
   vertical_size_value_id: number /* int64 */;
   vertical_size_value?: SizeValue;
   base_body_id: number /* int64 */;
   base_body?: BaseBody;
+  /**
+   * SortOrder is populated for container-parent Sizes (size_value_id NULL).
+   * The size-rec algorithm uses it to find adjacent sizes when
+   * size_value_id-based ordering is unavailable. Zero for regular
+   * single-garment Sizes.
+   */
+  sort_order?: number /* int */;
   garment_measurements: GarmentMeasurement[];
   colorway_size_assets: ColorwaySizeAsset[];
 }
@@ -407,8 +458,10 @@ export interface FirestoreSize {
   garment_measurements?: any[];
   size_value_id: number /* int */;
   reference_size_value_id: number /* int */;
+  container_reference_size_id: number /* int */;
   vertical_size_value_id: number /* int */;
   base_body_id: number /* int */;
+  sort_order?: number /* int */;
   name?: string;
   size_value?: any;
   vertical_size_value?: any;
@@ -641,17 +694,38 @@ export interface Style {
   style_category_label: string;
   sleeves?: any /* enums.SleeveLength */;
   size_system?: SizeSystem;
+  size_system_id: number /* int64 */;
   vertical_size_system?: SizeSystem;
+  vertical_size_system_id: number /* int64 */;
+  component_index?: number /* int */;
+  parent_style_id?: number /* int64 */;
   sizes: Size[];
   colorways: Colorway[];
   colorway_size_assets: ColorwaySizeAsset[];
   measurement_unit: string;
   is_published: boolean;
-  placement_measurement_location: string;
-  placement_offset_y: number /* float64 */;
   is_vto: boolean;
   created_at: any /* time.Time */;
   updated_at?: any /* time.Time */;
+  /**
+   * IsContainer marks this row as a Suits & Sets parent. When true the
+   * dashboard hydrates Components/Sizes/Mappings tabs from Children[]
+   * and SetSizeMappings[]. Non-container styles omit these.
+   */
+  is_container?: boolean;
+  children?: Style[];
+  set_size_mappings?: SetSizeMapping[];
+}
+/**
+ * SetSizeMapping is a single (parent_size_id, child_size_id) row on a
+ * container-parent style. The REST response embeds these on the parent
+ * so the dashboard editor can round-trip mapping state on Edit without
+ * a second fetch.
+ */
+export interface SetSizeMapping {
+  id: number /* int64 */;
+  parent_size_id: number /* int64 */;
+  child_size_id: number /* int64 */;
 }
 export interface FirestoreStyle {
   brand_id: number /* int */;
@@ -673,11 +747,46 @@ export interface FirestoreStyle {
   is_published: boolean;
   created_at: any /* time.Time */;
   updated_at?: any /* time.Time */;
-  placement_measurement_location: string;
-  placement_offset_y: number /* float64 */;
   division_id?: number /* int */;
   colorways?: any[];
   sizes?: any[];
+  /**
+   * IsContainer marks the style as a Suits & Sets parent whose full
+   * composition is described by the Children[] and SetSizeMappings[]
+   * fields below. Non-container styles omit these.
+   */
+  is_container?: boolean;
+  children?: any[];
+  set_size_mappings?: any[];
+}
+/**
+ * FirestoreChildStyle is the shape embedded under FirestoreStyle.Children
+ * for a container-parent style's Firestore snapshot. Child styles do not
+ * get their own top-level document — the SDK reads them off the parent.
+ * Fields inherited from the parent (brand_id, description, etc.) are
+ * omitted since the SDK already has the parent's copy.
+ */
+export interface FirestoreChildStyle {
+  id: number /* int */;
+  name: string;
+  component_index: number /* int */;
+  style_category_name: string;
+  style_category_label: string;
+  sleeves?: string;
+  size_system_id: number /* int */;
+  vertical_size_system_id: number /* int */;
+  colorways?: any[];
+  sizes?: any[];
+}
+/**
+ * FirestoreSetSizeMapping is a single (parent_size_id, child_size_id) row
+ * from set_size_mappings on the parent style's snapshot. The SDK reads
+ * these to expand a shopper-selected parent Size into N per-component
+ * child Sizes.
+ */
+export interface FirestoreSetSizeMapping {
+  parent_size_id: number /* int */;
+  child_size_id: number /* int */;
 }
 
 //////////
@@ -738,6 +847,14 @@ export interface StyleCategory {
    * this one regardless of the group default.
    */
   excludes: any /* enums.StyleCategory */[];
+  /**
+   * IsContainer marks the category as a container (parent-style) type:
+   * Style rows in this category own N child Style rows and are expanded
+   * to N component CSAs at VTO composition time. Dashboard / SDK branch
+   * on this to render container-specific UX. Container categories do
+   * not participate in VTO layering directly (their children do).
+   */
+  is_container: boolean;
 }
 /**
  * StyleCategoryGroup is the API response shape for GET /v1/style-category-groups.

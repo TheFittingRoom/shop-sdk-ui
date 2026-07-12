@@ -315,6 +315,10 @@ export const StyleCategoryShells: StyleCategory = "shells";
  * Jackets and Coats.
  */
 export const StyleCategoryCloaks: StyleCategory = "cloaks";
+/**
+ * Sets.
+ */
+export const StyleCategorySuitsAndSets: StyleCategory = "suits_and_sets";
 
 //////////
 // source: upload_limits.go
