@@ -4,7 +4,24 @@ import { resolveContainerExpansion } from '@/lib/product'
 
 export type Availability = 'available' | 'selected' | 'disabled'
 
+// MAX_OUTFIT_ITEMS caps GARMENTS (not products) in an outfit — matches the
+// backend + sim-vis wire cap of 4 items on /v1/vto-compositions. A container
+// product's garment count is its children.length (via item.effective.length),
+// so a 3-piece Set consumes 3 slots and adding a fifth garment (of any shape)
+// hits the cap.
 export const MAX_OUTFIT_ITEMS = 4
+
+// Garment count per resolved item: containers contribute one per child (via
+// EffectiveCategory list); single-garment items contribute 1. Returns 0
+// when the style-category index hasn't populated yet — treating an
+// unresolved item as weightless is safer than blocking the add, and the
+// isReady flag on the caller handles the display-time skip.
+function getGarmentCount(item: ResolvedFittingRoomItem): number {
+  if (item.effective.length > 0) {
+    return item.effective.length
+  }
+  return item.styleCategory ? 1 : 0
+}
 
 export interface OutfitItem {
   externalId: string
@@ -43,6 +60,24 @@ function asStringList(value: unknown): string[] {
 
 function catName(c: StyleCategory): string {
   return String(c.name)
+}
+
+// itemsCompatible returns true if `a` and `b` can coexist in the same outfit,
+// considering each item's EFFECTIVE categories (children for containers, self
+// for single-garment). Fails if any A-child × B-child pair is incompatible
+// under pairCompatible.
+export function itemsCompatible(a: ResolvedFittingRoomItem, b: ResolvedFittingRoomItem): boolean {
+  if (a.effective.length === 0 || b.effective.length === 0) {
+    return true
+  }
+  for (const ae of a.effective) {
+    for (const be of b.effective) {
+      if (!pairCompatible(ae.category, be.category, ae.group)) {
+        return false
+      }
+    }
+  }
+  return true
 }
 
 // pairCompatible returns true if `a` and `b` can coexist in the same outfit.
@@ -127,13 +162,16 @@ export function computeAvailability(
   // Same-category items would be silently evicted on add. Treat them as
   // freed slots when computing effective outfit size and when checking
   // pair-compatibility — they're about to leave the outfit anyway.
+  //
+  // Same-category conflict keys on the PARENT category (so Set-vs-Set
+  // silent-swaps, and Pants-vs-Pants silent-swaps). Set-vs-standalone-Pants
+  // does not silent-swap even when the Set includes pants — the pairwise
+  // check below catches that as an incompatible add.
   const sameCategoryEvictions = new Set(getSameCategoryConflicts(item, selectedExternalIds, resolved))
-  const effectiveSize = selectedExternalIds.size - sameCategoryEvictions.size + 1
-  if (effectiveSize > MAX_OUTFIT_ITEMS) {
-    return 'disabled'
-  }
 
-  const itemCat = item.styleCategory
+  // Garment-count cap: sum children per selected item, plus the new item's
+  // own garment count. Containers count as N.
+  let effectiveGarments = getGarmentCount(item)
   for (const sel of resolved.items) {
     if (!selectedExternalIds.has(sel.externalId)) {
       continue
@@ -141,10 +179,20 @@ export function computeAvailability(
     if (sameCategoryEvictions.has(sel.externalId)) {
       continue
     }
-    if (!sel.styleCategory) {
+    effectiveGarments += getGarmentCount(sel)
+  }
+  if (effectiveGarments > MAX_OUTFIT_ITEMS) {
+    return 'disabled'
+  }
+
+  for (const sel of resolved.items) {
+    if (!selectedExternalIds.has(sel.externalId)) {
       continue
     }
-    if (!pairCompatible(sel.styleCategory, itemCat, sel.styleCategoryGroup)) {
+    if (sameCategoryEvictions.has(sel.externalId)) {
+      continue
+    }
+    if (!itemsCompatible(sel, item)) {
       return 'disabled'
     }
   }
@@ -154,6 +202,11 @@ export function computeAvailability(
 interface OutfitBuilderEntry {
   outfitItem: OutfitItem
   layerOrder: number
+  // Garment count this OutfitItem contributes to the wire request — 1 for
+  // single-garment items, N for containers (childCsaIds.length). Kept
+  // alongside layerOrder so the final MAX_OUTFIT_ITEMS trim can enforce
+  // the cap on the wire-item count that will actually go to sim-vis.
+  garmentCount: number
 }
 
 function makeOutfitItem(r: ResolvedFittingRoomItem, forceUntuck: boolean): OutfitBuilderEntry | null {
@@ -185,7 +238,7 @@ function makeOutfitItem(r: ResolvedFittingRoomItem, forceUntuck: boolean): Outfi
     ...(untucked ? { untucked: true as const } : {}),
     ...(childCsaIds ? { childCsaIds } : {}),
   }
-  return { outfitItem, layerOrder }
+  return { outfitItem, layerOrder, garmentCount: childCsaIds?.length ?? 1 }
 }
 
 // buildOutfit derives the wire-shape outfit (1..4 items, layer-ordered) plus a
@@ -215,7 +268,20 @@ export function buildOutfit(
   }
 
   entries.sort((a, b) => a.layerOrder - b.layerOrder)
-  const items = entries.slice(0, MAX_OUTFIT_ITEMS).map((e) => e.outfitItem)
+  // Trim by garment count, not entry count: a 3-piece Set fills 3 wire
+  // slots. computeAvailability blocks the add before we get here, but this
+  // defensive slice keeps a stale selection from posting > 4 garments (e.g.
+  // if the merchant's container-child count changed since the shopper
+  // selected it).
+  const items: OutfitItem[] = []
+  let cumulativeGarments = 0
+  for (const entry of entries) {
+    if (cumulativeGarments + entry.garmentCount > MAX_OUTFIT_ITEMS) {
+      break
+    }
+    items.push(entry.outfitItem)
+    cumulativeGarments += entry.garmentCount
+  }
 
   const alternates = buildAlternateOutfits(items, lastAddedResolved)
   return { items, alternates }

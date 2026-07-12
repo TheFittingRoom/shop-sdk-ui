@@ -52,4 +52,9 @@ test('quick-view container: POST /v1/vto-compositions carries child CSAs, not th
   // Explicitly assert the parent CSA is NOT in the wire request — if it
   // ever appears, the resolver has regressed to no-op / bypass.
   expect(emittedCsaIds).not.toContain(TEST_CONTAINER_PARENT_CSA_ID)
+
+  // Wire item count must never exceed 4 (backend + sim-vis cap). A 2-piece
+  // Set alone shouldn't approach it, but this locks in the invariant the
+  // Phase B garment-count cap enforces client-side.
+  expect(items.length).toBeLessThanOrEqual(4)
 })
