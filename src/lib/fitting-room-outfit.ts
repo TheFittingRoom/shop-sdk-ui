@@ -1,5 +1,6 @@
 import type { StyleCategory, StyleCategoryGroup } from '@/api/gen/responses'
 import type { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
+import { isItemTuckable } from '@/lib/fitting-room-data'
 import { resolveContainerExpansion } from '@/lib/product'
 
 export type Availability = 'available' | 'selected' | 'disabled'
@@ -216,8 +217,18 @@ function makeOutfitItem(r: ResolvedFittingRoomItem, forceUntuck: boolean): Outfi
   if (r.storage.colorwaySizeAssetId == null) {
     return null
   }
-  const tuckable = !!r.styleCategory.tuckable
+  // Tuckable is a per-CHILD trait; the container's own category
+  // (suits_and_sets) is a wrapper and never tuckable. isItemTuckable walks
+  // effective categories so a Set with a tuckable shirt correctly picks up
+  // outfit-wide forceUntuck.
+  const tuckable = isItemTuckable(r)
   const untucked = forceUntuck && tuckable
+  // Layer order for the wrapper OutfitItem: single-garment uses the item's
+  // own layer, containers use the parent's — but the parent's layer_order
+  // fields are 0 (container category has no meaningful layer). That's fine:
+  // wire-time expansion re-orders per child on the backend before sending
+  // to sim-vis, so the OutfitItem-level layerOrder only controls the
+  // sort within `entries` (deterministic, stable for equivalent selections).
   const layerOrder = untucked ? r.styleCategory.layer_order_untucked : r.styleCategory.layer_order
   // Container products: resolve the N child CSAs the shopper's (parent CSA)
   // selection expands to, and attach so toWireItems can flatten. Drop the

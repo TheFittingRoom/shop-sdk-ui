@@ -30,7 +30,7 @@ import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import type { LoadedProductData, VtoProductData, VtoSizeColorData, VtoSizeData } from '@/lib/product'
 import { buildVtoWireItems, loadProductDataToStore } from '@/lib/product'
-import { loadStyleCategoryIndex } from '@/lib/style-categories'
+import { loadStyleCategoryIndex, peekStyleCategoryIndex } from '@/lib/style-categories'
 import { getStaticData, useMainStore } from '@/lib/store'
 import type { CssProp, StyleProp } from '@/lib/theme'
 import { getThemeData, useCss } from '@/lib/theme'
@@ -77,6 +77,13 @@ export default function QuickViewOverlay() {
   const [selectedSizeLabel, setSelectedSizeLabel] = useState<string | null>(null)
   const [selectedColorLabel, setSelectedColorLabel] = useState<string | null>(null)
   const [modalStyle, setModalStyle] = useState<StyleProp>({})
+  // Container-only tuck toggle (see Suits & Sets plan Q10). Non-container
+  // products never surface a tuck toggle on quick-view — quick-view is
+  // previewing a single product outside an outfit context so there's nothing
+  // for it to tuck into. Containers are different: a Set carries its own
+  // bottoms sibling, so tucking a tuckable shirt over/under has meaning.
+  // State value applies uniformly to every tuckable child at wire-build.
+  const [containerUntucked, setContainerUntucked] = useState(false)
   // Shared VTO request flow: dedup, prefetch throttle, and frame storage.
   // Single-garment compositions are just one-item outfits (untucked: false).
   const { request: vtoRequest, framesForOutfit, lastError: vtoError, clearError: clearVtoError } = useVtoRequests()
@@ -268,6 +275,29 @@ export default function QuickViewOverlay() {
     return entry
   }, [storeProductData])
 
+  // Container tuck toggle gating: only render when this product is a
+  // container AND at least one child garment is tuckable. peekStyleCategoryIndex
+  // returns null before the index resolves (very early frames); the toggle
+  // just stays hidden until the child-category lookup can complete. Recomputes
+  // when the loaded product data changes.
+  const containerHasTuckableChild = useMemo(() => {
+    if (!loadedProduct?.container) {
+      return false
+    }
+    const index = peekStyleCategoryIndex()
+    if (!index) {
+      return false
+    }
+    return loadedProduct.container.children.some((c) => {
+      const cat = index.byName(String(c.style_category_name))
+      return !!cat?.tuckable
+    })
+  }, [loadedProduct])
+
+  const handleToggleContainerUntucked = useCallback(() => {
+    setContainerUntucked((prev) => !prev)
+  }, [])
+
   // Request VTO for a color/size as a one-item outfit. Dedup, the prefetch
   // throttle, and frame storage all live in the shared useVtoRequests hook;
   // single-garment compositions are never untucked. Container products fan
@@ -279,13 +309,18 @@ export default function QuickViewOverlay() {
       if (!loadedProduct) {
         return
       }
-      const wireItems = buildVtoWireItems(loadedProduct, sizeColorRecord.colorwaySizeAssetId, false)
+      // Single-garment products stay hard-coded untucked=false: quick-view
+      // is a preview with no outfit context to tuck INTO. Containers use the
+      // shopper's tuck toggle; buildVtoWireItems propagates the flag to
+      // every emitted child, and non-tuckable children ignore it downstream.
+      const untucked = loadedProduct.container ? containerUntucked : false
+      const wireItems = buildVtoWireItems(loadedProduct, sizeColorRecord.colorwaySizeAssetId, untucked)
       if (!wireItems) {
         return
       }
       vtoRequest(wireItems, priority)
     },
-    [vtoRequest, loadedProduct],
+    [vtoRequest, loadedProduct, containerUntucked],
   )
 
   // Trigger priority VTO request when size/color selection changes
@@ -322,7 +357,8 @@ export default function QuickViewOverlay() {
     if (!selectedColorSizeRecord || !loadedProduct) {
       return null
     }
-    const wireItems = buildVtoWireItems(loadedProduct, selectedColorSizeRecord.colorwaySizeAssetId, false)
+    const untucked = loadedProduct.container ? containerUntucked : false
+    const wireItems = buildVtoWireItems(loadedProduct, selectedColorSizeRecord.colorwaySizeAssetId, untucked)
     if (!wireItems) {
       return null
     }
@@ -336,7 +372,7 @@ export default function QuickViewOverlay() {
       img.src = url
     })
     return rewritten
-  }, [selectedColorSizeRecord, framesForOutfit, loadedProduct])
+  }, [selectedColorSizeRecord, framesForOutfit, loadedProduct, containerUntucked])
 
   const handleSignOutClick = useCallback(() => {
     closeOverlay()
@@ -432,6 +468,9 @@ export default function QuickViewOverlay() {
         onChangeSize={setSelectedSizeLabel}
         onAddToCart={handleAddToCartClick}
         onSignOut={handleSignOutClick}
+        containerTuckable={containerHasTuckableChild}
+        containerUntucked={containerUntucked}
+        onToggleUntuck={handleToggleContainerUntucked}
       />
       {vtoError ? <Snackbar messageKey="quick-view.vto_error" onDismiss={clearVtoError} /> : null}
     </SidecarModalFrame>
@@ -533,6 +572,45 @@ function FittingRoomToggleButton() {
   )
 }
 
+// ContainerTuckToggleButton sits beneath FittingRoomToggleButton on
+// container product PDPs when at least one child garment is tuckable.
+// One toggle uniformly flips every tuckable child's `untucked` bool at
+// wire-build (see buildVtoWireItems). Non-container products never render
+// this button — quick-view has no outfit context for a single garment to
+// tuck into. TODO(container-tuck-mobile): mobile-layout equivalent —
+// the sub-content components (MobileContentCollapsed / Expanded / Full)
+// don't yet receive the tuck props from LayoutProps.
+function ContainerTuckToggleButton({ untucked, onToggle }: { untucked: boolean; onToggle: () => void }) {
+  const css = useCss((theme) => ({
+    button: {
+      marginTop: '10px',
+      width: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '10px',
+      padding: '13px',
+      backgroundColor: '#FFFFFF',
+      border: `1px solid ${theme.color_fg_text}`,
+      borderRadius: '30px',
+      cursor: 'pointer',
+    },
+    text: {
+      fontSize: '14px',
+      textTransform: 'uppercase',
+    },
+  }))
+  return (
+    <button type="button" onClick={onToggle} css={css.button}>
+      <TextT
+        variant="base"
+        css={css.text}
+        t={untucked ? 'fitting_room.try_it_tucked_in' : 'fitting_room.try_it_untucked'}
+      />
+    </button>
+  )
+}
+
 interface LayoutProps {
   loadedProductData: VtoProductData
   selectedColorSizeRecord: VtoSizeColorData
@@ -546,6 +624,14 @@ interface LayoutProps {
   onChangeSize: (newSizeLabel: string) => void
   onAddToCart: () => void
   onSignOut: () => void
+  // Container tuck toggle (see Suits & Sets plan Q10). When
+  // containerTuckable is false the toggle isn't rendered at all — that's
+  // the gate for single-garment products and containers with no tuckable
+  // child. containerUntucked reflects the current state; onToggleUntuck
+  // flips it.
+  containerTuckable: boolean
+  containerUntucked: boolean
+  onToggleUntuck: () => void
 }
 
 type MobileContentView = 'collapsed' | 'expanded' | 'full'
@@ -1029,6 +1115,9 @@ function DesktopLayout({
   onChangeSize,
   onAddToCart,
   onSignOut,
+  containerTuckable,
+  containerUntucked,
+  onToggleUntuck,
 }: LayoutProps) {
   const { t } = useTranslation()
   const [fitChartOpen, setFitChartOpen] = useState<boolean>(false)
@@ -1191,6 +1280,9 @@ function DesktopLayout({
           <div css={css.buttonContainer}>
             <AddToCartButton onClick={onAddToCart} />
             <FittingRoomToggleButton />
+            {containerTuckable ? (
+              <ContainerTuckToggleButton untucked={containerUntucked} onToggle={onToggleUntuck} />
+            ) : null}
           </div>
           <div css={css.descriptionContainer}>
             <ProductDescriptionText loadedProductData={loadedProductData} />

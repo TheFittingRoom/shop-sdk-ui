@@ -59,6 +59,16 @@ export interface ResolvedFittingRoom {
   styleCategoryError: Error | null
 }
 
+// isItemTuckable returns true when at least one of the item's effective
+// categories carries tuckable=true. For single-garment items this reduces to
+// the item's own category; for containers it's true when any child garment
+// is tuckable (shirt in a suit set, etc). Prefer this helper over reading
+// `item.styleCategory.tuckable` directly — the latter is the PARENT
+// category's flag, which is always falsy for containers.
+export function isItemTuckable(item: ResolvedFittingRoomItem): boolean {
+  return item.effective.some((e) => !!e.category.tuckable)
+}
+
 // loadFittingRoomData fans out all the per-item lookups required to render
 // the fitting-room overlay. Idempotent: existing entries in the store are
 // not re-fetched; missing handles are reported as per-item errors.
