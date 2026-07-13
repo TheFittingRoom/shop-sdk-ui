@@ -8,7 +8,7 @@ import type {
   VtoSizeColorData,
   VtoSizeData,
 } from '@/lib/product'
-import { loadProductDataToStore } from '@/lib/product'
+import { loadProductDataToStore, resolveContainerExpansion } from '@/lib/product'
 import type { ExternalProduct, MerchantProductError } from '@/lib/store'
 import { getStaticData, useMainStore } from '@/lib/store'
 import type { StyleCategory, StyleCategoryGroup, StyleCategoryIndex } from '@/lib/style-categories'
@@ -17,6 +17,17 @@ import { getSizeLabelFromSize } from '@/lib/util'
 
 const logger = getLogger('fitting-room-data')
 
+// Per-item effective (category, group) pairs. For single-garment items this
+// is `[(item's own category, its group)]`; for container products it's one
+// entry per child. The container category itself does NOT participate — it's
+// a wrapper, not a garment category — so pairwise composition checks and
+// garment-count arithmetic both key off this list. Emptied when the style
+// category index isn't loaded yet or the category name isn't known to it.
+export interface EffectiveCategory {
+  category: StyleCategory
+  group: StyleCategoryGroup | null
+}
+
 export interface ResolvedFittingRoomItem {
   externalId: string
   storage: FittingRoomItem
@@ -24,8 +35,13 @@ export interface ResolvedFittingRoomItem {
   merchantError: Error | null
   loadedProduct: LoadedProductData | null
   loadedError: Error | null
+  // styleCategory / styleCategoryGroup are the PARENT's (or single-garment
+  // item's own) category. Preserved for existing UI callsites (rail-card
+  // header, accordion group). For composition rules and cap arithmetic use
+  // `effective` below — that walks children for containers.
   styleCategory: StyleCategory | null
   styleCategoryGroup: StyleCategoryGroup | null
+  effective: EffectiveCategory[]
   isReady: boolean
   needsResize: boolean
 }
@@ -41,6 +57,16 @@ export interface ResolvedFittingRoom {
   ungrouped: ResolvedFittingRoomItem[]
   isLoading: boolean
   styleCategoryError: Error | null
+}
+
+// isItemTuckable returns true when at least one of the item's effective
+// categories carries tuckable=true. For single-garment items this reduces to
+// the item's own category; for containers it's true when any child garment
+// is tuckable (shirt in a suit set, etc). Prefer this helper over reading
+// `item.styleCategory.tuckable` directly — the latter is the PARENT
+// category's flag, which is always falsy for containers.
+export function isItemTuckable(item: ResolvedFittingRoomItem): boolean {
+  return item.effective.some((e) => !!e.category.tuckable)
 }
 
 // loadFittingRoomData fans out all the per-item lookups required to render
@@ -146,10 +172,26 @@ function resolveItem(
 
   let styleCategory: StyleCategory | null = null
   let styleCategoryGroup: StyleCategoryGroup | null = null
+  const effective: EffectiveCategory[] = []
   if (loadedProduct && index) {
     const categoryName = String(loadedProduct.style.style_category_name)
     styleCategory = index.byName(categoryName)
     styleCategoryGroup = index.groupForCategory(categoryName)
+    // Effective category set drives composition rules + garment-count cap.
+    // Containers expand to one entry per child; the container's own
+    // category (`suits_and_sets`) is a wrapper and does NOT participate.
+    // Single-garment items contribute their own category.
+    if (loadedProduct.container) {
+      for (const child of loadedProduct.container.children) {
+        const childName = String(child.style_category_name)
+        const childCat = index.byName(childName)
+        if (childCat) {
+          effective.push({ category: childCat, group: index.groupForCategory(childName) })
+        }
+      }
+    } else if (styleCategory) {
+      effective.push({ category: styleCategory, group: styleCategoryGroup })
+    }
   }
 
   // needsResize: csa is null OR csa is no longer in the current size rec.
@@ -174,6 +216,21 @@ function resolveItem(
         needsResize = true
       }
     }
+    // Container-specific: the stored parent CSA may still be in size-rec
+    // but the merchant might have deleted the corresponding set_size_mappings
+    // rows between sessions. Attempt the expansion and mark needsResize if
+    // it fails — surfacing the "pick a size" affordance is a better UX than
+    // silently dropping the item at wire-build time.
+    if (!needsResize && loadedProduct.container && item.colorwaySizeAssetId != null) {
+      const expanded = resolveContainerExpansion(loadedProduct, item.colorwaySizeAssetId)
+      if (!expanded) {
+        needsResize = true
+        logger.logDebug('container mapping resolved to empty, marking needsResize', {
+          externalId: item.externalId,
+          csa: item.colorwaySizeAssetId,
+        })
+      }
+    }
   }
 
   const isReady = !!merchantProduct && !!loadedProduct && !!styleCategory && !needsResize
@@ -187,6 +244,7 @@ function resolveItem(
     loadedError,
     styleCategory,
     styleCategoryGroup,
+    effective,
     isReady,
     needsResize,
   }

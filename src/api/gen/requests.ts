@@ -137,6 +137,101 @@ export interface Invitation {
 }
 
 //////////
+// source: set_size_mapping.go
+
+/**
+ * PutSetSizeMappings is the request body for PUT
+ * /v1/styles/:parent_id/set-size-mappings. Merchant sends the complete
+ * desired mapping set for the container-parent style; backend replaces
+ * the existing rows atomically.
+ */
+export interface PutSetSizeMappings {
+  mappings: SetSizeMapping[];
+}
+export interface SetSizeMapping {
+  parent_size_id: number /* int64 */;
+  child_size_id: number /* int64 */;
+}
+/**
+ * SetSizeMappingRef is the reference-based mapping used in the atomic
+ * POST/PUT /v1/styles request bodies where parent / child Size rows may
+ * not have DB ids yet (they're being created in the same request).
+ * Resolution at commit time:
+ *   - ParentSizeLabel matches the label of one of the parent's just-
+ *     upserted container-parent Sizes.
+ *   - ChildStyleIndex is the 0-based index into the request's
+ *     Children[] array (matching the child style whose Sizes we're
+ *     targeting).
+ *   - ChildSizeValueID + optional ChildVerticalSizeValueID uniquely
+ *     identify a Size within the child style (child styles are always
+ *     single-garment).
+ */
+export interface SetSizeMappingRef {
+  parent_size_label: string;
+  child_style_index: number /* int */;
+  child_size_value_id: number /* int64 */;
+  child_vertical_size_value_id: number /* int64 */;
+}
+
+//////////
+// source: set_template.go
+
+/**
+ * SetTemplate is the request body for POST /v1/set-templates and PUT
+ * /v1/set-templates/:id. The template is a reusable preset for
+ * container Suits & Sets styles: N component slots (categories + size
+ * systems) + M set-size labels + a mapping table pairing each set-size
+ * with a per-slot child size value.
+ * SlotIndex and SetSizeIndex are the join keys between the three
+ * child tables; callers pick their own indexes and the handler
+ * validates that Mappings reference existing (slot_index, set_size_index)
+ * pairs and that each pair is covered exactly once per slot.
+ */
+export interface SetTemplate {
+  name: string;
+  slots: SetTemplateSlot[];
+  sizes: SetTemplateSize[];
+  mappings: SetTemplateSizeMapping[];
+}
+/**
+ * SetTemplateSlot describes one component slot in a template. On apply,
+ * each slot spawns a child style with StyleCategoryName copied over.
+ * SlotIndex is the merchant-provided ordering / join key.
+ */
+export interface SetTemplateSlot {
+  slot_index: number /* int */;
+  /**
+   * Name is the merchant-facing per-slot label. Optional; when
+   * omitted the dashboard falls back to the category label on
+   * apply.
+   */
+  name: string;
+  style_category_name: any /* enums.StyleCategory */;
+  size_system_id: number /* int64 */;
+  vertical_size_system_id: number /* int64 */;
+}
+/**
+ * SetTemplateSize is one merchant-defined set-size label + ordering.
+ * On apply, parent Style Sizes are created with label copied and
+ * sort_order = SetSizeIndex.
+ */
+export interface SetTemplateSize {
+  set_size_index: number /* int */;
+  label: string;
+}
+/**
+ * SetTemplateSizeMapping is one row of the (set_size × slot) mapping
+ * grid. For each combination the merchant picks which size_value (and
+ * optional vertical size_value) the child at that slot should carry.
+ */
+export interface SetTemplateSizeMapping {
+  set_size_index: number /* int */;
+  slot_index: number /* int */;
+  slot_size_value_id: number /* int64 */;
+  slot_vertical_size_value_id: number /* int64 */;
+}
+
+//////////
 // source: shopify_store.go
 
 export interface ShopifyStore {
@@ -160,11 +255,38 @@ export interface ColorwayNameSizeAssetSKU {
   colorway_size_asset_sku: string;
 }
 export interface Size {
+  /**
+   * ReferenceSizeValueID FKs to size_values.id — populated on Sizes
+   * whose parent Style is single-garment. Must be zero for
+   * container-parent Sizes (they use ContainerReferenceSizeID /
+   * ContainerReferenceSizeLabel instead). Bindings are permissive
+   * because a single request shape now feeds both single-garment
+   * (PUT /v1/styles/:id/sizes) and container-parent (atomic PUT
+   * /v1/styles/:id) writes; the handler enforces per-style rules.
+   */
   reference_size_value_id: number /* int64 */;
+  /**
+   * ContainerReferenceSizeID FKs to another sizes.id in the same
+   * container-parent style. Used only for container-parent Sizes;
+   * must be zero on single-garment. When both this and
+   * ContainerReferenceSizeLabel are set, the label wins (allowing the
+   * dashboard to point at another Size in the same PUT that hasn't
+   * been persisted yet).
+   */
+  container_reference_size_id: number /* int64 */;
+  /**
+   * ContainerReferenceSizeLabel resolves to another Size's DB id at
+   * PUT time by matching label within the same container-parent
+   * style. Lets a client point at a sibling Size that's being created
+   * in the same atomic PUT (no chicken-and-egg on ids). Ignored for
+   * non-container styles.
+   */
+  container_reference_size_label: string;
   size_value_id: number /* int64 */;
   vertical_size_value_id: number /* int64 */;
   base_body_id: number /* int64 */;
   label: string;
+  sort_order: number /* int */;
   garment_measurements: GarmentMeasurement[];
   colorway_name_size_asset_sku: ColorwayNameSizeAssetSKU[];
 }
@@ -217,6 +339,13 @@ export interface GarmentMeasurement {
   lay_flat: boolean;
 }
 export interface Style {
+  /**
+   * SKU / ExternalID / SizeSystemID are required for single-garment
+   * styles but must be empty on the parent of a Suits & Sets container
+   * (children have no independent merchant identity; parent has no size
+   * system of its own). Validation branches on IsContainer in the
+   * handler — the binding tags stay omitempty so both shapes parse.
+   */
   sku: string;
   external_id: string;
   cycle_id: number /* int64 */;
@@ -228,11 +357,63 @@ export interface Style {
   measurement_unit?: string;
   size_system_id: number /* int64 */;
   vertical_size_system_id: number /* int64 */;
-  placement_measurement_location: string;
-  placement_offset_y: number /* float64 */;
   is_vto: boolean;
+  /**
+   * SetTemplateID is a provenance pointer for container-parent styles
+   * created from a template. Ignored for non-container styles.
+   */
+  set_template_id: number /* int64 */;
+  /**
+   * Children are the container's component child styles. Non-empty
+   * only when the parent's StyleCategoryName is a container category.
+   * Each child inherits BrandID / Description / SaleType / IsVTO /
+   * MeasurementUnit / PublishedAt / CycleID from the parent and
+   * carries its own StyleCategoryName / Sleeves / SizeSystemID /
+   * VerticalSizeSystemID. Max 4 per parent (Q7).
+   */
+  children: StyleChild[];
+  /**
+   * Sizes optionally carries this style's Size rows for atomic
+   * creation. For container-parent styles these are label-only
+   * Set-size rows (validated per writeStyleSizes' container branch);
+   * for single-garment styles they follow the standard shape.
+   */
+  sizes: Size[];
+  /**
+   * SetSizeMappings connects parent Size rows to child Size rows for
+   * a container-parent style. Non-empty only when Children is
+   * non-empty. Coverage rule (every parent_size × child_style pair
+   * mapped exactly once) is validated by writeSetSizeMappings.
+   */
+  set_size_mappings: SetSizeMappingRef[];
+}
+/**
+ * StyleChild is the request shape for one component of a container Set.
+ * Fewer fields than the top-level Style request — inherited fields come
+ * from the parent, and children have no SKU / ExternalID / CycleID of
+ * their own.
+ */
+export interface StyleChild {
+  name: string;
+  style_category_name: any /* enums.StyleCategory */;
+  sleeves?: any /* enums.SleeveLength */;
+  size_system_id: number /* int64 */;
+  vertical_size_system_id: number /* int64 */;
+  component_index: number /* int */;
+  /**
+   * Sizes carries this child's Size rows for atomic creation with
+   * the parent. Single-garment shape (size_value_id + optional
+   * vertical_size_value_id + reference_size_value_id + garment
+   * measurements).
+   */
+  sizes: Size[];
 }
 export interface PutStyle {
+  /**
+   * SKU / ExternalID / SizeSystemID mirror the POST /v1/styles rules:
+   * required for single-garment styles, must be empty for a container
+   * parent. Validation branches on the resolved StyleCategoryName.
+   */
   sku: string;
   external_id: string;
   name: string;
@@ -243,9 +424,44 @@ export interface PutStyle {
   measurement_unit: string;
   size_system_id: number /* int64 */;
   vertical_size_system_id: number /* int64 */;
-  placement_measurement_location: string;
-  placement_offset_y: number /* float64 */;
   is_vto: boolean;
+  set_template_id: number /* int64 */;
+  /**
+   * Children carries the desired complete list of child styles for a
+   * container. Each entry with a non-zero ID updates an existing
+   * child; entries with ID=0 create a new child. Any existing child
+   * NOT present in the list (by ID) is deleted. Max 4 (Q7).
+   */
+  children: PutStyleChild[];
+  /**
+   * Sizes replaces this style's Size rows atomically. See Style.Sizes
+   * for shape rules — container-parent (label-only) vs single-garment.
+   */
+  sizes: Size[];
+  /**
+   * SetSizeMappings replaces the set_size_mappings for a
+   * container-parent style. Same shape/rules as Style.SetSizeMappings.
+   */
+  set_size_mappings: SetSizeMappingRef[];
+}
+/**
+ * PutStyleChild is one row in the container edit's Children[]. ID is
+ * zero for new children (they get inserted) and non-zero for existing
+ * children (they get updated).
+ */
+export interface PutStyleChild {
+  id: number /* int64 */;
+  name: string;
+  style_category_name: any /* enums.StyleCategory */;
+  sleeves?: any /* enums.SleeveLength */;
+  size_system_id: number /* int64 */;
+  vertical_size_system_id: number /* int64 */;
+  component_index: number /* int */;
+  /**
+   * Sizes replaces this child's Size rows atomically. Single-garment
+   * shape.
+   */
+  sizes: Size[];
 }
 export interface StylePatch {
   publish: boolean;

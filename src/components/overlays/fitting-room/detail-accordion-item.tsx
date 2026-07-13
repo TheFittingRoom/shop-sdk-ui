@@ -8,7 +8,7 @@ import { LinkT } from '@/components/link'
 import { SizeSelector } from '@/components/size-selector'
 import { Text, TextT } from '@/components/text'
 import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
-import { buildVtoProductDataFromResolved } from '@/lib/fitting-room-data'
+import { buildVtoProductDataFromResolved, isItemTuckable } from '@/lib/fitting-room-data'
 import { useTranslation } from '@/lib/locale'
 import type { VtoProductData } from '@/lib/product'
 import { useCss } from '@/lib/theme'
@@ -102,8 +102,11 @@ export function DetailAccordionItem({
   const categoryLabel = item.styleCategory?.label_singular ?? item.styleCategory?.label ?? ''
   const productName = item.merchantProduct?.productName ?? item.externalId
   // Mobile tuck CTA shows only when this item is tuckable AND the outfit has
-  // a garment to tuck into (see canTuck in FittingRoomOverlay).
-  const tuckable = !!item.styleCategory?.tuckable && canTuck
+  // a garment to tuck into (see canTuck in FittingRoomOverlay). For
+  // container products (Suits & Sets) the trait is per-child — isItemTuckable
+  // walks effective categories so a Set with a tuckable shirt lights up
+  // the CTA even though the container category itself isn't tuckable.
+  const tuckable = isItemTuckable(item) && canTuck
 
   if (platform === 'desktop') {
     return (
