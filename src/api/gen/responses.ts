@@ -113,6 +113,15 @@ export interface FirestoreBrand {
 export interface Colorway {
   id: number /* int64 */;
   name: string;
+  /**
+   * MirrorOfColorwayID points at the parent-side colorway row this
+   * one mirrors. Populated on child-style Colorway rows created via
+   * SyncContainerChildrenColorways; zero on standalone colorways
+   * (single-garment styles or container-parent styles). Consumers
+   * that need to link a child colorway back to its parent should
+   * prefer this over name-matching.
+   */
+  mirror_of_colorway_id?: number /* int64 */;
   properties_path: string;
 }
 export interface FirestoreColorway {
@@ -777,6 +786,14 @@ export interface FirestoreChildStyle {
   vertical_size_system_id: number /* int */;
   colorways?: any[];
   sizes?: any[];
+  /**
+   * ColorwaySizeAssets is the flattened list of the child's CSAs
+   * (one per child_size × child_colorway). The SDK reads this to
+   * resolve (parent_size_id, parent_colorway_name) → child CSA at
+   * VTO-composition build time — otherwise it would need a per-child
+   * Firestore-collection query. Elements are FirestoreColorwaySizeAsset.
+   */
+  colorway_size_assets?: any[];
 }
 /**
  * FirestoreSetSizeMapping is a single (parent_size_id, child_size_id) row
