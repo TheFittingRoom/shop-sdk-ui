@@ -5,6 +5,16 @@ on:
     branches:
       - main
     types: [opened, synchronize, reopened]
+  # release.yaml pushes a release-bump-<timestamp> branch, then opens a
+  # PR via GITHUB_TOKEN. PRs opened by GITHUB_TOKEN don't trigger new
+  # workflow runs (GitHub anti-loop rule), so `pull_request` above
+  # wouldn't fire — and the `verify` required-check would never post,
+  # blocking auto-merge forever. Trigger on branch push instead: fires
+  # a `verify` check-run against the pushed SHA, which the PR's
+  # required-check picks up when it's opened moments later.
+  push:
+    branches:
+      - 'release-bump-*'
 
 jobs:
   verify:
@@ -12,11 +22,31 @@ jobs:
     # context that shows next to the merge button on every PR. Renaming
     # here means updating the repository ruleset's
     # required_status_checks contexts too (Settings → Rules → main).
+    #
+    # Skip the actual verification steps for release-bump-* branches:
+    # release.yaml's bump commit only touches package.json /
+    # package-lock.json / dist rebuild — nothing that can fail lint,
+    # tsc, or tests differently from the pre-bump verify that
+    # release.yaml already ran. Job-level `if: false` produces a
+    # `skipped` check-run, which GitHub counts as SUCCESS for
+    # required-status-checks (workflow-level skips via `paths-ignore`
+    # produce no check-run at all and would block indefinitely).
+    if: >-
+      !(
+        (github.event_name == 'pull_request' && startsWith(github.event.pull_request.head.ref, 'release-bump-')) ||
+        (github.event_name == 'push' && startsWith(github.ref_name, 'release-bump-'))
+      )
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          # For pull_request: check out the PR head (not the synthetic
+          # merge commit) so lint/tsc/tests run against exactly what
+          # the branch contains.
+          # For push (branch-push case, only reached when the branch
+          # isn't a release-bump-* — see the if above), default checkout
+          # of github.sha is correct.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
       - uses: actions/setup-node@v4
