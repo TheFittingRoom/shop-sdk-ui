@@ -149,22 +149,19 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   // tuckable garment AND a non-tuckable garment layered above its tucked
   // position. A tuckable top with no bottom selected has nothing to tuck in
   // to, so every tuck control stays hidden.
-  const canTuck = useMemo<boolean>(
-    () =>
-      selectedItems.some((top) => {
-        const topCategory = top.styleCategory
-        if (!topCategory?.tuckable) {
-          return false
-        }
-        return selectedItems.some(
-          (other) =>
-            !!other.styleCategory &&
-            !other.styleCategory.tuckable &&
-            other.styleCategory.layer_order > topCategory.layer_order,
-        )
-      }),
-    [selectedItems],
-  )
+  //
+  // Walks item.effective, NOT item.styleCategory: for container products
+  // the top-level category is the container wrapper (e.g. suits_and_sets,
+  // tuckable=false), while item.effective expands to the container's
+  // child categories. Reading styleCategory.tuckable directly would miss
+  // a tuckable child inside a container — same anti-pattern isItemTuckable's
+  // comment warns against.
+  const canTuck = useMemo<boolean>(() => {
+    const allCategories = selectedItems.flatMap((item) => item.effective.map((e) => e.category))
+    return allCategories.some(
+      (top) => top.tuckable && allCategories.some((other) => !other.tuckable && other.layer_order > top.layer_order),
+    )
+  }, [selectedItems])
 
   // Availability map for every fitting-room item.
   const availabilityByExternalId = useMemo<Record<string, Availability>>(() => {
