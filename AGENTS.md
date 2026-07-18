@@ -67,14 +67,23 @@ list — repo-scoped rulesets can't reference the GitHub Actions
 integration as a bypass actor). Instead:
 
 - Push the bump on a `release-bump-<ts>` branch (not main).
-- Push triggers `pr-checks.yml` on the branch — the `verify` job
-  is `if:`-skipped for `release-bump-*` branches, producing a
-  skipped (success) check-run on the bump SHA. Job-level skip
-  posts a check-run; workflow-level `paths-ignore` would post
-  none, blocking indefinitely.
 - Open the PR via `gh pr create` + queue auto-merge via
   `gh pr merge --auto`. GitHub finishes the squash-merge as soon
   as the required-check is recorded.
+- `pull_request` events fired by a PR opened via GITHUB_TOKEN get
+  `action_required` — GitHub's anti-loop guard for bot-triggered
+  workflows, not configurable at the repo level. Without an
+  override, the `verify` check-run never posts and auto-merge
+  blocks forever.
+- `release.yaml`'s final step polls for that action_required run
+  and approves it via `POST /actions/runs/{id}/approve` (needs
+  `actions: write`). Approval is a separate authorization from the
+  anti-loop rule and is allowed for GITHUB_TOKEN.
+- Once approved, the `verify` job hits its `if:` guard, skips, and
+  posts a `skipped` check-run. Job-level skip posts a check-run;
+  workflow-level `paths-ignore` would post none, blocking
+  indefinitely. `skipped` counts as SUCCESS for
+  required-status-checks, and auto-merge fires.
 
 The `verify` skip is safe: the release bump only touches
 `package.json` + `package-lock.json` + a `dist/` rebuild whose only
