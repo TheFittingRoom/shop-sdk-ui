@@ -30,7 +30,7 @@ import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import type { LoadedProductData, VtoProductData, VtoSizeColorData, VtoSizeData } from '@/lib/product'
 import { buildVtoWireItems, loadProductDataToStore } from '@/lib/product'
-import { loadStyleCategoryIndex, peekStyleCategoryIndex } from '@/lib/style-categories'
+import { loadStyleCategoryIndex } from '@/lib/style-categories'
 import { getStaticData, useMainStore } from '@/lib/store'
 import type { CssProp, StyleProp } from '@/lib/theme'
 import { getThemeData, useCss } from '@/lib/theme'
@@ -276,22 +276,37 @@ export default function QuickViewOverlay() {
   }, [storeProductData])
 
   // Container tuck toggle gating: only render when this product is a
-  // container AND at least one child garment is tuckable. peekStyleCategoryIndex
-  // returns null before the index resolves (very early frames); the toggle
-  // just stays hidden until the child-category lookup can complete. Recomputes
-  // when the loaded product data changes.
-  const containerHasTuckableChild = useMemo(() => {
+  // container AND at least one child garment is tuckable. The category
+  // index is fetched async; a pure useMemo that reads
+  // peekStyleCategoryIndex() would latch to false forever if it ran
+  // before the fetch resolved (deps = [loadedProduct] only). Await the
+  // load in a useEffect and store the result — same pattern
+  // fitting-room-data's useResolvedFittingRoom uses.
+  const [containerHasTuckableChild, setContainerHasTuckableChild] = useState(false)
+  useEffect(() => {
     if (!loadedProduct?.container) {
-      return false
+      setContainerHasTuckableChild(false)
+      return
     }
-    const index = peekStyleCategoryIndex()
-    if (!index) {
-      return false
+    const container = loadedProduct.container
+    let cancelled = false
+    loadStyleCategoryIndex()
+      .then((index) => {
+        if (cancelled) {
+          return
+        }
+        const hasTuckable = container.children.some((c) => {
+          const cat = index.byName(String(c.style_category_name))
+          return !!cat?.tuckable
+        })
+        setContainerHasTuckableChild(hasTuckable)
+      })
+      .catch((error) => {
+        logger.logError('failed to load style category index for container tuck check', { error })
+      })
+    return () => {
+      cancelled = true
     }
-    return loadedProduct.container.children.some((c) => {
-      const cat = index.byName(String(c.style_category_name))
-      return !!cat?.tuckable
-    })
   }, [loadedProduct])
 
   const handleToggleContainerUntucked = useCallback(() => {
