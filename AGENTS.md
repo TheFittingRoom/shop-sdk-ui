@@ -23,16 +23,21 @@ README.md for the full walkthrough. Summary:
 
 1. **Publish a release: trigger `.github/workflows/release.yaml`
    manually.** Actions tab → Release → Run workflow → pick patch /
-   minor / major. The workflow does the entire release in one run:
-   checks out main, builds (pre-bump verification), runs `npm version`,
-   rebuilds with the new version, pushes the bump commit + tag back to
-   main, and publishes to npm under dist-tag `next` via OIDC trusted
-   publishing with `--provenance`. The npm trusted-publisher entry for
-   `@thefittingroom/shop-ui` **must point at `release.yaml`**.
+   minor / major. The workflow: checks out main, builds (pre-bump
+   verification), runs `npm version` on a fresh `release-bump-<ts>`
+   branch, rebuilds with the new version, pushes the branch + tag,
+   publishes to npm under dist-tag `next` via OIDC trusted publishing
+   with `--provenance`, then opens an auto-merge PR to main. GitHub
+   completes the squash-merge seconds later once `pr-checks.yml`
+   posts the (skipped) `verify` check-run on the bump SHA. The npm
+   trusted-publisher entry for `@thefittingroom/shop-ui` **must
+   point at `release.yaml`**.
 
    The published version is immediately live on the demo storefront —
    `tfr.js`'s `unpkg.com/@thefittingroom/shop-ui@5` URL resolves to the
-   highest matching 5.x version regardless of dist-tag.
+   highest matching 5.x version regardless of dist-tag. Demo picks up
+   the new version even before the auto-merge PR completes (npm
+   publish and GitHub merge are independent).
 
 2. **(Optional) Promote to `latest` dist-tag.** Only matters for
    consumers who install without a version pin (`npm install
@@ -52,23 +57,36 @@ chain. Historical context preserved here in case the constraint comes
 back or someone needs to re-derive why we don't auto-publish on PR
 merge.
 
-#### Branch protection caveat
+#### Ruleset + auto-merge coupling
 
-`release.yaml` pushes the bump commit + tag directly to `main` using
-the workflow's auto-issued `GITHUB_TOKEN`. This works because main has
-no required-PR branch protection rule. If branch protection is added
-later, that push will fail (`GITHUB_TOKEN` is not in any bypass list
-by default). At that point you have three options:
+`main` is protected by a repository ruleset (Settings → Rules) that
+requires PRs to merge AND requires the `verify` context to be green.
+`release.yaml` can't `git push origin main` directly under that
+ruleset (`GITHUB_TOKEN`-authenticated pushes aren't in any bypass
+list — repo-scoped rulesets can't reference the GitHub Actions
+integration as a bypass actor). Instead:
 
-- Use a fine-grained PAT or GitHub App listed in the branch-protection
-  bypass settings; `actions/checkout` is configured with its token
-  via `with: token: ${{ secrets.... }}`
-- Have the workflow open a PR with the bump rather than push directly,
-  and hand-merge it (this defeats the "one button" simplicity)
-- Don't enable required-PR protection on main (current state)
+- Push the bump on a `release-bump-<ts>` branch (not main).
+- Push triggers `pr-checks.yml` on the branch — the `verify` job
+  is `if:`-skipped for `release-bump-*` branches, producing a
+  skipped (success) check-run on the bump SHA. Job-level skip
+  posts a check-run; workflow-level `paths-ignore` would post
+  none, blocking indefinitely.
+- Open the PR via `gh pr create` + queue auto-merge via
+  `gh pr merge --auto`. GitHub finishes the squash-merge as soon
+  as the required-check is recorded.
 
-The simplification of the single-workflow design depends on direct
-push being allowed; the choice is real.
+The `verify` skip is safe: the release bump only touches
+`package.json` + `package-lock.json` + a `dist/` rebuild whose only
+difference is the embedded version string — nothing that lint, tsc,
+or tests would fail on differently than the pre-bump verify that
+`release.yaml` already ran.
+
+If the org later grants the repo the ability to reference the
+GitHub Actions integration as a bypass actor at ruleset creation
+time (org-level ruleset, or via an app installation), the flow can
+revert to a direct-push design — see the git history for how
+`release.yaml` looked before the auto-merge PR indirection landed.
 
 #### Why no auto-publish on PR merge
 
