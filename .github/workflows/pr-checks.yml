@@ -1,4 +1,4 @@
-name: Build Dev
+name: PR Checks
 
 on:
   pull_request:
@@ -7,7 +7,11 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  build_dev:
+  verify:
+    # Job name intentionally short — this is the required-status-check
+    # context that shows next to the merge button on every PR. Renaming
+    # here means updating the repository ruleset's
+    # required_status_checks contexts too (Settings → Rules → main).
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,10 +25,10 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           cache: 'npm'
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: npm ci
 
-      - name: Check (tsc + lint)
+      - name: Type-check + lint + format-check
         run: npm run check
 
       - name: Build
