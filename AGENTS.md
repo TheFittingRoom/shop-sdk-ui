@@ -14,14 +14,14 @@ and renders a `<tfr-widget>` custom element.
   `npm run build` cleans + builds. CI runs `check` + `build`. ESLint ignores
   `src/api/gen/` (tygo-generated). Non-null assertions and `any` are errors;
   control statements must be braced; `react-hooks/exhaustive-deps` is a warning.
-- Consumers load the SDK via `<script type="module">` from a jsdelivr URL backed by the npm package `@thefittingroom/shop-ui`.
+- Consumers load the SDK via `<script type="module">` from a CDN URL backed by the npm package `@thefittingroom/shop-ui`. The `shopify` theme's `tfr.js` uses `unpkg.com/@thefittingroom/shop-ui@5` — a **semver range**, resolved by unpkg/jsdelivr to the highest matching published 5.x version regardless of dist-tag. **Consequence: publishing under `--tag next` is enough for the demo storefront to pick it up on the next reload; no `latest` promotion is required for that path.**
 
 ### Release flow
 
 Releases are explicit and human-initiated. No magic on PR merges. See
 README.md for the full walkthrough. Summary:
 
-1. **Cut a `next` release: trigger `.github/workflows/release.yaml`
+1. **Publish a release: trigger `.github/workflows/release.yaml`
    manually.** Actions tab → Release → Run workflow → pick patch /
    minor / major. The workflow does the entire release in one run:
    checks out main, builds (pre-bump verification), runs `npm version`,
@@ -29,12 +29,18 @@ README.md for the full walkthrough. Summary:
    main, and publishes to npm under dist-tag `next` via OIDC trusted
    publishing with `--provenance`. The npm trusted-publisher entry for
    `@thefittingroom/shop-ui` **must point at `release.yaml`**.
-2. **Promote `next` → `latest`** when ready for end users. Locally:
-   `git pull origin main && npm run promote-latest`. That runs
-   `npm dist-tag add ...@<ver> latest` — no new artifact, just re-points
-   the `latest` dist-tag at the already-published `next` build. The
-   runner needs to be `npm login`-ed with publish rights to
-   `@thefittingroom/shop-ui`. Override the version with
+
+   The published version is immediately live on the demo storefront —
+   `tfr.js`'s `unpkg.com/@thefittingroom/shop-ui@5` URL resolves to the
+   highest matching 5.x version regardless of dist-tag.
+
+2. **(Optional) Promote to `latest` dist-tag.** Only matters for
+   consumers who install without a version pin (`npm install
+   @thefittingroom/shop-ui`) or reference `@latest` in a CDN URL. The
+   demo storefront does not, so this step is not required for changes
+   to appear on demo. When you do want to move the `latest` pointer:
+   `git pull origin main && npm run promote-latest` locally (needs
+   `npm login` with publish rights). Override the version with
    `npm run promote-latest -- <version>`.
 
 The two-stage design (split bump from publish) was used previously to

@@ -47,7 +47,7 @@ For an interactive debug loop, `npm run watch-serve &` in one terminal and
 Releases are explicit, human-initiated steps via a single GitHub Actions
 workflow. No magic on PR merges.
 
-**1. Cut a `next` release.**
+**1. Publish a release.**
 
 - Go to https://github.com/TheFittingRoom/shop-sdk-ui/actions/workflows/release.yaml
 - Click **Run workflow**
@@ -69,6 +69,13 @@ The `release.yaml` workflow does everything in one run:
 The npm trusted-publisher entry for `@thefittingroom/shop-ui` must
 point at `release.yaml`.
 
+**Demo storefront visibility:** the `shopify` theme's `tfr.js` loads
+the SDK from `unpkg.com/@thefittingroom/shop-ui@5` — a semver range
+that unpkg (and jsdelivr) resolves to the highest matching published
+5.x version regardless of dist-tag. Publishing under `--tag next` is
+therefore enough for demo to pick up the new version on the next
+reload; no `latest` promotion is required for that path.
+
 > **Branch protection note:** the workflow pushes commits + tags
 > directly to `main`. If you enable required-PR branch protection on
 > `main` later, this push will fail until either (a) the workflow uses
@@ -76,11 +83,13 @@ point at `release.yaml`.
 > branch protection allows the workflow to bypass via some other means.
 > The current setup deliberately defers that complication.
 
-**2. Promote `next` → `latest` when ready for end users.**
+**2. (Optional) Promote to `latest` dist-tag.**
 
-`release.yaml` only publishes under dist-tag `next`. To make a version
-the default that consumers get from `npm install @thefittingroom/shop-ui`,
-you have to explicitly promote it:
+Only matters for consumers who install without a version pin
+(`npm install @thefittingroom/shop-ui` → gets `latest`) or reference
+`@latest` in a CDN URL. The demo storefront does neither, so this
+step is not required for changes to appear on demo. When you do want
+to move the `latest` pointer:
 
 ```sh
 git pull origin main      # ensure package.json reflects the latest release
