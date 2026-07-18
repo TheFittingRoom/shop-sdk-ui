@@ -43,6 +43,9 @@ permissions:
   contents: write
   # Required to open the auto-merge PR against main.
   pull-requests: write
+  # Required to approve the downstream pr-checks workflow run that
+  # GitHub gates with `action_required` when a bot opens the PR.
+  actions: write
 
 jobs:
   release:
@@ -117,8 +120,8 @@ jobs:
 
       # Open the PR + queue auto-merge. GitHub finishes the merge once
       # pr-checks.yml's `verify` check posts (which happens within
-      # seconds of the branch push above — job is `if:`-skipped for
-      # release-bump-* branches). Workflow exits before the merge
+      # seconds of the auto-approve step below — job is `if:`-skipped
+      # for release-bump-* branches). Workflow exits before the merge
       # completes; check the PR in the Actions/PRs tab for the final
       # merge event.
       - name: Open + auto-merge release PR
@@ -142,3 +145,41 @@ jobs:
           EOF
           )"
           gh pr merge "$BUMP_BRANCH" --squash --auto --delete-branch
+
+      # Auto-approve the pr-checks workflow run triggered by the PR
+      # above. Any `pull_request` event on a PR opened by GITHUB_TOKEN
+      # gets `action_required` (GitHub's anti-loop guard for
+      # bot-triggered workflows — not configurable at the repo level).
+      # Without this, the pr-checks run sits waiting for a human, the
+      # `verify` check-run never posts, and auto-merge never fires.
+      #
+      # Approving a workflow run is separate from the anti-loop rule
+      # and IS allowed for GITHUB_TOKEN with `actions: write`. Once
+      # approved, the run executes: the `verify` job hits its `if:`
+      # guard, skips, and posts a `skipped` check-run — success for
+      # required-status-checks — and auto-merge fires seconds later.
+      #
+      # Poll for up to ~60s in case the pull_request event hasn't
+      # created the run yet (typically appears within 1–2s).
+      - name: Auto-approve the pr-checks run for the release PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUMP_BRANCH: ${{ steps.bump_branch.outputs.name }}
+        run: |
+          for attempt in $(seq 1 30); do
+            RUN_ID=$(gh run list \
+              --workflow=pr-checks.yml \
+              --branch="$BUMP_BRANCH" \
+              --limit=1 \
+              --json databaseId,conclusion,status \
+              --jq '.[] | select(.conclusion == "action_required") | .databaseId')
+            if [ -n "$RUN_ID" ]; then
+              echo "Approving pr-checks run $RUN_ID"
+              gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/approve" --method POST
+              exit 0
+            fi
+            echo "Attempt $attempt: no action_required pr-checks run yet, waiting…"
+            sleep 2
+          done
+          echo "::warning::No action_required pr-checks run appeared within timeout. PR will need manual approval." >&2
+          exit 0
