@@ -131,6 +131,25 @@ export function getFirestoreManager(): IFirestoreManager {
   return firestoreManager
 }
 
+// Firebase's cross-tab auth sync (browserLocalPersistence + IndexedDB)
+// can fire a transient `null` on an already-loaded tab when a second tab
+// initializes Firebase — an IndexedDB lock/read race that resolves
+// within tens to hundreds of ms once Firebase re-reads and re-fires the
+// real user. Left unswallowed, the SDK briefly flips the store to
+// "logged out" and the UI kicks the shopper out.
+//
+// Debounce null dispatches to subscribers: schedule a null propagation
+// this many ms after Firebase fires null. If a user event (typically
+// Firebase's own recovery) arrives before the timer fires, cancel it.
+// If the timer does fire, re-check auth.currentUser first — Firebase
+// may have recovered without firing a distinct user event.
+//
+// 500 ms is well above the observed cross-tab recovery window (<100 ms
+// in practice) and low enough that explicit user-initiated signOut
+// still feels responsive (shopper just clicked "sign out"; a half-second
+// pause is fine).
+const CROSS_TAB_NULL_DEBOUNCE_MS = 500
+
 export class AuthManager implements IAuthManager {
   private readonly auth: Auth
   private readonly brandId: number
@@ -138,14 +157,41 @@ export class AuthManager implements IAuthManager {
   private readonly authStateChangeListeners: Set<(authUser: AuthUser | null) => void> = new Set()
   private readonly userProfileChangeListeners: Set<(userProfile: UserProfile | null) => void> = new Set()
   private listenToUserProfileUnsub: Unsubscribe | null = null
+  private pendingNullDispatchTimeout: ReturnType<typeof setTimeout> | null = null
 
   constructor(auth: Auth, brandId: number) {
     this.auth = auth
     this.brandId = brandId
     this.addAuthStateChangeListener((authUser) => this.handleAuthStateChanged(authUser))
     onAuthStateChanged(this.auth, (authUser) => {
-      this.authStateChangeListeners.forEach((callback) => callback(authUser))
+      this.dispatchAuthStateChange(authUser)
     })
+  }
+
+  // Debounced dispatcher. See CROSS_TAB_NULL_DEBOUNCE_MS comment for
+  // why. Users are dispatched immediately; nulls wait, and are
+  // suppressed if a user arrives (or if auth.currentUser has recovered
+  // by the time the timer fires).
+  private dispatchAuthStateChange(authUser: AuthUser | null): void {
+    if (authUser) {
+      if (this.pendingNullDispatchTimeout !== null) {
+        clearTimeout(this.pendingNullDispatchTimeout)
+        this.pendingNullDispatchTimeout = null
+      }
+      this.authStateChangeListeners.forEach((callback) => callback(authUser))
+      return
+    }
+    if (this.pendingNullDispatchTimeout !== null) {
+      return
+    }
+    this.pendingNullDispatchTimeout = setTimeout(() => {
+      this.pendingNullDispatchTimeout = null
+      if (this.auth.currentUser !== null) {
+        logger.logDebug('Suppressed transient null: auth.currentUser recovered before debounce fired')
+        return
+      }
+      this.authStateChangeListeners.forEach((callback) => callback(null))
+    }, CROSS_TAB_NULL_DEBOUNCE_MS)
   }
 
   addAuthStateChangeListener(callback: (authUser: AuthUser | null) => void): () => void {
