@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { bootSdk } from './helpers/boot'
-import { TEST_BRAND_ID, TEST_PRODUCT_EXTERNAL_ID } from './fixtures/seed'
+import { TEST_BRAND_ID, TEST_PRODUCT_EXTERNAL_ID, TEST_UID } from './fixtures/seed'
 
 // Locks in the hanger-toggle UI state + the zustand store + the localStorage
 // write under the `tfr:fitting-room:v1` key. If any link in that chain breaks,
@@ -17,11 +17,21 @@ test('hanger toggle adds the current product to fitting-room storage', async ({ 
   // Post-click state: aria-label flips to "In Fitting Room", pressed=true.
   await expect(page.getByRole('button', { name: 'In Fitting Room' })).toHaveAttribute('aria-pressed', 'true')
 
-  // localStorage roundtrip — entry must land under the brand-id key.
-  const stored = await page.evaluate((brandId) => {
-    const raw = window.localStorage.getItem('tfr:fitting-room:v1')
-    return raw ? (JSON.parse(raw) as Record<string, { externalId: string }[]>)[String(brandId)] : null
-  }, TEST_BRAND_ID)
+  // localStorage roundtrip — entry must land under the (brandId, userId)
+  // bucket. bootSdk defaults to loggedIn=true with TEST_UID, so the
+  // shopper's UID scopes the bucket; anonymous browsing would land at
+  // buckets["__anonymous__"] instead.
+  const stored = await page.evaluate(
+    ({ brandId, userId }) => {
+      const raw = window.localStorage.getItem('tfr:fitting-room:v1')
+      if (!raw) {
+        return null
+      }
+      const parsed = JSON.parse(raw) as Record<string, Record<string, { externalId: string }[]>>
+      return parsed[String(brandId)]?.[userId] ?? null
+    },
+    { brandId: TEST_BRAND_ID, userId: TEST_UID },
+  )
 
   expect(stored).not.toBeNull()
   expect(stored?.length).toBe(1)
