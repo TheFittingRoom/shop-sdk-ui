@@ -142,6 +142,10 @@ export function buildVtoWireItems(
   }
   const childCsaIds = resolveContainerExpansion(loaded, parentCsaId)
   if (!childCsaIds) {
+    logger.logWarn('buildVtoWireItems: container expansion failed, skipping request', {
+      externalId: loaded.externalId,
+      parentCsaId,
+    })
     return null
   }
   return childCsaIds.map((csaId) => ({ colorway_size_asset_id: csaId, ...untuckFrag }))
@@ -166,11 +170,28 @@ export function resolveContainerExpansion(loaded: LoadedProductData, parentCsaId
   }
   for (const sz of loaded.sizeFitRecommendation.available_sizes) {
     const csa = sz.colorway_size_assets.find((c) => c.id === parentCsaId)
-    if (!csa || !csa.colorway_name) {
+    if (!csa) {
       continue
     }
-    return resolveContainerChildCSAs(loaded.container, sz.id, csa.colorway_name)
+    if (!csa.colorway_name) {
+      logger.logWarn('resolveContainerExpansion: parent CSA has no colorway_name', {
+        externalId: loaded.externalId,
+        parentCsaId,
+        parentSizeId: sz.id,
+      })
+      continue
+    }
+    return resolveContainerChildCSAs(loaded.container, sz.id, csa.colorway_name, loaded.externalId)
   }
+  logger.logWarn('resolveContainerExpansion: parent CSA not found in any available_size', {
+    externalId: loaded.externalId,
+    parentCsaId,
+    availableSizeIds: loaded.sizeFitRecommendation.available_sizes.map((s) => s.id),
+    csaIdsBySize: loaded.sizeFitRecommendation.available_sizes.map((s) => ({
+      sizeId: s.id,
+      csaIds: s.colorway_size_assets.map((c) => c.id),
+    })),
+  })
   return null
 }
 
@@ -192,9 +213,16 @@ export function resolveContainerChildCSAs(
   container: ContainerStyleData,
   parentSizeId: number,
   parentColorwayName: string,
+  externalId?: string,
 ): number[] | null {
   const relevantMappings = container.setSizeMappings.filter((m) => m.parent_size_id === parentSizeId)
   if (relevantMappings.length === 0) {
+    logger.logWarn('resolveContainerChildCSAs: no set_size_mappings for parent size', {
+      externalId,
+      parentSizeId,
+      parentColorwayName,
+      mappingParentSizeIds: container.setSizeMappings.map((m) => m.parent_size_id),
+    })
     return null
   }
   const csaIds: number[] = []
@@ -202,11 +230,14 @@ export function resolveContainerChildCSAs(
     // Find the child that owns this child_size_id. Each child's sizes[]
     // is small (2-3 entries typical) so a nested find is fine.
     let matchedCsaId: number | null = null
-    for (const child of container.children) {
+    let ownerChildIdx: number | null = null
+    for (let i = 0; i < container.children.length; i++) {
+      const child = container.children[i]
       const size = (child.sizes ?? []).find((s) => s.id === mapping.child_size_id)
       if (!size) {
         continue
       }
+      ownerChildIdx = i
       const csa = (child.colorway_size_assets ?? []).find(
         (a) => a.size_id === size.id && a.colorway_name === parentColorwayName,
       )
@@ -216,6 +247,17 @@ export function resolveContainerChildCSAs(
       break
     }
     if (matchedCsaId == null) {
+      const owner = ownerChildIdx != null ? container.children[ownerChildIdx] : null
+      logger.logWarn('resolveContainerChildCSAs: no matching child CSA', {
+        externalId,
+        parentSizeId,
+        parentColorwayName,
+        childSizeId: mapping.child_size_id,
+        ownerChildIdx,
+        ownerChildFound: owner != null,
+        ownerColorwayNames: owner ? (owner.colorway_size_assets ?? []).map((a) => a.colorway_name) : [],
+        ownerChildSizeIds: owner ? (owner.sizes ?? []).map((s) => s.id) : [],
+      })
       return null
     }
     csaIds.push(matchedCsaId)
