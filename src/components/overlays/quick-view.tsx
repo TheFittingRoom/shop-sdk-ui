@@ -592,9 +592,8 @@ function FittingRoomToggleButton() {
 // One toggle uniformly flips every tuckable child's `untucked` bool at
 // wire-build (see buildVtoWireItems). Non-container products never render
 // this button — quick-view has no outfit context for a single garment to
-// tuck into. TODO(container-tuck-mobile): mobile-layout equivalent —
-// the sub-content components (MobileContentCollapsed / Expanded / Full)
-// don't yet receive the tuck props from LayoutProps.
+// tuck into. Rendered by both DesktopLayout and MobileContentExpanded /
+// MobileContentFull; MobileContentCollapsed has no button container.
 function ContainerTuckToggleButton({ untucked, onToggle }: { untucked: boolean; onToggle: () => void }) {
   const css = useCss((theme) => ({
     button: {
@@ -664,6 +663,9 @@ function MobileLayout({
   onChangeSize,
   onAddToCart,
   onSignOut,
+  containerTuckable,
+  containerUntucked,
+  onToggleUntuck,
 }: LayoutProps) {
   const {
     snap: contentView,
@@ -818,6 +820,9 @@ function MobileLayout({
               onChangeSize={onChangeSize}
               onAddToCart={onAddToCart}
               onSignOut={onSignOut}
+              containerTuckable={containerTuckable}
+              containerUntucked={containerUntucked}
+              onToggleUntuck={onToggleUntuck}
             />
           </div>
         </div>
@@ -837,6 +842,13 @@ interface MobileContentProps {
   onChangeSize: (newSizeLabel: string) => void
   onAddToCart: () => void
   onSignOut: () => void
+  // Container tuck toggle — parallels DesktopLayout's props (see
+  // LayoutProps). MobileContentCollapsed has no button container and
+  // ignores these; Expanded and Full render <ContainerTuckToggleButton>
+  // beside the fitting-room CTA when containerTuckable is true.
+  containerTuckable: boolean
+  containerUntucked: boolean
+  onToggleUntuck: () => void
 }
 
 function MobileContentCollapsed({
@@ -891,6 +903,9 @@ function MobileContentExpanded({
   onChangeColor,
   onChangeSize,
   onAddToCart,
+  containerTuckable,
+  containerUntucked,
+  onToggleUntuck,
 }: MobileContentProps) {
   const css = useCss((_theme) => ({
     selectSizeLabelContainer: {
@@ -959,6 +974,9 @@ function MobileContentExpanded({
       <div css={css.buttonContainer}>
         <AddToCartButton onClick={onAddToCart} />
         <FittingRoomToggleButton />
+        {containerTuckable ? (
+          <ContainerTuckToggleButton untucked={containerUntucked} onToggle={onToggleUntuck} />
+        ) : null}
       </div>
       <div css={css.productDetailsContainer}>
         <LinkT
@@ -983,6 +1001,9 @@ function MobileContentFull({
   onChangeSize,
   onAddToCart,
   onSignOut,
+  containerTuckable,
+  containerUntucked,
+  onToggleUntuck,
 }: MobileContentProps) {
   const [fitChartOpen, setFitChartOpen] = useState<boolean>(false)
   const css = useCss((_theme) => ({
@@ -1093,6 +1114,9 @@ function MobileContentFull({
       <div css={css.buttonContainer}>
         <AddToCartButton onClick={onAddToCart} />
         <FittingRoomToggleButton />
+        {containerTuckable ? (
+          <ContainerTuckToggleButton untucked={containerUntucked} onToggle={onToggleUntuck} />
+        ) : null}
       </div>
       <div css={css.productDetailsContainer}>
         <LinkT
