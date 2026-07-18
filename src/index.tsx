@@ -106,9 +106,6 @@ export async function init(initParams: InitParams): Promise<boolean> {
       testHooks,
     })
 
-    // Hydrate fitting room from localStorage
-    initFittingRoom()
-
     // Initialize asset manager
     initAsset()
 
@@ -129,6 +126,12 @@ export async function init(initParams: InitParams): Promise<boolean> {
     authManager.addUserProfileChangeListener((userProfile) => {
       useMainStore.getState().setUserProfile(userProfile)
     })
+
+    // Hydrate fitting room from localStorage. Runs after initFirebase
+    // so it can subscribe to auth-state changes (getAuthManager()
+    // requires Firebase to be initialized). The subscription's
+    // immediate-fire callback handles the initial bucket routing.
+    initFittingRoom()
 
     // Initialize api
     initApi()
