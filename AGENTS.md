@@ -1,5 +1,21 @@
 # shop-sdk-ui — agent notes
 
+## Agent notes live in AGENTS.md — pair every one with a CLAUDE.md
+
+Contributor and agent guidance in this repo goes in `AGENTS.md` files (this
+root file and any per-directory ones). **Claude Code only auto-loads
+`CLAUDE.md` files — including nested ones in subdirectories — and does not
+read `AGENTS.md` on its own.** So every `AGENTS.md` must sit beside a
+`CLAUDE.md` that imports it, whose entire contents are:
+
+    @AGENTS.md
+
+The repo root already does this. When you add directory-scoped notes, create
+both `<dir>/AGENTS.md` and `<dir>/CLAUDE.md` (the latter containing just
+`@AGENTS.md`), or Claude Code will never load them.
+
+## Overview
+
 The Fitting Room's browser SDK: a React/TypeScript ESM library that brands embed on
 product pages. Authenticates against Firebase, talks to `tfr-backend` over HTTPS,
 and renders a `<tfr-widget>` custom element.
