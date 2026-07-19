@@ -884,6 +884,30 @@ export interface StyleCategoryGroup {
 }
 
 //////////
+// source: system_info.go
+
+/**
+ * SystemInfoEntry is one entry in the System Info listing
+ * (GET /v1/system-info). It carries no content — the dashboard fetches the
+ * Markdown per entry via GET /v1/system-info/:key.
+ */
+export interface SystemInfoEntry {
+  key: string;
+  title: string;
+  description: string;
+}
+/**
+ * SystemInfoEntryContent is a single entry's rendered content
+ * (GET /v1/system-info/:key). Markdown is GitHub-flavored and rendered
+ * client-side.
+ */
+export interface SystemInfoEntryContent {
+  key: string;
+  title: string;
+  markdown: string;
+}
+
+//////////
 // source: user.go
 
 export interface User {
