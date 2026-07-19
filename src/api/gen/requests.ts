@@ -295,6 +295,26 @@ export interface Sizes {
 }
 
 //////////
+// source: size_recommendation_debug.go
+
+/**
+ * SizeRecommendationDebug is the body of POST /v1/size-recommendation/debug —
+ * the superadmin on-demand size-rec debugger. Provide EITHER a way to seed from
+ * a real avatar (user_id, or email which the backend resolves to a user via
+ * Firebase) OR a manual gender + avatar_measurements set. When
+ * avatar_measurements is non-empty it takes precedence (manual / what-if mode),
+ * letting a superadmin seed from an avatar and then tweak individual values.
+ */
+export interface SizeRecommendationDebug {
+  style_id: number /* int64 */;
+  user_id: string;
+  email: string; // resolved to a user_id via Firebase when user_id is empty
+  gender: any /* enums.Gender */;
+  avatar_measurements: { [key: string]: number /* float64 */};
+  should_zero_base_body: boolean;
+}
+
+//////////
 // source: size_system.go
 
 export interface SizeSystem {

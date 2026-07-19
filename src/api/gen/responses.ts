@@ -564,6 +564,58 @@ export interface DebugSizeSystem {
   name: string;
   size_values: SizeValue[];
 }
+/**
+ * DebugLocationCalculationRow is the full per-(location, size) calculation
+ * breakdown — the "show your work" record product's spreadsheet lays out. The
+ * algorithm's best-fit decision reads Fits from this same computation, so the
+ * numbers here ARE the numbers the recommendation was made from.
+ * IMPORTANT: every field here must be rendered by RenderDebugMarkdown — the
+ * sentinel field-coverage test (TestDebugMarkdownRendersEveryCalcField) fails
+ * if you add a field without showing it. That's the forcing function that
+ * keeps the debug output coupled to the algorithm's intermediate values.
+ */
+export interface DebugLocationCalculationRow {
+  size_id: number /* int64 */;
+  size_label: string;
+  garment_value: number /* float64 */;
+  base_body_value: number /* float64 */;
+  reference_size_value: number /* float64 */;
+  ease: number /* float64 */; // size-rec ease (halved in relaxed exceptions)
+  full_ease: number /* float64 */; // full reference ease (fit analysis)
+  size_deformation: number /* float64 */;
+  max_stretch: number /* float64 */;
+  applied_stretch: number /* float64 */;
+  user_measurement: number /* float64 */; // deformed avatar value
+  user_size: number /* float64 */; // needed garment size = user_meas + ease − (deform + stretch)
+  fits: boolean; // garment_value >= user_size
+}
+/**
+ * DebugLocationCalculation is one horizontal measurement location's calculation
+ * table across every available size, plus the best-fit outcome.
+ */
+export interface DebugLocationCalculation {
+  measurement_location: string;
+  avatar_value: number /* float64 */;
+  half_ease: boolean;
+  ignore_stretch: boolean;
+  best_fit_size_id: number /* int64 */;
+  best_fit_size_label: string;
+  rows: DebugLocationCalculationRow[];
+}
+/**
+ * SizeRecommendationDebugResult is the response of
+ * POST /v1/size-recommendation/debug — the recommendation the algorithm
+ * produced, the inputs it actually ran against (echoed so the dashboard can
+ * populate its form for tweaking), and a long-form Markdown walkthrough of
+ * every pipeline step with the associated data. Nothing is persisted.
+ */
+export interface SizeRecommendationDebugResult {
+  recommendation: SizeFitRecommendation;
+  gender: any /* enums.Gender */;
+  avatar_id: number /* int64 */;
+  avatar_measurements: { [key: string]: number /* float64 */};
+  steps_markdown: string;
+}
 export interface DebugSizeRecommendation {
   debug_id: string;
   brand_id: number /* int64 */;
@@ -604,20 +656,12 @@ export interface DebugSizeRecommendation {
   debug_recommended_size: DebugSize;
   debug_available_sizes: DebugSize[];
   size_fits: SizeFit[];
-}
-export interface FirestoreSizeRecommendationDebug {
-  id: number /* int */;
-  user_brand_id: number /* int */;
-  user_id: string;
-  style_id: number /* int */;
-  avatar_id: number /* int */;
-  size_id: number /* int */;
-  data: { [key: string]: any};
-  is_debug: boolean;
-  count: number /* int */;
-  created_at: any /* time.Time */;
-  updated_at: any /* time.Time */;
-  style_updated_at: any /* time.Time */;
+  /**
+   * LocationCalculations is the per-(location, size) "show your work"
+   * breakdown — ease, deformation, stretch, UserSize, fits — captured from
+   * the same container methods the recommendation decision uses.
+   */
+  location_calculations: DebugLocationCalculation[];
 }
 
 //////////
