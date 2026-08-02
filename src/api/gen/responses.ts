@@ -502,7 +502,6 @@ export interface SizeFitRecommendation {
   recommended_size: Size;
   available_sizes: Size[];
   fits: SizeFit[];
-  data?: DebugSizeRecommendation;
 }
 export interface HorizontalSizeResponse {
   size_index: number /* int64 */;
@@ -517,97 +516,16 @@ export interface HorizontalSizeResponse {
 //////////
 // source: size_recommendation_debug.go
 
-export interface DebugMeasurementValue {
-  measurement_location: string;
-  value: number /* float64 */;
-}
-export interface DebugMeasurementGroup {
-  measurement_location: string;
-  debug_size_garment_values: DebugSizeGarmentValue[];
-}
-export interface DebugBaseBodyMeasurementGroup {
-  measurement_location: string;
-  debug_base_body_measurements: DebugBaseBodyMeasurement[];
-}
-export interface DebugSize {
-  size_id: number /* int64 */;
-  size_label: string;
-  size_value_id: number /* int64 */;
-  size_value_label: string;
-  vertical_size_value_id: number /* int64 */;
-  vertical_size_value_label: string;
-  debug_size_garment_values: DebugSizeGarmentValue[];
-}
-export interface DebugSizeGarmentValue {
-  measurement_location: string;
-  size_id: number /* int64 */;
-  size_label: string;
-  size_value_id: number /* int64 */;
-  vertical_size_value_id: number /* int64 */;
-  value: number /* float64 */;
-  stretch: number /* float64 */;
-}
-export interface DebugMeasurementLocationAlias {
-  measurement_location: string;
-  measurement_location_alias: string;
-}
-export interface DebugBaseBodyMeasurement {
-  measurement_location: string;
-  size_id: number /* int64 */; // each size can have its own base_body
-  size_value_id: number /* int64 */;
-  vertical_size_value_id: number /* int64 */;
-  base_body_id: number /* int64 */;
-  size_label: string;
-  value: number /* float64 */;
-}
-export interface DebugSizeSystem {
-  name: string;
-  size_values: SizeValue[];
-}
-/**
- * DebugLocationCalculationRow is the full per-(location, size) calculation
- * breakdown — the "show your work" record product's spreadsheet lays out. The
- * algorithm's best-fit decision reads Fits from this same computation, so the
- * numbers here ARE the numbers the recommendation was made from.
- * IMPORTANT: every field here must be rendered by RenderDebugMarkdown — the
- * sentinel field-coverage test (TestDebugMarkdownRendersEveryCalcField) fails
- * if you add a field without showing it. That's the forcing function that
- * keeps the debug output coupled to the algorithm's intermediate values.
- */
-export interface DebugLocationCalculationRow {
-  size_id: number /* int64 */;
-  size_label: string;
-  garment_value: number /* float64 */;
-  base_body_value: number /* float64 */;
-  reference_size_value: number /* float64 */;
-  ease: number /* float64 */; // size-rec ease (halved in relaxed exceptions)
-  full_ease: number /* float64 */; // full reference ease (fit analysis)
-  size_deformation: number /* float64 */;
-  max_stretch: number /* float64 */;
-  applied_stretch: number /* float64 */;
-  user_measurement: number /* float64 */; // deformed avatar value
-  user_size: number /* float64 */; // needed garment size = user_meas + ease − (deform + stretch)
-  fits: boolean; // garment_value >= user_size
-}
-/**
- * DebugLocationCalculation is one horizontal measurement location's calculation
- * table across every available size, plus the best-fit outcome.
- */
-export interface DebugLocationCalculation {
-  measurement_location: string;
-  avatar_value: number /* float64 */;
-  half_ease: boolean;
-  ignore_stretch: boolean;
-  best_fit_size_id: number /* int64 */;
-  best_fit_size_label: string;
-  rows: DebugLocationCalculationRow[];
-}
 /**
  * SizeRecommendationDebugResult is the response of
  * POST /v1/size-recommendation/debug — the recommendation the algorithm
  * produced, the inputs it actually ran against (echoed so the dashboard can
  * populate its form for tweaking), and a long-form Markdown walkthrough of
  * every pipeline step with the associated data. Nothing is persisted.
+ * The structured per-step debug payload the walkthrough is built from is NOT on
+ * the wire — it lives in internal/size_recommendation (DebugSizeRecommendation
+ * et al.) and is rendered to StepsMarkdown server-side. Only this envelope is
+ * client-facing.
  */
 export interface SizeRecommendationDebugResult {
   recommendation: SizeFitRecommendation;
@@ -615,53 +533,6 @@ export interface SizeRecommendationDebugResult {
   avatar_id: number /* int64 */;
   avatar_measurements: { [key: string]: number /* float64 */};
   steps_markdown: string;
-}
-export interface DebugSizeRecommendation {
-  debug_id: string;
-  brand_id: number /* int64 */;
-  style_id: number /* int64 */;
-  style_name: string;
-  avatar_id: number /* int64 */;
-  user_id: string;
-  style_category_name: any /* enums.StyleCategory */;
-  gender: any /* enums.Gender */;
-  should_zero_base_body: boolean;
-  size_system?: DebugSizeSystem;
-  vertical_size_system?: DebugSizeSystem;
-  style_category_measurement_locations: string[];
-  debug_measurement_location_aliases: DebugMeasurementLocationAlias[];
-  filtered_horizontal_measurement_locations: string[];
-  filtered_vertical_measurement_locations: string[];
-  debug_avatar_measurements: DebugMeasurementValue[];
-  sizes: DebugSize[];
-  debug_style_base_body_adjustments: DebugMeasurementValue[];
-  debug_deformed_avatar_measurements: DebugMeasurementValue[];
-  debug_filtered_measurement_groups: string[];
-  invalid_horizontal_measurement_locations: string[];
-  invalid_vertical_measurement_locations: string[];
-  debug_initial_reference_sizes: DebugMeasurementGroup[];
-  debug_base_body_measurements_before_consensus: DebugBaseBodyMeasurementGroup[];
-  debug_horizontal_location_to_group_best_fit_for_reference_size: DebugSizeGarmentValue[];
-  debug_consensus_reference_size: DebugSize;
-  flared_exception: boolean;
-  relaxed_exception: boolean;
-  oversized_exception: boolean;
-  debug_base_body_measurements_after_consensus: DebugBaseBodyMeasurement[];
-  fit_classification: any /* enums.FitClassification */;
-  exception_filtered_measurement_locations: string[];
-  debug_horizontal_location_to_group_best_fit_size_after_filter_exceptions: DebugSizeGarmentValue[];
-  debug_horizontal_location_to_best_fit_size_consensus: DebugSizeGarmentValue[];
-  debug_vertical_location_to_group_best_fit_size: DebugSizeGarmentValue[];
-  debug_vertical_location_to_best_fit_size_consensus: DebugSizeGarmentValue[];
-  debug_recommended_size: DebugSize;
-  debug_available_sizes: DebugSize[];
-  size_fits: SizeFit[];
-  /**
-   * LocationCalculations is the per-(location, size) "show your work"
-   * breakdown — ease, deformation, stretch, UserSize, fits — captured from
-   * the same container methods the recommendation decision uses.
-   */
-  location_calculations: DebugLocationCalculation[];
 }
 
 //////////
