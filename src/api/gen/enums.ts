@@ -129,14 +129,6 @@ export const SaleTypeMenswear: SaleType = "menswear";
 export const SaleTypeWomenswear: SaleType = "womenswear";
 
 //////////
-// source: size_recommendation.go
-
-export const FlaredAndRelaxedEaseStart: number /* float64 */ = 10.2;
-export const ReferenceEaseEnd: number /* float64 */ = 20;
-export const OversizedEaseStart: number /* float64 */ = 30;
-export const SizeDeformationHalfingLimit: number /* float64 */ = 3.5;
-
-//////////
 // source: size_values.go
 
 export type SizeValueID = number /* int64 */;
