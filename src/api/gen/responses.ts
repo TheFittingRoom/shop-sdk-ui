@@ -872,18 +872,3 @@ export interface VtoCompositionResponse {
   token: string;
   frames: string[];
 }
-/**
- * VtoFramesResult is the synchronous response body from
- * `POST {simvis.url}/frames`. Sim-vis used to deliver these fields via the
- * PUT /vto-compositions/:token/frames webhook; with the sync contract the
- * data comes back in the original call's response. The token is owned by
- * the backend (it's the composition's content hash) so no token field is
- * returned. On render failure, Error is non-empty and frames_storage_path
- * / frame_count are zero.
- */
-export interface VtoFramesResult {
-  avatar_id: number /* int64 */;
-  error: string;
-  frames_storage_path: string;
-  frame_count: number /* int */;
-}
