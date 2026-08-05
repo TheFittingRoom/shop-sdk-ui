@@ -214,7 +214,11 @@ function makeOutfitItem(r: ResolvedFittingRoomItem, forceUntuck: boolean): Outfi
   if (!r.styleCategory) {
     return null
   }
-  if (r.storage.colorwaySizeAssetId == null) {
+  // No chosen CSA yet, OR the stored CSA is stale (needsResize — no longer in
+  // the current size rec). Drop it from the wire request so an invalid id never
+  // reaches VTO; ensureSizeForItem re-resolves it to the default and the next
+  // build picks up the corrected id.
+  if (r.storage.colorwaySizeAssetId == null || r.needsResize) {
     return null
   }
   // Tuckable is a per-CHILD trait; the container's own category
