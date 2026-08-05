@@ -85,7 +85,21 @@
           environment: cfg.environment ?? 'demo',
           debug: true,
           currentProduct,
-          productLookup: async () => [],
+          // Resolve the current product by handle so fitting-room items that
+          // reference it (the stored-selection path) get merchant data. Real
+          // storefronts back this with a Storefront API lookup; tests only need
+          // the one seeded product. Extend with cfg.productCatalog if a test
+          // needs to look up products other than the current one.
+          productLookup: async (handles) => {
+            const catalog = []
+            if (cfg.currentProduct) {
+              catalog.push(cfg.currentProduct)
+            }
+            if (Array.isArray(cfg.productCatalog)) {
+              catalog.push(...cfg.productCatalog)
+            }
+            return handles.map((h) => catalog.find((p) => p.handle === h)).filter(Boolean)
+          },
           addToCart: async (externalId, opts) => {
             window.__TFR_TEST_LAST_ADD__ = { externalId, opts }
           },

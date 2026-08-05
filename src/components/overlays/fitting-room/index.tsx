@@ -172,12 +172,17 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
     return out
   }, [resolved, selectedExternalIds])
 
-  // Auto-size-rec: when an item is selected and has no colorwaySizeAssetId yet,
-  // pick the recommended size for its currently-stored color preference and
-  // write back via updateFittingRoomItem so the choice persists.
+  // Auto-size-rec: when a selected item has no colorwaySizeAssetId yet, OR its
+  // stored id has gone stale (item.needsResize — the CSA is no longer in the
+  // current size rec, e.g. the style was re-saved/re-published and the row was
+  // replaced, or the colorway/size was removed), fall back to the DEFAULT: the
+  // recommended size for the item's stored colour preference, or the first
+  // colorway when that colour is gone (findRecommendedColorSize handles both).
+  // Write back via updateFittingRoomItem so the corrected choice persists and a
+  // stale id is never sent to VTO.
   const ensureSizeForItem = useCallback(
     (item: ResolvedFittingRoomItem) => {
-      if (item.storage.colorwaySizeAssetId != null) {
+      if (item.storage.colorwaySizeAssetId != null && !item.needsResize) {
         return
       }
       const productData = buildVtoProductDataFromResolved(item)
