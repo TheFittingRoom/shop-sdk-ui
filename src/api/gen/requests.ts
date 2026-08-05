@@ -529,52 +529,6 @@ export interface Joint {
   z: number /* float64 */;
 }
 /**
- * Garment is one item within a multi-garment FramesRequest. Backend
- * pre-sorts the garments slice by absolute layer order (StyleCategoryConfig
- * LayerOrder, with LayerOrderUntucked substituted when the SDK-supplied
- * `untucked` flag is true for a Tuckable category), then sets LayerOrder
- * to the zero-based index in the sorted slice. Sim-vis renders garments
- * in array order; the LayerOrder field is redundant-but-explicit.
- * Tucked is tri-state for clarity to sim-vis:
- *   - nil (JSON `null`): the category isn't Tuckable; the flag does not
- *     apply (e.g. dresses, jackets).
- *   - &true: tuckable category rendered in its tucked-in state.
- *   - &false: tuckable category rendered in its untucked state.
- * Sim-vis uses this to drive per-garment rendering decisions; absolute
- * layer position is already encoded in LayerOrder.
- */
-export interface Garment {
-  garment_id: number /* int64 */;
-  colorway_size_asset_id: number /* int64 */;
-  size_id: number /* int64 */;
-  asset_container_storage_path: string;
-  u3ma: string;
-  style_category_name: any /* enums.StyleCategory */;
-  sleeveless: boolean;
-  layer_order: number /* int */;
-  tucked?: boolean;
-  placement_measurement_location: string;
-  placement_offset_y: number /* float64 */;
-}
-/**
- * FramesRequest is the backend → sim-vis VTO request body. Top-level
- * fields describe the user/avatar context; per-garment data lives in
- * Garments. Sim-vis returns a token in its 202 response which becomes the
- * routing key for the inbound webhook.
- */
-export interface FramesRequest {
-  user_id: string;
-  avatar_id: number /* int64 */;
-  gender: string;
-  avatar_storage_path: string;
-  sdf_storage_path: string;
-  hex_value: string;
-  color_value: number /* float64 */;
-  frame_count: number /* int64 */;
-  joints: Joint[];
-  garments: Garment[];
-}
-/**
  * VtoCompositionItem is one entry in the SDK → backend POST body. The SDK
  * passes items in any order; backend resolves the canonical render order
  * before sending to sim-vis.
