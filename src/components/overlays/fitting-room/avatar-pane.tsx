@@ -1,9 +1,10 @@
-import type { Dispatch, ReactNode, SetStateAction } from 'react'
-import { useState } from 'react'
+import type { Dispatch, MutableRefObject, ReactNode, SetStateAction } from 'react'
+import { useEffect, useState } from 'react'
 import { AvatarFrameViewer } from '@/components/avatar-frame-viewer'
 import { Loading } from '@/components/content/loading'
 import { TextT } from '@/components/text'
 import { useAutoRotate } from '@/components/use-auto-rotate'
+import { useFramePreload } from '@/components/use-frame-preload'
 import { AVATAR_BOTTOM_BACKGROUND_URL } from '@/lib/asset'
 import { useCss } from '@/lib/theme'
 
@@ -29,6 +30,16 @@ interface AvatarPaneProps {
   // changes — which replace frameUrls without bumping the trigger — are
   // ignored. See use-auto-rotate.ts for the contract.
   autoRotateTrigger?: number
+  // Optional out-param: AvatarPane publishes its auto-rotate cancel callback
+  // here so siblings that share `selectedFrameIndex` — specifically the
+  // desktop zoom modal — can halt an in-flight rotation too. Without it a
+  // rotation started behind the modal keeps advancing frames while the user
+  // is rotating inside it, and the two fight over the same index.
+  //
+  // useAutoRotate stays hosted here rather than moving up to the layout: the
+  // inner viewer unmounts across frameUrls null↔ready transitions, and this
+  // component is the closest ancestor that does not.
+  cancelAutoRotateRef?: MutableRefObject<(() => void) | null>
 }
 
 // AvatarPane is the left-column avatar area on desktop and the background of
@@ -44,6 +55,7 @@ export function AvatarPane({
   selectedFrameIndex: indexProp,
   setSelectedFrameIndex: setIndexProp,
   autoRotateTrigger,
+  cancelAutoRotateRef,
 }: AvatarPaneProps) {
   const [localFrameIndex, setLocalFrameIndex] = useState<number | null>(null)
   // Controlled when the caller supplies an index; otherwise self-managed.
@@ -53,7 +65,28 @@ export function AvatarPane({
   // AvatarPane stays mounted across frameUrls null↔ready loading transitions
   // (the inner viewer unmounts during the "Finding your perfect fit" loader),
   // so the trigger-comparison ref inside this hook persists correctly.
-  const cancelAutoRotate = useAutoRotate(autoRotateTrigger, frameUrls, selectedFrameIndex, setSelectedFrameIndex)
+  // Preload + decode the whole set before animating. The fitting room had no
+  // preloading at all, so every frame of the first rotation was a cold fetch
+  // of a full-size image (WEB-12).
+  const { allSettled } = useFramePreload(frameUrls)
+
+  const cancelAutoRotate = useAutoRotate(
+    autoRotateTrigger,
+    frameUrls,
+    selectedFrameIndex,
+    setSelectedFrameIndex,
+    allSettled,
+  )
+
+  useEffect(() => {
+    if (!cancelAutoRotateRef) {
+      return
+    }
+    cancelAutoRotateRef.current = cancelAutoRotate
+    return () => {
+      cancelAutoRotateRef.current = null
+    }
+  }, [cancelAutoRotateRef, cancelAutoRotate])
 
   const css = useCss((theme) => ({
     container: {

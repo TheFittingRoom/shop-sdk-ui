@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { LinkT } from '@/components/link'
 import { TfrIcon } from '@/lib/asset'
 import type { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
@@ -81,6 +81,11 @@ export function DesktopLayout({
   // so the zoom modal can show whichever frame is currently displayed.
   const [zoomOpen, setZoomOpen] = useState<boolean>(false)
   const [selectedFrameIndex, setSelectedFrameIndex] = useState<number | null>(null)
+  // AvatarPane publishes its auto-rotate cancel here. The zoom modal shares
+  // selectedFrameIndex with the pane, so rotating inside the modal has to
+  // stop a rotation that is still running behind it.
+  const cancelAutoRotateRef = useRef<(() => void) | null>(null)
+  const cancelAutoRotate = useCallback(() => cancelAutoRotateRef.current?.(), [])
 
   // Measure container height so we can derive a width for the avatar column
   // that matches the portrait frame aspect (mirrors what quick-view's Avatar
@@ -222,6 +227,7 @@ export function DesktopLayout({
           selectedFrameIndex={selectedFrameIndex}
           setSelectedFrameIndex={setSelectedFrameIndex}
           autoRotateTrigger={autoRotateTrigger}
+          cancelAutoRotateRef={cancelAutoRotateRef}
         />
       </div>
       {hasSelection ? (
@@ -269,6 +275,7 @@ export function DesktopLayout({
           selectedFrameIndex={selectedFrameIndex}
           setSelectedFrameIndex={setSelectedFrameIndex}
           onClose={() => setZoomOpen(false)}
+          onUserInteract={cancelAutoRotate}
         />
       ) : null}
     </div>

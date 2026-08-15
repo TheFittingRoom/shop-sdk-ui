@@ -192,9 +192,14 @@ page URL carries `?tfr-source=local`.
 
 ## Frame URL rewriting
 
-Frame paths are bare (e.g. `user-X/avatar-N/frames/image_K.png` for avatar,
-`user-X/avatar-N/vto-{token}/frames/image_K.png` for VTO compositions) — see the
-matching note in `tfr-backend/AGENTS.md`. Avatar frames arrive on the Firestore
+Frame paths are bare (e.g. `user-X/avatar-N/frames/image_K.{ext}` for avatar,
+`user-X/avatar-N/vto-{token}/frames/image_K.{ext}` for VTO compositions) — see
+the matching note in `tfr-backend/AGENTS.md`. **The extension is not fixed**:
+sim-vis chooses the render format (PNG historically, JPEG as of WEB-12), the
+backend derives the stored path from the bytes, and the SDK just consumes
+whatever path it is given. Nothing here may pattern-match on `.png`.
+
+Avatar frames arrive on the Firestore
 user doc; VTO frames come back directly in the `/v1/vto-compositions` API
 response. The SDK prepends the configured `frames.baseUrl` (per-env in
 `config.ts`) at the consumption site. Helper: `applyFrameBaseUrl` in
@@ -204,6 +209,43 @@ so both shapes work.
 Used in both VTO overlays (`quick-view.tsx` and `fitting-room/`). Anywhere else
 that turns a bare frame path into an `<img src>` should call `applyFrameBaseUrl`
 too.
+
+## Frame display: preload, then animate
+
+The avatar viewer swaps `src` on a **single** `<img>`. A browser keeps painting
+the previous frame until the new one has decoded, so an un-preloaded rotation
+advances its index on schedule while the pixels barely move — and there is no
+loading state to show, because as far as the DOM is concerned an image is
+already displayed. That is the mechanism behind most of WEB-12's "auto-spin
+didn't happen" / "inexplicable delay with no loading state" reports.
+
+Three pieces, and they are meant to be used together:
+
+- **`use-frame-preload.ts`** fetches and `decode()`s a whole frame set and
+  reports `allSettled`. It **retains** the `Image` objects in a ref (bounded,
+  oldest-first eviction). Retention is the point: the previous approach created
+  `new Image()` inside a `useMemo` and dropped every reference immediately, so
+  it depended entirely on HTTP caching — which was itself broken. Failures
+  count as settled so one bad frame can't wedge the gate.
+- **`use-auto-rotate.ts`** takes `framesReady` and won't start until the set is
+  decoded, with a timeout so a frame that never settles delays the rotation
+  rather than suppressing it. It steps off `requestAnimationFrame` using
+  elapsed time (not `setInterval`), so it can't accumulate drift and stops on
+  its own in a backgrounded tab instead of queueing catch-up ticks.
+- **`use-frame-rotation.ts`** fires `onUserInteract` at *drag start* (mouse) or
+  at the *axis-lock decision* (touch, so a vertical page scroll doesn't cancel),
+  not at the first committed rotation step.
+
+**Every surface that shares a frame index must be able to cancel the
+rotation.** The desktop zoom modal shares `selectedFrameIndex` with
+`AvatarPane`, so `AvatarPane` publishes its cancel callback through the
+optional `cancelAutoRotateRef` prop and `desktop-layout.tsx` hands it to
+`ZoomModal`. Miss this and a rotation keeps ticking behind the modal, fighting
+the user's own chevron taps.
+
+`e2e/quick-view-vto.spec.ts` guards all of this: frames requested up front (not
+per tick), the rotation advancing, and user-cancel. The preload test was
+confirmed to fail when the preload is disabled — keep it that way.
 
 ## VTO request flow
 

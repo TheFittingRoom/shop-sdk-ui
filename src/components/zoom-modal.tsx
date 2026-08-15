@@ -14,13 +14,25 @@ interface ZoomModalProps {
   selectedFrameIndex: number | null
   setSelectedFrameIndex: Dispatch<SetStateAction<number | null>>
   onClose: () => void
+  // Fired when the user rotates from inside the modal. The modal shares its
+  // frame index with the avatar pane behind it, so an auto-rotate started
+  // there keeps ticking while the modal is open and fights the user's
+  // chevron taps and drags. Callers that run useAutoRotate must pass their
+  // cancel callback here.
+  onUserInteract?: () => void
 }
 
 // ZoomModal shows the avatar frames at full resolution, layered over the
 // fitting-room overlay: 40px inset on every side, scrollable when a frame is
 // larger than that area, rotatable (drag or chevrons), with a large close
 // affordance top-right.
-export function ZoomModal({ frameUrls, selectedFrameIndex, setSelectedFrameIndex, onClose }: ZoomModalProps) {
+export function ZoomModal({
+  frameUrls,
+  selectedFrameIndex,
+  setSelectedFrameIndex,
+  onClose,
+  onUserInteract,
+}: ZoomModalProps) {
   // Escape closes the zoom modal only. A capture-phase document listener with
   // stopPropagation keeps the event from reaching react-modal's own Escape
   // handler, which would otherwise close the whole fitting-room overlay.
@@ -36,7 +48,7 @@ export function ZoomModal({ frameUrls, selectedFrameIndex, setSelectedFrameIndex
     return () => document.removeEventListener('keydown', onKeyDown, true)
   }, [onClose])
 
-  const { rotateLeft, rotateRight } = useFrameRotation(frameUrls, setSelectedFrameIndex)
+  const { rotateLeft, rotateRight } = useFrameRotation(frameUrls, setSelectedFrameIndex, onUserInteract)
 
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
