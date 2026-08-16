@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { AvatarFrameViewer } from '@/components/avatar-frame-viewer'
 import { useAutoRotate } from '@/components/use-auto-rotate'
+import { useFramePreload } from '@/components/use-frame-preload'
 import { Button } from '@/components/button'
 import { ColorSelector } from '@/components/color-selector'
 import { FitChart } from '@/components/content/fit-chart'
@@ -77,6 +78,21 @@ export default function QuickViewOverlay() {
   const [selectedSizeLabel, setSelectedSizeLabel] = useState<string | null>(null)
   const [selectedColorLabel, setSelectedColorLabel] = useState<string | null>(null)
   const [modalStyle, setModalStyle] = useState<StyleProp>({})
+  // Auto-rotate fires once per product, matching the fitting room's add-only
+  // semantics: switching size or colour replaces frameUrls but must not
+  // replay the rotation. Keyed on the product's externalId and owned here so
+  // it survives the mobile↔desktop layout swap, which unmounts and remounts
+  // <Avatar>. Undefined until a product is known, so the hook stays dormant.
+  const [autoRotateTrigger, setAutoRotateTrigger] = useState<number | undefined>(undefined)
+  const autoRotateProductRef = useRef<string | null>(null)
+  useEffect(() => {
+    const externalId = getStaticData().currentProduct?.externalId
+    if (!externalId || autoRotateProductRef.current === externalId) {
+      return
+    }
+    autoRotateProductRef.current = externalId
+    setAutoRotateTrigger((n) => (n ?? 0) + 1)
+  }, [vtoProductData])
   // Container-only tuck toggle (see Suits & Sets plan Q10). Non-container
   // products never surface a tuck toggle on quick-view — quick-view is
   // previewing a single product outside an outfit context so there's nothing
@@ -382,10 +398,10 @@ export default function QuickViewOverlay() {
       return null
     }
     logger.logDebug(`{{ts}} - Displaying VTO for sku: ${selectedColorSizeRecord.sku}`)
-    rewritten.forEach((url) => {
-      const img = new Image()
-      img.src = url
-    })
+    // Preloading used to happen right here, as a side effect inside this memo.
+    // It now lives in useFramePreload (called by <Avatar>): a memo body is not
+    // a lifecycle, and the images it created were unreferenced the moment it
+    // returned. See use-frame-preload.ts.
     return rewritten
   }, [selectedColorSizeRecord, framesForOutfit, loadedProduct, containerUntucked])
 
@@ -477,6 +493,7 @@ export default function QuickViewOverlay() {
         selectedColorLabel={selectedColorLabel}
         selectedSizeLabel={selectedSizeLabel}
         frameUrls={frameUrls}
+        autoRotateTrigger={autoRotateTrigger}
         setModalStyle={setModalStyle}
         onClose={closeOverlay}
         onChangeColor={handleChangeColor}
@@ -632,6 +649,10 @@ interface LayoutProps {
   selectedColorLabel: string | null
   selectedSizeLabel: string | null
   frameUrls: string[] | null
+  // Bumped once per product (see QuickViewOverlay). Threaded down to Avatar
+  // rather than derived there: the mobile and desktop layouts are sibling
+  // subtrees, so an Avatar-local trigger restarts on every viewport flip.
+  autoRotateTrigger: number | undefined
   setModalStyle: (style: StyleProp) => void
   onClose: () => void
   onChangeColor: (newColorLabel: string | null) => void
@@ -657,6 +678,7 @@ function MobileLayout({
   selectedColorLabel,
   selectedSizeLabel,
   frameUrls,
+  autoRotateTrigger,
   setModalStyle,
   onClose,
   onChangeColor,
@@ -795,7 +817,7 @@ function MobileLayout({
 
   return (
     <div css={css.mainContainer}>
-      <Avatar frameUrls={frameUrls} setModalStyle={setModalStyle} />
+      <Avatar frameUrls={frameUrls} autoRotateTrigger={autoRotateTrigger} setModalStyle={setModalStyle} />
       <button onClick={onClose} aria-label="Close modal" css={css.closeButton}>
         <CloseIcon css={css.closeIcon} />
       </button>
@@ -1148,6 +1170,7 @@ function DesktopLayout({
   selectedColorLabel,
   selectedSizeLabel,
   frameUrls,
+  autoRotateTrigger,
   setModalStyle,
   onClose,
   onChangeColor,
@@ -1270,7 +1293,7 @@ function DesktopLayout({
 
   return (
     <div css={css.mainContainer}>
-      <Avatar frameUrls={frameUrls} setModalStyle={setModalStyle} />
+      <Avatar frameUrls={frameUrls} autoRotateTrigger={autoRotateTrigger} setModalStyle={setModalStyle} />
       <div css={css.rightContainer}>
         <ModalTitlebar title={t('quick-view.title')} onCloseClick={onClose} />
         <div css={css.contentContainer}>
@@ -1342,10 +1365,11 @@ interface AvatarLayoutData {
 
 interface AvatarProps {
   frameUrls: string[] | null
+  autoRotateTrigger: number | undefined
   setModalStyle: (style: StyleProp) => void
 }
 
-function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
+function Avatar({ frameUrls, autoRotateTrigger, setModalStyle }: AvatarProps) {
   const deviceLayout = useMainStore((state) => state.deviceLayout)
   const isMobileLayout = deviceLayout === DeviceLayout.MOBILE_PORTRAIT || deviceLayout === DeviceLayout.TABLET_PORTRAIT
   const [layoutData, setLayoutData] = useState<AvatarLayoutData>({
@@ -1356,10 +1380,23 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
   })
   const [selectedFrameIndex, setSelectedFrameIndex] = useState<number | null>(null)
   const [zoomOpen, setZoomOpen] = useState<boolean>(false)
-  // Quick-view is a single-product VTO — only "add" is the initial load, so a
-  // constant trigger fires the auto-rotate exactly once per Avatar mount and
-  // never re-fires (size/color changes don't bump it).
-  const cancelAutoRotate = useAutoRotate(1, frameUrls, selectedFrameIndex, setSelectedFrameIndex)
+  // One rotation per product. The trigger is owned by QuickViewOverlay, not
+  // derived here: this component previously passed the literal `1`, which ties
+  // "play once" to the Avatar's own mount. MobileLayout and DesktopLayout are
+  // sibling subtrees with their own <Avatar>, so crossing the mobile/desktop
+  // breakpoint unmounts one and mounts the other — replaying the rotation on
+  // every viewport flip. Size/colour changes still don't re-fire.
+  // Preload + decode before animating. Replaces the previous fire-and-forget
+  // `new Image()` loop that ran as a side effect inside a useMemo and dropped
+  // every reference immediately — see useFramePreload.
+  const { allSettled } = useFramePreload(frameUrls)
+  const cancelAutoRotate = useAutoRotate(
+    autoRotateTrigger,
+    frameUrls,
+    selectedFrameIndex,
+    setSelectedFrameIndex,
+    allSettled,
+  )
   const css = useCss((theme) => ({
     topContainer: {
       flex: 'none',
@@ -1534,6 +1571,7 @@ function Avatar({ frameUrls, setModalStyle }: AvatarProps) {
           selectedFrameIndex={selectedFrameIndex}
           setSelectedFrameIndex={setSelectedFrameIndex}
           onClose={() => setZoomOpen(false)}
+          onUserInteract={cancelAutoRotate}
         />
       ) : null}
       {frameUrls && selectedFrameIndex != null && (isMobileLayout || SHOW_ROTATION_SLIDER) ? (

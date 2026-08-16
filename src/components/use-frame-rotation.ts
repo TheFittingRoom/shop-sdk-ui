@@ -2,7 +2,14 @@ import type { Dispatch, SetStateAction, MouseEvent as ReactMouseEvent, TouchEven
 import { useCallback } from 'react'
 
 // Pointer pixels of horizontal drag per one frame of rotation.
-const DRAG_STEP_PX = 50
+//
+// Sized so a full revolution costs roughly a comfortable swipe rather than a
+// screen-width sweep: at 24 px/frame a 9-frame set completes in ~216 px, where
+// the previous 50 px/frame needed 450 px — most of a phone's width, which read
+// as "tap-drag spin sometimes not working" because short drags produced no
+// movement at all. Sub-step travel still accumulates via applyDragSteps, so a
+// slow drag rotates continuously instead of only past a large threshold.
+const DRAG_STEP_PX = 24
 // Pointer pixels of travel before a touch drag commits to either a horizontal
 // (rotation) or vertical (scroll) gesture. Also acts as a drag-vs-tap
 // threshold: stray finger jitter below this never starts firing rotations.
@@ -66,6 +73,11 @@ export function useFrameRotation(
   const handleMouseDragStart = useCallback(
     (e: ReactMouseEvent) => {
       e.preventDefault()
+      // Hand control to the user the moment the gesture starts, not at the
+      // first committed step. Waiting for a step meant an in-flight
+      // auto-rotate kept advancing frames underneath a drag that hadn't yet
+      // travelled DRAG_STEP_PX — the "dragging slowly feels broken" report.
+      onUserInteract?.()
       let startX = e.clientX
       const onMove = (move: MouseEvent) => {
         startX += applyDragSteps(move.clientX - startX, rotateLeft, rotateRight)
@@ -77,7 +89,7 @@ export function useFrameRotation(
       window.addEventListener('mousemove', onMove)
       window.addEventListener('mouseup', onUp)
     },
-    [rotateLeft, rotateRight],
+    [rotateLeft, rotateRight, onUserInteract],
   )
 
   // Touch drag with an axis lock: after AXIS_LOCK_PX of travel, commit to
@@ -108,6 +120,15 @@ export function useFrameRotation(
             return
           }
           mode = absDx >= absDy ? 'horizontal' : 'vertical'
+          if (mode === 'horizontal') {
+            // Take control at the axis-lock decision, not at the first
+            // committed step: by here the gesture is unambiguously a
+            // rotation, and an in-flight auto-rotate must stop before it
+            // fights the finger. Deliberately NOT fired on touchstart —
+            // that would also cancel when the shopper is merely scrolling
+            // the page vertically past the avatar.
+            onUserInteract?.()
+          }
           // Reset startX to the lock-decision point so the AXIS_LOCK_PX
           // already travelled doesn't count toward the first rotation
           // (which would feel like a jump at the start of the drag).
@@ -128,7 +149,7 @@ export function useFrameRotation(
       window.addEventListener('touchend', onEnd)
       window.addEventListener('touchcancel', onEnd)
     },
-    [rotateLeft, rotateRight],
+    [rotateLeft, rotateRight, onUserInteract],
   )
 
   return { rotateLeft, rotateRight, handleMouseDragStart, handleTouchDragStart }

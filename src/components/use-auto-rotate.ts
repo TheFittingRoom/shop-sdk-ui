@@ -7,6 +7,13 @@ import { useCallback, useEffect, useRef } from 'react'
 // time (and shorter frame sets just feel less granular).
 const AUTO_ROTATE_DURATION_MS = 4000
 
+// How long to wait for the frame set to finish decoding before playing the
+// rotation anyway. The gate exists so the spin doesn't run against undecoded
+// frames, but it must not be able to suppress the rotation outright — a single
+// frame that never settles (blocked request, decode failure the preloader
+// didn't observe) would otherwise mean the shopper never sees a spin at all.
+const READINESS_TIMEOUT_MS = 3000
+
 // useAutoRotate plays one full rotation through `frameUrls` each time
 // `trigger` changes from its previous fired value AND frames are present.
 // The rotation starts AND ends at whichever frame index is currently
@@ -22,45 +29,58 @@ const AUTO_ROTATE_DURATION_MS = 4000
 // from undefined counts as a change and fires once; subsequent re-fires
 // require the number to differ from the last-fired value.
 //
+// `framesReady` gates the start of the rotation on the frame set being
+// decoded (see useFramePreload). Without it the rotation advances its index
+// on schedule while the <img> keeps painting the last frame it managed to
+// decode — the "auto-spin didn't happen" / "image-swap timing is broken"
+// reports in WEB-12. Pass `true` when there is nothing to wait on.
+//
 // Hosted on the *parent* of AvatarFrameViewer (Avatar in quick-view,
 // AvatarPane in fitting-room) — the viewer unmounts during loading
 // transitions in fitting-room, which would reset any ref state living inside
 // it and cause false fires on remount.
 //
 // Returns `cancelAutoRotate` — call it from any code path that lets the user
-// manually move the frame (chevron taps, drag) to halt the in-flight
-// rotation. The previous "detect cancellation by comparing prev state inside
-// the setter" approach was broken under React 18's deferred-updater batching:
-// the updater runs asynchronously, so side-effects mutated inside it weren't
-// visible to code outside the setter, and the very first tick saw stale
-// `nextFrameIndex = 0` and immediately cleared the interval thinking it had
+// manually move the frame (chevron taps, drag, the zoom modal) to halt the
+// in-flight rotation. The previous "detect cancellation by comparing prev
+// state inside the setter" approach was broken under React 18's deferred-
+// updater batching: the updater runs asynchronously, so side-effects mutated
+// inside it weren't visible to code outside the setter, and the very first
+// tick saw stale `nextFrameIndex = 0` and immediately stopped thinking it had
 // wrapped. Explicit cancellation removes the race entirely.
 export function useAutoRotate(
   trigger: number | undefined,
   frameUrls: string[] | null | undefined,
   selectedFrameIndex: number | null,
   setSelectedFrameIndex: Dispatch<SetStateAction<number | null>>,
+  framesReady = true,
 ): () => void {
   const lastFiredRef = useRef<number | undefined>(undefined)
-  // Mutable handle to the active interval so the cancel callback (and the
-  // effect's cleanup) can stop it even though they live outside the effect's
-  // closure of any specific run.
-  const intervalIdRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Handle for the active rAF loop so the cancel callback (and the effect's
+  // cleanup) can stop it from outside any single run's closure.
+  const rafIdRef = useRef<number | null>(null)
   // Mirror selectedFrameIndex into a ref so the rotation effect can capture
   // the "currently displayed frame" at fire time without including the index
   // in the effect's dep array — which would tear down and rebuild the
-  // interval every single tick (the rotation calls setSelectedFrameIndex on
-  // each tick, so the value changes ~every 444 ms during play).
+  // animation every single tick.
   const indexRef = useRef<number | null>(selectedFrameIndex)
   useEffect(() => {
     indexRef.current = selectedFrameIndex
   }, [selectedFrameIndex])
 
+  // The trigger of the rotation currently playing, or undefined when idle.
+  // Distinguishes "finished / user took over" from "torn down mid-flight",
+  // which need opposite handling — see the effect cleanup.
+  const playingRef = useRef<number | undefined>(undefined)
+
   const cancelAutoRotate = useCallback(() => {
-    if (intervalIdRef.current !== null) {
-      clearInterval(intervalIdRef.current)
-      intervalIdRef.current = null
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current)
+      rafIdRef.current = null
     }
+    // A completed rotation, or the user taking manual control. Either way the
+    // rotation is done with — it must not be replayed.
+    playingRef.current = undefined
   }, [])
 
   // Depend on the frame *count* rather than the frameUrls array reference.
@@ -70,46 +90,88 @@ export function useAutoRotate(
   // each landing and kill the in-progress rotation. Length is stable for the
   // same outfit, which is the only signal we need here.
   const frameCount = frameUrls?.length ?? 0
+
+  // Once a rotation has been requested, remember it until it actually plays.
+  // The readiness gate means firing is deferred, and `trigger` alone can't
+  // carry that intent across the re-render that flips framesReady.
+  const pendingTriggerRef = useRef<number | undefined>(undefined)
+  if (trigger !== undefined && trigger !== lastFiredRef.current) {
+    pendingTriggerRef.current = trigger
+  }
+
   useEffect(() => {
-    if (trigger === undefined) {
+    const pending = pendingTriggerRef.current
+    if (pending === undefined || pending === lastFiredRef.current) {
       return
     }
     if (frameCount === 0) {
       return
     }
-    if (trigger === lastFiredRef.current) {
-      return
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+    const play = () => {
+      // Claim the trigger only once the rotation actually starts. A rotation
+      // that never started (frames absent, component torn down) must be able
+      // to fire later rather than being silently consumed.
+      lastFiredRef.current = pending
+      pendingTriggerRef.current = undefined
+      playingRef.current = pending
+
+      const tickMs = AUTO_ROTATE_DURATION_MS / frameCount
+      // Start (and stop) at whichever frame is currently displayed. Clamped to
+      // frameCount in case the new outfit has fewer frames than the previous
+      // selection — otherwise the stop condition could never match.
+      const startFrameIndex = (indexRef.current ?? 0) % frameCount
+      const startedAt = performance.now()
+      let lastStep = 0
+
+      // rAF rather than setInterval: the step is derived from elapsed time, so
+      // a slow frame can't accumulate drift, and the loop stops on its own in
+      // a backgrounded tab instead of queueing a burst of catch-up ticks that
+      // would flash the avatar through several frames on return.
+      const step = (now: number) => {
+        const elapsedSteps = Math.floor((now - startedAt) / tickMs)
+        if (elapsedSteps > lastStep) {
+          lastStep = elapsedSteps
+          if (elapsedSteps >= frameCount) {
+            // Completed a full cycle — settle back on the start frame.
+            setSelectedFrameIndex(startFrameIndex)
+            cancelAutoRotate()
+            return
+          }
+          setSelectedFrameIndex((startFrameIndex + elapsedSteps) % frameCount)
+        }
+        rafIdRef.current = requestAnimationFrame(step)
+      }
+      rafIdRef.current = requestAnimationFrame(step)
     }
-    // Don't record `lastFiredRef` until the interval actually fires its
-    // first tick. React Strict Mode (dev) runs every effect twice on mount —
-    // run → cleanup → run — and the cleanup happens synchronously before any
-    // tick. If we recorded the trigger eagerly here, the second run would
-    // see `trigger === lastFiredRef` and early-return, leaving the rotation
-    // un-played. Recording on the first tick means a never-fired interval
-    // (Strict Mode's first run) leaves the ref unchanged, so the second run
-    // fires fresh and *that's* the interval that survives.
-    const tickMs = Math.round(AUTO_ROTATE_DURATION_MS / frameCount)
-    // Start (and stop) at whichever frame is currently displayed. Clamped to
-    // frameCount in case the new outfit has fewer frames than the previous
-    // selection — otherwise the stop condition could never match.
-    const startFrameIndex = (indexRef.current ?? 0) % frameCount
-    let currentFrameIndex = startFrameIndex
-    let didFirstTick = false
-    intervalIdRef.current = setInterval(() => {
-      if (!didFirstTick) {
-        didFirstTick = true
-        lastFiredRef.current = trigger
+
+    if (framesReady) {
+      play()
+    } else {
+      // Frames are still decoding. Wait, but not indefinitely.
+      timeoutId = setTimeout(play, READINESS_TIMEOUT_MS)
+    }
+
+    return () => {
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId)
       }
-      const nextFrameIndex = (currentFrameIndex + 1) % frameCount
-      currentFrameIndex = nextFrameIndex
-      setSelectedFrameIndex(nextFrameIndex)
-      if (nextFrameIndex === startFrameIndex) {
-        // Completed a full cycle and settled back on the start frame.
-        cancelAutoRotate()
+      // Torn down while still playing — the frame set changed underneath the
+      // rotation (frameCount is a dependency). Hand the trigger back so the
+      // next run replays it instead of leaving the avatar stranded on an
+      // arbitrary mid-rotation frame. Previously the trigger was consumed on
+      // the first tick, so this teardown killed the rotation permanently and
+      // it could never re-fire: one of the "auto-spin doesn't always happen"
+      // reports in WEB-12.
+      if (playingRef.current !== undefined) {
+        pendingTriggerRef.current = playingRef.current
+        lastFiredRef.current = undefined
       }
-    }, tickMs)
-    return cancelAutoRotate
-  }, [trigger, frameCount, setSelectedFrameIndex, cancelAutoRotate])
+      cancelAutoRotate()
+    }
+  }, [trigger, frameCount, framesReady, setSelectedFrameIndex, cancelAutoRotate])
 
   return cancelAutoRotate
 }
