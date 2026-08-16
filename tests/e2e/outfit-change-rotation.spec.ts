@@ -9,7 +9,10 @@ import {
   TEST_PRODUCT_EXTERNAL_ID,
   TEST_PRODUCT_HANDLE,
   TEST_SEEDED_STYLE,
-  TEST_SIZE_FIT_RECOMMENDATION_TWO_COLORS,
+  TEST_SEEDED_STYLE_B,
+  TEST_SIZE_FIT_RECOMMENDATION,
+  TEST_SIZE_FIT_RECOMMENDATION_B,
+  TEST_STYLE_B_ID,
   TEST_UID,
 } from './fixtures/seed'
 
@@ -44,7 +47,19 @@ const TSHIRT_CATEGORY = {
   excludes: [],
   is_container: false,
 }
+// A second category in its own group, so selecting the second product adds to
+// the outfit instead of evicting the first.
+const PANTS_CATEGORY = {
+  ...TSHIRT_CATEGORY,
+  name: 'pants',
+  label: 'Pants',
+  label_singular: 'Pant',
+  group: 'bottoms',
+  layer_order: 20,
+  layer_order_untucked: 20,
+}
 const TOPS_GROUP = { name: 'tops', label: 'Tops', same_group_default: 'exclude', display_order: 1 }
+const BOTTOMS_GROUP = { name: 'bottoms', label: 'Bottoms', same_group_default: 'exclude', display_order: 2 }
 
 const FRAME_COUNT = 12
 
@@ -88,14 +103,21 @@ async function expectFullRevolutionBackTo(page: Page, anchor: number) {
   await expect.poll(index, { timeout: 10000 }).toBe(anchor)
 }
 
-// Two selectable rail cards for the same style in different colourways — see
-// the fixture notes in seed.ts for why colourway and not size.
+// Two selectable rail cards, different products in different style categories,
+// so the second ADDS to the outfit rather than evicting the first.
 async function bootTwoProductFittingRoom(page: Page) {
   await page.addInitScript(
     ({ brandId, uid, a, b }) => {
       const items = [
         { externalId: a.externalId, handle: a.handle, size: 'M', color: 'Blue', colorwaySizeAssetId: null, addedAt: 1 },
-        { externalId: b.externalId, handle: b.handle, size: 'M', color: 'Red', colorwaySizeAssetId: null, addedAt: 2 },
+        {
+          externalId: b.externalId,
+          handle: b.handle,
+          size: 'M',
+          color: 'Black',
+          colorwaySizeAssetId: null,
+          addedAt: 2,
+        },
       ]
       window.localStorage.setItem('tfr:fitting-room:v1', JSON.stringify({ [String(brandId)]: { [uid]: items } }))
     },
@@ -109,11 +131,18 @@ async function bootTwoProductFittingRoom(page: Page) {
 
   await bootSdk(page, {
     productCatalog: [TEST_CURRENT_PRODUCT_B],
-    firestoreDocs: { styles: { 'test-style': TEST_SEEDED_STYLE } },
+    firestoreDocs: { styles: { 'test-style': TEST_SEEDED_STYLE, 'test-style-b': TEST_SEEDED_STYLE_B } },
     apiOverrides: {
-      sizeRecommendation: (route) => route.fulfill({ json: TEST_SIZE_FIT_RECOMMENDATION_TWO_COLORS }),
-      styleCategories: (route) => route.fulfill({ json: [TSHIRT_CATEGORY] }),
-      styleCategoryGroups: (route) => route.fulfill({ json: [TOPS_GROUP] }),
+      // Routed by style id: the two products are genuinely different styles
+      // with different recommendations and CSAs.
+      sizeRecommendation: (route) =>
+        route.fulfill({
+          json: route.request().url().includes(`/styles/${TEST_STYLE_B_ID}/`)
+            ? TEST_SIZE_FIT_RECOMMENDATION_B
+            : TEST_SIZE_FIT_RECOMMENDATION,
+        }),
+      styleCategories: (route) => route.fulfill({ json: [TSHIRT_CATEGORY, PANTS_CATEGORY] }),
+      styleCategoryGroups: (route) => route.fulfill({ json: [TOPS_GROUP, BOTTOMS_GROUP] }),
       vtoComposition: (route) => {
         const body = route.request().postDataJSON() as { items: { colorway_size_asset_id: number }[] }
         return route.fulfill({ json: framesForItems(body.items) })

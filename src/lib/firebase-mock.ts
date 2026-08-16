@@ -8,7 +8,7 @@
 // `_init` in `src/lib/firebase.ts`. Nothing else in `src/` knows about test
 // mode.
 
-import type { DocumentData, QueryFieldFilterConstraint, QuerySnapshot, Unsubscribe } from 'firebase/firestore'
+import type { DocumentData, QuerySnapshot, Unsubscribe } from 'firebase/firestore'
 import type { AuthUser, UserProfile } from '@/lib/firebase'
 import { getLogger } from '@/lib/logger'
 
@@ -51,6 +51,24 @@ export interface TestHooks {
 // installed.
 // ---------------------------------------------------------------------------
 
+// A query filter as plain data, rather than Firebase's QueryFieldFilterConstraint.
+//
+// Two reasons. The constraint objects Firebase's `where()` returns are opaque —
+// field, operator and value live on private members — so an implementation that
+// isn't Firebase (i.e. the test mock) cannot honour them and has to return
+// everything. And it kept a Firebase type in the interface every caller sees,
+// for no benefit to those callers.
+//
+// Only equality is modelled, because only equality is used. Widening this to
+// Firebase's full WhereFilterOp union would let callers write comparisons the
+// mock silently does not apply — a test would pass while filtering nothing.
+// Add operators here, and to both implementations, when something needs them.
+export interface QueryFilter {
+  field: string
+  op: '=='
+  value: unknown
+}
+
 export interface IFirestoreManager {
   getDocData<T extends DocumentData = DocumentData>(collectionName: string, docId: string): Promise<T | null>
   setDocData<T extends DocumentData = DocumentData>(collectionName: string, docId: string, data: T): Promise<void>
@@ -66,7 +84,7 @@ export interface IFirestoreManager {
   ): Unsubscribe
   queryDocs<T extends DocumentData = DocumentData>(
     collectionName: string,
-    constraints: QueryFieldFilterConstraint[],
+    filters: QueryFilter[],
   ): Promise<QuerySnapshot<T>>
 }
 
@@ -149,12 +167,19 @@ export class MockFirestoreManager implements IFirestoreManager {
 
   async queryDocs<T extends DocumentData = DocumentData>(
     collectionName: string,
-    _constraints: QueryFieldFilterConstraint[],
+    filters: QueryFilter[],
   ): Promise<QuerySnapshot<T>> {
-    // Ignore the constraints — return every doc in the collection. v1 tests
-    // don't exercise filtering, and the caller surface we ship (database.ts)
-    // only reads `.empty`, `.docs[].data()`, and `.forEach()`.
-    const entries = Object.values(this.docs[collectionName] ?? {})
+    // Filters are ANDed, matching Firestore. Equality is compared with
+    // Object.is so a doc missing the field simply doesn't match, rather than
+    // matching an `undefined` value.
+    //
+    // This used to return every doc regardless of filters, which made it
+    // impossible to seed two documents in one collection and have them resolve
+    // separately — every lookup got the first one. That blocked several
+    // fitting-room tests needing two distinct products.
+    const entries = Object.values(this.docs[collectionName] ?? {}).filter((data) =>
+      filters.every((filter) => Object.is((data as DocumentData)[filter.field], filter.value)),
+    )
     const docs = entries.map((data) => ({ data: () => data as T }))
     const snapshot = {
       empty: docs.length === 0,

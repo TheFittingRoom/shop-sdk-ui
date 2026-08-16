@@ -63,6 +63,7 @@ export function DetailAccordion({
             forceUntuck={forceUntuck}
             canTuck={canTuck}
             onToggleOpen={() => onOpenItem(isOpen ? null : item.externalId)}
+            onOpen={() => onOpenItem(item.externalId)}
             onChangeDetailMode={onChangeDetailMode}
             onChangeSize={(label) => onChangeSize(item.externalId, label)}
             onChangeColor={(label) => onChangeColor(item.externalId, label)}

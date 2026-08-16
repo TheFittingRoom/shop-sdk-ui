@@ -1,13 +1,7 @@
 import dayjs from 'dayjs'
 import type { FirebaseApp, FirebaseOptions } from 'firebase/app'
 import { initializeApp } from 'firebase/app'
-import type {
-  DocumentData,
-  Firestore,
-  QueryFieldFilterConstraint,
-  QuerySnapshot,
-  Unsubscribe,
-} from 'firebase/firestore'
+import type { DocumentData, Firestore, QuerySnapshot, Unsubscribe } from 'firebase/firestore'
 import { collection, doc, getDoc, getDocs, getFirestore, onSnapshot, query, setDoc, where } from 'firebase/firestore'
 import type { Auth, User } from 'firebase/auth'
 import {
@@ -19,15 +13,13 @@ import {
   signInWithEmailAndPassword,
 } from 'firebase/auth'
 import type { FirestoreUser } from '@/api/gen/responses'
-import type { IAuthManager, IFirestoreManager } from '@/lib/firebase-mock'
+import type { IAuthManager, IFirestoreManager, QueryFilter } from '@/lib/firebase-mock'
 import { MockAuthManager, MockFirestoreManager } from '@/lib/firebase-mock'
 import { getLogger } from '@/lib/logger'
 import { getStaticData } from '@/lib/store'
 
 export type AuthUser = User
 export type UserProfile = FirestoreUser
-
-export { where }
 
 export type FirebaseDate = {
   nanoseconds: number
@@ -107,8 +99,12 @@ export class FirestoreManager implements IFirestoreManager {
 
   public async queryDocs<T extends DocumentData = DocumentData>(
     collectionName: string,
-    constraints: QueryFieldFilterConstraint[],
+    filters: QueryFilter[],
   ): Promise<QuerySnapshot<T>> {
+    // Translate the plain filter spec into Firebase constraints here, so the
+    // Firebase-specific shape stops at this class rather than reaching callers
+    // (and the mock, which cannot interpret it). See QueryFilter.
+    const constraints = filters.map((filter) => where(filter.field, filter.op, filter.value))
     const q = query(this.collection(collectionName), ...constraints)
     return getDocs(q) as Promise<QuerySnapshot<T>>
   }

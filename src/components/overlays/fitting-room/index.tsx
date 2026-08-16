@@ -220,9 +220,6 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
       const nextSelected = new Set(selectedExternalIds)
       if (isSelected) {
         nextSelected.delete(externalId)
-        if (openAccordionItemId === externalId) {
-          setOpenAccordionItemId(null)
-        }
       } else {
         // Silent swap: only one item per style category can be in the outfit
         // at a time (one pair of pants, one long-sleeve top, etc), so adding
@@ -232,9 +229,6 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
         // implicit choice.
         for (const evictedId of getSameCategoryConflicts(item, selectedExternalIds, resolved)) {
           nextSelected.delete(evictedId)
-          if (openAccordionItemId === evictedId) {
-            setOpenAccordionItemId(null)
-          }
         }
         nextSelected.add(externalId)
         ensureSizeForItem(item)
@@ -355,9 +349,6 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
         next.delete(externalId)
         return next
       })
-      if (openAccordionItemId === externalId) {
-        setOpenAccordionItemId(null)
-      }
       // Drop the item from persisted storage so the rail card disappears
       // and the removal survives an overlay reopen / page reload. Without
       // this the X only deselected the item within the current overlay.
@@ -375,10 +366,16 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
     setMobileMode('browse')
   }, [])
 
-  // The open item stopped being selected (removed, or evicted by a
-  // same-category add). Hand the open state to another selected item rather
-  // than leaving every section collapsed — at most one section is open, and
-  // normally one *is*.
+  // The open item stopped being selected (deselected, removed via its X, or
+  // evicted by a same-category add). Hand the open state to another selected
+  // item rather than leaving every section collapsed — at most one section is
+  // open, and normally one *is*.
+  //
+  // This is the ONLY place that reacts to the open item leaving the selection.
+  // The three call sites that drop an item used to clear the open id
+  // themselves, which ran in the same batch as the selection update and left
+  // this effect looking at an already-null id — so it never fired and the
+  // hand-off silently did nothing.
   //
   // Zero-open remains valid, but only as something the shopper asks for by
   // collapsing the open section themselves. That path sets the id to null
