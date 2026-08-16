@@ -375,16 +375,22 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
     setMobileMode('browse')
   }, [])
 
-  // Clear the open-accordion id when it points at an item that's no longer
-  // selected. New selections auto-open their own accordion in
-  // handleSelectItem — this effect must NOT re-open on its own, otherwise
-  // collapsing the last open section would immediately spring back open.
-  // All sections collapsed is a valid state.
+  // The open item stopped being selected (removed, or evicted by a
+  // same-category add). Hand the open state to another selected item rather
+  // than leaving every section collapsed — at most one section is open, and
+  // normally one *is*.
+  //
+  // Zero-open remains valid, but only as something the shopper asks for by
+  // collapsing the open section themselves. That path sets the id to null
+  // without changing the selection, so this effect doesn't fire and nothing
+  // springs back open. Keep that distinction: an unconditional "if nothing is
+  // open, open something" would make the collapse control impossible to use.
   useEffect(() => {
-    if (openAccordionItemId && !selectedExternalIds.has(openAccordionItemId)) {
-      setOpenAccordionItemId(null)
+    if (!openAccordionItemId || selectedExternalIds.has(openAccordionItemId)) {
+      return
     }
-  }, [openAccordionItemId, selectedExternalIds])
+    setOpenAccordionItemId(selectedItems[0]?.externalId ?? null)
+  }, [openAccordionItemId, selectedExternalIds, selectedItems])
 
   // Mobile sheet snap == 'full': auto-open an accordion item so the body has
   // something to render. Mobile's quickRow content only renders in the
