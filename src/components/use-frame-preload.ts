@@ -1,30 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 
-// The retention budget is expressed two ways, and the effective limit is
-// whichever binds first.
+// How many recently-viewed outfits to keep warm, so flipping back to a
+// previously-viewed size or colour is instant.
 //
-// MAX_RETAINED_SETS is the one that describes intent: keep the last N *outfits*
-// warm, so flipping back to a previously-viewed size or colour is instant. It
-// is deliberately counted in sets rather than images — an image-count cap
-// silently shrank the warm cache whenever frames-per-outfit grew (at a flat 64
-// images: 7.1 outfits at 9 frames, but only 4.0 at 16), so a renderer change
-// would have quietly degraded this with nobody touching the constant.
+// Counted in whole outfits, not images. An image-count cap was tried and
+// removed: because eviction works on whole sets anyway, a frame budget only
+// changes *how many* sets survive, and it does so invisibly — at a flat 64
+// images this held 7 outfits at 9 frames per outfit but only 4 at 16. That is
+// the same silent coupling to the renderer's frame count that counting sets
+// was meant to eliminate, so having both knobs was worse than having one.
 //
-// MAX_RETAINED_FRAMES is the memory ceiling, and it exists precisely so that a
-// frames-per-outfit change cannot multiply memory behind our backs. Retaining
-// an HTMLImageElement keeps its *encoded* bytes resident; the decoded bitmap is
-// the browser's to discard and re-decode under pressure. At 1000x1500 that is:
-//
-//   encoded PNG  (current)      ~1081 KB/frame  ->  ~68 MB at 64 frames
-//   encoded JPEG (sim-vis q80)    ~70 KB/frame  ->  ~4.4 MB at 64 frames
-//   decoded RGBA (ceiling)       5.72 MiB/frame -> ~366 MiB at 64 frames
-//
-// 64 holds the ceiling at exactly today's figure while frames are still PNG.
-// Once sim-vis ships JPEG the encoded cost drops ~15x and this can be raised
-// (or dropped in favour of the set count alone) — at that point 8 sets of 16
-// frames is only ~9 MB.
+// Sizing: retaining an HTMLImageElement keeps its *encoded* bytes resident
+// (the decoded bitmap is the browser's to discard and re-decode under
+// pressure). Per 1000x1500 frame that is ~70 KB as JPEG q80, so 6 outfits of
+// 16 frames is ~6.6 MB — comfortably cheap, which is the case this number is
+// chosen for. Frames rendered as PNG are ~1081 KB each, making the same
+// 6x16 ~101 MB; that is the transitional cost until sim-vis ships JPEG, and
+// it degrades softly (the browser evicts, frames re-fetch) rather than
+// failing. Revisit this number if frames ever get large again.
 const MAX_RETAINED_SETS = 6
-const MAX_RETAINED_FRAMES = 64
 
 // One outfit's retained frames. The urls are kept alongside the images rather
 // than recovered from the map key (which is them join('|')-ed) or read back off
@@ -141,23 +135,17 @@ export function useFramePreload(frameUrls: string[] | null | undefined): FramePr
     })
     sets.set(frameKey, { urls: [...frameUrls], images })
 
-    // Evict whole sets, oldest first, until both budgets are satisfied. Whole
-    // sets because a half-retained outfit is worse than none: the readiness
-    // gate would still block on the frames that were dropped.
-    //
-    // The current set is never evicted — it is the one being displayed — so
-    // this stops with one set remaining even if that set alone exceeds
-    // MAX_RETAINED_FRAMES (a very long frame set must still work).
-    let retainedFrames = 0
-    for (const set of sets.values()) {
-      retainedFrames += set.images.length
-    }
-    while (sets.size > 1 && (sets.size > MAX_RETAINED_SETS || retainedFrames > MAX_RETAINED_FRAMES)) {
+    // Evict whole outfits, oldest first. Whole sets because a half-retained
+    // outfit is worse than none: the readiness gate would still block on the
+    // frames that were dropped.
+    while (sets.size > MAX_RETAINED_SETS) {
       const oldestKey = sets.keys().next().value
+      // The current set is never evicted — it is the one being displayed.
+      // It was just re-inserted, so it is last in iteration order and can
+      // only come up here if it is the only set left.
       if (oldestKey === undefined || oldestKey === frameKey) {
         break
       }
-      retainedFrames -= sets.get(oldestKey)?.images.length ?? 0
       sets.delete(oldestKey)
     }
 
