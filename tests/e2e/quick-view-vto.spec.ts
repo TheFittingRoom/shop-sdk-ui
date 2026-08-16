@@ -89,6 +89,31 @@ test('quick-view: every frame is requested up front, not as the rotation reaches
   await expect.poll(() => requestedFrames.size, { timeout: 5000 }).toBe(12)
 })
 
+test('quick-view: an untouched auto-rotate settles back on frame 0', async ({ page }) => {
+  // Covers the resting position of a rotation the shopper never touched: it
+  // must complete a full revolution and land back on the front.
+  //
+  // NOTE this does NOT discriminate the anchor fix. The anchor only diverges
+  // from "the currently displayed index" when a *second* trigger fires
+  // mid-rotation, and quick-view fires one per product, so here the old and
+  // new behaviour agree (both anchor on 0). The mid-rotation case needs two
+  // successive adds — i.e. the fitting room — and is currently uncovered.
+  await bootSdk(page, RICH_BOOT)
+  await page.getByRole('button', { name: /quick view/i }).click()
+
+  const avatar = page.locator('img[src*="image_"]')
+  await expect(avatar).toHaveAttribute('src', /image_0\.png/, { timeout: 5000 })
+
+  // Confirm it genuinely rotated before checking where it stopped — otherwise
+  // "ends on 0" would also pass if the rotation never ran at all.
+  await expect
+    .poll(async () => frameIndexFromSrc(await avatar.getAttribute('src')), { timeout: 3000 })
+    .toBeGreaterThanOrEqual(3)
+
+  // One full revolution is AUTO_ROTATE_DURATION_MS (4s); allow margin.
+  await expect.poll(async () => frameIndexFromSrc(await avatar.getAttribute('src')), { timeout: 6000 }).toBe(0)
+})
+
 test('quick-view: chevron click cancels the auto-rotate', async ({ page }) => {
   await bootSdk(page, RICH_BOOT)
   await page.getByRole('button', { name: /quick view/i }).click()

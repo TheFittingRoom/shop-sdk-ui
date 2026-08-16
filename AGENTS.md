@@ -232,6 +232,32 @@ Three pieces, and they are meant to be used together:
   rather than suppressing it. It steps off `requestAnimationFrame` using
   elapsed time (not `setInterval`), so it can't accumulate drift and stops on
   its own in a backgrounded tab instead of queueing catch-up ticks.
+
+**Where a rotation starts and ends (the "anchor").** Frame 0 until the shopper
+moves the frame themselves; afterwards, whichever frame they settled on — so
+someone who spun round to see the back, then adds another product, sees the new
+outfit settle on that same back view. The second half is the original design
+intent; the first half fixes a wrinkle in it, because the anchor used to be
+simply "whatever index is displayed when the trigger fires" and an outfit
+change *during* a rotation therefore adopted whatever angle the animation was
+passing through — parking shoppers on a side view they never asked for.
+
+Two consequences for anyone touching this:
+
+- **`cancelAutoRotate` is the user-control signal, not just a stop button.**
+  It halts the rotation *and* marks the frame as the shopper's to choose.
+  Every surface that moves the frame must call it — chevrons, drag, the zoom
+  modal, the (currently hidden) rotation slider. A rotation ending by itself
+  goes through the internal `stopRotation` instead; routing completion through
+  `cancelAutoRotate` would make the avatar anchor wherever the last animation
+  happened to stop.
+- **The anchor is only recorded while nothing is playing.** Mid-rotation the
+  index belongs to the animation, not the shopper.
+
+Not covered by tests: the mid-rotation case specifically. It needs two
+successive adds (fitting room), and quick-view — where the e2e coverage lives
+— fires one trigger per product, so both old and new behaviour anchor on 0
+there.
 - **`use-frame-rotation.ts`** fires `onUserInteract` at *drag start* (mouse) or
   at the *axis-lock decision* (touch, so a vertical page scroll doesn't cancel),
   not at the first committed rotation step.

@@ -1586,7 +1586,17 @@ function Avatar({ frameUrls, autoRotateTrigger, setModalStyle }: AvatarProps) {
                 max={frameUrls.length - 1}
                 step={1}
                 value={selectedFrameIndex}
-                onChange={(e) => setSelectedFrameIndex(Number(e.target.value))}
+                onChange={(e) => {
+                  // Same contract as the chevrons and drag: moving the frame
+                  // by hand halts any in-flight rotation and makes this the
+                  // anchor subsequent rotations start and end on. The slider
+                  // is currently hidden behind SHOW_ROTATION_SLIDER, so this
+                  // is here to keep it correct if it is ever switched back on
+                  // — without it the slider would set the frame while leaving
+                  // auto-rotate believing the shopper had never intervened.
+                  cancelAutoRotate()
+                  setSelectedFrameIndex(Number(e.target.value))
+                }}
                 css={css.sliderInput}
               />
               <TextT variant="base" t="quick-view.slide_to_rotate" css={css.sliderText} />
