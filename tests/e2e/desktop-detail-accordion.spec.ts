@@ -20,11 +20,14 @@ import {
 // WEB-13: the desktop middle pane's collapsed accordion rows carry the product
 // name and a size selector, so a garment can be re-sized without opening it.
 //
-// The load-bearing detail is that the size pills sit OUTSIDE the header
-// button. The header is the section toggle and spans the row, so pills nested
-// inside it would collapse or expand the section on every size change — which
-// is both wrong and, because the section then re-renders, easy to mistake for
-// the size change simply not working.
+// Picking a size from a collapsed row also expands that row, so the fit
+// information for the size just chosen is on screen rather than one click away.
+//
+// The expand is deliberate, and it is one-directional. The header is a toggle,
+// so anything that routes a size change through it expands a collapsed section
+// (looking correct by accident) but COLLAPSES an open one. The two size tests
+// below pin both directions; only the open-section one can detect that fault,
+// since from a collapsed row "toggle" and "open" are indistinguishable.
 
 const TSHIRT_CATEGORY = {
   name: 'tshirt',
@@ -108,9 +111,10 @@ test('desktop: a collapsed section shows the product name and a size selector', 
   await expect(section(page).getByRole('button', { name: 'S', exact: true })).toBeVisible()
 })
 
-test('desktop: changing size from a collapsed section does not toggle the section', async ({ page }) => {
+test('desktop: choosing a size from a collapsed section expands it', async ({ page }) => {
   const vtoItems: { colorway_size_asset_id: number }[][] = []
   await bootDesktopFittingRoom(page, vtoItems)
+
   await expect(page.getByText('Recommended Size: M')).toBeVisible({ timeout: 10000 })
   await sectionHeader(page).click()
   await expect(page.getByText('Recommended Size: M')).toBeHidden()
@@ -118,14 +122,27 @@ test('desktop: changing size from a collapsed section does not toggle the sectio
   const requestsBefore = vtoItems.length
   await section(page).getByRole('button', { name: 'S', exact: true }).click()
 
-  // The size change must reach the VTO request...
+  // The size change reaches the VTO request...
   await expect.poll(() => vtoItems.length, { timeout: 8000 }).toBeGreaterThan(requestsBefore)
   expect(vtoItems[vtoItems.length - 1].map((i) => i.colorway_size_asset_id)).toEqual([5002])
 
-  // ...without the section springing open, which is what would happen if the
-  // pills were rendered inside the header's toggle button.
-  await expect(page.getByText('Recommended Size: M')).toBeHidden()
-  await expect(section(page).getByText('Test Product', { exact: true })).toBeVisible()
+  // ...and the section is now open, showing the fit detail for that size.
+  await expect(page.getByText('Recommended Size: M')).toBeVisible()
+})
+
+test('desktop: choosing a size from an OPEN section leaves it open', async ({ page }) => {
+  // This is the test with teeth. Verified by wiring the open body's selector to
+  // toggle the section: only this test fails. The collapsed-section test cannot
+  // catch that fault, because from a collapsed row a toggle and an open are the
+  // same thing.
+  await bootDesktopFittingRoom(page)
+
+  await expect(page.getByText('Recommended Size: M')).toBeVisible({ timeout: 10000 })
+  await section(page).getByRole('button', { name: 'S', exact: true }).click()
+
+  await expect(page.getByText('Recommended Size: M')).toBeVisible()
+  await page.waitForTimeout(500)
+  await expect(page.getByText('Recommended Size: M')).toBeVisible()
 })
 
 // A second product in its own category, so both sit in the outfit at once and

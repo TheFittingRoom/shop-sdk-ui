@@ -28,6 +28,10 @@ interface DetailAccordionItemProps {
   detailMode: DetailMode
   isMobileQuickRow: boolean
   onToggleOpen: () => void
+  // Open this section unconditionally, as opposed to onToggleOpen which closes
+  // it when already open. Desktop's collapsed size selector uses it; mobile
+  // ignores it.
+  onOpen: () => void
   onChangeDetailMode: (mode: DetailMode) => void
   onChangeSize: (sizeLabel: string) => void
   onChangeColor: (colorLabel: string | null) => void
@@ -44,6 +48,7 @@ export function DetailAccordionItem({
   detailMode,
   isMobileQuickRow,
   onToggleOpen,
+  onOpen,
   onChangeDetailMode,
   onChangeSize,
   onChangeColor,
@@ -119,6 +124,7 @@ export function DetailAccordionItem({
         availableColorLabels={availableColorLabels}
         selectedColorLabel={item.storage.color}
         onToggleOpen={onToggleOpen}
+        onOpen={onOpen}
         onChangeSize={onChangeSize}
         onChangeColor={onChangeColor}
         onAddToCart={onAddToCart}
@@ -159,6 +165,9 @@ interface DesktopProps {
   availableColorLabels: string[]
   selectedColorLabel: string | null
   onToggleOpen: () => void
+  // Open this section unconditionally (as opposed to onToggleOpen, which
+  // closes it when already open). Used by the collapsed size selector.
+  onOpen: () => void
   onChangeSize: (sizeLabel: string) => void
   onChangeColor: (colorLabel: string | null) => void
   onAddToCart: () => void
@@ -173,6 +182,7 @@ function DesktopAccordionItem({
   availableColorLabels,
   selectedColorLabel,
   onToggleOpen,
+  onOpen,
   onChangeSize,
   onChangeColor,
   onAddToCart,
@@ -371,7 +381,22 @@ function DesktopAccordionItem({
             <SizeSelector
               loadedProductData={productData}
               selectedSizeLabel={selectedSizeLabel}
-              onChangeSize={onChangeSize}
+              onChangeSize={(label) => {
+                // Picking a size from a collapsed row expands it, so the fit
+                // information for the size just chosen is on screen rather
+                // than one click away.
+                //
+                // onOpen rather than onToggleOpen. The two are equivalent as
+                // things stand — this strip only renders while collapsed, so a
+                // toggle from here can only open — but "open" is what is meant,
+                // and it stays correct if the strip ever renders in both states.
+                //
+                // The open body's own selector deliberately does NOT do this:
+                // it calls plain onChangeSize, so changing size in an already-
+                // open section leaves it open rather than slamming it shut.
+                onChangeSize(label)
+                onOpen()
+              }}
             />
           </div>
         </div>
