@@ -374,6 +374,35 @@ metaobject, both fields come through `null` and `ColorSwatchRow` falls
 through image → hex → text-label rendering. See `shopify/AGENTS.md` →
 "Colour swatches (Storefront API token)" for the merchant-side setup.
 
+## Fitting-room desktop detail accordion
+
+The desktop middle pane (`detail-accordion.tsx` → `DesktopAccordionItem` in
+`detail-accordion-item.tsx`) shows **at most one** open section. Normally one
+*is* open, but zero is a legitimate state the shopper reaches by collapsing the
+open section — so nothing may auto-open unconditionally, or the collapse
+control becomes impossible to use. The one case that does re-open
+automatically is in `index.tsx`: when the open item stops being *selected*
+(removed, or evicted by a same-category add) while other items remain, the open
+state moves to another item rather than leaving everything collapsed.
+
+**Collapsed rows carry the product name and a size selector**, so a garment can
+be re-sized without opening it. Two constraints hold this together:
+
+- **The size pills render OUTSIDE the header `<Button>`.** That button is the
+  section toggle and spans the row, so pills nested inside it would collapse or
+  expand the section on every size change — and because the section re-renders,
+  that reads as the size change not working at all. Guarded by
+  `e2e/desktop-detail-accordion.spec.ts`, verified to fail if the collapsed
+  strip is made to toggle.
+- **The product name appears only while collapsed.** The open body already
+  renders it as `variant="brand"`; showing both duplicates it.
+
+This is desktop-only. Mobile keeps its own three-state sheet, where
+`isMobileQuickRow = sheetSnap === 'expanded' && openAccordionItemId == null`
+puts a size selector on *every* row when nothing is open. Note that expression
+depends on the shared `openAccordionItemId` being nullable — forcing a section
+to always be open would silently disable mobile's quick-row mode.
+
 ## Fitting-room icon widget — three responsibilities
 
 `src/components/widgets/fitting-room-icon.tsx` is no longer just the

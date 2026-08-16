@@ -208,6 +208,26 @@ function DesktopAccordionItem({
       color: theme.color_fg_text,
       flex: 'none',
     },
+    // Collapsed-only strip carrying the product name and its size selector.
+    // Shares the header's shade and sits flush beneath it (no gap), so a
+    // collapsed item reads as one block rather than a grey header with white
+    // controls hanging off it. Left-aligned to the header's 20px padding: the
+    // open body centres its size row, but centring under a left-aligned
+    // product name looks unmoored.
+    collapsedStrip: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      gap: '10px',
+      padding: '0 20px 14px 20px',
+      backgroundColor: ACCORDION_SHADE,
+      textAlign: 'left',
+    },
+    collapsedProductName: {
+      fontSize: '15px',
+      fontWeight: '300',
+      lineHeight: 1.2,
+    },
     body: {
       display: 'flex',
       flexDirection: 'column',
@@ -310,6 +330,26 @@ function DesktopAccordionItem({
           <Chevron direction={isOpen ? 'up' : 'down'} />
         </span>
       </Button>
+      {/* Collapsed rows surface the product name and size selector, so a
+          shopper can re-size a garment without opening it. The name appears
+          here only while collapsed — the open body renders it far more
+          prominently, and showing both would duplicate it.
+
+          Deliberately NOT inside the header <Button> above: that button is
+          the section toggle, so a size pill nested in it would collapse or
+          expand the section on every size change. */}
+      {isOpen || !productData ? null : (
+        <div css={css.collapsedStrip}>
+          <Text variant="base" css={css.collapsedProductName}>
+            {productData.productName}
+          </Text>
+          <SizeSelector
+            loadedProductData={productData}
+            selectedSizeLabel={selectedSizeLabel}
+            onChangeSize={onChangeSize}
+          />
+        </div>
+      )}
       {!isOpen ? null : (
         <div css={css.body}>
           {productData ? (
