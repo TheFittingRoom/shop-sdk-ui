@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 
 // Total time for one full rotation, regardless of how many frames the VTO
 // renderer returns. Per-frame tick is derived as duration / frameCount, so a
@@ -141,6 +141,51 @@ export function useAutoRotate(
     pendingTriggerRef.current = trigger
   }
 
+  // Front-facing by default; the shopper's chosen angle once they have moved
+  // the frame themselves. Shared by the snap below and the rotation itself so
+  // the two can never disagree about where a rotation belongs.
+  const anchorFrame = useCallback(() => {
+    if (frameCount === 0) {
+      return 0
+    }
+    const anchor = userControlledRef.current ? (anchorRef.current ?? 0) : 0
+    // Clamped in case the new outfit has fewer frames than the anchor —
+    // otherwise the rotation's stop condition could never match.
+    return anchor % frameCount
+  }, [frameCount])
+
+  // Snap to the anchor the moment a new frame set is available, and do it in a
+  // LAYOUT effect so it lands before the browser paints.
+  //
+  // The rotation itself can't do this: it waits for the frame set to finish
+  // decoding, and a plain effect runs after paint. Either way the new outfit
+  // gets painted at whatever index the previous one was left on and then jumps
+  // — visibly, and to an unrelated angle. Snapping here means the first paint
+  // of a new outfit is already the angle the rotation will start from.
+  //
+  // Gated on a pending trigger, so it only applies to an outfit *change*. A
+  // size or colour swap replaces frameUrls without bumping the trigger and
+  // deliberately holds the current angle, which is what makes comparing sizes
+  // at the same view possible.
+  const frameKey = frameUrls ? frameUrls.join('|') : ''
+  useLayoutEffect(() => {
+    const pending = pendingTriggerRef.current
+    if (pending === undefined || pending === lastFiredRef.current || frameCount === 0) {
+      return
+    }
+    const anchor = anchorFrame()
+    if (indexRef.current !== anchor) {
+      // Update the ref synchronously too: the rotation reads it, and the
+      // state update has not committed yet.
+      indexRef.current = anchor
+      setSelectedFrameIndex(anchor)
+    }
+    // frameKey rather than the frameUrls reference: the array is rebuilt on
+    // every render by framesForOutfit, but the joined key is stable for the
+    // same set, so this fires on an actual change of frames and not on
+    // background prefetch landings.
+  }, [frameKey, frameCount, anchorFrame, setSelectedFrameIndex])
+
   useEffect(() => {
     const pending = pendingTriggerRef.current
     if (pending === undefined || pending === lastFiredRef.current) {
@@ -161,16 +206,12 @@ export function useAutoRotate(
       playingRef.current = pending
 
       const tickMs = AUTO_ROTATE_DURATION_MS / frameCount
-      // Front-facing by default; the shopper's chosen angle once they have
-      // moved the frame themselves. Deliberately NOT the currently-displayed
-      // index: when an outfit changes mid-rotation that index is wherever the
-      // animation had got to, so using it let a shopper who never touched the
-      // controls end up parked at a back or side view.
-      //
-      // Clamped in case the new outfit has fewer frames than the anchor —
-      // otherwise the stop condition could never match.
-      const anchor = userControlledRef.current ? (anchorRef.current ?? 0) : 0
-      const startFrameIndex = anchor % frameCount
+      // Deliberately NOT the currently-displayed index: when an outfit changes
+      // mid-rotation that index is wherever the animation had got to, so using
+      // it let a shopper who never touched the controls end up parked at a
+      // back or side view. The layout effect above has normally already
+      // snapped the display to this same frame.
+      const startFrameIndex = anchorFrame()
       const startedAt = performance.now()
       let lastStep = 0
 
@@ -219,7 +260,7 @@ export function useAutoRotate(
       }
       stopRotation()
     }
-  }, [trigger, frameCount, framesReady, setSelectedFrameIndex, stopRotation])
+  }, [trigger, frameCount, framesReady, anchorFrame, setSelectedFrameIndex, stopRotation])
 
   return cancelAutoRotate
 }

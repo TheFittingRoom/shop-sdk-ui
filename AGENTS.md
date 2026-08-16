@@ -254,10 +254,23 @@ Two consequences for anyone touching this:
 - **The anchor is only recorded while nothing is playing.** Mid-rotation the
   index belongs to the animation, not the shopper.
 
-Not covered by tests: the mid-rotation case specifically. It needs two
-successive adds (fitting room), and quick-view — where the e2e coverage lives
-— fires one trigger per product, so both old and new behaviour anchor on 0
-there.
+**The snap to the anchor is a `useLayoutEffect`, deliberately.** When the
+frame set changes it must land *before the browser paints*, or the new outfit
+is painted at whatever index the previous one was left on and then jumps to an
+unrelated angle. The rotation itself cannot do this job: it waits for the set
+to finish decoding, and a plain effect runs after paint either way. The snap is
+gated on a pending trigger, so an outfit change resets the angle while a size
+or colour swap holds it — which is what lets a shopper compare sizes at the
+same view.
+
+Not covered by tests: anything that needs **two successive adds**, which is
+where both the anchor and the pre-paint snap actually bite. quick-view — where
+the e2e coverage lives — fires one trigger per product, so old and new
+behaviour agree there. Covering it needs a fitting-room fixture with two
+selectable products and a VTO mock that returns *distinct* frames per
+composition (identical frames would leave `frameKey` unchanged and the snap
+would correctly not fire). The harness already has the hooks for this:
+`cfg.productCatalog` in `host.html` and a second product in `seed.ts`.
 - **`use-frame-rotation.ts`** fires `onUserInteract` at *drag start* (mouse) or
   at the *axis-lock decision* (touch, so a vertical page scroll doesn't cancel),
   not at the first committed rotation step.
