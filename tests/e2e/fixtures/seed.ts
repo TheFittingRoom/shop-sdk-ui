@@ -130,28 +130,20 @@ export const TEST_SEEDED_STYLE = {
 
 // --- Second product ---------------------------------------------------------
 // A second, independently-selectable fitting-room product, so tests can perform
-// two successive adds. That is the only way to exercise anything depending on
-// an outfit *changing* rather than being established — auto-rotate's anchor and
-// its pre-paint snap both only bite there.
+// two successive adds and hold two items in the outfit at once.
 //
-// It shares TEST_SEEDED_STYLE rather than declaring its own:
-// MockFirestoreManager.queryDocs ignores query constraints and returns every doc
-// in the collection, so a second style document is not resolvable by
-// external_id — both products would resolve to the first style regardless.
+// It has its OWN style document and style category. That became possible once
+// MockFirestoreManager started honouring query constraints — previously it
+// returned every doc in a collection regardless of the query, so a second style
+// was unreachable by external_id and both products resolved to the first one.
 //
-// The two products are therefore distinguished by COLOURWAY, not size: both
-// take the recommended size (M) so ensureSizeForItem writes a size label that
-// matches the CSA it picked, and they resolve to different CSAs (5001 blue vs
-// 5003 red) so their compositions have different frame paths. Pairing a
-// non-recommended size with the recommended size *label* leaves the item
-// half-resolved and silently dropped from the outfit.
-//
-// Same style category, so selecting the second evicts the first — still an add,
-// still bumps the auto-rotate trigger, and the frames change, which is the point.
+// Different category from TEST_SEEDED_STYLE ('tshirt'), so selecting this one
+// ADDS to the outfit rather than evicting the other: same-category items evict
+// each other.
 export const TEST_PRODUCT_B_EXTERNAL_ID = 'gid://shopify/Product/67890'
 export const TEST_PRODUCT_B_HANDLE = 'test-product-b'
-export const TEST_PRODUCT_A_CSA_ID = 5001
-export const TEST_PRODUCT_B_CSA_ID = 5003
+export const TEST_STYLE_B_ID = 997
+export const TEST_PRODUCT_B_CSA_ID = 6001
 
 export const TEST_CURRENT_PRODUCT_B = {
   productName: 'Second Product',
@@ -161,44 +153,45 @@ export const TEST_CURRENT_PRODUCT_B = {
   imageUrl: null,
   variants: [
     {
-      sku: 'SKU-M-RED',
+      sku: 'SKU-B-M-BLACK',
       size: 'M',
-      color: 'Red',
-      fullName: 'Second M Red',
-      skuName: 'SKU-M-RED',
+      color: 'Black',
+      fullName: 'Second M Black',
+      skuName: 'SKU-B-M-BLACK',
       priceFormatted: '$70.00',
       imageUrl: null,
     },
   ],
 }
 
-// Like TEST_SIZE_FIT_RECOMMENDATION but with a second colourway on the
-// recommended size, so two products can resolve to different CSAs at the same
-// size. Kept separate rather than widening the shared fixture, which other
-// specs assert against.
-export const TEST_SIZE_FIT_RECOMMENDATION_TWO_COLORS = {
+export const TEST_SEEDED_STYLE_B = {
+  id: TEST_STYLE_B_ID,
+  brand_id: TEST_BRAND_ID,
+  external_id: TEST_PRODUCT_B_EXTERNAL_ID,
+  style_category_name: 'pants',
+}
+
+// Recommended size M, matching TEST_CURRENT_PRODUCT_B's only variant, so
+// ensureSizeForItem writes a size label consistent with the CSA it resolves.
+// A non-recommended size paired with the recommended size *label* leaves the
+// item half-resolved and silently dropped from the outfit.
+export const TEST_SIZE_FIT_RECOMMENDATION_B = {
   fit_classification: 'regular_fit',
   recommended_size: {
-    id: 101,
+    id: 201,
     label: 'M',
     size_value: { value: 'M' },
-    colorway_size_assets: [
-      { id: TEST_PRODUCT_A_CSA_ID, sku: 'SKU-M-BLUE' },
-      { id: TEST_PRODUCT_B_CSA_ID, sku: 'SKU-M-RED' },
-    ],
+    colorway_size_assets: [{ id: TEST_PRODUCT_B_CSA_ID, sku: 'SKU-B-M-BLACK' }],
   },
   available_sizes: [
     {
-      id: 101,
+      id: 201,
       label: 'M',
       size_value: { value: 'M' },
-      colorway_size_assets: [
-        { id: TEST_PRODUCT_A_CSA_ID, sku: 'SKU-M-BLUE' },
-        { id: TEST_PRODUCT_B_CSA_ID, sku: 'SKU-M-RED' },
-      ],
+      colorway_size_assets: [{ id: TEST_PRODUCT_B_CSA_ID, sku: 'SKU-B-M-BLACK' }],
     },
   ],
-  fits: [{ size_id: 101, measurement_location_fits: [] }],
+  fits: [{ size_id: 201, measurement_location_fits: [] }],
 }
 
 // --- Container (Suits & Sets) fixture -------------------------------------

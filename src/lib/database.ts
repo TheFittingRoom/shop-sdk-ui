@@ -1,5 +1,5 @@
 import type { FirestoreStyle, FirestoreColorwaySizeAsset } from '@/api/gen/responses'
-import { getFirestoreManager, where } from '@/lib/firebase'
+import { getFirestoreManager } from '@/lib/firebase'
 
 export type { FirestoreStyle, FirestoreColorwaySizeAsset }
 
@@ -13,8 +13,8 @@ export async function getStyleByExternalId(brandId: number, externalId: string):
 
   const firestore = getFirestoreManager()
   const querySnapshot = await firestore.queryDocs<FirestoreStyle>('styles', [
-    where('brand_id', '==', brandId),
-    where('external_id', '==', externalId),
+    { field: 'brand_id', op: '==', value: brandId },
+    { field: 'external_id', op: '==', value: externalId },
   ])
 
   if (querySnapshot.empty) {
@@ -35,7 +35,7 @@ export async function getStyleByExternalId(brandId: number, externalId: string):
 
 //   const firestore = getFirestoreManager()
 //   const querySnapshot = await firestore.queryDocs<FirestoreColorwaySizeAsset>('colorway_size_assets', [
-//     where('style_id', '==', styleId),
+//     { field: 'style_id', op: '==', value: styleId },
 //   ])
 
 //   const records: FirestoreColorwaySizeAsset[] = []

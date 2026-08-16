@@ -161,6 +161,21 @@ builds the bundle, serves the repo with `npm run serve`, and loads
 `local-repo/shopify/assets/tfr.js`. Run them with `npm run test:e2e` (or
 `npm run test:e2e:ui` to debug interactively).
 
+**Firestore queries are plain data, not Firebase constraint objects.**
+`IFirestoreManager.queryDocs` takes `QueryFilter[]` (`{ field, op: '==', value }`)
+rather than the `QueryFieldFilterConstraint` objects `where()` returns.
+`FirestoreManager` translates them into `where(...)` internally, so the
+Firebase-specific shape stops at that class.
+
+The reason is that those constraint objects are opaque — field, operator and
+value live on private members — so `MockFirestoreManager` could not honour them
+and returned *every* doc in a collection regardless of the query. Two documents
+in one collection were therefore indistinguishable: every lookup got the first,
+which blocked any test needing two distinct products. Only equality is
+modelled, because only equality is used; widening to Firebase's full
+`WhereFilterOp` would let callers write comparisons the mock silently does not
+apply, so a test would pass while filtering nothing.
+
 **Firebase is mocked, not emulated.** `src/lib/firebase-mock.ts` provides
 `MockAuthManager` and `MockFirestoreManager` that satisfy the `IAuthManager` /
 `IFirestoreManager` interfaces. They're activated via `InitParams.testHooks`
@@ -381,9 +396,16 @@ The desktop middle pane (`detail-accordion.tsx` → `DesktopAccordionItem` in
 *is* open, but zero is a legitimate state the shopper reaches by collapsing the
 open section — so nothing may auto-open unconditionally, or the collapse
 control becomes impossible to use. The one case that does re-open
-automatically is in `index.tsx`: when the open item stops being *selected*
-(removed, or evicted by a same-category add) while other items remain, the open
-state moves to another item rather than leaving everything collapsed.
+automatically is the effect in `index.tsx` watching for the open item leaving
+the selection (deselected, removed via its X, or evicted by a same-category
+add): the open state moves to another selected item rather than leaving
+everything collapsed.
+
+**That effect is the only place allowed to react to it.** The three call sites
+that drop an item previously cleared the open id themselves. Because those
+`setState` calls batch with the selection update, the effect only ever saw an
+already-null id and never fired — the hand-off was dead code until an e2e that
+could hold two sections open caught it.
 
 **Collapsed rows carry the product name and a size selector**, so a garment can
 be re-sized without opening it. Both platforms use the same card model: a grey
