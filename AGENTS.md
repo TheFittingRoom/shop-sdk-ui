@@ -263,14 +263,32 @@ gated on a pending trigger, so an outfit change resets the angle while a size
 or colour swap holds it — which is what lets a shopper compare sizes at the
 same view.
 
-Not covered by tests: anything that needs **two successive adds**, which is
-where both the anchor and the pre-paint snap actually bite. quick-view — where
-the e2e coverage lives — fires one trigger per product, so old and new
-behaviour agree there. Covering it needs a fitting-room fixture with two
-selectable products and a VTO mock that returns *distinct* frames per
-composition (identical frames would leave `frameKey` unchanged and the snap
-would correctly not fire). The harness already has the hooks for this:
-`cfg.productCatalog` in `host.html` and a second product in `seed.ts`.
+Covered by `e2e/outfit-change-rotation.spec.ts`, which is the only spec that
+performs **two successive adds**. That matters: quick-view fires one
+auto-rotate trigger per product, so a second trigger never arrives there and
+old/new behaviour agree — both WEB-12 rotation regressions reached demo
+because every existing spec was structurally blind to them.
+
+Three properties, each verified to fail when the corresponding behaviour is
+reverted:
+
+| Behaviour removed | Which test catches it |
+|---|---|
+| anchor follows the live index | changing outfit mid-rotation shows the new outfit front-facing |
+| pre-paint snap becomes a no-op | (same test) |
+| anchor always resets to 0 | a manually chosen angle survives an outfit change |
+
+Two things that fixture has to keep doing, or it silently stops proving
+anything:
+
+- **Return distinct frames per composition.** Identical frame paths leave
+  `frameKey` unchanged, the snap correctly does not fire, and the test passes
+  for the wrong reason. Real compositions differ because the S3 path embeds a
+  content hash.
+- **Assert a rotation *left* the anchor before returning to it.** The frame set
+  is displayed at the anchor from the start, so asserting only the final
+  position passes without any rotation having run — an earlier draft of these
+  tests did exactly that and completed in 700 ms.
 - **`use-frame-rotation.ts`** fires `onUserInteract` at *drag start* (mouse) or
   at the *axis-lock decision* (touch, so a vertical page scroll doesn't cancel),
   not at the first committed rotation step.

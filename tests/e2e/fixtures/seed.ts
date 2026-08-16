@@ -128,6 +128,79 @@ export const TEST_SEEDED_STYLE = {
   style_category_name: 'tshirt',
 }
 
+// --- Second product ---------------------------------------------------------
+// A second, independently-selectable fitting-room product, so tests can perform
+// two successive adds. That is the only way to exercise anything depending on
+// an outfit *changing* rather than being established — auto-rotate's anchor and
+// its pre-paint snap both only bite there.
+//
+// It shares TEST_SEEDED_STYLE rather than declaring its own:
+// MockFirestoreManager.queryDocs ignores query constraints and returns every doc
+// in the collection, so a second style document is not resolvable by
+// external_id — both products would resolve to the first style regardless.
+//
+// The two products are therefore distinguished by COLOURWAY, not size: both
+// take the recommended size (M) so ensureSizeForItem writes a size label that
+// matches the CSA it picked, and they resolve to different CSAs (5001 blue vs
+// 5003 red) so their compositions have different frame paths. Pairing a
+// non-recommended size with the recommended size *label* leaves the item
+// half-resolved and silently dropped from the outfit.
+//
+// Same style category, so selecting the second evicts the first — still an add,
+// still bumps the auto-rotate trigger, and the frames change, which is the point.
+export const TEST_PRODUCT_B_EXTERNAL_ID = 'gid://shopify/Product/67890'
+export const TEST_PRODUCT_B_HANDLE = 'test-product-b'
+export const TEST_PRODUCT_A_CSA_ID = 5001
+export const TEST_PRODUCT_B_CSA_ID = 5003
+
+export const TEST_CURRENT_PRODUCT_B = {
+  productName: 'Second Product',
+  productDescriptionHtml: '<p>Second description</p>',
+  externalId: TEST_PRODUCT_B_EXTERNAL_ID,
+  handle: TEST_PRODUCT_B_HANDLE,
+  imageUrl: null,
+  variants: [
+    {
+      sku: 'SKU-M-RED',
+      size: 'M',
+      color: 'Red',
+      fullName: 'Second M Red',
+      skuName: 'SKU-M-RED',
+      priceFormatted: '$70.00',
+      imageUrl: null,
+    },
+  ],
+}
+
+// Like TEST_SIZE_FIT_RECOMMENDATION but with a second colourway on the
+// recommended size, so two products can resolve to different CSAs at the same
+// size. Kept separate rather than widening the shared fixture, which other
+// specs assert against.
+export const TEST_SIZE_FIT_RECOMMENDATION_TWO_COLORS = {
+  fit_classification: 'regular_fit',
+  recommended_size: {
+    id: 101,
+    label: 'M',
+    size_value: { value: 'M' },
+    colorway_size_assets: [
+      { id: TEST_PRODUCT_A_CSA_ID, sku: 'SKU-M-BLUE' },
+      { id: TEST_PRODUCT_B_CSA_ID, sku: 'SKU-M-RED' },
+    ],
+  },
+  available_sizes: [
+    {
+      id: 101,
+      label: 'M',
+      size_value: { value: 'M' },
+      colorway_size_assets: [
+        { id: TEST_PRODUCT_A_CSA_ID, sku: 'SKU-M-BLUE' },
+        { id: TEST_PRODUCT_B_CSA_ID, sku: 'SKU-M-RED' },
+      ],
+    },
+  ],
+  fits: [{ size_id: 101, measurement_location_fits: [] }],
+}
+
 // --- Container (Suits & Sets) fixture -------------------------------------
 // A minimal 2-piece container: 1 set-size, 1 colorway, 1 parent CSA on the
 // shopper side; 2 children (shirt + pants) each with 1 leaf size + 1 leaf

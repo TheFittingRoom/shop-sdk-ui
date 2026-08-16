@@ -14,6 +14,11 @@ export interface BootSdkOptions {
   // the happy-path defaults from fixtures/seed.ts.
   brandId?: number
   currentProduct?: typeof TEST_CURRENT_PRODUCT | null
+  // Extra products resolvable through the merchant `productLookup` callback,
+  // beyond `currentProduct`. Needed whenever a test has fitting-room items for
+  // products other than the one "being viewed" — e.g. two selectable rail
+  // cards. host.html already merges these into its lookup catalog.
+  productCatalog?: (typeof TEST_CURRENT_PRODUCT)[]
   loggedIn?: boolean // default true (seeds TestHooks.auth with the standard test user)
   apiOverrides?: ApiMockOverrides
   // Pre-seeded firestore documents. Keyed by collection → docId → data. The
@@ -33,6 +38,7 @@ export async function bootSdk(page: Page, options: BootSdkOptions = {}): Promise
   const {
     brandId = TEST_BRAND_ID,
     currentProduct = TEST_CURRENT_PRODUCT,
+    productCatalog,
     loggedIn = true,
     apiOverrides,
     firestoreDocs,
@@ -44,7 +50,7 @@ export async function bootSdk(page: Page, options: BootSdkOptions = {}): Promise
   // script runs. The fixture HTML reads `__TFR_TEST_CONFIG__` and threads it
   // into `init({ ..., testHooks })`.
   await page.addInitScript(
-    ({ brandId, currentProduct, loggedIn, uid, email, idToken, profile, firestoreDocs }) => {
+    ({ brandId, currentProduct, productCatalog, loggedIn, uid, email, idToken, profile, firestoreDocs }) => {
       const testHooks: Record<string, unknown> = {}
       if (loggedIn) {
         testHooks.auth = { uid, email, idToken, profile }
@@ -56,12 +62,14 @@ export async function bootSdk(page: Page, options: BootSdkOptions = {}): Promise
         brandId,
         environment: 'demo',
         currentProduct,
+        productCatalog,
         testHooks,
       }
     },
     {
       brandId,
       currentProduct,
+      productCatalog: productCatalog ?? null,
       loggedIn,
       uid: TEST_UID,
       email: TEST_EMAIL,
