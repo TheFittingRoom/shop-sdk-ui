@@ -1,11 +1,29 @@
 import { useEffect, useRef, useState } from 'react'
 
-// How many decoded frame images to retain across outfit changes. Retaining an
-// HTMLImageElement mainly keeps its *encoded* bytes resident (browsers discard
-// and re-decode bitmaps under memory pressure on their own), so at JPEG frame
-// sizes this cache is well under a megabyte per outfit — cheap enough to keep
-// a few recent outfits warm so flipping back to a previous size or colour is
-// instant. Oldest-first eviction; Map preserves insertion order.
+// The retention budget is expressed two ways, and the effective limit is
+// whichever binds first.
+//
+// MAX_RETAINED_SETS is the one that describes intent: keep the last N *outfits*
+// warm, so flipping back to a previously-viewed size or colour is instant. It
+// is deliberately counted in sets rather than images — the old image-count cap
+// silently shrank the warm cache whenever frames-per-outfit grew (at a flat 64
+// images: 7.1 outfits at 9 frames, but only 4.0 at 16), so a renderer change
+// would have quietly degraded this with nobody touching the constant.
+//
+// MAX_RETAINED_FRAMES is the memory ceiling, and it exists precisely so that a
+// frames-per-outfit change cannot multiply memory behind our backs. Retaining
+// an HTMLImageElement keeps its *encoded* bytes resident; the decoded bitmap is
+// the browser's to discard and re-decode under pressure. At 1000x1500 that is:
+//
+//   encoded PNG  (current)      ~1081 KB/frame  ->  ~68 MB at 64 frames
+//   encoded JPEG (sim-vis q80)    ~70 KB/frame  ->  ~4.4 MB at 64 frames
+//   decoded RGBA (ceiling)       5.72 MiB/frame -> ~366 MiB at 64 frames
+//
+// 64 holds the ceiling at exactly today's figure while frames are still PNG.
+// Once sim-vis ships JPEG the encoded cost drops ~15x and this can be raised
+// (or dropped in favour of the set count alone) — at that point 8 sets of 16
+// frames is only ~9 MB.
+const MAX_RETAINED_SETS = 6
 const MAX_RETAINED_FRAMES = 64
 
 export interface FramePreloadState {
@@ -39,6 +57,12 @@ export function useFramePreload(frameUrls: string[] | null | undefined): FramePr
   // url -> Image. A ref, not state: mutating it must not re-render, and the
   // whole point is that these objects outlive any single render.
   const retainedRef = useRef<Map<string, HTMLImageElement>>(new Map())
+  // frameKey -> that set's urls, in least-recently-used order (Map preserves
+  // insertion order, and re-visiting a set re-inserts it at the end). Eviction
+  // works on whole sets so a partially-evicted outfit can't exist — half a
+  // warm outfit is worse than none, since the gate would still wait on the
+  // missing half.
+  const retainedSetsRef = useRef<Map<string, string[]>>(new Map())
   const [settledUrls, setSettledUrls] = useState<Set<string>>(() => new Set())
 
   // Depend on the joined URLs rather than the array reference: framesForOutfit
@@ -98,19 +122,59 @@ export function useFramePreload(frameUrls: string[] | null | undefined): FramePr
       }
     }
 
-    // Evict oldest entries beyond the cap, but never anything in the current
-    // set — those are the frames actively being displayed.
-    if (retained.size > MAX_RETAINED_FRAMES) {
-      const current = new Set(frameUrls)
-      for (const url of retained.keys()) {
-        if (retained.size <= MAX_RETAINED_FRAMES) {
-          break
+    // Mark this set most-recently-used: delete-then-set moves it to the end of
+    // the Map's insertion order, which is what makes eviction LRU rather than
+    // first-in-first-out. Without this, returning to an earlier outfit would
+    // leave it queued for eviction despite being the one on screen.
+    const sets = retainedSetsRef.current
+    sets.delete(frameKey)
+    sets.set(frameKey, [...frameUrls])
+
+    // Evict whole sets, oldest first, until both budgets are satisfied. The
+    // current set is never evicted — it is the one being displayed — so the
+    // loop stops at a single remaining set even if that set alone exceeds
+    // MAX_RETAINED_FRAMES (a 100-frame outfit must still work).
+    const evictOldestSet = () => {
+      const oldest = sets.keys().next()
+      if (oldest.done || oldest.value === frameKey) {
+        return false
+      }
+      sets.delete(oldest.value)
+      // Only drop images no surviving set still needs. Sets normally have
+      // disjoint urls (the VTO token differs per composition), but the bare
+      // avatar frames are shared, so checking is not merely defensive.
+      const stillNeeded = new Set<string>()
+      for (const urls of sets.values()) {
+        for (const url of urls) {
+          stillNeeded.add(url)
         }
-        if (!current.has(url)) {
+      }
+      for (const url of retained.keys()) {
+        if (!stillNeeded.has(url)) {
           retained.delete(url)
         }
       }
+      return true
     }
+
+    while ((sets.size > MAX_RETAINED_SETS || retained.size > MAX_RETAINED_FRAMES) && evictOldestSet()) {
+      // evictOldestSet returns false once only the current set remains.
+    }
+
+    // settledUrls would otherwise grow without bound as outfits come and go.
+    // Prune it to what is actually retained.
+    setSettledUrls((prev) => {
+      if (prev.size <= retained.size) {
+        return prev
+      }
+      const next = new Set<string>()
+      for (const url of prev) {
+        if (retained.has(url)) {
+          next.add(url)
+        }
+      }
+      return next
+    })
 
     return () => {
       cancelled = true
