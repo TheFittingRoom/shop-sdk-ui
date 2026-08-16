@@ -177,15 +177,17 @@ function DesktopAccordionItem({
   onChangeColor,
   onAddToCart,
 }: DesktopProps) {
-  // Subtle neutral grey used both as the accordion header background and as
-  // the body's 3-sided border when open — gives the visible "frame" around
-  // the open item that matches the Figma design.
-  const ACCORDION_SHADE = '#F4F4F4'
+  // Card shade, matching mobile. The header tints over it and a ~6px frame of
+  // it surrounds the white content area — that frame IS the "border", rather
+  // than a drawn one.
+  const ACCORDION_SHADE = '#EEEEEE'
 
   const css = useCss((theme) => ({
     container: {
       display: 'flex',
       flexDirection: 'column',
+      backgroundColor: ACCORDION_SHADE,
+      overflow: 'hidden',
     },
     header: {
       display: 'flex',
@@ -194,13 +196,35 @@ function DesktopAccordionItem({
       padding: '14px 20px',
       width: '100%',
       gap: '8px',
-      backgroundColor: ACCORDION_SHADE,
+      backgroundColor: 'transparent',
+    },
+    // Category and product name share one baseline row, as on mobile. The name
+    // flexes and truncates so a long one can't push the chevron off the row.
+    headerLabel: {
+      display: 'flex',
+      gap: '8px',
+      alignItems: 'baseline',
+      flex: 1,
+      minWidth: 0,
     },
     categoryLabel: {
       fontFamily: "'Times New Roman', serif",
       fontSize: '20px',
       fontWeight: '400',
       letterSpacing: '0.04em',
+      flex: 'none',
+    },
+    // Same face, size and tracking as the category label, greyed to sit behind
+    // it — mirroring mobile, where these two are typographically identical.
+    headerProductName: {
+      fontFamily: "'Times New Roman', serif",
+      fontSize: '20px',
+      letterSpacing: '0.04em',
+      color: '#8A8A8A',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      minWidth: 0,
     },
     chevron: {
       display: 'inline-flex',
@@ -208,36 +232,29 @@ function DesktopAccordionItem({
       color: theme.color_fg_text,
       flex: 'none',
     },
-    // Collapsed-only strip carrying the product name and its size selector.
-    // Shares the header's shade and sits flush beneath it (no gap), so a
-    // collapsed item reads as one block rather than a grey header with white
-    // controls hanging off it. Left-aligned to the header's 20px padding: the
-    // open body centres its size row, but centring under a left-aligned
-    // product name looks unmoored.
-    collapsedStrip: {
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'flex-start',
-      gap: '10px',
-      padding: '0 20px 14px 20px',
-      backgroundColor: ACCORDION_SHADE,
-      textAlign: 'left',
+    // The white content area, inset so a frame of the card shade surrounds it.
+    // Shared by the collapsed size row and the open body so both states read
+    // as the same card.
+    content: {
+      backgroundColor: '#FFFFFF',
+      margin: '0 6px 6px 6px',
+      padding: '16px',
     },
-    collapsedProductName: {
-      fontSize: '15px',
-      fontWeight: '300',
-      lineHeight: 1.2,
+    collapsedSizeRow: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '12px',
     },
     body: {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'stretch',
       gap: '14px',
-      padding: '20px 24px 24px 24px',
+      padding: '16px 18px 18px 18px',
       textAlign: 'left',
-      borderLeft: `1px solid ${ACCORDION_SHADE}`,
-      borderRight: `1px solid ${ACCORDION_SHADE}`,
-      borderBottom: `1px solid ${ACCORDION_SHADE}`,
+      backgroundColor: '#FFFFFF',
+      margin: '0 6px 6px 6px',
     },
     productName: {
       fontSize: '24px',
@@ -323,9 +340,19 @@ function DesktopAccordionItem({
   return (
     <div css={css.container}>
       <Button variant="base" css={css.header} onClick={onToggleOpen}>
-        <Text variant="base" css={css.categoryLabel}>
-          {categoryLabel}
-        </Text>
+        <div css={css.headerLabel}>
+          <Text variant="base" css={css.categoryLabel}>
+            {categoryLabel}
+          </Text>
+          {/* Collapsed only: the open body renders the name far more
+              prominently, so carrying it here too would duplicate it. Mobile
+              shows it in both states because its body has no product name. */}
+          {isOpen || !productData ? null : (
+            <Text variant="base" css={css.headerProductName}>
+              {productData.productName}
+            </Text>
+          )}
+        </div>
         <span css={css.chevron}>
           <Chevron direction={isOpen ? 'up' : 'down'} />
         </span>
@@ -339,15 +366,14 @@ function DesktopAccordionItem({
           the section toggle, so a size pill nested in it would collapse or
           expand the section on every size change. */}
       {isOpen || !productData ? null : (
-        <div css={css.collapsedStrip}>
-          <Text variant="base" css={css.collapsedProductName}>
-            {productData.productName}
-          </Text>
-          <SizeSelector
-            loadedProductData={productData}
-            selectedSizeLabel={selectedSizeLabel}
-            onChangeSize={onChangeSize}
-          />
+        <div css={css.content}>
+          <div css={css.collapsedSizeRow}>
+            <SizeSelector
+              loadedProductData={productData}
+              selectedSizeLabel={selectedSizeLabel}
+              onChangeSize={onChangeSize}
+            />
+          </div>
         </div>
       )}
       {!isOpen ? null : (

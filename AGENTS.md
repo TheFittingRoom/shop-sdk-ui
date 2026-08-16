@@ -386,7 +386,15 @@ automatically is in `index.tsx`: when the open item stops being *selected*
 state moves to another item rather than leaving everything collapsed.
 
 **Collapsed rows carry the product name and a size selector**, so a garment can
-be re-sized without opening it. Two constraints hold this together:
+be re-sized without opening it. Both platforms use the same card model: a grey
+card (`#EEEEEE`) with the header tinting over it, and a white content area
+inset by 6px so a frame of the card shade surrounds it — that frame *is* the
+border, rather than a drawn one. Desktop and mobile share the header
+typography too (Times New Roman 400, 0.04em tracking, category and product
+name on one baseline row with the name greyed and ellipsised); only the size
+differs, 20px desktop vs 16px mobile.
+
+Two constraints hold this together:
 
 - **The size pills render OUTSIDE the header `<Button>`.** That button is the
   section toggle and spans the row, so pills nested inside it would collapse or
@@ -394,8 +402,10 @@ be re-sized without opening it. Two constraints hold this together:
   that reads as the size change not working at all. Guarded by
   `e2e/desktop-detail-accordion.spec.ts`, verified to fail if the collapsed
   strip is made to toggle.
-- **The product name appears only while collapsed.** The open body already
-  renders it as `variant="brand"`; showing both duplicates it.
+- **The product name appears only while collapsed** — the one intentional
+  divergence from mobile, whose header carries the name in both states. The
+  desktop open body already renders it as `variant="brand"`, so showing both
+  would duplicate it; mobile's body has no product name, so it doesn't.
 
 This is desktop-only. Mobile keeps its own three-state sheet, where
 `isMobileQuickRow = sheetSnap === 'expanded' && openAccordionItemId == null`
