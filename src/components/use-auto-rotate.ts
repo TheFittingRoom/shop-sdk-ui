@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 
 // Total time for one full rotation, regardless of how many frames the VTO
 // renderer returns. Per-frame tick is derived as duration / frameCount, so a
@@ -16,13 +16,29 @@ const READINESS_TIMEOUT_MS = 3000
 
 // useAutoRotate plays one full rotation through `frameUrls` each time
 // `trigger` changes from its previous fired value AND frames are present.
-// The rotation starts AND ends at whichever frame index is currently
-// selected at the moment trigger advances — so a shopper who rotated the
-// avatar to a particular angle and then adds another product sees the new
-// outfit spin past that same angle and settle back on it. The intended use
-// is "play a fresh rotation when a new product is added to the VTO outfit"
-// — parents bump `trigger` on that event only, so size/color changes
-// (which replace frameUrls but don't bump the trigger) are ignored.
+// The intended use is "play a fresh rotation when a new product is added to
+// the VTO outfit" — parents bump `trigger` on that event only, so size/color
+// changes (which replace frameUrls but don't bump the trigger) are ignored.
+//
+// WHERE THE ROTATION STARTS AND ENDS ("the anchor"):
+//
+//   * Frame 0 (front-facing) until the shopper moves the frame themselves.
+//   * Afterwards, whichever frame they settled on — so someone who spun the
+//     avatar around to look at the back, then adds another product, sees the
+//     new outfit spin past and settle on that same back view.
+//
+// The second half was the original design; the first half fixes a wrinkle in
+// it. The anchor used to be simply "whatever index is displayed when the
+// trigger fires". Change the outfit *during* a rotation and that index is
+// wherever the animation had got to — so a shopper who never touched the
+// spin controls could be left parked at a side or back view, having done
+// nothing to ask for it.
+//
+// The distinction is carried by `cancelAutoRotate` (below), which every
+// frame-moving surface must call: it both halts the rotation and marks the
+// frame as the shopper's to choose. A rotation that ends by itself must NOT
+// go through it, or the avatar would anchor to wherever the last animation
+// stopped.
 //
 // `trigger` is `undefined` when auto-rotate is dormant (e.g. the fitting-room
 // bare-avatar state before any product has been added). Bumping to any number
@@ -64,24 +80,50 @@ export function useAutoRotate(
   // in the effect's dep array — which would tear down and rebuild the
   // animation every single tick.
   const indexRef = useRef<number | null>(selectedFrameIndex)
-  useEffect(() => {
-    indexRef.current = selectedFrameIndex
-  }, [selectedFrameIndex])
 
   // The trigger of the rotation currently playing, or undefined when idle.
   // Distinguishes "finished / user took over" from "torn down mid-flight",
   // which need opposite handling — see the effect cleanup.
   const playingRef = useRef<number | undefined>(undefined)
 
-  const cancelAutoRotate = useCallback(() => {
+  // Has the shopper ever moved the frame themselves? Until they have, every
+  // rotation starts and ends at frame 0; afterwards it starts and ends at
+  // whichever frame they settled on. See the anchor discussion on the hook.
+  const userControlledRef = useRef(false)
+  // The frame the shopper last settled on. Only meaningful once
+  // userControlledRef is true.
+  const anchorRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    indexRef.current = selectedFrameIndex
+    // Record the resting frame, but only while nothing is playing: mid-
+    // rotation the index belongs to the animation, not the shopper. This is
+    // what keeps an outfit change *during* a rotation from adopting whatever
+    // angle the animation happened to be passing through.
+    if (playingRef.current === undefined && userControlledRef.current) {
+      anchorRef.current = selectedFrameIndex
+    }
+  }, [selectedFrameIndex])
+
+  // Stop the animation. Internal: used by completion and teardown, neither of
+  // which implies the shopper took over.
+  const stopRotation = useCallback(() => {
     if (rafIdRef.current !== null) {
       cancelAnimationFrame(rafIdRef.current)
       rafIdRef.current = null
     }
-    // A completed rotation, or the user taking manual control. Either way the
-    // rotation is done with — it must not be replayed.
     playingRef.current = undefined
   }, [])
+
+  // Handed to every surface that lets the shopper move the frame. Stops the
+  // rotation AND records that the frame is now theirs to choose — the index
+  // they land on becomes the anchor for subsequent rotations. Distinct from
+  // stopRotation for exactly that reason: a rotation ending on its own must
+  // not be mistaken for the shopper taking control.
+  const cancelAutoRotate = useCallback(() => {
+    userControlledRef.current = true
+    stopRotation()
+  }, [stopRotation])
 
   // Depend on the frame *count* rather than the frameUrls array reference.
   // Background prefetch landings update an upstream `framesByKey` map which
@@ -98,6 +140,51 @@ export function useAutoRotate(
   if (trigger !== undefined && trigger !== lastFiredRef.current) {
     pendingTriggerRef.current = trigger
   }
+
+  // Front-facing by default; the shopper's chosen angle once they have moved
+  // the frame themselves. Shared by the snap below and the rotation itself so
+  // the two can never disagree about where a rotation belongs.
+  const anchorFrame = useCallback(() => {
+    if (frameCount === 0) {
+      return 0
+    }
+    const anchor = userControlledRef.current ? (anchorRef.current ?? 0) : 0
+    // Clamped in case the new outfit has fewer frames than the anchor —
+    // otherwise the rotation's stop condition could never match.
+    return anchor % frameCount
+  }, [frameCount])
+
+  // Snap to the anchor the moment a new frame set is available, and do it in a
+  // LAYOUT effect so it lands before the browser paints.
+  //
+  // The rotation itself can't do this: it waits for the frame set to finish
+  // decoding, and a plain effect runs after paint. Either way the new outfit
+  // gets painted at whatever index the previous one was left on and then jumps
+  // — visibly, and to an unrelated angle. Snapping here means the first paint
+  // of a new outfit is already the angle the rotation will start from.
+  //
+  // Gated on a pending trigger, so it only applies to an outfit *change*. A
+  // size or colour swap replaces frameUrls without bumping the trigger and
+  // deliberately holds the current angle, which is what makes comparing sizes
+  // at the same view possible.
+  const frameKey = frameUrls ? frameUrls.join('|') : ''
+  useLayoutEffect(() => {
+    const pending = pendingTriggerRef.current
+    if (pending === undefined || pending === lastFiredRef.current || frameCount === 0) {
+      return
+    }
+    const anchor = anchorFrame()
+    if (indexRef.current !== anchor) {
+      // Update the ref synchronously too: the rotation reads it, and the
+      // state update has not committed yet.
+      indexRef.current = anchor
+      setSelectedFrameIndex(anchor)
+    }
+    // frameKey rather than the frameUrls reference: the array is rebuilt on
+    // every render by framesForOutfit, but the joined key is stable for the
+    // same set, so this fires on an actual change of frames and not on
+    // background prefetch landings.
+  }, [frameKey, frameCount, anchorFrame, setSelectedFrameIndex])
 
   useEffect(() => {
     const pending = pendingTriggerRef.current
@@ -119,10 +206,12 @@ export function useAutoRotate(
       playingRef.current = pending
 
       const tickMs = AUTO_ROTATE_DURATION_MS / frameCount
-      // Start (and stop) at whichever frame is currently displayed. Clamped to
-      // frameCount in case the new outfit has fewer frames than the previous
-      // selection — otherwise the stop condition could never match.
-      const startFrameIndex = (indexRef.current ?? 0) % frameCount
+      // Deliberately NOT the currently-displayed index: when an outfit changes
+      // mid-rotation that index is wherever the animation had got to, so using
+      // it let a shopper who never touched the controls end up parked at a
+      // back or side view. The layout effect above has normally already
+      // snapped the display to this same frame.
+      const startFrameIndex = anchorFrame()
       const startedAt = performance.now()
       let lastStep = 0
 
@@ -137,7 +226,7 @@ export function useAutoRotate(
           if (elapsedSteps >= frameCount) {
             // Completed a full cycle — settle back on the start frame.
             setSelectedFrameIndex(startFrameIndex)
-            cancelAutoRotate()
+            stopRotation()
             return
           }
           setSelectedFrameIndex((startFrameIndex + elapsedSteps) % frameCount)
@@ -169,9 +258,9 @@ export function useAutoRotate(
         pendingTriggerRef.current = playingRef.current
         lastFiredRef.current = undefined
       }
-      cancelAutoRotate()
+      stopRotation()
     }
-  }, [trigger, frameCount, framesReady, setSelectedFrameIndex, cancelAutoRotate])
+  }, [trigger, frameCount, framesReady, anchorFrame, setSelectedFrameIndex, stopRotation])
 
   return cancelAutoRotate
 }

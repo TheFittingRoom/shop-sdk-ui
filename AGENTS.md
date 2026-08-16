@@ -232,6 +232,45 @@ Three pieces, and they are meant to be used together:
   rather than suppressing it. It steps off `requestAnimationFrame` using
   elapsed time (not `setInterval`), so it can't accumulate drift and stops on
   its own in a backgrounded tab instead of queueing catch-up ticks.
+
+**Where a rotation starts and ends (the "anchor").** Frame 0 until the shopper
+moves the frame themselves; afterwards, whichever frame they settled on — so
+someone who spun round to see the back, then adds another product, sees the new
+outfit settle on that same back view. The second half is the original design
+intent; the first half fixes a wrinkle in it, because the anchor used to be
+simply "whatever index is displayed when the trigger fires" and an outfit
+change *during* a rotation therefore adopted whatever angle the animation was
+passing through — parking shoppers on a side view they never asked for.
+
+Two consequences for anyone touching this:
+
+- **`cancelAutoRotate` is the user-control signal, not just a stop button.**
+  It halts the rotation *and* marks the frame as the shopper's to choose.
+  Every surface that moves the frame must call it — chevrons, drag, the zoom
+  modal, the (currently hidden) rotation slider. A rotation ending by itself
+  goes through the internal `stopRotation` instead; routing completion through
+  `cancelAutoRotate` would make the avatar anchor wherever the last animation
+  happened to stop.
+- **The anchor is only recorded while nothing is playing.** Mid-rotation the
+  index belongs to the animation, not the shopper.
+
+**The snap to the anchor is a `useLayoutEffect`, deliberately.** When the
+frame set changes it must land *before the browser paints*, or the new outfit
+is painted at whatever index the previous one was left on and then jumps to an
+unrelated angle. The rotation itself cannot do this job: it waits for the set
+to finish decoding, and a plain effect runs after paint either way. The snap is
+gated on a pending trigger, so an outfit change resets the angle while a size
+or colour swap holds it — which is what lets a shopper compare sizes at the
+same view.
+
+Not covered by tests: anything that needs **two successive adds**, which is
+where both the anchor and the pre-paint snap actually bite. quick-view — where
+the e2e coverage lives — fires one trigger per product, so old and new
+behaviour agree there. Covering it needs a fitting-room fixture with two
+selectable products and a VTO mock that returns *distinct* frames per
+composition (identical frames would leave `frameKey` unchanged and the snap
+would correctly not fire). The harness already has the hooks for this:
+`cfg.productCatalog` in `host.html` and a second product in `seed.ts`.
 - **`use-frame-rotation.ts`** fires `onUserInteract` at *drag start* (mouse) or
   at the *axis-lock decision* (touch, so a vertical page scroll doesn't cancel),
   not at the first committed rotation step.
