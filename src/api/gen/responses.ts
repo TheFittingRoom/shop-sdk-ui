@@ -3,21 +3,6 @@
 //////////
 // source: avatar.go
 
-/**
- * AvatarRenderResult is the synchronous response body from
- * `POST {simvis.url}/v1/avatar`. Sim-vis used to deliver these fields via
- * two separate PATCH webhooks (obj + frames + measurements + joints, then
- * SDF alone); with the sync contract everything comes back in one payload.
- * On render failure, Error is non-empty and the other fields may be zero.
- */
-export interface AvatarRenderResult {
-  error: string;
-  measurements: { [key: string]: number /* float64 */};
-  joints: any /* requests.Joint */[];
-  frames_storage_path: string;
-  object_storage_path: string;
-  sdf_storage_path: string;
-}
 export interface Avatar {
   id: number /* int64 */;
   user_id?: string;

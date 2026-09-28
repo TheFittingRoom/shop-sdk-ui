@@ -81,11 +81,17 @@ const CONFIGS: Record<EnvName, Config> = {
       vtoTimeoutMs: 120000,
       vtoPrefetchDelayMs: 3000,
     },
+    // Browser-facing reads of the tfr-assets-dev bucket. These moved off
+    // `assets.dev.thefittingroom.xyz` when the buckets migrated to the
+    // self-hosted store: that host is no longer routed (it answers with the
+    // ingress default certificate and 404s every key). The bucket name is
+    // part of the base here because the store addresses buckets path-style.
+    // Anonymous GET is allowed; listing is not.
     asset: {
-      baseUrl: 'https://assets.dev.thefittingroom.xyz/shop-sdk/assets/v5',
+      baseUrl: 'https://objects.infra.thefittingroom.xyz/tfr-assets-dev/shop-sdk/assets/v5',
     },
     frames: {
-      baseUrl: 'https://assets.dev.thefittingroom.xyz',
+      baseUrl: 'https://objects.infra.thefittingroom.xyz/tfr-assets-dev',
     },
     features: {
       vtoPrefetch: true,
