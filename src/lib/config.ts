@@ -109,15 +109,15 @@ const CONFIGS: Record<EnvName, Config> = {
       measurementId: 'G-XH9VV5N6EW',
     },
     api: {
-      baseUrl: 'https://tfr.p.thefittingroom.xyz',
+      baseUrl: 'https://tfr-synteq.thefittingroom.xyz',
       vtoTimeoutMs: 120000,
       vtoPrefetchDelayMs: 3000,
     },
     asset: {
-      baseUrl: 'https://assets.p.thefittingroom.xyz/shop-sdk/assets/v5',
+      baseUrl: 'https://objects.infra.thefittingroom.xyz/tfr-assets-dev/shop-sdk/assets/v5',
     },
     frames: {
-      baseUrl: 'https://assets.p.thefittingroom.xyz',
+      baseUrl: 'https://objects.infra.thefittingroom.xyz/tfr-assets-dev',
     },
     features: {
       vtoPrefetch: true,
