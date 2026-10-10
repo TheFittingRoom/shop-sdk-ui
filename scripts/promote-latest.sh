@@ -1,10 +1,11 @@
 #!/bin/sh
 # Promote a published version from npm dist-tag `next` to `latest`.
 #
-# Every PR merge auto-publishes to dist-tag `next` via CI (trusted
-# publishing in .github/workflows/dev.yaml). When you decide a `next`
-# version is ready to be the default install for end users, run this to
-# move the `latest` dist-tag onto it.
+# .github/workflows/release.yaml publishes every release under dist-tag
+# `next`. When you decide a `next` version is ready to be the default
+# install for end users, run this to move the `latest` dist-tag onto it.
+# Pointing it back at an older version is the rollback path for `latest`
+# consumers; no new artifact is published either way.
 #
 # Usage:
 #   npm run promote-latest             # promotes the version in package.json

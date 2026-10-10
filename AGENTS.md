@@ -39,15 +39,18 @@ README.md for the full walkthrough. Summary:
 
 1. **Publish a release: trigger `.github/workflows/release.yaml`
    manually.** Actions tab → Release → Run workflow → pick patch /
-   minor / major. The workflow: checks out main, builds (pre-bump
-   verification), runs `npm version` on a fresh `release-bump-<ts>`
-   branch, rebuilds with the new version, pushes the branch + tag,
-   publishes to npm under dist-tag `next` via OIDC trusted publishing
-   with `--provenance`, then opens an auto-merge PR to main. GitHub
-   completes the squash-merge seconds later once `pr-checks.yml`
-   posts the (skipped) `verify` check-run on the bump SHA. The npm
-   trusted-publisher entry for `@thefittingroom/shop-ui` **must
-   point at `release.yaml`**.
+   minor / major. The workflow, in one job: checks out main, runs
+   the same `check` + `build` + e2e verification as `pr-checks.yml`,
+   runs `npm version` on a fresh `release-bump-<ts>` branch, rebuilds
+   with the new version and runs the verification again on the bump
+   commit (any failure stops the run before anything is published,
+   pushed or opened), publishes to npm under dist-tag `next` via OIDC
+   trusted publishing with `--provenance`, pushes the branch + tag,
+   opens a PR to main, posts a `verify` check run on the bump SHA
+   through the Checks API, and queues auto-merge. If publish
+   succeeds but a later step fails, recreate the bump and PR by hand
+   (README "Release process"). The npm trusted-publisher entry for
+   `@thefittingroom/shop-ui` **must point at `release.yaml`**.
 
    The published version is immediately live on the demo storefront —
    `tfr.js`'s `unpkg.com/@thefittingroom/shop-ui@5` URL resolves to the
@@ -83,29 +86,26 @@ list — repo-scoped rulesets can't reference the GitHub Actions
 integration as a bypass actor). Instead:
 
 - Push the bump on a `release-bump-<ts>` branch (not main).
+- A branch push made with GITHUB_TOKEN never creates a workflow run,
+  and the `pull_request` run for a PR opened with GITHUB_TOKEN is
+  created only in an approval-required state (GitHub's anti-loop
+  rule, see
+  https://docs.github.com/en/actions/concepts/security/github_token).
+  Neither can be relied on to post the `verify` context.
+- So `release.yaml` posts the `verify` check run on the bump SHA
+  itself through the Checks API (`checks: write`), right after it has
+  run the full verification on that commit, with `details_url`
+  pointing at the run. No PAT or GitHub App is involved.
 - Open the PR via `gh pr create` + queue auto-merge via
-  `gh pr merge --auto`. GitHub finishes the squash-merge as soon
-  as the required-check is recorded.
-- `pull_request` events fired by a PR opened via GITHUB_TOKEN get
-  `action_required` — GitHub's anti-loop guard for bot-triggered
-  workflows, not configurable at the repo level. Without an
-  override, the `verify` check-run never posts and auto-merge
-  blocks forever.
-- `release.yaml`'s final step polls for that action_required run
-  and approves it via `POST /actions/runs/{id}/approve` (needs
-  `actions: write`). Approval is a separate authorization from the
-  anti-loop rule and is allowed for GITHUB_TOKEN.
-- Once approved, the `verify` job hits its `if:` guard, skips, and
-  posts a `skipped` check-run. Job-level skip posts a check-run;
-  workflow-level `paths-ignore` would post none, blocking
-  indefinitely. `skipped` counts as SUCCESS for
-  required-status-checks, and auto-merge fires.
+  `gh pr merge --auto`. GitHub finishes the squash-merge as soon as
+  the check is recorded.
 
-The `verify` skip is safe: the release bump only touches
-`package.json` + `package-lock.json` + a `dist/` rebuild whose only
-difference is the embedded version string — nothing that lint, tsc,
-or tests would fail on differently than the pre-bump verify that
-`release.yaml` already ran.
+`verify` must not be skipped in `pr-checks.yml`. A job-level `if:`
+posts a `skipped` check-run, which GitHub counts as SUCCESS for
+required-status-checks, so any branch-name exemption lets an
+unverified commit merge. For release PRs the context is the check
+run `release.yaml` posts, which reports the verification it ran on
+that exact commit before publishing.
 
 If the org later grants the repo the ability to reference the
 GitHub Actions integration as a bypass actor at ruleset creation
@@ -197,13 +197,18 @@ e2e suite. CI runs both — see `.github/workflows/build.yml`.
 
 ## Environment selection
 
-`InitParams.environment` is an `EnvName` (`development` | `production` | `demo`
-| `local`). `src/lib/config.ts` maps each to firebase/api/asset/frames URLs.
+`InitParams.environment` is an `EnvName` (`development` | `demo` | `local`;
+`production` is in the enum but `getConfig` throws for it because no production
+backend exists yet). `src/lib/config.ts` maps each to firebase/api/asset/frames
+URLs; `tests/e2e/environment-contract.spec.ts` pins which Firebase project each
+API host is paired with, and every host today verifies tokens against the dev
+project. `development` points at the shared dev backend
+(`tfr.dev.thefittingroom.xyz`);
 `demo` points at the hosted demo server (`demo.thefittingroom.xyz`); `local`
 points at the `local-deployment` Docker stack on the developer's host
-(`http://localhost:8080`, s3proxy at `:9000`). Both reuse the dev Firebase
-project. The Shopify theme defaults to `demo` and switches to `local` when the
-page URL carries `?tfr-source=local`.
+(`http://localhost:8080`, s3proxy at `:9000`). The Shopify theme defaults to
+`development` and switches to `local` or `demo` via `?tfr-source` (see README
+"Environments").
 
 ## Frame URL rewriting
 

@@ -46,6 +46,8 @@ export interface Config {
 
 export enum EnvName {
   DEVELOPMENT = 'development',
+  // No production backend exists yet. Kept in the enum so init() reaches
+  // getConfig's error for it instead of reporting an invalid name.
   PRODUCTION = 'production',
   // Hosted demo server (demo.thefittingroom.xyz).
   DEMO = 'demo',
@@ -65,7 +67,10 @@ const SHARED_CONFIG = {
   },
 } as const
 
-const CONFIGS: Record<EnvName, Config> = {
+// Each API host verifies Firebase ID tokens against exactly one project, so
+// firebase.projectId must be that project or every authenticated call fails.
+// tests/e2e/environment-contract.spec.ts pins the pairing per host.
+const CONFIGS: Record<Exclude<EnvName, EnvName.PRODUCTION>, Config> = {
   [EnvName.DEVELOPMENT]: {
     firebase: {
       apiKey: 'AIzaSyDfjBWzpmzb-mhGN8VSURxzLg6nkzmKUD8',
@@ -87,32 +92,6 @@ const CONFIGS: Record<EnvName, Config> = {
     // ingress default certificate and 404s every key). The bucket name is
     // part of the base here because the store addresses buckets path-style.
     // Anonymous GET is allowed; listing is not.
-    asset: {
-      baseUrl: 'https://objects.infra.thefittingroom.xyz/tfr-assets-dev/shop-sdk/assets/v5',
-    },
-    frames: {
-      baseUrl: 'https://objects.infra.thefittingroom.xyz/tfr-assets-dev',
-    },
-    features: {
-      vtoPrefetch: true,
-    },
-    ...SHARED_CONFIG,
-  },
-  [EnvName.PRODUCTION]: {
-    firebase: {
-      apiKey: 'AIzaSyA3kQ6w1vkA9l9lgY0nNACVPXe-QmP5T1Y',
-      authDomain: 'fittingroom-prod.firebaseapp.com',
-      projectId: 'fittingroom-prod',
-      storageBucket: 'fittingroom-prod.appspot.com',
-      messagingSenderId: '965656825574',
-      appId: '1:965656825574:web:933493cddc73213bd43527',
-      measurementId: 'G-XH9VV5N6EW',
-    },
-    api: {
-      baseUrl: 'https://tfr-synteq.thefittingroom.xyz',
-      vtoTimeoutMs: 120000,
-      vtoPrefetchDelayMs: 3000,
-    },
     asset: {
       baseUrl: 'https://objects.infra.thefittingroom.xyz/tfr-assets-dev/shop-sdk/assets/v5',
     },
@@ -179,5 +158,8 @@ const CONFIGS: Record<EnvName, Config> = {
 }
 
 export const getConfig = (envName: EnvName): Config => {
+  if (envName === EnvName.PRODUCTION) {
+    throw new Error('Environment "production" is not available yet; use "development"')
+  }
   return CONFIGS[envName]
 }

@@ -54,42 +54,68 @@ workflow. No magic on PR merges.
 - Pick the bump type (`patch` / `minor` / `major`)
 - Click **Run workflow**
 
-The `release.yaml` workflow does everything in one run:
+The `release.yaml` workflow does everything in one run, in this order:
 
-1. Checks out `main`, installs deps, builds (verifies it compiles)
-2. Creates a fresh `release-bump-<timestamp>` branch
-3. Runs `npm version <bump>` — bumps `package.json`, creates the
-   bump commit, tags it `vX.Y.Z`
-4. Rebuilds with the new version embedded
-5. Pushes the bump branch + tag (not to `main` — see below)
-6. Publishes to npm under dist-tag `next` via
+1. Checks out `main`, installs deps, and runs the same verification as
+   the `verify` job in `pr-checks.yml`: `npm run check` (tsc, ESLint,
+   Prettier), `npm run build`, and the Playwright suite.
+2. Creates a fresh `release-bump-<timestamp>` branch and runs
+   `npm version <bump>`: bumps `package.json` and `package-lock.json`,
+   creates the bump commit, tags it `vX.Y.Z`. Nothing is pushed yet.
+3. Rebuilds with the new version embedded and runs the verification
+   again on the bump commit, the exact commit about to be published.
+4. Publishes to npm under dist-tag `next` via
    [npm trusted publishing](https://docs.npmjs.com/trusted-publishers)
    (OIDC, no long-lived secret) with `--provenance` for supply-chain
-   attestation
-7. Opens a PR from the bump branch to `main` and queues auto-merge
+   attestation.
+5. Pushes the bump branch + tag (not to `main`, see below).
+6. Opens a PR from the bump branch to `main`, posts a `verify` check
+   run on the bump SHA through the Checks API (the run just verified
+   that commit in step 3; the check links back to the run), and
+   queues auto-merge.
 
 The npm trusted-publisher entry for `@thefittingroom/shop-ui` must
 point at `release.yaml`.
 
+**What blocks publication:** any failure in steps 1 to 3. The run
+stops there, before anything is published, pushed or opened, and the
+Playwright report is attached to the failed run. The published
+tarball's provenance (shown on the package's npm page and verified by
+`npm audit signatures`) names the `main` commit the run started from;
+the bump commit it was built from is that commit plus the version
+change, tagged `vX.Y.Z`.
+
+**If publish succeeds but the push or PR fails:** the version on npm
+is the verified one, so only the bookkeeping is missing. Recreate the
+bump from a clean `main` checkout and open the PR by hand;
+`pr-checks.yml` runs `verify` on it like any other PR:
+
+```sh
+git checkout main && git pull origin main
+git checkout -b release-bump-manual
+npm version <patch|minor|major>   # same version and vX.Y.Z tag the run published
+git push origin release-bump-manual --follow-tags
+gh pr create --base main --head release-bump-manual --title "chore: release vX.Y.Z"
+```
+
 **Demo storefront visibility:** the `shopify` theme's `tfr.js` loads
-the SDK from `unpkg.com/@thefittingroom/shop-ui@5` — a semver range
-that unpkg (and jsdelivr) resolves to the highest matching published
-5.x version regardless of dist-tag. Publishing under `--tag next` is
-therefore enough for demo to pick up the new version on the next
-reload; no `latest` promotion is required for that path. Demo picks
-up the new version even before the auto-merge PR completes — npm
-publish and GitHub merge are independent steps.
+the SDK from `unpkg.com/@thefittingroom/shop-ui@<exact version>`, pinned
+in its `PROD_URL`. Publishing a version does not change the store.
+Releasing to the store is a PR on the `shopify` `development` branch
+that bumps that pin (the live store syncs from that branch); versions
+published under `next` are available for the bump without a `latest`
+promotion.
 
 > **Ruleset + auto-merge note:** `main` is protected by a repository
 > ruleset requiring PRs + a passing `verify` check. `release.yaml`
 > works around this by pushing to a `release-bump-*` branch and
-> opening an auto-merge PR. The `verify` job in `pr-checks.yml` is
-> `if:`-skipped for `release-bump-*` branches (safe — the bump only
-> touches `package.json` + `package-lock.json` + a `dist/` rebuild
-> whose only diff is the embedded version), so the required-check
-> reports success immediately and auto-merge fires within seconds
-> of the branch push. See `AGENTS.md` → "Ruleset + auto-merge
-> coupling" for the full rationale.
+> opening an auto-merge PR. A branch push made with `GITHUB_TOKEN`
+> never triggers `pr-checks.yml`, and the PR's own run is only created
+> in an approval-required state (GitHub's anti-loop rule), so the
+> workflow posts the `verify` check run itself, on the bump SHA it has
+> just verified in step 3, and auto-merge fires on that check. See
+> `AGENTS.md` → "Ruleset + auto-merge coupling" for the full
+> rationale.
 
 **2. (Optional) Promote to `latest` dist-tag.**
 
@@ -113,6 +139,46 @@ publish rights to `@thefittingroom/shop-ui` (`npm whoami` to check;
 To promote a specific older version: `npm run promote-latest -- 5.0.13`.
 
 **3. Verify** with `npm dist-tag ls @thefittingroom/shop-ui`.
+
+**4. Roll back a bad release.**
+
+Treat published versions as permanent: npm's unpublish window is
+narrow and unpkg/jsdelivr keep their copy regardless. Recovery means
+moving pointers and publishing a fixed version, not deleting the bad
+one. Which pointer depends on how the consumer loads the SDK:
+
+- Consumers on `latest` (unpinned `npm install`, `@latest` CDN URLs):
+  move `latest` back onto the last good version with
+  `npm run promote-latest -- <previous version>`. No new publish is
+  needed.
+- Consumers on `next` or on a semver range: these resolve to the highest
+  published version regardless of dist-tag, so a bad version can only
+  be superseded. Fix on `main` and run the release workflow again.
+- The demo store is pinned to an exact version in the `shopify` theme's
+  `tfr.js`, so a publish never reaches it on its own. To roll the store
+  back, bump `PROD_URL` to the previous version and push to
+  `origin/development`; to move it forward, bump it to the fixed one.
+
+## Environments
+
+`init({ environment })` selects one of the profiles in
+`src/lib/config.ts`. Each backend host verifies Firebase ID tokens
+against exactly one Firebase project, so the SDK must sign users in to
+that project or every authenticated call fails.
+`tests/e2e/environment-contract.spec.ts` pins the pairings below;
+change the table and the test together.
+
+| `environment` | API host | Firebase project | Asset base | Release channel |
+|---|---|---|---|---|
+| `development` | `tfr.dev.thefittingroom.xyz` | `fittingroom-dev-5d248` | `objects.infra.thefittingroom.xyz/tfr-assets-dev` | Published 5.x via `unpkg.com/@thefittingroom/shop-ui@5` (`next` is enough; `latest` is optional) |
+| `demo` | `demo.thefittingroom.xyz/api` | `fittingroom-dev-5d248` | `demo.thefittingroom.xyz/s3/tfr-assets-dev` | Same published 5.x, selected with `?tfr-source=demo` |
+| `local` | `localhost:8080` | `fittingroom-dev-5d248` | `localhost:9000/tfr-assets-dev` | Local `dist/index.js` from `npm run watch-serve`, selected with `?tfr-source=local` |
+| `production` | none yet | | | `init` fails with "not available yet"; use `development` |
+
+The shared backend at `tfr-synteq.thefittingroom.xyz` also verifies
+tokens against `fittingroom-dev-5d248`; it is not a production host. A
+`production` profile will be added together with a backend that
+verifies tokens against `fittingroom-prod`.
 
 ## Local development
 
