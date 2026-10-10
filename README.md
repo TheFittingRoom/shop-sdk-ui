@@ -148,6 +148,27 @@ one. Which pointer depends on how the consumer loads the SDK:
   `origin/development` (the live demo store syncs from it), then
   restore the range once the fixed version is published.
 
+## Environments
+
+`init({ environment })` selects one of the profiles in
+`src/lib/config.ts`. Each backend host verifies Firebase ID tokens
+against exactly one Firebase project, so the SDK must sign users in to
+that project or every authenticated call fails.
+`tests/e2e/environment-contract.spec.ts` pins the pairings below;
+change the table and the test together.
+
+| `environment` | API host | Firebase project | Asset base | Release channel |
+|---|---|---|---|---|
+| `development` | `tfr.dev.thefittingroom.xyz` | `fittingroom-dev-5d248` | `objects.infra.thefittingroom.xyz/tfr-assets-dev` | Published 5.x via `unpkg.com/@thefittingroom/shop-ui@5` (`next` is enough; `latest` is optional) |
+| `demo` | `demo.thefittingroom.xyz/api` | `fittingroom-dev-5d248` | `demo.thefittingroom.xyz/s3/tfr-assets-dev` | Same published 5.x, selected with `?tfr-source=demo` |
+| `local` | `localhost:8080` | `fittingroom-dev-5d248` | `localhost:9000/tfr-assets-dev` | Local `dist/index.js` from `npm run watch-serve`, selected with `?tfr-source=local` |
+| `production` | none yet | | | `init` fails with "not available yet"; use `development` |
+
+The shared backend at `tfr-synteq.thefittingroom.xyz` also verifies
+tokens against `fittingroom-dev-5d248`; it is not a production host. A
+`production` profile will be added together with a backend that
+verifies tokens against `fittingroom-prod`.
+
 ## Local development
 
 Run the SDK against the local backend stack from

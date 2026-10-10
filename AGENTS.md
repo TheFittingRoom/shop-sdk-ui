@@ -198,13 +198,18 @@ e2e suite. CI runs both — see `.github/workflows/build.yml`.
 
 ## Environment selection
 
-`InitParams.environment` is an `EnvName` (`development` | `production` | `demo`
-| `local`). `src/lib/config.ts` maps each to firebase/api/asset/frames URLs.
+`InitParams.environment` is an `EnvName` (`development` | `demo` | `local`;
+`production` is in the enum but `getConfig` throws for it because no production
+backend exists yet). `src/lib/config.ts` maps each to firebase/api/asset/frames
+URLs; `tests/e2e/environment-contract.spec.ts` pins which Firebase project each
+API host is paired with, and every host today verifies tokens against the dev
+project. `development` points at the shared dev backend
+(`tfr.dev.thefittingroom.xyz`);
 `demo` points at the hosted demo server (`demo.thefittingroom.xyz`); `local`
 points at the `local-deployment` Docker stack on the developer's host
-(`http://localhost:8080`, s3proxy at `:9000`). Both reuse the dev Firebase
-project. The Shopify theme defaults to `demo` and switches to `local` when the
-page URL carries `?tfr-source=local`.
+(`http://localhost:8080`, s3proxy at `:9000`). The Shopify theme defaults to
+`development` and switches to `local` or `demo` via `?tfr-source` (see README
+"Environments").
 
 ## Frame URL rewriting
 
