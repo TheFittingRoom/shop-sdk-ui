@@ -5,24 +5,15 @@ on:
     branches:
       - main
     types: [opened, synchronize, reopened]
-  # release.yaml pushes a release-bump-<timestamp> branch, then opens a
-  # PR via GITHUB_TOKEN. The `pull_request` run for a PR opened by
-  # GITHUB_TOKEN sits in `action_required` until someone approves it
-  # (GitHub anti-loop rule), so it cannot be relied on to post the
-  # `verify` required-check. Trigger on branch push as well: that run
-  # executes the full job against the bump SHA and posts a real
-  # `verify` check-run, which the PR's required-check picks up when
-  # it's opened moments later.
-  push:
-    branches:
-      - 'release-bump-*'
 
 jobs:
   verify:
     # Job name intentionally short — this is the required-status-check
     # context that shows next to the merge button on every PR. Renaming
     # here means updating the repository ruleset's
-    # required_status_checks contexts too (Settings → Rules → main).
+    # required_status_checks contexts too (Settings → Rules → main) and
+    # the check run release.yaml posts under the same name after it has
+    # run these steps on a release bump commit itself.
     #
     # Do not add a job-level `if:` here. A skipped job still posts a
     # check-run, and GitHub counts `skipped` as success for
@@ -32,11 +23,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # For pull_request: check out the PR head (not the synthetic
-          # merge commit) so lint/tsc/tests run against exactly what
-          # the branch contains.
-          # For push: default checkout of github.sha is correct.
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # Check out the PR head (not the synthetic merge commit) so
+          # lint/tsc/tests run against exactly what the branch contains.
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
       - uses: actions/setup-node@v4

@@ -6,18 +6,26 @@ name: Release
 # tied to PATs, `pull_request_target` quirks, and OIDC trigger
 # restrictions).
 #
-# Flow: verify main (the same check + build + e2e steps as the verify
-# job in pr-checks.yml) → bump on a fresh release-bump-<ts> branch →
-# publish to npm via OIDC trusted publishing → open PR to main → enable
-# auto-merge. Any verification failure stops the run before the bump,
-# so nothing is tagged, pushed or published from a broken main. Pushing
-# the bump branch triggers pr-checks.yml, which runs verify again on
-# the bump SHA; auto-merge fires once that check-run passes.
+# Flow, in one job: verify main (the same check + build + e2e steps as
+# the verify job in pr-checks.yml) → bump on a fresh release-bump-<ts>
+# branch → verify the bump commit the same way → publish to npm via
+# OIDC trusted publishing → push branch + tag → open PR to main → post
+# a `verify` check run on the bump SHA → enable auto-merge. Any
+# verification failure stops the run before anything is published,
+# pushed or opened.
+#
+# Pushes made with GITHUB_TOKEN never trigger pr-checks.yml, and the PR
+# it opens gets its pull_request run only in an approval-required
+# state (GitHub anti-loop rule: "events triggered by the GITHUB_TOKEN
+# will not create a new workflow run", except workflow_dispatch and
+# repository_dispatch). This job therefore posts the `verify` check
+# run the main ruleset requires itself, after running that
+# verification on the bump commit. No PAT or GitHub App needed.
 #
 # No long-lived secrets: GITHUB_TOKEN handles the branch push, PR
-# creation, and auto-merge queueing; npm publish uses OIDC trusted
-# publishing. The npm trusted-publisher entry for @thefittingroom/shop-ui
-# must point at this file (release.yaml).
+# creation, the check run and auto-merge queueing; npm publish uses
+# OIDC trusted publishing. The npm trusted-publisher entry for
+# @thefittingroom/shop-ui must point at this file (release.yaml).
 #
 # To release:
 #   Actions tab → Release → Run workflow → pick patch/minor/major → Run.
@@ -42,9 +50,8 @@ permissions:
   contents: write
   # Required to open the auto-merge PR against main.
   pull-requests: write
-  # Required to approve the downstream pr-checks workflow run that
-  # GitHub gates with `action_required` when a bot opens the PR.
-  actions: write
+  # Required to post the `verify` check run on the bump SHA.
+  checks: write
 
 jobs:
   release:
@@ -66,9 +73,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Same verification as pr-checks.yml's verify job, run on main's
-      # SHA before anything is bumped, tagged, pushed or published. A
-      # failure here ends the run with nothing to clean up.
+      # Same verification as pr-checks.yml's verify job, first on main's
+      # SHA so a broken main fails fast, then again below on the bump
+      # commit, which is what actually gets published.
       - name: Type-check + lint + format-check
         run: npm run check
 
@@ -79,22 +86,15 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: E2E tests
+        id: e2e_main
         run: npm run test:e2e
-
-      - name: Upload Playwright report
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 7
 
       - name: Setup Git
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-      # Create a fresh branch for the bump. We push the bump here (not
+      # Create a fresh branch for the bump. We push the bump there (not
       # to main) so the main-branch ruleset's pull_request requirement
       # isn't violated by a direct push. The PR-based merge path
       # requires this indirection.
@@ -106,21 +106,49 @@ jobs:
           echo "name=$BUMP_BRANCH" >> "$GITHUB_OUTPUT"
 
       # Bumps package.json + package-lock.json, creates a bump commit,
-      # and creates a vX.Y.Z tag locally on that commit.
+      # and creates a vX.Y.Z tag locally on that commit. Nothing leaves
+      # the runner until the bump commit has passed verification and
+      # been published.
       - name: Bump version
-        run: npm version "${{ inputs.version_bump }}"
+        id: bump
+        run: |
+          npm version "${{ inputs.version_bump }}"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
-      # Rebuild after the bump so the version embedded in dist/ matches
-      # what we're about to publish (vite config picks up
-      # packageJson.version at build time).
-      - name: Build (post-bump)
+      # Verify the bump commit itself: rebuild so the version embedded
+      # in dist/ matches what we're about to publish (vite config picks
+      # up packageJson.version at build time), then the same check +
+      # e2e steps as above.
+      - name: Type-check + lint + format-check (bump commit)
+        run: npm run check
+
+      - name: Build (bump commit)
         run: npm run build
 
-      # Push the bump branch + the vX.Y.Z tag. Pushing the branch
-      # triggers pr-checks.yml on `push`, which runs the verify job on
-      # the bump SHA and posts the `verify` check-run main's ruleset
-      # requires. Auto-merge below waits for it.
-      #
+      - name: E2E tests (bump commit)
+        id: e2e_bump
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: failure() && (steps.e2e_main.conclusion == 'failure' || steps.e2e_bump.conclusion == 'failure')
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      # OIDC trusted publishing, no NPM_TOKEN. --provenance attaches a
+      # supply-chain attestation tying this tarball to this workflow run
+      # and the main commit it started from (github.sha); the tarball is
+      # built from the bump commit, which is that commit plus the
+      # version change. Publishing is the irreversible step, so it comes
+      # right after the bump commit has passed verification and before
+      # anything is pushed; README "Release process" covers recovery
+      # when a later step fails.
+      - name: Publish to npm (next)
+        run: npm publish --tag next --provenance --verbose
+
       # Tag stays on the bump commit even after the branch is squash-
       # merged + deleted — tag refs are independent of branch refs. `git
       # log v5.0.39` continues to work; the tag just doesn't reach main
@@ -128,26 +156,13 @@ jobs:
       - name: Push bump branch + tag
         run: git push origin "${{ steps.bump_branch.outputs.name }}" --follow-tags
 
-      # OIDC trusted publishing — no NPM_TOKEN. --provenance attaches a
-      # supply-chain attestation tying this tarball to this workflow run
-      # and the main commit it started from (github.sha), which is the
-      # commit the verification above ran on. The bump commit is that
-      # commit plus the version change.
-      - name: Publish to npm (next)
-        run: npm publish --tag next --provenance --verbose
-
-      # Open the PR + queue auto-merge. GitHub finishes the squash-merge
-      # once pr-checks.yml's `verify` check-run on the bump SHA passes.
-      # This workflow exits before that; check the PR for the merge
-      # event. If verify fails on the bump SHA the PR stays open while
-      # the version is already on npm under `next`; see README "Release
-      # process" for what to do.
-      - name: Open + auto-merge release PR
+      - name: Open release PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BUMP_BRANCH: ${{ steps.bump_branch.outputs.name }}
+          NEW_VERSION: ${{ steps.bump.outputs.version }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          NEW_VERSION=$(node -p "require('./package.json').version")
           gh pr create \
             --base main \
             --head "$BUMP_BRANCH" \
@@ -159,44 +174,36 @@ jobs:
           - Published to npm as \`v${NEW_VERSION}\` under dist-tag \`next\`
           - Tag \`v${NEW_VERSION}\` already pushed to the bump commit
 
-          \`release.yaml\` ran \`npm run check\`, \`npm run build\` and the Playwright suite on \`main\` before bumping. The \`verify\` required check runs the same steps again on the bump SHA via \`pr-checks.yml\`; auto-merge fires when it passes.
+          \`release.yaml\` ran \`npm run check\`, \`npm run build\` and the Playwright suite on \`main\` and again on this bump commit before publishing. The \`verify\` check on this PR is posted by that run (${RUN_URL}); auto-merge fires once GitHub records it.
           EOF
           )"
-          gh pr merge "$BUMP_BRANCH" --squash --auto --delete-branch
 
-      # Approve the pr-checks run that the `pull_request` event for the
-      # PR above created. Any `pull_request` event on a PR opened by
-      # GITHUB_TOKEN gets `action_required` (GitHub's anti-loop guard
-      # for bot-triggered workflows, not configurable at the repo
-      # level). Left unapproved, that run sits on the PR waiting for a
-      # human; approving it lets it execute the verify job on the bump
-      # SHA like the push-triggered run does, and auto-merge fires once
-      # the `verify` check passes.
-      #
-      # Approving a workflow run is separate from the anti-loop rule
-      # and IS allowed for GITHUB_TOKEN with `actions: write`.
-      #
-      # Poll for up to ~60s in case the pull_request event hasn't
-      # created the run yet (typically appears within 1–2s).
-      - name: Auto-approve the pr-checks run for the release PR
+      # The main ruleset requires a passing `verify` context on the head
+      # SHA. Post it from here: this job ran exactly that verification on
+      # the bump commit above, and the check links back to this run.
+      # pr-checks.yml's own run for the PR exists only in an
+      # approval-required state and is redundant with this check.
+      - name: Post verify check run on the bump SHA
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUMP_SHA: ${{ steps.bump.outputs.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/check-runs" \
+            -f name=verify \
+            -f head_sha="$BUMP_SHA" \
+            -f status=completed \
+            -f conclusion=success \
+            -f details_url="$RUN_URL" \
+            -f "output[title]=verify" \
+            -f "output[summary]=npm run check, npm run build and the Playwright suite passed on ${BUMP_SHA} in release.yaml run ${RUN_URL}"
+
+      # GitHub finishes the squash-merge once the check above is
+      # recorded; gh merges immediately if the PR is already mergeable.
+      # This workflow exits before the merge; check the PR for the merge
+      # event.
+      - name: Enable auto-merge
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BUMP_BRANCH: ${{ steps.bump_branch.outputs.name }}
-        run: |
-          for attempt in $(seq 1 30); do
-            RUN_ID=$(gh run list \
-              --workflow=pr-checks.yml \
-              --branch="$BUMP_BRANCH" \
-              --limit=1 \
-              --json databaseId,conclusion,status \
-              --jq '.[] | select(.conclusion == "action_required") | .databaseId')
-            if [ -n "$RUN_ID" ]; then
-              echo "Approving pr-checks run $RUN_ID"
-              gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/approve" --method POST
-              exit 0
-            fi
-            echo "Attempt $attempt: no action_required pr-checks run yet, waiting…"
-            sleep 2
-          done
-          echo "::warning::No action_required pr-checks run appeared within timeout. PR will need manual approval." >&2
-          exit 0
+        run: gh pr merge "$BUMP_BRANCH" --squash --auto --delete-branch

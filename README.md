@@ -54,32 +54,49 @@ workflow. No magic on PR merges.
 - Pick the bump type (`patch` / `minor` / `major`)
 - Click **Run workflow**
 
-The `release.yaml` workflow does everything in one run:
+The `release.yaml` workflow does everything in one run, in this order:
 
 1. Checks out `main`, installs deps, and runs the same verification as
    the `verify` job in `pr-checks.yml`: `npm run check` (tsc, ESLint,
-   Prettier), `npm run build`, and the Playwright suite. Any failure
-   stops the run here, before anything is bumped, tagged, pushed or
-   published; the Playwright report is attached to the failed run.
-2. Creates a fresh `release-bump-<timestamp>` branch
-3. Runs `npm version <bump>` — bumps `package.json`, creates the
-   bump commit, tags it `vX.Y.Z`
-4. Rebuilds with the new version embedded
-5. Pushes the bump branch + tag (not to `main` — see below)
-6. Publishes to npm under dist-tag `next` via
+   Prettier), `npm run build`, and the Playwright suite.
+2. Creates a fresh `release-bump-<timestamp>` branch and runs
+   `npm version <bump>`: bumps `package.json` and `package-lock.json`,
+   creates the bump commit, tags it `vX.Y.Z`. Nothing is pushed yet.
+3. Rebuilds with the new version embedded and runs the verification
+   again on the bump commit, the exact commit about to be published.
+4. Publishes to npm under dist-tag `next` via
    [npm trusted publishing](https://docs.npmjs.com/trusted-publishers)
    (OIDC, no long-lived secret) with `--provenance` for supply-chain
-   attestation
-7. Opens a PR from the bump branch to `main` and queues auto-merge
+   attestation.
+5. Pushes the bump branch + tag (not to `main`, see below).
+6. Opens a PR from the bump branch to `main`, posts a `verify` check
+   run on the bump SHA through the Checks API (the run just verified
+   that commit in step 3; the check links back to the run), and
+   queues auto-merge.
 
 The npm trusted-publisher entry for `@thefittingroom/shop-ui` must
 point at `release.yaml`.
 
-**What blocks publication:** any failure in step 1. The published
+**What blocks publication:** any failure in steps 1 to 3. The run
+stops there, before anything is published, pushed or opened, and the
+Playwright report is attached to the failed run. The published
 tarball's provenance (shown on the package's npm page and verified by
-`npm audit signatures`) names the `main` commit the run started from,
-which is the commit that passed step 1. The `vX.Y.Z` tag points at the
-bump commit, that commit plus the version change.
+`npm audit signatures`) names the `main` commit the run started from;
+the bump commit it was built from is that commit plus the version
+change, tagged `vX.Y.Z`.
+
+**If publish succeeds but the push or PR fails:** the version on npm
+is the verified one, so only the bookkeeping is missing. Recreate the
+bump from a clean `main` checkout and open the PR by hand;
+`pr-checks.yml` runs `verify` on it like any other PR:
+
+```sh
+git checkout main && git pull origin main
+git checkout -b release-bump-manual
+npm version <patch|minor|major>   # same version and vX.Y.Z tag the run published
+git push origin release-bump-manual --follow-tags
+gh pr create --base main --head release-bump-manual --title "chore: release vX.Y.Z"
+```
 
 **Demo storefront visibility:** the `shopify` theme's `tfr.js` loads
 the SDK from `unpkg.com/@thefittingroom/shop-ui@5` — a semver range
@@ -93,16 +110,13 @@ publish and GitHub merge are independent steps.
 > **Ruleset + auto-merge note:** `main` is protected by a repository
 > ruleset requiring PRs + a passing `verify` check. `release.yaml`
 > works around this by pushing to a `release-bump-*` branch and
-> opening an auto-merge PR. The branch push triggers `pr-checks.yml`,
-> whose `verify` job runs the full check + build + e2e suite on the
-> bump SHA; auto-merge fires once that check passes. Verification
-> therefore runs twice per release: on `main`'s SHA before the bump
-> (gating the publish) and on the bump SHA (gating the merge). If the
-> second run fails, the PR stays open while the version is already on
-> npm; the bump commit differs from the verified one only by the
-> version string, so rerun the failed check before suspecting the
-> code. See `AGENTS.md` → "Ruleset + auto-merge coupling" for the
-> full rationale.
+> opening an auto-merge PR. A branch push made with `GITHUB_TOKEN`
+> never triggers `pr-checks.yml`, and the PR's own run is only created
+> in an approval-required state (GitHub's anti-loop rule), so the
+> workflow posts the `verify` check run itself, on the bump SHA it has
+> just verified in step 3, and auto-merge fires on that check. See
+> `AGENTS.md` → "Ruleset + auto-merge coupling" for the full
+> rationale.
 
 **2. (Optional) Promote to `latest` dist-tag.**
 
