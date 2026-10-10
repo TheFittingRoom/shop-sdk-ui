@@ -99,13 +99,12 @@ gh pr create --base main --head release-bump-manual --title "chore: release vX.Y
 ```
 
 **Demo storefront visibility:** the `shopify` theme's `tfr.js` loads
-the SDK from `unpkg.com/@thefittingroom/shop-ui@5` — a semver range
-that unpkg (and jsdelivr) resolves to the highest matching published
-5.x version regardless of dist-tag. Publishing under `--tag next` is
-therefore enough for demo to pick up the new version on the next
-reload; no `latest` promotion is required for that path. Demo picks
-up the new version even before the auto-merge PR completes — npm
-publish and GitHub merge are independent steps.
+the SDK from `unpkg.com/@thefittingroom/shop-ui@<exact version>`, pinned
+in its `PROD_URL`. Publishing a version does not change the store.
+Releasing to the store is a PR on the `shopify` `development` branch
+that bumps that pin (the live store syncs from that branch); versions
+published under `next` are available for the bump without a `latest`
+promotion.
 
 > **Ruleset + auto-merge note:** `main` is protected by a repository
 > ruleset requiring PRs + a passing `verify` check. `release.yaml`
@@ -152,15 +151,13 @@ one. Which pointer depends on how the consumer loads the SDK:
   move `latest` back onto the last good version with
   `npm run promote-latest -- <previous version>`. No new publish is
   needed.
-- Consumers on `next` or on the semver range (`@5`, which the demo
-  storefront's `tfr.js` uses): these resolve to the highest published
-  5.x regardless of dist-tag, so a bad version can only be superseded.
-  Fix on `main` and run the release workflow again; the new version
-  wins the range on the next reload. To take demo off the bad version
-  before the fix lands, pin `PROD_URL` in the `shopify` theme's
-  `tfr.js` to `@thefittingroom/shop-ui@<previous version>` and push to
-  `origin/development` (the live demo store syncs from it), then
-  restore the range once the fixed version is published.
+- Consumers on `next` or on a semver range: these resolve to the highest
+  published version regardless of dist-tag, so a bad version can only
+  be superseded. Fix on `main` and run the release workflow again.
+- The demo store is pinned to an exact version in the `shopify` theme's
+  `tfr.js`, so a publish never reaches it on its own. To roll the store
+  back, bump `PROD_URL` to the previous version and push to
+  `origin/development`; to move it forward, bump it to the fixed one.
 
 ## Environments
 
