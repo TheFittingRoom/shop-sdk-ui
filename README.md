@@ -56,7 +56,11 @@ workflow. No magic on PR merges.
 
 The `release.yaml` workflow does everything in one run:
 
-1. Checks out `main`, installs deps, builds (verifies it compiles)
+1. Checks out `main`, installs deps, and runs the same verification as
+   the `verify` job in `pr-checks.yml`: `npm run check` (tsc, ESLint,
+   Prettier), `npm run build`, and the Playwright suite. Any failure
+   stops the run here, before anything is bumped, tagged, pushed or
+   published; the Playwright report is attached to the failed run.
 2. Creates a fresh `release-bump-<timestamp>` branch
 3. Runs `npm version <bump>` — bumps `package.json`, creates the
    bump commit, tags it `vX.Y.Z`
@@ -71,6 +75,12 @@ The `release.yaml` workflow does everything in one run:
 The npm trusted-publisher entry for `@thefittingroom/shop-ui` must
 point at `release.yaml`.
 
+**What blocks publication:** any failure in step 1. The published
+tarball's provenance (shown on the package's npm page and verified by
+`npm audit signatures`) names the `main` commit the run started from,
+which is the commit that passed step 1. The `vX.Y.Z` tag points at the
+bump commit, that commit plus the version change.
+
 **Demo storefront visibility:** the `shopify` theme's `tfr.js` loads
 the SDK from `unpkg.com/@thefittingroom/shop-ui@5` — a semver range
 that unpkg (and jsdelivr) resolves to the highest matching published
@@ -83,13 +93,16 @@ publish and GitHub merge are independent steps.
 > **Ruleset + auto-merge note:** `main` is protected by a repository
 > ruleset requiring PRs + a passing `verify` check. `release.yaml`
 > works around this by pushing to a `release-bump-*` branch and
-> opening an auto-merge PR. The `verify` job in `pr-checks.yml` is
-> `if:`-skipped for `release-bump-*` branches (safe — the bump only
-> touches `package.json` + `package-lock.json` + a `dist/` rebuild
-> whose only diff is the embedded version), so the required-check
-> reports success immediately and auto-merge fires within seconds
-> of the branch push. See `AGENTS.md` → "Ruleset + auto-merge
-> coupling" for the full rationale.
+> opening an auto-merge PR. The branch push triggers `pr-checks.yml`,
+> whose `verify` job runs the full check + build + e2e suite on the
+> bump SHA; auto-merge fires once that check passes. Verification
+> therefore runs twice per release: on `main`'s SHA before the bump
+> (gating the publish) and on the bump SHA (gating the merge). If the
+> second run fails, the PR stays open while the version is already on
+> npm; the bump commit differs from the verified one only by the
+> version string, so rerun the failed check before suspecting the
+> code. See `AGENTS.md` → "Ruleset + auto-merge coupling" for the
+> full rationale.
 
 **2. (Optional) Promote to `latest` dist-tag.**
 
@@ -113,6 +126,27 @@ publish rights to `@thefittingroom/shop-ui` (`npm whoami` to check;
 To promote a specific older version: `npm run promote-latest -- 5.0.13`.
 
 **3. Verify** with `npm dist-tag ls @thefittingroom/shop-ui`.
+
+**4. Roll back a bad release.**
+
+Treat published versions as permanent: npm's unpublish window is
+narrow and unpkg/jsdelivr keep their copy regardless. Recovery means
+moving pointers and publishing a fixed version, not deleting the bad
+one. Which pointer depends on how the consumer loads the SDK:
+
+- Consumers on `latest` (unpinned `npm install`, `@latest` CDN URLs):
+  move `latest` back onto the last good version with
+  `npm run promote-latest -- <previous version>`. No new publish is
+  needed.
+- Consumers on `next` or on the semver range (`@5`, which the demo
+  storefront's `tfr.js` uses): these resolve to the highest published
+  5.x regardless of dist-tag, so a bad version can only be superseded.
+  Fix on `main` and run the release workflow again; the new version
+  wins the range on the next reload. To take demo off the bad version
+  before the fix lands, pin `PROD_URL` in the `shopify` theme's
+  `tfr.js` to `@thefittingroom/shop-ui@<previous version>` and push to
+  `origin/development` (the live demo store syncs from it), then
+  restore the range once the fixed version is published.
 
 ## Local development
 

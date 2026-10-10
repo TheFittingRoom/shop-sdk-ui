@@ -39,13 +39,15 @@ README.md for the full walkthrough. Summary:
 
 1. **Publish a release: trigger `.github/workflows/release.yaml`
    manually.** Actions tab → Release → Run workflow → pick patch /
-   minor / major. The workflow: checks out main, builds (pre-bump
-   verification), runs `npm version` on a fresh `release-bump-<ts>`
-   branch, rebuilds with the new version, pushes the branch + tag,
-   publishes to npm under dist-tag `next` via OIDC trusted publishing
-   with `--provenance`, then opens an auto-merge PR to main. GitHub
-   completes the squash-merge seconds later once `pr-checks.yml`
-   posts the (skipped) `verify` check-run on the bump SHA. The npm
+   minor / major. The workflow: checks out main, runs the same
+   `check` + `build` + e2e verification as `pr-checks.yml` (any
+   failure stops the run before the bump, so nothing is tagged,
+   pushed or published), runs `npm version` on a fresh
+   `release-bump-<ts>` branch, rebuilds with the new version, pushes
+   the branch + tag, publishes to npm under dist-tag `next` via OIDC
+   trusted publishing with `--provenance`, then opens an auto-merge
+   PR to main. GitHub completes the squash-merge once `pr-checks.yml`
+   runs `verify` on the bump SHA and it passes. The npm
    trusted-publisher entry for `@thefittingroom/shop-ui` **must
    point at `release.yaml`**.
 
@@ -95,17 +97,16 @@ integration as a bypass actor). Instead:
   and approves it via `POST /actions/runs/{id}/approve` (needs
   `actions: write`). Approval is a separate authorization from the
   anti-loop rule and is allowed for GITHUB_TOKEN.
-- Once approved, the `verify` job hits its `if:` guard, skips, and
-  posts a `skipped` check-run. Job-level skip posts a check-run;
-  workflow-level `paths-ignore` would post none, blocking
-  indefinitely. `skipped` counts as SUCCESS for
-  required-status-checks, and auto-merge fires.
+- Once approved, the run executes `verify` on the bump SHA, as the
+  push-triggered run already does. Auto-merge fires once the
+  `verify` check passes.
 
-The `verify` skip is safe: the release bump only touches
-`package.json` + `package-lock.json` + a `dist/` rebuild whose only
-difference is the embedded version string — nothing that lint, tsc,
-or tests would fail on differently than the pre-bump verify that
-`release.yaml` already ran.
+`verify` must not be skipped for `release-bump-*` branches. A
+job-level `if:` posts a `skipped` check-run, which GitHub counts as
+SUCCESS for required-status-checks, so any branch-name exemption lets
+an unverified commit merge. The publish is gated by the pre-bump
+verification in `release.yaml`; the second run on the bump SHA gates
+the merge and only differs from the first by the version string.
 
 If the org later grants the repo the ability to reference the
 GitHub Actions integration as a bypass actor at ruleset creation
