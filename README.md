@@ -185,10 +185,10 @@ verifies tokens against `fittingroom-prod`.
 Run the SDK against the local backend stack from
 [`local-deployment`](https://github.com/TheFittingRoom/local-deployment).
 
-1. Bring up the local stack (Postgres, Redis, MinIO, `tfr-backend`):
+1. Bring up the local stack (Postgres, Redis, s3proxy, `tfr-backend`):
 
    ```sh
-   cd /path/to/local-deployment && docker compose up -d
+   cd /path/to/local-deployment && docker compose -f docker-compose.nosimvis.yml up -d
    ```
 
 2. In this repo, start the watcher and dev server:
