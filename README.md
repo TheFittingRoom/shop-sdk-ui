@@ -151,9 +151,13 @@ one. Which pointer depends on how the consumer loads the SDK:
   move `latest` back onto the last good version with
   `npm run promote-latest -- <previous version>`. No new publish is
   needed.
-- Consumers on `next` or on a semver range: these resolve to the highest
-  published version regardless of dist-tag, so a bad version can only
-  be superseded. Fix on `main` and run the release workflow again.
+- Consumers on the `next` dist-tag (`@next` CDN URLs or
+  `npm install @thefittingroom/shop-ui@next`): `next` points at the last
+  version the workflow published, so a bad version can only be superseded.
+  Fix on `main` and run the release workflow again.
+- Consumers on a semver range (an `@5` CDN URL or a `^5` install): these
+  resolve to the highest published version regardless of dist-tag, so the
+  same applies; only a newer publish moves them.
 - The demo store is pinned to an exact version in the `shopify` theme's
   `tfr.js`, so a publish never reaches it on its own. To roll the store
   back, bump `PROD_URL` to the previous version and push to
@@ -170,8 +174,8 @@ change the table and the test together.
 
 | `environment` | API host | Firebase project | Asset base | Release channel |
 |---|---|---|---|---|
-| `development` | `tfr.dev.thefittingroom.xyz` | `fittingroom-dev-5d248` | `objects.infra.thefittingroom.xyz/tfr-assets-dev` | Published 5.x via `unpkg.com/@thefittingroom/shop-ui@5` (`next` is enough; `latest` is optional) |
-| `demo` | `demo.thefittingroom.xyz/api` | `fittingroom-dev-5d248` | `demo.thefittingroom.xyz/s3/tfr-assets-dev` | Same published 5.x, selected with `?tfr-source=demo` |
+| `development` | `tfr.dev.thefittingroom.xyz` | `fittingroom-dev-5d248` | `objects.infra.thefittingroom.xyz/tfr-assets-dev` | The exact version pinned in the theme's `PROD_URL` (`unpkg.com/@thefittingroom/shop-ui@<exact version>`); a `next` publish is eligible for the pin bump, `latest` is optional |
+| `demo` | `demo.thefittingroom.xyz/api` | `fittingroom-dev-5d248` | `demo.thefittingroom.xyz/s3/tfr-assets-dev` | The same pinned version, selected with `?tfr-source=demo` |
 | `local` | `localhost:8080` | `fittingroom-dev-5d248` | `localhost:9000/tfr-assets-dev` | Local `dist/index.js` from `npm run watch-serve`, selected with `?tfr-source=local` |
 | `production` | none yet | | | `init` fails with "not available yet"; use `development` |
 
