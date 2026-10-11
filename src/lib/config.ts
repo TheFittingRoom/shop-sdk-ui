@@ -86,12 +86,11 @@ const CONFIGS: Record<Exclude<EnvName, EnvName.PRODUCTION>, Config> = {
       vtoTimeoutMs: 120000,
       vtoPrefetchDelayMs: 3000,
     },
-    // Browser-facing reads of the tfr-assets-dev bucket. These moved off
-    // `assets.dev.thefittingroom.xyz` when the buckets migrated to the
-    // self-hosted store: that host is no longer routed (it answers with the
-    // ingress default certificate and 404s every key). The bucket name is
-    // part of the base here because the store addresses buckets path-style.
-    // Anonymous GET is allowed; listing is not.
+    // Browser-facing reads of the tfr-assets-dev bucket, addressed path-style
+    // on the self-hosted store, so the bucket name is part of the base.
+    // `assets.dev.thefittingroom.xyz` serves the same public bucket again;
+    // this profile keeps the store host. Anonymous GET is allowed; listing is
+    // not.
     asset: {
       baseUrl: 'https://objects.infra.thefittingroom.xyz/tfr-assets-dev/shop-sdk/assets/v5',
     },
