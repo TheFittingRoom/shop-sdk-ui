@@ -339,14 +339,16 @@ export async function _init() {
     const seedDocs: Record<string, Record<string, Record<string, unknown>>> = {
       ...(testHooks.firestore?.docs ?? {}),
     }
-    if (testHooks.auth?.profile) {
-      seedDocs.users = {
-        ...(seedDocs.users ?? {}),
-        [testHooks.auth.uid]: testHooks.auth.profile as unknown as Record<string, unknown>,
+    for (const account of [testHooks.auth, ...(testHooks.accounts ?? [])]) {
+      if (account?.profile) {
+        seedDocs.users = {
+          ...(seedDocs.users ?? {}),
+          [account.uid]: account.profile as unknown as Record<string, unknown>,
+        }
       }
     }
     firestoreManager = new MockFirestoreManager(seedDocs)
-    authManager = new MockAuthManager(testHooks.auth ?? null, firestoreManager)
+    authManager = new MockAuthManager(testHooks.auth ?? null, firestoreManager, testHooks.accounts)
     logger.logDebug('Firebase initialized in MOCK mode (testHooks present)')
     return
   }

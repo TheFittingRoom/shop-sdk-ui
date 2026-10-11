@@ -3,10 +3,12 @@ import { expect, test } from '@playwright/test'
 import { bootSdk } from './helpers/boot'
 import {
   TEST_BRAND_ID,
+  TEST_ID_TOKEN,
   TEST_PRODUCT_EXTERNAL_ID,
   TEST_PRODUCT_HANDLE,
   TEST_SEEDED_STYLE,
   TEST_UID,
+  TEST_USER_PROFILE,
 } from './fixtures/seed'
 
 // Scheduling of the speculative VTO prefetches behind the selected outfit,
@@ -85,10 +87,26 @@ const SIZE_RECOMMENDATION = {
   fits: SIZES.map((size) => ({ size_id: sizeRow(size).id, measurement_location_fits: [] })),
 }
 
+const SECOND_ACCOUNT = {
+  uid: 'test-uid-2',
+  email: 'second@example.com',
+  idToken: 'mock-id-token-def456',
+  profile: {
+    ...TEST_USER_PROFILE,
+    full_name: 'Second Shopper',
+    avatar_frames: ['user-test-2/avatar-7/frames/image_0.png', 'user-test-2/avatar-7/frames/image_1.png'],
+  },
+}
+
+interface VtoPost {
+  composition: string
+  user: 'a' | 'b'
+}
+
 // Stands in for POST /v1/vto-compositions. Every request is recorded. A held
 // composition stays pending until release(); a failing one answers 500.
 class FakeVtoBackend {
-  readonly posts: { composition: string }[] = []
+  readonly posts: VtoPost[] = []
   private readonly held = new Set<string>()
   private readonly failing = new Set<string>()
   private readonly pending = new Map<string, (() => Promise<void>)[]>()
@@ -123,16 +141,17 @@ class FakeVtoBackend {
       .map((i) => i.colorway_size_asset_id)
       .sort((a, b) => a - b)
       .join('+')
-    this.posts.push({ composition })
-    // Frame paths carry the composition, so the test can tell from the <img>
-    // which response is on screen.
+    const user = request.headers()['authorization'] === `Bearer ${TEST_ID_TOKEN}` ? 'a' : 'b'
+    this.posts.push({ composition, user })
+    // Frame paths carry the composition and the user, so the test can tell
+    // from the <img> which response is on screen.
     const respond = () =>
       this.failing.has(composition)
         ? route.fulfill({ status: 500, json: { error: 'render failed' } })
         : route.fulfill({
             json: {
               token: `tok-${composition}`,
-              frames: [0, 1].map((i) => `user-test/avatar-1/vto-${composition}/frames/image_${i}.png`),
+              frames: [0, 1].map((i) => `user-${user}/avatar-1/vto-${composition}/frames/image_${i}.png`),
             },
           })
     if (this.held.has(composition)) {
@@ -143,7 +162,7 @@ class FakeVtoBackend {
   }
 }
 
-async function openQuickView(page: Page, backend: FakeVtoBackend) {
+async function openQuickView(page: Page, backend: FakeVtoBackend, accounts?: (typeof SECOND_ACCOUNT)[]) {
   await bootSdk(page, {
     currentProduct: PRODUCT,
     firestoreDocs: { styles: { 'style-1': TEST_SEEDED_STYLE } },
@@ -151,6 +170,7 @@ async function openQuickView(page: Page, backend: FakeVtoBackend) {
       sizeRecommendation: (route) => route.fulfill({ json: SIZE_RECOMMENDATION }),
       vtoComposition: backend.route,
     },
+    accounts,
   })
   await page.getByRole('button', { name: /quick view/i }).click()
 }
@@ -398,4 +418,29 @@ test('fitting room: emptying the outfit drops the alternates queued behind it', 
   await backend.release(M_BLUE)
   await page.waitForTimeout(PREFETCH_DELAY_MS + 1500)
   expect(backend.compositions()).toEqual([M_BLUE])
+})
+
+test('a render still in flight for one shopper is not handed to the next one to sign in', async ({ page }) => {
+  const backend = new FakeVtoBackend()
+  backend.hold(M_BLUE)
+  await openQuickView(page, backend, [SECOND_ACCOUNT])
+  await expect.poll(() => backend.posts).toEqual([{ composition: M_BLUE, user: 'a' }])
+
+  await page.getByRole('dialog').getByText('Sign out').click()
+  await page.getByRole('button', { name: /quick view/i }).click()
+  await page.getByText('Sign in.', { exact: true }).click()
+  await page.getByPlaceholder('Email').fill(SECOND_ACCOUNT.email)
+  await page.getByPlaceholder('Password').fill('second-password')
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+
+  // Same outfit, different shopper: their own POST, not the first one's.
+  await expect
+    .poll(() => backend.posts)
+    .toEqual([
+      { composition: M_BLUE, user: 'a' },
+      { composition: M_BLUE, user: 'b' },
+    ])
+
+  await backend.release(M_BLUE)
+  await expect.poll(() => shownSrc(page)).toContain('/user-b/')
 })

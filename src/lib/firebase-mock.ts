@@ -31,6 +31,9 @@ export interface TestHooks {
     idToken: string
     profile?: UserProfile
   }
+  // Accounts the sign-in form can switch to: MockAuthManager.login matches on
+  // email. Profiles are seeded into the `users` collection like auth.profile.
+  accounts?: NonNullable<TestHooks['auth']>[]
   firestore?: {
     docs?: Record<string, Record<string, Record<string, unknown>>>
   }
@@ -217,7 +220,8 @@ function makeMockAuthUser(seed: MockAuthSeed): AuthUser {
 }
 
 export class MockAuthManager implements IAuthManager {
-  private readonly seed: MockAuthSeed | null
+  private seed: MockAuthSeed | null
+  private readonly accounts: MockAuthSeed[]
   private currentUser: AuthUser | null
   private userProfile: UserProfile | null = null
   private readonly firestore: IFirestoreManager
@@ -225,8 +229,9 @@ export class MockAuthManager implements IAuthManager {
   private readonly userProfileChangeListeners: Set<(userProfile: UserProfile | null) => void> = new Set()
   private profileUnsub: Unsubscribe | null = null
 
-  constructor(seed: MockAuthSeed | null, firestore: IFirestoreManager) {
+  constructor(seed: MockAuthSeed | null, firestore: IFirestoreManager, accounts: MockAuthSeed[] = []) {
     this.seed = seed
+    this.accounts = accounts
     this.currentUser = seed ? makeMockAuthUser(seed) : null
     this.firestore = firestore
 
@@ -275,8 +280,16 @@ export class MockAuthManager implements IAuthManager {
     return this.userProfile
   }
 
-  async login(_email: string, _password: string): Promise<AuthUser> {
-    throw new Error('MockAuthManager.login is not supported — seed the user via InitParams.testHooks.auth')
+  async login(email: string, _password: string): Promise<AuthUser> {
+    const account = this.accounts.find((a) => a.email === email)
+    if (!account) {
+      throw new Error(`MockAuthManager.login: no account for ${email} in InitParams.testHooks.accounts`)
+    }
+    const user = makeMockAuthUser(account)
+    this.seed = account
+    this.currentUser = user
+    this.authStateChangeListeners.forEach((cb) => cb(user))
+    return user
   }
 
   async logout(): Promise<void> {

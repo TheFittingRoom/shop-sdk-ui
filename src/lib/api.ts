@@ -207,13 +207,17 @@ export type VtoCompositionItem = {
   untucked?: boolean
 }
 
-// In-flight VTO requests keyed by canonical composition key. A second
+// In-flight VTO requests keyed by user + canonical composition key. A second
 // identical requestVto() call while one is still in flight returns the
 // existing promise instead of issuing another POST — a strong guarantee
 // that the SDK never has duplicate in-flight VTO requests. Living in the
 // API layer means the guarantee holds across every caller (both VTO
 // overlays). The entry is removed once the request settles, so a later
 // retry can re-issue.
+//
+// The user is part of the key because the backend renders against the
+// caller's avatar: a request still in flight when a shopper signs out must
+// not be handed to whoever signs in next.
 const inFlightVtoRequests = new Map<string, Promise<VtoCompositionResponse>>()
 
 // canonicalVtoKey builds a stable key from the request items, sorted by
@@ -235,7 +239,7 @@ function canonicalVtoKey(items: VtoCompositionItem[]): string {
 // Identical concurrent calls are deduped: while a composition's request is
 // in flight, callers share one promise and one POST.
 export function requestVto(items: VtoCompositionItem[]): Promise<VtoCompositionResponse> {
-  const key = canonicalVtoKey(items)
+  const key = `${getAuthManager().getAuthUser()?.uid ?? ''}|${canonicalVtoKey(items)}`
   const existing = inFlightVtoRequests.get(key)
   if (existing) {
     return existing
