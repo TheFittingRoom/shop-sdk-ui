@@ -30,7 +30,7 @@ and renders a `<tfr-widget>` custom element.
   `npm run build` cleans + builds. CI runs `check` + `build`. ESLint ignores
   `src/api/gen/` (tygo-generated). Non-null assertions and `any` are errors;
   control statements must be braced; `react-hooks/exhaustive-deps` is a warning.
-- Consumers load the SDK via `<script type="module">` from a CDN URL backed by the npm package `@thefittingroom/shop-ui`. The `shopify` theme's `tfr.js` uses `unpkg.com/@thefittingroom/shop-ui@5` — a **semver range**, resolved by unpkg/jsdelivr to the highest matching published 5.x version regardless of dist-tag. **Consequence: publishing under `--tag next` is enough for the demo storefront to pick it up on the next reload; no `latest` promotion is required for that path.**
+- Consumers load the SDK via `<script type="module">` from a CDN URL backed by the npm package `@thefittingroom/shop-ui`. The `shopify` theme's `tfr.js` pins `unpkg.com/@thefittingroom/shop-ui@<exact version>` in its `PROD_URL`. **Consequence: publishing, under any dist-tag, never changes the store; a store release is a PR on the theme's `development` branch that bumps that pin.**
 
 ### Release flow
 
@@ -52,11 +52,9 @@ README.md for the full walkthrough. Summary:
    (README "Release process"). The npm trusted-publisher entry for
    `@thefittingroom/shop-ui` **must point at `release.yaml`**.
 
-   The published version is immediately live on the demo storefront —
-   `tfr.js`'s `unpkg.com/@thefittingroom/shop-ui@5` URL resolves to the
-   highest matching 5.x version regardless of dist-tag. Demo picks up
-   the new version even before the auto-merge PR completes (npm
-   publish and GitHub merge are independent).
+   The published version is not live on the demo storefront until the
+   theme's `PROD_URL` pin is bumped to it by a PR on `development`;
+   npm publish and that bump are independent steps.
 
 2. **(Optional) Promote to `latest` dist-tag.** Only matters for
    consumers who install without a version pin (`npm install
