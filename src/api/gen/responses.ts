@@ -281,6 +281,29 @@ export interface MeasurementLocationGroup {
 }
 
 //////////
+// source: service_api_key.go
+
+/**
+ * ServiceAPIKey is one key accepted by the signed-request service routes
+ * (/v1/service/...), as returned by the /v1/service-api-keys endpoints.
+ */
+export interface ServiceAPIKey {
+  id: string;
+  name: string;
+  description: string;
+  public_key: string;
+  is_active: boolean;
+  expires_at?: any /* time.Time */;
+  last_used_at?: any /* time.Time */;
+  created_at: any /* time.Time */;
+  /**
+   * PrivateKey is present only in the response to the create call that
+   * generated the pair. It is not stored and cannot be retrieved again.
+   */
+  private_key?: string;
+}
+
+//////////
 // source: set_template.go
 
 /**

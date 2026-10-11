@@ -137,6 +137,42 @@ export interface Invitation {
 }
 
 //////////
+// source: service_api_key.go
+
+/**
+ * ServiceAPIKeyCreate is the body of POST /v1/service-api-keys.
+ */
+export interface ServiceAPIKeyCreate {
+  name: string;
+  description: string;
+  /**
+   * ExpiresAt is optional; omitted means the key never expires.
+   */
+  expires_at?: any /* time.Time */;
+  /**
+   * PublicKey is optional. Omit it to have the backend generate the key
+   * pair and return the private key once; supply a PEM RSA public key to
+   * register a pair generated elsewhere.
+   */
+  public_key: string;
+}
+/**
+ * ServiceAPIKeyUpdate is the body of PUT /v1/service-api-keys/:id. Only the
+ * fields present change.
+ */
+export interface ServiceAPIKeyUpdate {
+  name?: string;
+  description?: string;
+  is_active?: boolean;
+  /**
+   * ExpiresAt sets a new expiry; ClearExpiresAt removes it. JSON null and
+   * "omitted" are indistinguishable for ExpiresAt, hence the explicit flag.
+   */
+  expires_at?: any /* time.Time */;
+  clear_expires_at: boolean;
+}
+
+//////////
 // source: set_size_mapping.go
 
 /**
