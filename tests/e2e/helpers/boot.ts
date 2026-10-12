@@ -22,7 +22,8 @@ export interface BootSdkOptions {
   productCatalog?: (typeof TEST_CURRENT_PRODUCT)[]
   loggedIn?: boolean // default true (seeds TestHooks.auth with the standard test user)
   // Further accounts the sign-in form can sign in to (TestHooks.accounts).
-  accounts?: { uid: string; email: string; idToken: string; profile: FirestoreUser }[]
+  // An account without a profile has none until the test writes users/<uid>.
+  accounts?: { uid: string; email: string; idToken: string; profile?: FirestoreUser }[]
   apiOverrides?: ApiMockOverrides
   // Pre-seeded firestore documents. Keyed by collection → docId → data. The
   // MockFirestoreManager's queryDocs returns every doc in the collection

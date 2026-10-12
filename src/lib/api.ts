@@ -220,17 +220,24 @@ let vtoOwnerAvatar = ''
 
 function updateVtoOwner(profile: UserProfile | null) {
   const uid = getAuthManager().getAuthUser()?.uid ?? null
-  // The first frame path names the avatar (user-<uid>/avatar-<id>/...).
-  const avatar = profile?.avatar_frames?.[0] ?? ''
+  // The first frame path names the avatar and its user
+  // (user-<uid>/avatar-<id>/...). A new uid can arrive while the store still
+  // holds the previous user's profile, so only this user's frames count.
+  const frame = profile?.avatar_frames?.[0] ?? ''
+  const avatar = uid && frame.startsWith(`user-${uid}/`) ? frame : ''
   if (uid !== vtoOwnerUid) {
     vtoOwnerUid = uid
     vtoOwnerAvatar = avatar
     vtoOwnerGeneration += 1
   } else if (avatar && avatar !== vtoOwnerAvatar) {
-    // An empty frame set is not a new avatar: the avatar sync rewrites the
-    // user doc first and adds avatar_frames back after.
+    // Only replacing one avatar with another is a new owner. The user's first
+    // frames to arrive are the avatar they already had, and an empty frame
+    // set is passing: the avatar sync rewrites the user doc first and adds
+    // avatar_frames back after.
+    if (vtoOwnerAvatar) {
+      vtoOwnerGeneration += 1
+    }
     vtoOwnerAvatar = avatar
-    vtoOwnerGeneration += 1
   }
 }
 

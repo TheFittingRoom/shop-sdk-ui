@@ -1,5 +1,6 @@
 import type { Page, Route } from '@playwright/test'
 import { expect, test } from '@playwright/test'
+import type { BootSdkOptions } from './helpers/boot'
 import { bootSdk } from './helpers/boot'
 import {
   TEST_BRAND_ID,
@@ -94,7 +95,7 @@ const SECOND_ACCOUNT = {
   profile: {
     ...TEST_USER_PROFILE,
     full_name: 'Second Shopper',
-    avatar_frames: ['user-test-2/avatar-7/frames/image_0.png', 'user-test-2/avatar-7/frames/image_1.png'],
+    avatar_frames: ['user-test-uid-2/avatar-7/frames/image_0.jpg', 'user-test-uid-2/avatar-7/frames/image_1.jpg'],
   },
 }
 
@@ -140,8 +141,8 @@ class FakeVtoBackend {
     return this.posts.map((p) => p.composition)
   }
 
-  count(composition: string): number {
-    return this.posts.filter((p) => p.composition === composition).length
+  count(composition: string, user?: VtoPost['user']): number {
+    return this.posts.filter((p) => p.composition === composition && (!user || p.user === user)).length
   }
 
   readonly route = async (route: Route) => {
@@ -173,7 +174,7 @@ class FakeVtoBackend {
   }
 }
 
-async function openQuickView(page: Page, backend: FakeVtoBackend, accounts?: (typeof SECOND_ACCOUNT)[]) {
+async function openQuickView(page: Page, backend: FakeVtoBackend, accounts?: BootSdkOptions['accounts']) {
   await bootSdk(page, {
     currentProduct: PRODUCT,
     firestoreDocs: { styles: { 'style-1': TEST_SEEDED_STYLE } },
@@ -251,13 +252,13 @@ function signInWithoutClosing(page: Page, email: string) {
   }, email)
 }
 
-function writeUserDoc(page: Page, data: unknown, merge: boolean) {
+function writeUserDoc(page: Page, uid: string, data: unknown, merge: boolean) {
   return page.evaluate(
     async ({ uid, data, merge }) => {
       const { firestore } = (window as unknown as { __TFR_TEST_MOCKS__: TestMocks }).__TFR_TEST_MOCKS__
       await (merge ? firestore.mergeDocData('users', uid, data) : firestore.setDocData('users', uid, data))
     },
-    { uid: TEST_UID, data, merge },
+    { uid, data, merge },
   )
 }
 
@@ -514,14 +515,15 @@ test('a new avatar while quick view stays open posts again and stops showing the
   backend.hold(M_BLUE)
   // The avatar sync rewrites the user doc, then adds the new frames back.
   const { avatar_frames: _oldFrames, ...withoutFrames } = TEST_USER_PROFILE
-  await writeUserDoc(page, withoutFrames, false)
+  await writeUserDoc(page, TEST_UID, withoutFrames, false)
   await page.waitForTimeout(500)
   expect(backend.count(M_BLUE), 'the doc without frames is not a new avatar').toBe(1)
   expect(await shownSrc(page)).toContain('/avatar-1/')
 
   await writeUserDoc(
     page,
-    { avatar_frames: ['user-test/avatar-2/frames/image_0.png', 'user-test/avatar-2/frames/image_1.png'] },
+    TEST_UID,
+    { avatar_frames: [`user-${TEST_UID}/avatar-2/frames/image_0.jpg`, `user-${TEST_UID}/avatar-2/frames/image_1.jpg`] },
     true,
   )
   await expect.poll(() => backend.count(M_BLUE)).toBe(2)
@@ -529,4 +531,25 @@ test('a new avatar while quick view stays open posts again and stops showing the
 
   await backend.release(M_BLUE)
   await expect.poll(() => shownSrc(page)).toContain('/avatar-2/')
+})
+
+test('a user switch while the new profile is still on its way posts once for the new user', async ({ page }) => {
+  const backend = new FakeVtoBackend()
+  // No profile for the second account until the test writes it, so the
+  // switch happens with the first shopper's profile still in the store.
+  await openQuickView(page, backend, [{ ...SECOND_ACCOUNT, profile: undefined }])
+  await expect.poll(() => shownSrc(page)).toContain('/user-a/')
+
+  backend.hold(M_BLUE)
+  await signInWithoutClosing(page, SECOND_ACCOUNT.email)
+  await expect.poll(() => backend.count(M_BLUE, 'b')).toBe(1)
+  expect(await shownSrc(page), "the first shopper's frames").toBeNull()
+
+  await writeUserDoc(page, SECOND_ACCOUNT.uid, SECOND_ACCOUNT.profile, false)
+  await page.waitForTimeout(1000)
+  expect(backend.count(M_BLUE, 'b'), 'the arriving profile is not another owner').toBe(1)
+
+  await backend.release(M_BLUE)
+  await expect.poll(() => shownSrc(page)).toContain('/user-b/')
+  expect(backend.count(M_BLUE, 'b')).toBe(1)
 })

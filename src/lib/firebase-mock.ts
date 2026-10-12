@@ -111,7 +111,9 @@ export interface IAuthManager {
 // ---------------------------------------------------------------------------
 // MockFirestoreManager — in-memory document store. Reads return seeded data;
 // `listenToDoc` calls back with the current value and again after every
-// write to that doc, like onSnapshot; writes update the in-memory map.
+// write to that doc, like onSnapshot; writes update the in-memory map. A doc
+// that doesn't exist yet first calls back when it is written, which is how a
+// test holds back a snapshot that a real listener would deliver later.
 // ---------------------------------------------------------------------------
 
 type DocMap = Record<string, Record<string, DocumentData>>
@@ -165,13 +167,17 @@ export class MockFirestoreManager implements IFirestoreManager {
     docId: string,
     callback: (data: T | null) => void,
   ): Unsubscribe {
-    // Fire synchronously with the current value, then on every write.
+    // Fire synchronously with the current value if there is one, then on
+    // every write.
     const path = `${collectionName}/${docId}`
     const listener = (data: DocumentData | null) => callback(data as T | null)
     const listeners = this.docListeners.get(path) ?? new Set()
     this.docListeners.set(path, listeners)
     listeners.add(listener)
-    listener(this.docs[collectionName]?.[docId] ?? null)
+    const doc = this.docs[collectionName]?.[docId]
+    if (doc) {
+      listener(doc)
+    }
     return () => {
       listeners.delete(listener)
     }
