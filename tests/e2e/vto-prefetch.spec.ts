@@ -107,9 +107,12 @@ interface VtoPost {
 // composition stays pending until release(); a failing one answers 500.
 class FakeVtoBackend {
   readonly posts: VtoPost[] = []
+  // The avatar renders are made against, as the backend uses the caller's
+  // latest one.
+  avatar = 'avatar-1'
   private readonly held = new Set<string>()
   private readonly failing = new Set<string>()
-  private readonly pending = new Map<string, (() => Promise<void>)[]>()
+  private readonly pending = new Map<string, { user: VtoPost['user']; respond: () => Promise<void> }[]>()
 
   hold(...compositions: string[]) {
     compositions.forEach((c) => this.held.add(c))
@@ -119,11 +122,18 @@ class FakeVtoBackend {
     compositions.forEach((c) => this.failing.add(c))
   }
 
-  async release(composition: string) {
-    this.held.delete(composition)
+  // With a user, answers only that user's pending requests and keeps holding.
+  async release(composition: string, user?: VtoPost['user']) {
+    if (!user) {
+      this.held.delete(composition)
+    }
     const waiting = this.pending.get(composition) ?? []
-    this.pending.delete(composition)
-    await Promise.all(waiting.map((respond) => respond()))
+    const answered = waiting.filter((w) => !user || w.user === user)
+    this.pending.set(
+      composition,
+      waiting.filter((w) => !answered.includes(w)),
+    )
+    await Promise.all(answered.map((w) => w.respond()))
   }
 
   compositions(): string[] {
@@ -143,19 +153,20 @@ class FakeVtoBackend {
       .join('+')
     const user = request.headers()['authorization'] === `Bearer ${TEST_ID_TOKEN}` ? 'a' : 'b'
     this.posts.push({ composition, user })
-    // Frame paths carry the composition and the user, so the test can tell
-    // from the <img> which response is on screen.
+    const avatar = this.avatar
+    // Frame paths carry the user, avatar and composition, so the test can
+    // tell from the <img> which response is on screen.
     const respond = () =>
       this.failing.has(composition)
         ? route.fulfill({ status: 500, json: { error: 'render failed' } })
         : route.fulfill({
             json: {
               token: `tok-${composition}`,
-              frames: [0, 1].map((i) => `user-${user}/avatar-1/vto-${composition}/frames/image_${i}.png`),
+              frames: [0, 1].map((i) => `user-${user}/${avatar}/vto-${composition}/frames/image_${i}.png`),
             },
           })
     if (this.held.has(composition)) {
-      this.pending.set(composition, [...(this.pending.get(composition) ?? []), respond])
+      this.pending.set(composition, [...(this.pending.get(composition) ?? []), { user, respond }])
       return
     }
     await respond()
@@ -222,6 +233,32 @@ async function shownSrc(page: Page): Promise<string | null> {
 
 async function shownComposition(page: Page): Promise<string | null> {
   return (await shownSrc(page))?.match(/\/vto-([^/]+)\//)?.[1] ?? null
+}
+
+// The Firebase mocks fixtures/host.html exposes, for changes made while an
+// overlay stays open.
+interface TestMocks {
+  auth: { login(email: string, password: string): Promise<unknown> }
+  firestore: {
+    setDocData(collection: string, docId: string, data: unknown): Promise<void>
+    mergeDocData(collection: string, docId: string, data: unknown): Promise<void>
+  }
+}
+
+function signInWithoutClosing(page: Page, email: string) {
+  return page.evaluate(async (email) => {
+    await (window as unknown as { __TFR_TEST_MOCKS__: TestMocks }).__TFR_TEST_MOCKS__.auth.login(email, 'password')
+  }, email)
+}
+
+function writeUserDoc(page: Page, data: unknown, merge: boolean) {
+  return page.evaluate(
+    async ({ uid, data, merge }) => {
+      const { firestore } = (window as unknown as { __TFR_TEST_MOCKS__: TestMocks }).__TFR_TEST_MOCKS__
+      await (merge ? firestore.mergeDocData('users', uid, data) : firestore.setDocData('users', uid, data))
+    },
+    { uid: TEST_UID, data, merge },
+  )
 }
 
 function sizeButton(page: Page, size: SizeLabel) {
@@ -443,4 +480,53 @@ test('a render still in flight for one shopper is not handed to the next one to 
 
   await backend.release(M_BLUE)
   await expect.poll(() => shownSrc(page)).toContain('/user-b/')
+})
+
+test('a user switch while quick view stays open posts for the new user and ignores the old reply', async ({ page }) => {
+  const backend = new FakeVtoBackend()
+  backend.hold(M_BLUE)
+  await openQuickView(page, backend, [SECOND_ACCOUNT])
+  await expect.poll(() => backend.posts).toEqual([{ composition: M_BLUE, user: 'a' }])
+
+  await signInWithoutClosing(page, SECOND_ACCOUNT.email)
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await expect
+    .poll(() => backend.posts)
+    .toEqual([
+      { composition: M_BLUE, user: 'a' },
+      { composition: M_BLUE, user: 'b' },
+    ])
+
+  await backend.release(M_BLUE, 'a')
+  await page.waitForTimeout(500)
+  expect(await shownSrc(page), "the first shopper's late render").toBeNull()
+
+  await backend.release(M_BLUE, 'b')
+  await expect.poll(() => shownSrc(page)).toContain('/user-b/')
+})
+
+test('a new avatar while quick view stays open posts again and stops showing the old frames', async ({ page }) => {
+  const backend = new FakeVtoBackend()
+  await openQuickView(page, backend)
+  await expect.poll(() => shownSrc(page)).toContain('/avatar-1/')
+
+  backend.avatar = 'avatar-2'
+  backend.hold(M_BLUE)
+  // The avatar sync rewrites the user doc, then adds the new frames back.
+  const { avatar_frames: _oldFrames, ...withoutFrames } = TEST_USER_PROFILE
+  await writeUserDoc(page, withoutFrames, false)
+  await page.waitForTimeout(500)
+  expect(backend.count(M_BLUE), 'the doc without frames is not a new avatar').toBe(1)
+  expect(await shownSrc(page)).toContain('/avatar-1/')
+
+  await writeUserDoc(
+    page,
+    { avatar_frames: ['user-test/avatar-2/frames/image_0.png', 'user-test/avatar-2/frames/image_1.png'] },
+    true,
+  )
+  await expect.poll(() => backend.count(M_BLUE)).toBe(2)
+  expect(await shownSrc(page), 'frames of the replaced avatar').toBeNull()
+
+  await backend.release(M_BLUE)
+  await expect.poll(() => shownSrc(page)).toContain('/avatar-2/')
 })

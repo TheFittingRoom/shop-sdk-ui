@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { VtoCompositionItem } from '@/lib/api'
-import { requestVto as apiRequestVto } from '@/lib/api'
+import { getVtoOwnerGeneration, requestVto as apiRequestVto } from '@/lib/api'
 import { getLogger } from '@/lib/logger'
-import { getStaticData } from '@/lib/store'
+import { getStaticData, useMainStore } from '@/lib/store'
 import { applyFrameBaseUrl } from '@/lib/util'
 
 const logger = getLogger('use-vto-requests')
@@ -38,6 +38,7 @@ export interface UseVtoRequestsHandle {
 interface QueuedOutfit {
   key: string
   items: VtoCompositionItem[]
+  owner: number
 }
 
 // useVtoRequests encapsulates the VTO request flow against the synchronous
@@ -47,7 +48,11 @@ interface QueuedOutfit {
 // overlays: the fitting room (multi-garment outfits + prefetch alternates)
 // and quick-view (a one-item outfit per size/color).
 export function useVtoRequests(): UseVtoRequestsHandle {
-  // outfitKey → rendered frame paths
+  // Moves on when the signed-in user or their avatar changes. Keys below are
+  // prefixed with it, so an overlay that stays mounted across the change
+  // never shows the new owner an earlier owner's frames.
+  const owner = useSyncExternalStore(useMainStore.subscribe, getVtoOwnerGeneration)
+  // owner|outfitKey → rendered frame paths
   const [framesByKey, setFramesByKey] = useState<Record<string, string[]>>({})
   // outfitKeys already requested (in-flight or completed) — dedup
   const requestedKeysRef = useRef<Set<string>>(new Set())
@@ -84,8 +89,14 @@ export function useVtoRequests(): UseVtoRequestsHandle {
     requestedKeysRef.current.add(key)
     failedKeysRef.current.delete(key)
     logger.logDebug('Requesting VTO composition', { key, items, selected: key === selectedKeyRef.current })
+    const generation = getVtoOwnerGeneration()
     const settled = apiRequestVto(items)
       .then((resp) => {
+        // Rendered for an earlier owner (another user, or an avatar since
+        // replaced). A failure from then never matches the selected key.
+        if (generation !== getVtoOwnerGeneration()) {
+          return
+        }
         logger.logDebug('VTO frames ready', { key, count: resp.frames.length })
         setFramesByKey((prev) => ({ ...prev, [key]: resp.frames }))
       })
@@ -117,7 +128,11 @@ export function useVtoRequests(): UseVtoRequestsHandle {
         if (!next) {
           break
         }
-        if (requestedKeysRef.current.has(next.key) || failedKeysRef.current.has(next.key)) {
+        if (
+          next.owner !== getVtoOwnerGeneration() ||
+          requestedKeysRef.current.has(next.key) ||
+          failedKeysRef.current.has(next.key)
+        ) {
           continue
         }
         await post(next.key, next.items)
@@ -149,7 +164,7 @@ export function useVtoRequests(): UseVtoRequestsHandle {
         }
         return
       }
-      const key = outfitKey(items)
+      const key = `${owner}|${outfitKey(items)}`
 
       if (priority) {
         // Callers re-run their request effects for reasons other than a new
@@ -180,30 +195,45 @@ export function useVtoRequests(): UseVtoRequestsHandle {
       ) {
         return
       }
-      queueRef.current.push({ key, items })
+      queueRef.current.push({ key, items, owner })
       void drainQueue()
     },
-    [post, drainQueue, select],
+    [owner, post, drainQueue, select],
   )
 
   // Drop the queue and the selection when the overlay unmounts so nothing
   // further is posted for it.
   useEffect(() => () => select(null), [select])
 
+  // On a new owner, also drop the previous owner's selection, queue and
+  // results. Runs before the callers' request effects, which re-run because
+  // request changes with the owner.
+  const ownerRef = useRef(owner)
+  useEffect(() => {
+    if (ownerRef.current === owner) {
+      return
+    }
+    ownerRef.current = owner
+    requestedKeysRef.current.clear()
+    failedKeysRef.current.clear()
+    inFlightRef.current.clear()
+    select(null)
+    setFramesByKey({})
+  }, [owner, select])
+
   const framesForOutfit = useCallback(
     (items: VtoCompositionItem[]): string[] | null => {
       if (items.length === 0) {
         return null
       }
-      const key = outfitKey(items)
-      const frames = framesByKey[key]
+      const frames = framesByKey[`${owner}|${outfitKey(items)}`]
       if (!frames || frames.length === 0) {
         return null
       }
       const baseUrl = getStaticData().config.frames.baseUrl
       return frames.map((u) => applyFrameBaseUrl(u, baseUrl))
     },
-    [framesByKey],
+    [framesByKey, owner],
   )
 
   return { request, framesForOutfit, lastError, clearError }
