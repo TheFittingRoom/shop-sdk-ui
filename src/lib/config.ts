@@ -14,10 +14,9 @@ export interface Config {
     // blocks while the backend renders. Guards against a hung backend.
     vtoTimeoutMs: number
     // Delay (ms) before speculative VTO prefetch requests start, measured from
-    // when the selected outfit's request settles (frames returned, already
-    // cached, or failed). A shopper still clicking through sizes doesn't
-    // trigger a prefetch render after every pick. 0 = start as soon as the
-    // selection settles. Only takes effect when features.vtoPrefetch is true.
+    // when the selected outfit is posted. A shopper still clicking through
+    // sizes doesn't trigger a prefetch render after every pick. 0 = start with
+    // the selection. Only takes effect when features.vtoPrefetch is true.
     vtoPrefetchDelayMs: number
     // avatarTimeoutMs: number
   }
