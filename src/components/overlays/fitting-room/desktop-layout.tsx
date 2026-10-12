@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { LinkT } from '@/components/link'
 import { TfrIcon } from '@/lib/asset'
+import type { VtoTuckLabel } from '@/api/gen/enums'
 import type { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useCss } from '@/lib/theme'
 import type { Availability } from '@/lib/fitting-room-outfit'
@@ -36,6 +37,8 @@ interface DesktopLayoutProps {
   forceUntuck: boolean
   // The outfit has something to tuck into — computed in FittingRoomOverlay.
   canTuck: boolean
+  // Which wording the tuck control uses — from the VTO response.
+  tuckLabel: VtoTuckLabel
   frameUrls: string[] | null
   autoRotateTrigger: number | undefined
   onSelectItem: (externalId: string) => void
@@ -60,6 +63,7 @@ export function DesktopLayout({
   detailMode,
   forceUntuck,
   canTuck,
+  tuckLabel,
   frameUrls,
   autoRotateTrigger,
   onSelectItem,
@@ -204,6 +208,7 @@ export function DesktopLayout({
     <AvatarControls
       selectedItems={selectedItems}
       canTuck={canTuck}
+      tuckLabel={tuckLabel}
       forceUntuck={forceUntuck}
       zoomed={zoomOpen}
       expanded={avatarHovered}
@@ -240,6 +245,7 @@ export function DesktopLayout({
             isMobileQuickRow={false}
             forceUntuck={forceUntuck}
             canTuck={canTuck}
+            tuckLabel={tuckLabel}
             onOpenItem={onOpenAccordionItem}
             onChangeDetailMode={onChangeDetailMode}
             onChangeSize={onChangeSize}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { VtoTuckLabelTuck } from '@/api/gen/enums'
 import { ButtonT } from '@/components/button'
 import { Loading } from '@/components/content/loading'
 import { LinkT } from '@/components/link'
@@ -105,6 +106,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   const {
     request: requestVtoComposition,
     framesForOutfit,
+    tuckControlForOutfit,
     lastError: vtoError,
     clearError: clearVtoError,
   } = useVtoRequests()
@@ -143,25 +145,6 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
     })
     return indexed.map(({ item }) => item)
   }, [resolved.items, selectedExternalIds])
-
-  // canTuck: the tuck/untuck control (desktop pill + mobile per-item CTA) is
-  // only meaningful when the outfit actually has something to tuck into — a
-  // tuckable garment AND a non-tuckable garment layered above its tucked
-  // position. A tuckable top with no bottom selected has nothing to tuck in
-  // to, so every tuck control stays hidden.
-  //
-  // Walks item.effective, NOT item.styleCategory: for container products
-  // the top-level category is the container wrapper (e.g. suits_and_sets,
-  // tuckable=false), while item.effective expands to the container's
-  // child categories. Reading styleCategory.tuckable directly would miss
-  // a tuckable child inside a container — same anti-pattern isItemTuckable's
-  // comment warns against.
-  const canTuck = useMemo<boolean>(() => {
-    const allCategories = selectedItems.flatMap((item) => item.effective.map((e) => e.category))
-    return allCategories.some(
-      (top) => top.tuckable && allCategories.some((other) => !other.tuckable && other.layer_order > top.layer_order),
-    )
-  }, [selectedItems])
 
   // Availability map for every fitting-room item.
   const availabilityByExternalId = useMemo<Record<string, Availability>>(() => {
@@ -434,6 +417,16 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
     [selectedExternalIds, resolved, forceUntuck, lastAddedExternalId],
   )
 
+  // The tuck control (desktop pill + mobile per-item CTA) is shown and worded
+  // by the backend's ruling for this outfit, which arrives on the VTO
+  // response: whether there is something to tuck into, whether the top must
+  // stay untucked, and whether a dress makes it "Top Over" / "Top Under". Until
+  // a response for these garments has arrived the control stays hidden — the
+  // SDK does not second-guess the rules.
+  const tuckControl = useMemo(() => tuckControlForOutfit(toWireItems(outfit.items)), [outfit, tuckControlForOutfit])
+  const canTuck = tuckControl?.available ?? false
+  const tuckLabel = tuckControl?.label ?? VtoTuckLabelTuck
+
   // Fire VTO for the primary outfit + pre-warm alternates. Gated on auth and
   // an existing avatar — anonymous / no-avatar users can still browse but
   // can't fire compositions (the redirect kicks in elsewhere). The alternate
@@ -617,6 +610,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             detailMode={detailMode}
             forceUntuck={forceUntuck}
             canTuck={canTuck}
+            tuckLabel={tuckLabel}
             frameUrls={frameUrls}
             autoRotateTrigger={autoRotateTrigger}
             sheetSnap={sheetSnap}
@@ -643,6 +637,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             detailMode={detailMode}
             forceUntuck={forceUntuck}
             canTuck={canTuck}
+            tuckLabel={tuckLabel}
             frameUrls={frameUrls}
             autoRotateTrigger={autoRotateTrigger}
             onSelectItem={handleSelectItem}

@@ -1,3 +1,4 @@
+import type { VtoTuckLabel } from '@/api/gen/enums'
 import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useCss } from '@/lib/theme'
 import type { DetailMode, Platform } from './detail-accordion-item'
@@ -12,6 +13,8 @@ interface DetailAccordionProps {
   forceUntuck: boolean
   // The outfit has something to tuck into — gates the mobile tuck CTA.
   canTuck: boolean
+  // Which wording the tuck control uses — from the VTO response.
+  tuckLabel: VtoTuckLabel
   onOpenItem: (externalId: string | null) => void
   onChangeDetailMode: (mode: DetailMode) => void
   onChangeSize: (externalId: string, sizeLabel: string) => void
@@ -31,6 +34,7 @@ export function DetailAccordion({
   isMobileQuickRow,
   forceUntuck,
   canTuck,
+  tuckLabel,
   onOpenItem,
   onChangeDetailMode,
   onChangeSize,
@@ -62,6 +66,7 @@ export function DetailAccordion({
             isMobileQuickRow={isMobileQuickRow}
             forceUntuck={forceUntuck}
             canTuck={canTuck}
+            tuckLabel={tuckLabel}
             onToggleOpen={() => onOpenItem(isOpen ? null : item.externalId)}
             onOpen={() => onOpenItem(item.externalId)}
             onChangeDetailMode={onChangeDetailMode}

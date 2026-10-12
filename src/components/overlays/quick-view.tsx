@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { VtoTuckLabel } from '@/api/gen/enums'
+import { VtoTuckLabelTuck } from '@/api/gen/enums'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { AvatarFrameViewer } from '@/components/avatar-frame-viewer'
 import { useAutoRotate } from '@/components/use-auto-rotate'
@@ -35,6 +37,7 @@ import { loadStyleCategoryIndex } from '@/lib/style-categories'
 import { getStaticData, useMainStore } from '@/lib/store'
 import type { CssProp, StyleProp } from '@/lib/theme'
 import { getThemeData, useCss } from '@/lib/theme'
+import { tuckActionKey } from '@/lib/tuck-control'
 import { getSizeLabelFromSize } from '@/lib/util'
 import { useMobileSheetSnap } from '@/lib/use-mobile-sheet-snap'
 import { DeviceLayout, OverlayName } from '@/lib/view'
@@ -102,7 +105,13 @@ export default function QuickViewOverlay() {
   const [containerUntucked, setContainerUntucked] = useState(false)
   // Shared VTO request flow: dedup, prefetch scheduling, and frame storage.
   // Single-garment compositions are just one-item outfits (untucked: false).
-  const { request: vtoRequest, framesForOutfit, lastError: vtoError, clearError: clearVtoError } = useVtoRequests()
+  const {
+    request: vtoRequest,
+    framesForOutfit,
+    tuckControlForOutfit,
+    lastError: vtoError,
+    clearError: clearVtoError,
+  } = useVtoRequests()
 
   // Redirect if not logged in or no avatar
   useEffect(() => {
@@ -291,40 +300,6 @@ export default function QuickViewOverlay() {
     return entry
   }, [storeProductData])
 
-  // Container tuck toggle gating: only render when this product is a
-  // container AND at least one child garment is tuckable. The category
-  // index is fetched async; a pure useMemo that reads
-  // peekStyleCategoryIndex() would latch to false forever if it ran
-  // before the fetch resolved (deps = [loadedProduct] only). Await the
-  // load in a useEffect and store the result — same pattern
-  // fitting-room-data's useResolvedFittingRoom uses.
-  const [containerHasTuckableChild, setContainerHasTuckableChild] = useState(false)
-  useEffect(() => {
-    if (!loadedProduct?.container) {
-      setContainerHasTuckableChild(false)
-      return
-    }
-    const container = loadedProduct.container
-    let cancelled = false
-    loadStyleCategoryIndex()
-      .then((index) => {
-        if (cancelled) {
-          return
-        }
-        const hasTuckable = container.children.some((c) => {
-          const cat = index.byName(String(c.style_category_name))
-          return !!cat?.tuckable
-        })
-        setContainerHasTuckableChild(hasTuckable)
-      })
-      .catch((error) => {
-        logger.logError('failed to load style category index for container tuck check', { error })
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [loadedProduct])
-
   const handleToggleContainerUntucked = useCallback(() => {
     setContainerUntucked((prev) => !prev)
   }, [])
@@ -400,6 +375,21 @@ export default function QuickViewOverlay() {
     // returned. See use-frame-preload.ts.
     return rewritten
   }, [selectedColorSizeRecord, framesForOutfit, loadedProduct, containerUntucked])
+
+  // Container tuck toggle: shown and worded by the backend's ruling for the
+  // selected outfit, which arrives on the VTO response (see
+  // tuckControlForOutfit). Hidden until a response for these garments has
+  // arrived. Single-garment products never get a toggle here — a top alone
+  // has nothing to tuck into, and the backend rules it unavailable.
+  const containerTuckControl = useMemo(() => {
+    if (!selectedColorSizeRecord || !loadedProduct?.container) {
+      return null
+    }
+    const wireItems = buildVtoWireItems(loadedProduct, selectedColorSizeRecord.colorwaySizeAssetId, containerUntucked)
+    return wireItems ? tuckControlForOutfit(wireItems) : null
+  }, [selectedColorSizeRecord, loadedProduct, containerUntucked, tuckControlForOutfit])
+  const containerTuckable = containerTuckControl?.available ?? false
+  const containerTuckLabel = containerTuckControl?.label ?? VtoTuckLabelTuck
 
   const handleSignOutClick = useCallback(() => {
     closeOverlay()
@@ -496,7 +486,8 @@ export default function QuickViewOverlay() {
         onChangeSize={setSelectedSizeLabel}
         onAddToCart={handleAddToCartClick}
         onSignOut={handleSignOutClick}
-        containerTuckable={containerHasTuckableChild}
+        containerTuckable={containerTuckable}
+        containerTuckLabel={containerTuckLabel}
         containerUntucked={containerUntucked}
         onToggleUntuck={handleToggleContainerUntucked}
       />
@@ -601,13 +592,22 @@ function FittingRoomToggleButton() {
 }
 
 // ContainerTuckToggleButton sits beneath FittingRoomToggleButton on
-// container product PDPs when at least one child garment is tuckable.
+// container product PDPs when the backend rules the tuck control available
+// for the set's garments; `label` is the wording it ruled.
 // One toggle uniformly flips every tuckable child's `untucked` bool at
 // wire-build (see buildVtoWireItems). Non-container products never render
 // this button — quick-view has no outfit context for a single garment to
 // tuck into. Rendered by both DesktopLayout and MobileContentExpanded /
 // MobileContentFull; MobileContentCollapsed has no button container.
-function ContainerTuckToggleButton({ untucked, onToggle }: { untucked: boolean; onToggle: () => void }) {
+function ContainerTuckToggleButton({
+  label,
+  untucked,
+  onToggle,
+}: {
+  label: VtoTuckLabel
+  untucked: boolean
+  onToggle: () => void
+}) {
   const css = useCss((theme) => ({
     button: {
       marginTop: '10px',
@@ -629,11 +629,7 @@ function ContainerTuckToggleButton({ untucked, onToggle }: { untucked: boolean; 
   }))
   return (
     <button type="button" onClick={onToggle} css={css.button}>
-      <TextT
-        variant="base"
-        css={css.text}
-        t={untucked ? 'fitting_room.try_it_tucked_in' : 'fitting_room.try_it_untucked'}
-      />
+      <TextT variant="base" css={css.text} t={tuckActionKey(label, untucked, 'cta')} />
     </button>
   )
 }
@@ -661,6 +657,7 @@ interface LayoutProps {
   // child. containerUntucked reflects the current state; onToggleUntuck
   // flips it.
   containerTuckable: boolean
+  containerTuckLabel: VtoTuckLabel
   containerUntucked: boolean
   onToggleUntuck: () => void
 }
@@ -682,6 +679,7 @@ function MobileLayout({
   onAddToCart,
   onSignOut,
   containerTuckable,
+  containerTuckLabel,
   containerUntucked,
   onToggleUntuck,
 }: LayoutProps) {
@@ -839,6 +837,7 @@ function MobileLayout({
               onAddToCart={onAddToCart}
               onSignOut={onSignOut}
               containerTuckable={containerTuckable}
+              containerTuckLabel={containerTuckLabel}
               containerUntucked={containerUntucked}
               onToggleUntuck={onToggleUntuck}
             />
@@ -865,6 +864,7 @@ interface MobileContentProps {
   // ignores these; Expanded and Full render <ContainerTuckToggleButton>
   // beside the fitting-room CTA when containerTuckable is true.
   containerTuckable: boolean
+  containerTuckLabel: VtoTuckLabel
   containerUntucked: boolean
   onToggleUntuck: () => void
 }
@@ -922,6 +922,7 @@ function MobileContentExpanded({
   onChangeSize,
   onAddToCart,
   containerTuckable,
+  containerTuckLabel,
   containerUntucked,
   onToggleUntuck,
 }: MobileContentProps) {
@@ -993,7 +994,11 @@ function MobileContentExpanded({
         <AddToCartButton onClick={onAddToCart} />
         <FittingRoomToggleButton />
         {containerTuckable ? (
-          <ContainerTuckToggleButton untucked={containerUntucked} onToggle={onToggleUntuck} />
+          <ContainerTuckToggleButton
+            label={containerTuckLabel}
+            untucked={containerUntucked}
+            onToggle={onToggleUntuck}
+          />
         ) : null}
       </div>
       <div css={css.productDetailsContainer}>
@@ -1020,6 +1025,7 @@ function MobileContentFull({
   onAddToCart,
   onSignOut,
   containerTuckable,
+  containerTuckLabel,
   containerUntucked,
   onToggleUntuck,
 }: MobileContentProps) {
@@ -1133,7 +1139,11 @@ function MobileContentFull({
         <AddToCartButton onClick={onAddToCart} />
         <FittingRoomToggleButton />
         {containerTuckable ? (
-          <ContainerTuckToggleButton untucked={containerUntucked} onToggle={onToggleUntuck} />
+          <ContainerTuckToggleButton
+            label={containerTuckLabel}
+            untucked={containerUntucked}
+            onToggle={onToggleUntuck}
+          />
         ) : null}
       </div>
       <div css={css.productDetailsContainer}>
@@ -1174,6 +1184,7 @@ function DesktopLayout({
   onAddToCart,
   onSignOut,
   containerTuckable,
+  containerTuckLabel,
   containerUntucked,
   onToggleUntuck,
 }: LayoutProps) {
@@ -1339,7 +1350,11 @@ function DesktopLayout({
             <AddToCartButton onClick={onAddToCart} />
             <FittingRoomToggleButton />
             {containerTuckable ? (
-              <ContainerTuckToggleButton untucked={containerUntucked} onToggle={onToggleUntuck} />
+              <ContainerTuckToggleButton
+                label={containerTuckLabel}
+                untucked={containerUntucked}
+                onToggle={onToggleUntuck}
+              />
             ) : null}
           </div>
           <div css={css.descriptionContainer}>

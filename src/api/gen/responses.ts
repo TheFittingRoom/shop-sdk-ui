@@ -873,10 +873,36 @@ export interface FirestoreUser {
  * and the rendered frame paths come back in this response. Token is the
  * deterministic sha256 hash of the composition (also the row PK and S3
  * frame-path identifier). Frames holds the bare S3 frame paths the SDK
- * prepends its frames base URL to. A render failure is signalled by an HTTP
- * 500, not a field on this struct.
+ * prepends its frames base URL to. Tuck describes the outfit's tuck control;
+ * the SDK shows, hides and labels that control from it alone. A render failure
+ * is signalled by an HTTP 500, not a field on this struct.
  */
 export interface VtoCompositionResponse {
   token: string;
   frames: string[];
+  tuck: VtoTuckOption;
+}
+/**
+ * VtoTuckOption is the backend's ruling on the tuck control for one outfit.
+ * Available and Label depend only on the outfit's garments (and the shopper's
+ * fit in them), never on the untucked flags the request carried — so a tucked
+ * and an untucked request for the same garments get the same two values.
+ */
+export interface VtoTuckOption {
+  /**
+   * Available: the shopper may switch between tucked-in and untucked. False
+   * when the outfit has no tuckable top, nothing for one to tuck into, or
+   * the top must stay untucked — the SDK hides the control.
+   */
+  available: boolean;
+  /**
+   * Untucked: how the tuckable tops in these frames were rendered. It can be
+   * true on a request that asked for tucked-in, when the top must stay
+   * untucked.
+   */
+  untucked: boolean;
+  /**
+   * Label: which wording the control uses.
+   */
+  label: any /* enums.VtoTuckLabel */;
 }
