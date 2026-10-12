@@ -21,9 +21,9 @@ export interface UseVtoRequestsHandle {
   // Ask for an outfit's frames. priority=true marks it as the selected outfit:
   // it is posted at once (or joins the request already in flight for it) and
   // alternates queued for the previous selection are dropped. priority=false
-  // queues a speculative prefetch. Prefetches start only once the selected
-  // outfit's request has settled (frames, cache hit or failure) and
-  // config.api.vtoPrefetchDelayMs has passed, and run one at a time. An empty
+  // queues a speculative prefetch. Prefetches start together
+  // config.api.vtoPrefetchDelayMs after the selected outfit is posted, so the
+  // shopper's other sizes are ready by the time they switch. An empty
   // priority request means nothing is selected.
   request: (items: VtoCompositionItem[], priority: boolean) => void
   // Return rewritten (base-URL-applied) frame URLs for the given outfit, or
@@ -63,17 +63,10 @@ export function useVtoRequests(): UseVtoRequestsHandle {
   // or failed. Lets a selection join a prefetch that is already running.
   const inFlightRef = useRef<Map<string, Promise<void>>>(new Map())
   const selectedKeyRef = useRef<string | null>(null)
-  // Bumped on every selection change, so a settle callback can tell whether
-  // the selection it was registered for is still the current one (the same
-  // outfit can be deselected and reselected while its request is in flight).
-  const selectionRef = useRef(0)
   const queueRef = useRef<QueuedOutfit[]>([])
-  // True once the selected outfit has settled and the prefetch delay passed.
+  // True once the prefetch delay after the current selection has passed.
   const prefetchOpenRef = useRef(false)
   const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Only one queue runner exists at a time, which is what caps speculative
-  // requests at one in flight.
-  const drainingRef = useRef(false)
   const [lastError, setLastError] = useState<Error | null>(null)
 
   const clearError = useCallback(() => setLastError(null), [])
@@ -117,28 +110,20 @@ export function useVtoRequests(): UseVtoRequestsHandle {
     return settled
   }, [])
 
-  const drainQueue = useCallback(async () => {
-    if (drainingRef.current) {
-      return
-    }
-    drainingRef.current = true
-    try {
-      while (prefetchOpenRef.current) {
-        const next = queueRef.current.shift()
-        if (!next) {
-          break
-        }
-        if (
-          next.owner !== getVtoOwnerGeneration() ||
-          requestedKeysRef.current.has(next.key) ||
-          failedKeysRef.current.has(next.key)
-        ) {
-          continue
-        }
-        await post(next.key, next.items)
+  const drainQueue = useCallback(() => {
+    while (prefetchOpenRef.current) {
+      const next = queueRef.current.shift()
+      if (!next) {
+        break
       }
-    } finally {
-      drainingRef.current = false
+      if (
+        next.owner !== getVtoOwnerGeneration() ||
+        requestedKeysRef.current.has(next.key) ||
+        failedKeysRef.current.has(next.key)
+      ) {
+        continue
+      }
+      void post(next.key, next.items)
     }
   }, [post])
 
@@ -147,7 +132,6 @@ export function useVtoRequests(): UseVtoRequestsHandle {
   // flight is left to finish: its render is already running on the backend.
   const select = useCallback((key: string | null) => {
     selectedKeyRef.current = key
-    selectionRef.current += 1
     queueRef.current = []
     prefetchOpenRef.current = false
     if (prefetchTimerRef.current !== null) {
@@ -174,17 +158,12 @@ export function useVtoRequests(): UseVtoRequestsHandle {
           return
         }
         select(key)
-        const selection = selectionRef.current
-        void post(key, items).then(() => {
-          if (selectionRef.current !== selection) {
-            return
-          }
-          prefetchTimerRef.current = setTimeout(() => {
-            prefetchTimerRef.current = null
-            prefetchOpenRef.current = true
-            void drainQueue()
-          }, getStaticData().config.api.vtoPrefetchDelayMs)
-        })
+        void post(key, items)
+        prefetchTimerRef.current = setTimeout(() => {
+          prefetchTimerRef.current = null
+          prefetchOpenRef.current = true
+          drainQueue()
+        }, getStaticData().config.api.vtoPrefetchDelayMs)
         return
       }
 
@@ -196,7 +175,7 @@ export function useVtoRequests(): UseVtoRequestsHandle {
         return
       }
       queueRef.current.push({ key, items, owner })
-      void drainQueue()
+      drainQueue()
     },
     [owner, post, drainQueue, select],
   )

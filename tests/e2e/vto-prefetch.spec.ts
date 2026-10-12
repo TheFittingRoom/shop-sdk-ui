@@ -23,8 +23,6 @@ import {
 
 // config.api.vtoPrefetchDelayMs for the demo environment the harness boots.
 const PREFETCH_DELAY_MS = 3000
-// Past the delay, so a prefetch timed from the selection would already be out.
-const SLOW_RENDER_MS = PREFETCH_DELAY_MS + 1500
 
 const SIZES = ['S', 'M', 'L'] as const
 const COLORS = ['Blue', 'Red'] as const
@@ -272,31 +270,25 @@ function colorSelect(page: Page) {
 
 const VTO_ERROR = /load the try-on/
 
-test('a slow selected render holds every prefetch until it resolves, then they run one at a time', async ({ page }) => {
+test('the prefetches go out together after the delay, without waiting for a slow selected render', async ({ page }) => {
   const backend = new FakeVtoBackend()
   backend.hold(M_BLUE, S_BLUE, L_BLUE)
   await openQuickView(page, backend)
 
   await expect.poll(() => backend.compositions()).toEqual([M_BLUE])
-  await page.waitForTimeout(SLOW_RENDER_MS)
-  expect(backend.compositions(), 'no prefetch may go out while the selection renders').toEqual([M_BLUE])
+  await page.waitForTimeout(PREFETCH_DELAY_MS - 1000)
+  expect(backend.compositions(), 'no prefetch before the delay').toEqual([M_BLUE])
+
+  // The delay runs from the selection, so the other sizes are ready by the
+  // time the shopper switches, even while the selected render is slow.
+  await expect.poll(() => backend.posts.length, { timeout: 3000 }).toBe(3)
+  expect(backend.compositions().slice(1).sort()).toEqual([L_BLUE, S_BLUE].sort())
+  expect(await shownComposition(page)).toBeNull()
 
   await backend.release(M_BLUE)
-  // The delay runs from the selected response, not from the selection.
-  await page.waitForTimeout(PREFETCH_DELAY_MS - 1000)
-  expect(await shownComposition(page)).toBe(M_BLUE)
-  expect(backend.compositions()).toEqual([M_BLUE])
-
-  await expect.poll(() => backend.posts.length, { timeout: 5000 }).toBe(2)
-  const first = backend.posts[1].composition
-  const second = first === S_BLUE ? L_BLUE : S_BLUE
-  expect([S_BLUE, L_BLUE]).toContain(first)
-  await page.waitForTimeout(1000)
-  expect(backend.posts.length, 'the second prefetch waits for the first').toBe(2)
-
-  await backend.release(first)
-  await expect.poll(() => backend.compositions()).toEqual([M_BLUE, first, second])
-  await backend.release(second)
+  await expect.poll(() => shownComposition(page)).toBe(M_BLUE)
+  await backend.release(S_BLUE)
+  await backend.release(L_BLUE)
 })
 
 test('a cached selection releases the prefetches without posting it again', async ({ page }) => {
@@ -395,21 +387,21 @@ test('selecting a prefetch that is still in flight joins it instead of posting a
   const backend = new FakeVtoBackend()
   backend.hold(S_BLUE, L_BLUE)
   await openQuickView(page, backend)
-  await expect.poll(() => backend.posts.length, { timeout: PREFETCH_DELAY_MS + 3000 }).toBe(2)
+  await expect.poll(() => backend.posts.length, { timeout: PREFETCH_DELAY_MS + 3000 }).toBe(3)
 
-  const inFlight = backend.posts[1].composition
-  const other = inFlight === S_BLUE ? L_BLUE : S_BLUE
-  await sizeButton(page, inFlight === S_BLUE ? 'S' : 'L').click()
+  await sizeButton(page, 'S').click()
   await page.waitForTimeout(500)
-  expect(backend.count(inFlight)).toBe(1)
+  expect(backend.count(S_BLUE)).toBe(1)
 
-  await backend.release(inFlight)
-  await expect.poll(() => shownComposition(page)).toBe(inFlight)
-  expect(backend.count(inFlight)).toBe(1)
+  await backend.release(S_BLUE)
+  await expect.poll(() => shownComposition(page)).toBe(S_BLUE)
+  expect(backend.count(S_BLUE)).toBe(1)
 
-  // The remaining alternate is queued again for the new selection.
-  await expect.poll(() => backend.count(other), { timeout: PREFETCH_DELAY_MS + 3000 }).toBe(1)
-  await backend.release(other)
+  // L is still in flight from the first selection, so the new one does not
+  // post it again.
+  await page.waitForTimeout(PREFETCH_DELAY_MS + 1000)
+  await backend.release(L_BLUE)
+  expect(backend.count(L_BLUE)).toBe(1)
   expect(backend.posts.length).toBe(3)
 })
 
@@ -427,21 +419,22 @@ test('closing quick view while the selection renders drops the queued prefetches
   expect(backend.compositions()).toEqual([M_BLUE])
 })
 
-test('closing quick view while a prefetch runs does not start the next one', async ({ page }) => {
+test('closing quick view after the prefetches start posts nothing further', async ({ page }) => {
   const backend = new FakeVtoBackend()
   backend.hold(S_BLUE, L_BLUE)
   await openQuickView(page, backend)
-  await expect.poll(() => backend.posts.length, { timeout: PREFETCH_DELAY_MS + 3000 }).toBe(2)
+  await expect.poll(() => backend.posts.length, { timeout: PREFETCH_DELAY_MS + 3000 }).toBe(3)
 
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog')).toHaveCount(0)
-  await backend.release(backend.posts[1].composition)
+  await backend.release(S_BLUE)
+  await backend.release(L_BLUE)
 
   await page.waitForTimeout(1500)
-  expect(backend.posts.length).toBe(2)
+  expect(backend.posts.length).toBe(3)
 })
 
-test('fitting room: emptying the outfit drops the alternates queued behind it', async ({ page }) => {
+test('fitting room: emptying the outfit before the delay drops its alternates', async ({ page }) => {
   const backend = new FakeVtoBackend()
   backend.hold(M_BLUE)
   await openFittingRoom(page, backend)
@@ -449,9 +442,6 @@ test('fitting room: emptying the outfit drops the alternates queued behind it', 
 
   await toggle.click()
   await expect.poll(() => backend.compositions()).toEqual([M_BLUE])
-  await page.waitForTimeout(SLOW_RENDER_MS)
-  expect(backend.compositions(), 'the outfit alternates wait for the outfit').toEqual([M_BLUE])
-
   await toggle.click()
   await backend.release(M_BLUE)
   await page.waitForTimeout(PREFETCH_DELAY_MS + 1500)
