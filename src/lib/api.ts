@@ -15,6 +15,7 @@ import type {
   StyleCategoryGroup,
   VtoCompositionResponse,
 } from '@/api/gen/responses'
+import type { UserProfile } from '@/lib/firebase'
 import { getAuthManager } from '@/lib/firebase'
 import { getStaticData, useMainStore } from '@/lib/store'
 
@@ -83,10 +84,12 @@ export function _init() {
   const { config } = getStaticData()
   baseUrl = config.api.baseUrl
 
+  updateVtoOwner(useMainStore.getState().userProfile)
   useMainStore.subscribe((state, prevState) => {
     if (state.userIsLoggedIn !== prevState.userIsLoggedIn) {
       clearApiCache()
     }
+    updateVtoOwner(state.userProfile)
   })
 }
 
@@ -207,13 +210,52 @@ export type VtoCompositionItem = {
   untucked?: boolean
 }
 
-// In-flight VTO requests keyed by canonical composition key. A second
+// A VTO render belongs to the signed-in user and the avatar it was rendered
+// against (the backend uses their latest one). The owner generation moves on
+// when the user or the avatar changes, and the VTO caches (the in-flight map
+// below, useVtoRequests) are scoped to it.
+let vtoOwnerGeneration = 0
+let vtoOwnerUid: string | null = null
+let vtoOwnerAvatar = ''
+
+function updateVtoOwner(profile: UserProfile | null) {
+  const uid = getAuthManager().getAuthUser()?.uid ?? null
+  // The first frame path names the avatar and its user
+  // (user-<uid>/avatar-<id>/...). A new uid can arrive while the store still
+  // holds the previous user's profile, so only this user's frames count.
+  const frame = profile?.avatar_frames?.[0] ?? ''
+  const avatar = uid && frame.startsWith(`user-${uid}/`) ? frame : ''
+  if (uid !== vtoOwnerUid) {
+    vtoOwnerUid = uid
+    vtoOwnerAvatar = avatar
+    vtoOwnerGeneration += 1
+  } else if (avatar && avatar !== vtoOwnerAvatar) {
+    // Only replacing one avatar with another is a new owner. The user's first
+    // frames to arrive are the avatar they already had, and an empty frame
+    // set is passing: the avatar sync rewrites the user doc first and adds
+    // avatar_frames back after.
+    if (vtoOwnerAvatar) {
+      vtoOwnerGeneration += 1
+    }
+    vtoOwnerAvatar = avatar
+  }
+}
+
+export function getVtoOwnerGeneration(): number {
+  return vtoOwnerGeneration
+}
+
+// In-flight VTO requests keyed by owner + canonical composition key. A second
 // identical requestVto() call while one is still in flight returns the
 // existing promise instead of issuing another POST — a strong guarantee
 // that the SDK never has duplicate in-flight VTO requests. Living in the
 // API layer means the guarantee holds across every caller (both VTO
 // overlays). The entry is removed once the request settles, so a later
 // retry can re-issue.
+//
+// The owner is part of the key because a request still in flight when a
+// shopper signs out, or replaces their avatar, must not be handed to the
+// next owner.
 const inFlightVtoRequests = new Map<string, Promise<VtoCompositionResponse>>()
 
 // canonicalVtoKey builds a stable key from the request items, sorted by
@@ -235,7 +277,7 @@ function canonicalVtoKey(items: VtoCompositionItem[]): string {
 // Identical concurrent calls are deduped: while a composition's request is
 // in flight, callers share one promise and one POST.
 export function requestVto(items: VtoCompositionItem[]): Promise<VtoCompositionResponse> {
-  const key = canonicalVtoKey(items)
+  const key = `${vtoOwnerGeneration}|${canonicalVtoKey(items)}`
   const existing = inFlightVtoRequests.get(key)
   if (existing) {
     return existing

@@ -100,7 +100,7 @@ export default function QuickViewOverlay() {
   // bottoms sibling, so tucking a tuckable shirt over/under has meaning.
   // State value applies uniformly to every tuckable child at wire-build.
   const [containerUntucked, setContainerUntucked] = useState(false)
-  // Shared VTO request flow: dedup, prefetch throttle, and frame storage.
+  // Shared VTO request flow: dedup, prefetch scheduling, and frame storage.
   // Single-garment compositions are just one-item outfits (untucked: false).
   const { request: vtoRequest, framesForOutfit, lastError: vtoError, clearError: clearVtoError } = useVtoRequests()
 
@@ -329,8 +329,8 @@ export default function QuickViewOverlay() {
     setContainerUntucked((prev) => !prev)
   }, [])
 
-  // Request VTO for a color/size as a one-item outfit. Dedup, the prefetch
-  // throttle, and frame storage all live in the shared useVtoRequests hook;
+  // Request VTO for a color/size as a one-item outfit. Dedup, prefetch
+  // scheduling, and frame storage all live in the shared useVtoRequests hook;
   // single-garment compositions are never untucked. Container products fan
   // out at wire-build time via buildVtoWireItems; buildVtoWireItems returns
   // null when the container's mapping is incomplete and we skip the request
@@ -354,21 +354,17 @@ export default function QuickViewOverlay() {
     [vtoRequest, loadedProduct, containerUntucked],
   )
 
-  // Trigger priority VTO request when size/color selection changes
+  // Request the selected size/color, then queue every size in the selected
+  // color as a speculative pre-fetch. Gated behind config.features.vtoPrefetch;
+  // the priority request for the selection always fires. The alternates are
+  // queued again on every selection change because the hook drops the queue
+  // when the selection moves.
   useEffect(() => {
-    if (selectedColorSizeRecord) {
-      requestVto(selectedColorSizeRecord, true)
-    }
-  }, [requestVto, selectedColorSizeRecord])
-
-  // Speculatively pre-fetch VTO for all recommended sizes when color
-  // selection changes. Gated behind config.features.vtoPrefetch — the
-  // priority request for the actively-selected size always fires (above).
-  useEffect(() => {
-    if (!getStaticData().config.features.vtoPrefetch) {
+    if (!selectedColorSizeRecord || !vtoProductData) {
       return
     }
-    if (!vtoProductData) {
+    requestVto(selectedColorSizeRecord, true)
+    if (!getStaticData().config.features.vtoPrefetch) {
       return
     }
     for (const sizeRecord of vtoProductData.sizes) {
@@ -377,7 +373,7 @@ export default function QuickViewOverlay() {
         requestVto(sizeColorRecord, false)
       }
     }
-  }, [requestVto, vtoProductData, selectedColorLabel])
+  }, [requestVto, selectedColorSizeRecord, vtoProductData, selectedColorLabel])
 
   // Frame URLs for the currently-selected color/size: ask the shared hook
   // for this one-item outfit's rendered frames (already base-URL-rewritten),
