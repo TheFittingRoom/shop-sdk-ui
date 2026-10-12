@@ -553,3 +553,15 @@ test('a user switch while the new profile is still on its way posts once for the
   await expect.poll(() => shownSrc(page)).toContain('/user-b/')
   expect(backend.count(M_BLUE, 'b')).toBe(1)
 })
+
+test("a user switch clears the previous shopper's error", async ({ page }) => {
+  const backend = new FakeVtoBackend()
+  backend.fail(M_BLUE)
+  await openQuickView(page, backend, [SECOND_ACCOUNT])
+  await expect(page.getByText(VTO_ERROR)).toBeVisible()
+
+  backend.hold(M_BLUE)
+  await signInWithoutClosing(page, SECOND_ACCOUNT.email)
+  await expect.poll(() => backend.count(M_BLUE, 'b')).toBe(1)
+  await expect(page.getByText(VTO_ERROR)).toHaveCount(0)
+})

@@ -205,8 +205,8 @@ export function useVtoRequests(): UseVtoRequestsHandle {
   // further is posted for it.
   useEffect(() => () => select(null), [select])
 
-  // On a new owner, also drop the previous owner's selection, queue and
-  // results. Runs before the callers' request effects, which re-run because
+  // On a new owner, also drop the previous owner's selection, queue, results
+  // and error. Runs before the callers' request effects, which re-run because
   // request changes with the owner.
   const ownerRef = useRef(owner)
   useEffect(() => {
@@ -219,6 +219,7 @@ export function useVtoRequests(): UseVtoRequestsHandle {
     inFlightRef.current.clear()
     select(null)
     setFramesByKey({})
+    setLastError(null)
   }, [owner, select])
 
   const framesForOutfit = useCallback(
