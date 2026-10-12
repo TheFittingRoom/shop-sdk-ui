@@ -347,8 +347,11 @@ export async function _init() {
         }
       }
     }
-    firestoreManager = new MockFirestoreManager(seedDocs)
-    authManager = new MockAuthManager(testHooks.auth ?? null, firestoreManager, testHooks.accounts)
+    const firestore = new MockFirestoreManager(seedDocs)
+    const auth = new MockAuthManager(testHooks.auth ?? null, firestore, testHooks.accounts)
+    firestoreManager = firestore
+    authManager = auth
+    testHooks.onMocks?.({ auth, firestore })
     logger.logDebug('Firebase initialized in MOCK mode (testHooks present)')
     return
   }

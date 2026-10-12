@@ -104,7 +104,14 @@
             window.__TFR_TEST_LAST_ADD__ = { externalId, opts }
           },
           getOverlayTopOffset: () => 0,
-          testHooks: cfg.testHooks,
+          // Exposes the Firebase mocks so tests can switch user or edit a doc
+          // while an overlay stays open.
+          testHooks: cfg.testHooks && {
+            ...cfg.testHooks,
+            onMocks: (mocks) => {
+              window.__TFR_TEST_MOCKS__ = mocks
+            },
+          },
         })
         window.__TFR_TEST_INIT_OK__ = ok
         window.dispatchEvent(new CustomEvent('tfr:test:init-complete', { detail: { ok } }))

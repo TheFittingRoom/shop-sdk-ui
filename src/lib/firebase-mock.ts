@@ -34,6 +34,9 @@ export interface TestHooks {
   // Accounts the sign-in form can switch to: MockAuthManager.login matches on
   // email. Profiles are seeded into the `users` collection like auth.profile.
   accounts?: NonNullable<TestHooks['auth']>[]
+  // Handed the installed mocks, so the host page can change the signed-in
+  // user or a Firestore doc while widgets stay mounted.
+  onMocks?: (mocks: { auth: MockAuthManager; firestore: MockFirestoreManager }) => void
   firestore?: {
     docs?: Record<string, Record<string, Record<string, unknown>>>
   }
@@ -107,15 +110,15 @@ export interface IAuthManager {
 
 // ---------------------------------------------------------------------------
 // MockFirestoreManager — in-memory document store. Reads return seeded data;
-// `listenToDoc` calls back once with the current value and returns a no-op
-// unsubscribe; writes update the in-memory map. No live-change simulation
-// (good enough for the v1 e2e suite).
+// `listenToDoc` calls back with the current value and again after every
+// write to that doc, like onSnapshot; writes update the in-memory map.
 // ---------------------------------------------------------------------------
 
 type DocMap = Record<string, Record<string, DocumentData>>
 
 export class MockFirestoreManager implements IFirestoreManager {
   private readonly docs: DocMap
+  private readonly docListeners = new Map<string, Set<(data: DocumentData | null) => void>>()
 
   constructor(seedDocs: Record<string, Record<string, Record<string, unknown>>> = {}) {
     // Shallow-clone per collection so test mutations don't leak into the
@@ -141,6 +144,7 @@ export class MockFirestoreManager implements IFirestoreManager {
       this.docs[collectionName] = {}
     }
     this.docs[collectionName][docId] = data
+    this.notify(collectionName, docId)
   }
 
   async mergeDocData<T extends DocumentData = DocumentData>(
@@ -153,6 +157,7 @@ export class MockFirestoreManager implements IFirestoreManager {
     }
     const existing = this.docs[collectionName][docId] ?? {}
     this.docs[collectionName][docId] = { ...existing, ...data }
+    this.notify(collectionName, docId)
   }
 
   listenToDoc<T extends DocumentData = DocumentData>(
@@ -160,12 +165,21 @@ export class MockFirestoreManager implements IFirestoreManager {
     docId: string,
     callback: (data: T | null) => void,
   ): Unsubscribe {
-    // Fire once synchronously with the current value; no live updates.
-    const doc = this.docs[collectionName]?.[docId]
-    callback((doc as T) ?? null)
+    // Fire synchronously with the current value, then on every write.
+    const path = `${collectionName}/${docId}`
+    const listener = (data: DocumentData | null) => callback(data as T | null)
+    const listeners = this.docListeners.get(path) ?? new Set()
+    this.docListeners.set(path, listeners)
+    listeners.add(listener)
+    listener(this.docs[collectionName]?.[docId] ?? null)
     return () => {
-      /* no-op unsubscribe */
+      listeners.delete(listener)
     }
+  }
+
+  private notify(collectionName: string, docId: string) {
+    const doc = this.docs[collectionName]?.[docId] ?? null
+    this.docListeners.get(`${collectionName}/${docId}`)?.forEach((listener) => listener(doc))
   }
 
   async queryDocs<T extends DocumentData = DocumentData>(
