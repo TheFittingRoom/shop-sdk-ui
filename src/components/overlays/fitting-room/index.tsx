@@ -450,12 +450,11 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
     if (!userIsLoggedIn || !userHasAvatar) {
       return
     }
-    if (outfit.items.length === 0) {
-      return
-    }
     if (isMobileLayout && mobileMode === 'browse') {
       return
     }
+    // An empty outfit goes through too: it tells the hook nothing is
+    // selected, which drops alternates queued for the previous outfit.
     requestVtoComposition(toWireItems(outfit.items), true)
     if (getStaticData().config.features.vtoPrefetch) {
       for (const alt of outfit.alternates) {

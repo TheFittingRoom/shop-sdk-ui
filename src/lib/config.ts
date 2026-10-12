@@ -13,10 +13,10 @@ export interface Config {
     // Client-side abort timeout (ms) for the synchronous VTO request, which
     // blocks while the backend renders. Guards against a hung backend.
     vtoTimeoutMs: number
-    // Delay (ms) before speculative VTO prefetch requests fire, measured from
-    // the most recent priority request. Keeps prefetch traffic from crowding
-    // the user's actively-selected render. 0 = fire immediately. Only takes
-    // effect when features.vtoPrefetch is true.
+    // Delay (ms) before speculative VTO prefetch requests start, measured from
+    // when the selected outfit is posted. A shopper still clicking through
+    // sizes doesn't trigger a prefetch render after every pick. 0 = start with
+    // the selection. Only takes effect when features.vtoPrefetch is true.
     vtoPrefetchDelayMs: number
     // avatarTimeoutMs: number
   }

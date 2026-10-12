@@ -20,7 +20,8 @@ export const TEST_USER_PROFILE: FirestoreUser = {
   job: '',
   avatar_status: 'CREATED',
   avatar_gender: 'female',
-  avatar_frames: ['user-test/avatar-1/frames/image_0.png', 'user-test/avatar-1/frames/image_1.png'],
+  // Real frame paths name their user: user-<uid>/avatar-<id>/frames/...
+  avatar_frames: [`user-${TEST_UID}/avatar-1/frames/image_0.jpg`, `user-${TEST_UID}/avatar-1/frames/image_1.jpg`],
   is_tos_accepted: true,
   is_gte_18: true,
   // Timestamp fields are read via `firebaseDateToDayjs` only inside the

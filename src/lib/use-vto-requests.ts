@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { VtoCompositionItem } from '@/lib/api'
-import { requestVto as apiRequestVto } from '@/lib/api'
+import { getVtoOwnerGeneration, requestVto as apiRequestVto } from '@/lib/api'
 import { getLogger } from '@/lib/logger'
-import { getStaticData } from '@/lib/store'
+import { getStaticData, useMainStore } from '@/lib/store'
 import { applyFrameBaseUrl } from '@/lib/util'
 
 const logger = getLogger('use-vto-requests')
@@ -18,18 +18,27 @@ export function outfitKey(items: VtoCompositionItem[]): string {
 }
 
 export interface UseVtoRequestsHandle {
-  // Fire a /v1/vto-compositions POST if this outfit hasn't been requested yet.
-  // priority=true marks this as the user-active outfit, cancels any pending
-  // (still-queued) prefetch requests, and resets the non-priority throttle;
-  // priority=false fires pre-warm alternates that may get delayed up to
-  // config.api.vtoPrefetchDelayMs.
+  // Ask for an outfit's frames. priority=true marks it as the selected outfit:
+  // it is posted at once (or joins the request already in flight for it) and
+  // alternates queued for the previous selection are dropped. priority=false
+  // queues a speculative prefetch. Prefetches start together
+  // config.api.vtoPrefetchDelayMs after the selected outfit is posted, so the
+  // shopper's other sizes are ready by the time they switch. An empty
+  // priority request means nothing is selected.
   request: (items: VtoCompositionItem[], priority: boolean) => void
   // Return rewritten (base-URL-applied) frame URLs for the given outfit, or
   // null when not ready / not yet requested.
   framesForOutfit: (items: VtoCompositionItem[]) => string[] | null
-  // Latest error from a /v1/vto-compositions POST. Resets after clearError().
+  // Latest error from the selected outfit's /v1/vto-compositions POST.
+  // Resets after clearError().
   lastError: Error | null
   clearError: () => void
+}
+
+interface QueuedOutfit {
+  key: string
+  items: VtoCompositionItem[]
+  owner: number
 }
 
 // useVtoRequests encapsulates the VTO request flow against the synchronous
@@ -39,103 +48,172 @@ export interface UseVtoRequestsHandle {
 // overlays: the fitting room (multi-garment outfits + prefetch alternates)
 // and quick-view (a one-item outfit per size/color).
 export function useVtoRequests(): UseVtoRequestsHandle {
-  // outfitKey → rendered frame paths
+  // Moves on when the signed-in user or their avatar changes. Keys below are
+  // prefixed with it, so an overlay that stays mounted across the change
+  // never shows the new owner an earlier owner's frames.
+  const owner = useSyncExternalStore(useMainStore.subscribe, getVtoOwnerGeneration)
+  // owner|outfitKey → rendered frame paths
   const [framesByKey, setFramesByKey] = useState<Record<string, string[]>>({})
   // outfitKeys already requested (in-flight or completed) — dedup
   const requestedKeysRef = useRef<Set<string>>(new Set())
-  const lastPriorityTimeRef = useRef<number | null>(null)
-  // Queued-but-not-yet-fired prefetch timers. A new priority request clears
-  // these so stale alternates from the previous selection never go out.
-  const pendingPrefetchTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set())
+  // outfitKeys whose last POST failed. Not retried as prefetches; selecting
+  // the outfit again is what retries it.
+  const failedKeysRef = useRef<Set<string>>(new Set())
+  // outfitKey → this hook's request in flight, settling once it has resolved
+  // or failed. Lets a selection join a prefetch that is already running.
+  const inFlightRef = useRef<Map<string, Promise<void>>>(new Map())
+  const selectedKeyRef = useRef<string | null>(null)
+  const queueRef = useRef<QueuedOutfit[]>([])
+  // True once the prefetch delay after the current selection has passed.
+  const prefetchOpenRef = useRef(false)
+  const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [lastError, setLastError] = useState<Error | null>(null)
 
   const clearError = useCallback(() => setLastError(null), [])
 
-  const request = useCallback((items: VtoCompositionItem[], priority: boolean) => {
-    if (items.length === 0) {
-      return
+  const post = useCallback((key: string, items: VtoCompositionItem[]): Promise<void> => {
+    const inFlight = inFlightRef.current.get(key)
+    if (inFlight) {
+      return inFlight
     }
-    const key = outfitKey(items)
     if (requestedKeysRef.current.has(key)) {
-      return
+      return Promise.resolve()
     }
-
-    const exec = () => {
-      requestedKeysRef.current.add(key)
-      logger.logDebug('Requesting VTO composition', { key, items, priority })
-      apiRequestVto(items)
-        .then((resp) => {
-          logger.logDebug('VTO frames ready', { key, count: resp.frames.length })
-          setFramesByKey((prev) => ({ ...prev, [key]: resp.frames }))
-        })
-        .catch((error) => {
-          logger.logError('VTO request failed', { error, items, key })
-          // Drop the key so a later re-selection retries the render.
-          requestedKeysRef.current.delete(key)
+    requestedKeysRef.current.add(key)
+    failedKeysRef.current.delete(key)
+    logger.logDebug('Requesting VTO composition', { key, items, selected: key === selectedKeyRef.current })
+    const generation = getVtoOwnerGeneration()
+    const settled = apiRequestVto(items)
+      .then((resp) => {
+        // Rendered for an earlier owner (another user, or an avatar since
+        // replaced). A failure from then never matches the selected key.
+        if (generation !== getVtoOwnerGeneration()) {
+          return
+        }
+        logger.logDebug('VTO frames ready', { key, count: resp.frames.length })
+        setFramesByKey((prev) => ({ ...prev, [key]: resp.frames }))
+      })
+      .catch((error) => {
+        logger.logError('VTO request failed', { error, items, key })
+        requestedKeysRef.current.delete(key)
+        failedKeysRef.current.add(key)
+        // A failed prefetch or a superseded selection isn't something the
+        // shopper is looking at.
+        if (key === selectedKeyRef.current) {
           setLastError(error instanceof Error ? error : new Error(String(error)))
-        })
-    }
+        }
+      })
+      .finally(() => {
+        inFlightRef.current.delete(key)
+      })
+    inFlightRef.current.set(key, settled)
+    return settled
+  }, [])
 
-    if (priority) {
-      // The selection changed — drop prefetch timers queued for the previous
-      // outfit so they don't fire after this priority request.
-      for (const timer of pendingPrefetchTimersRef.current) {
-        clearTimeout(timer)
+  const drainQueue = useCallback(() => {
+    while (prefetchOpenRef.current) {
+      const next = queueRef.current.shift()
+      if (!next) {
+        break
       }
-      pendingPrefetchTimersRef.current.clear()
-      lastPriorityTimeRef.current = Date.now()
-      exec()
+      if (
+        next.owner !== getVtoOwnerGeneration() ||
+        requestedKeysRef.current.has(next.key) ||
+        failedKeysRef.current.has(next.key)
+      ) {
+        continue
+      }
+      void post(next.key, next.items)
+    }
+  }, [post])
+
+  // Point the scheduler at a new selection (null for none, and on unmount).
+  // Alternates queued for the old one are dropped. A prefetch already in
+  // flight is left to finish: its render is already running on the backend.
+  const select = useCallback((key: string | null) => {
+    selectedKeyRef.current = key
+    queueRef.current = []
+    prefetchOpenRef.current = false
+    if (prefetchTimerRef.current !== null) {
+      clearTimeout(prefetchTimerRef.current)
+      prefetchTimerRef.current = null
+    }
+  }, [])
+
+  const request = useCallback(
+    (items: VtoCompositionItem[], priority: boolean) => {
+      if (items.length === 0) {
+        if (priority) {
+          select(null)
+        }
+        return
+      }
+      const key = `${owner}|${outfitKey(items)}`
+
+      if (priority) {
+        // Callers re-run their request effects for reasons other than a new
+        // selection. Treating that as a reselection would re-post a failed
+        // outfit on its own.
+        if (key === selectedKeyRef.current) {
+          return
+        }
+        select(key)
+        void post(key, items)
+        prefetchTimerRef.current = setTimeout(() => {
+          prefetchTimerRef.current = null
+          prefetchOpenRef.current = true
+          drainQueue()
+        }, getStaticData().config.api.vtoPrefetchDelayMs)
+        return
+      }
+
+      if (
+        requestedKeysRef.current.has(key) ||
+        failedKeysRef.current.has(key) ||
+        queueRef.current.some((queued) => queued.key === key)
+      ) {
+        return
+      }
+      queueRef.current.push({ key, items, owner })
+      drainQueue()
+    },
+    [owner, post, drainQueue, select],
+  )
+
+  // Drop the queue and the selection when the overlay unmounts so nothing
+  // further is posted for it.
+  useEffect(() => () => select(null), [select])
+
+  // On a new owner, also drop the previous owner's selection, queue, results
+  // and error. Runs before the callers' request effects, which re-run because
+  // request changes with the owner.
+  const ownerRef = useRef(owner)
+  useEffect(() => {
+    if (ownerRef.current === owner) {
       return
     }
-    // Throttle non-priority requests behind the most-recent priority one so
-    // the pre-warm alternates don't crowd the user's actively-selected
-    // outfit. The delay floor is config-driven (config.api.vtoPrefetchDelayMs).
-    const last = lastPriorityTimeRef.current
-    let delay = 0
-    if (last) {
-      const now = Date.now()
-      const minNext = last + getStaticData().config.api.vtoPrefetchDelayMs
-      if (now < minNext) {
-        delay = minNext - now
-      }
-    }
-    if (delay > 0) {
-      const timer = setTimeout(() => {
-        pendingPrefetchTimersRef.current.delete(timer)
-        exec()
-      }, delay)
-      pendingPrefetchTimersRef.current.add(timer)
-    } else {
-      exec()
-    }
-  }, [])
-
-  // Drop any still-queued prefetch timers when the overlay unmounts so they
-  // don't fire POSTs (or setState) after teardown.
-  useEffect(() => {
-    const timers = pendingPrefetchTimersRef.current
-    return () => {
-      for (const timer of timers) {
-        clearTimeout(timer)
-      }
-      timers.clear()
-    }
-  }, [])
+    ownerRef.current = owner
+    requestedKeysRef.current.clear()
+    failedKeysRef.current.clear()
+    inFlightRef.current.clear()
+    select(null)
+    setFramesByKey({})
+    setLastError(null)
+  }, [owner, select])
 
   const framesForOutfit = useCallback(
     (items: VtoCompositionItem[]): string[] | null => {
       if (items.length === 0) {
         return null
       }
-      const key = outfitKey(items)
-      const frames = framesByKey[key]
+      const frames = framesByKey[`${owner}|${outfitKey(items)}`]
       if (!frames || frames.length === 0) {
         return null
       }
       const baseUrl = getStaticData().config.frames.baseUrl
       return frames.map((u) => applyFrameBaseUrl(u, baseUrl))
     },
-    [framesByKey],
+    [framesByKey, owner],
   )
 
   return { request, framesForOutfit, lastError, clearError }

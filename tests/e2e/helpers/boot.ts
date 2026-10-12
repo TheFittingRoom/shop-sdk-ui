@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+import type { FirestoreUser } from '../../../src/api/gen/responses'
 import { installApiMocks, type ApiMockOverrides } from '../mocks/api'
 import {
   TEST_BRAND_ID,
@@ -20,6 +21,9 @@ export interface BootSdkOptions {
   // cards. host.html already merges these into its lookup catalog.
   productCatalog?: (typeof TEST_CURRENT_PRODUCT)[]
   loggedIn?: boolean // default true (seeds TestHooks.auth with the standard test user)
+  // Further accounts the sign-in form can sign in to (TestHooks.accounts).
+  // An account without a profile has none until the test writes users/<uid>.
+  accounts?: { uid: string; email: string; idToken: string; profile?: FirestoreUser }[]
   apiOverrides?: ApiMockOverrides
   // Pre-seeded firestore documents. Keyed by collection → docId → data. The
   // MockFirestoreManager's queryDocs returns every doc in the collection
@@ -42,6 +46,7 @@ export async function bootSdk(page: Page, options: BootSdkOptions = {}): Promise
     loggedIn = true,
     apiOverrides,
     firestoreDocs,
+    accounts,
   } = options
 
   await installApiMocks(page, apiOverrides)
@@ -50,13 +55,16 @@ export async function bootSdk(page: Page, options: BootSdkOptions = {}): Promise
   // script runs. The fixture HTML reads `__TFR_TEST_CONFIG__` and threads it
   // into `init({ ..., testHooks })`.
   await page.addInitScript(
-    ({ brandId, currentProduct, productCatalog, loggedIn, uid, email, idToken, profile, firestoreDocs }) => {
+    ({ brandId, currentProduct, productCatalog, loggedIn, uid, email, idToken, profile, firestoreDocs, accounts }) => {
       const testHooks: Record<string, unknown> = {}
       if (loggedIn) {
         testHooks.auth = { uid, email, idToken, profile }
       }
       if (firestoreDocs) {
         testHooks.firestore = { docs: firestoreDocs }
+      }
+      if (accounts) {
+        testHooks.accounts = accounts
       }
       ;(window as unknown as { __TFR_TEST_CONFIG__: unknown }).__TFR_TEST_CONFIG__ = {
         brandId,
@@ -76,6 +84,7 @@ export async function bootSdk(page: Page, options: BootSdkOptions = {}): Promise
       idToken: TEST_ID_TOKEN,
       profile: TEST_USER_PROFILE,
       firestoreDocs: firestoreDocs ?? null,
+      accounts: accounts ?? null,
     },
   )
 
