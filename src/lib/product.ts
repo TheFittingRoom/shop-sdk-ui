@@ -265,6 +265,8 @@ export function resolveContainerChildCSAs(
   return csaIds
 }
 
+const productDataLoading = new Set<string>()
+
 export function loadProductDataToStore(externalId: string): void {
   async function loadAndStore() {
     try {
@@ -273,12 +275,15 @@ export function loadProductDataToStore(externalId: string): void {
       logger.logDebug(`Loaded product data for externalId: ${externalId}`, { productData })
     } catch (error) {
       logger.logError(`Error loading product data for externalId: ${externalId}`, { error })
+    } finally {
+      productDataLoading.delete(externalId)
     }
   }
   const { userIsLoggedIn, userHasAvatar, productData } = useMainStore.getState()
-  if (productData[externalId] || !userIsLoggedIn || userHasAvatar === false) {
-    // Already loaded or cannot load yet
+  if (productData[externalId] || productDataLoading.has(externalId) || !userIsLoggedIn || userHasAvatar === false) {
+    // Already loaded, loading, or cannot load yet
     return
   }
+  productDataLoading.add(externalId)
   void loadAndStore()
 }
