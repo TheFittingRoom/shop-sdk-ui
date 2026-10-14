@@ -16,6 +16,7 @@ import type { FirestoreStyle } from '@/lib/database'
 import { getStyleByExternalId } from '@/lib/database'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
+import { loadStyleCategoryIndex } from '@/lib/style-categories'
 
 export type { FitClassification, MeasurementLocationFit, SizeFit, SizeFitRecommendation }
 
@@ -84,13 +85,42 @@ export interface VtoProductData {
 const logger = getLogger('product')
 
 export function _init() {
-  // Preload data for the current product
+  // The style lookup starts at sign-in rather than when the profile arrives,
+  // so the preload below finds it done or in flight. Whether the shopper has
+  // an avatar is not known yet, so a signed-in shopper without one makes the
+  // lookup too, and nothing reads the result unless they get an avatar
+  // later. Visitors who are not signed in skip it.
+  const { brandId, currentProduct } = getStaticData()
+  const lookUpStyle = () => {
+    if (currentProduct) {
+      getStyleByExternalId(brandId, currentProduct.externalId).catch((error) => {
+        logger.logWarn(`Early style lookup failed for externalId: ${currentProduct.externalId}`, { error })
+      })
+    }
+  }
+
+  // Preload data for the current product, also when the profile arrived first
+  const preload = () => {
+    if (currentProduct) {
+      loadProductDataToStore(currentProduct.externalId)
+    }
+    // The fitting room needs the categories before its first try-on.
+    loadStyleCategoryIndex().catch((error) => {
+      logger.logWarn('Style category preload failed', { error })
+    })
+  }
+  if (useMainStore.getState().userIsLoggedIn) {
+    lookUpStyle()
+  }
+  if (useMainStore.getState().userHasAvatar) {
+    preload()
+  }
   useMainStore.subscribe((state, prevState) => {
+    if (state.userIsLoggedIn && !prevState.userIsLoggedIn) {
+      lookUpStyle()
+    }
     if (state.userHasAvatar && !prevState.userHasAvatar) {
-      const { currentProduct } = getStaticData()
-      if (currentProduct) {
-        loadProductDataToStore(currentProduct.externalId)
-      }
+      preload()
     }
   })
 }
