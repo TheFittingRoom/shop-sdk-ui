@@ -8,16 +8,21 @@ import { TEST_ID_TOKEN } from './fixtures/seed'
 test('clicking the fitting-room icon opens the overlay and fires /v1/style-categories with the auth bearer', async ({
   page,
 }) => {
-  await bootSdk(page)
-
-  // Wait for the request, then click. waitForRequest is set up first so the
-  // listener is attached before the click can race past it.
+  // The categories load with the page for a shopper with an avatar, so the
+  // listener is attached before boot.
   const stylesReq = page.waitForRequest((req) => req.url().endsWith('/v1/style-categories'), { timeout: 10_000 })
+
+  await bootSdk(page)
 
   // The fitting-room icon widget renders a <button aria-label="Fitting Room">
   // (locale key `view_fitting_room`). `exact: true` disambiguates from the
   // hanger toggle ("Add to Fitting Room" / "In Fitting Room").
   await page.getByRole('button', { name: 'Fitting Room', exact: true }).click()
+
+  // The categories load at boot, so the request alone does not show that the
+  // click did anything. "Shop now" is the empty fitting room's button; a bare
+  // dialog match would also find the first-visit tooltip.
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Shop now' })).toBeVisible()
 
   const req = await stylesReq
   expect(req.headers()['authorization']).toBe(`Bearer ${TEST_ID_TOKEN}`)
