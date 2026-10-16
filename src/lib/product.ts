@@ -11,7 +11,7 @@ import type {
   SizeFitRecommendation,
   VtoCompositionItem,
 } from '@/lib/api'
-import { getSizeRecommendation as apiGetSizeRecommendation } from '@/lib/api'
+import { getSizeRecommendation as apiGetSizeRecommendation, prefetchVto } from '@/lib/api'
 import type { FirestoreStyle } from '@/lib/database'
 import { getStyleByExternalId } from '@/lib/database'
 import { getLogger } from '@/lib/logger'
@@ -297,12 +297,41 @@ export function resolveContainerChildCSAs(
 
 const productDataLoading = new Set<string>()
 
+// A try-on from this page uses the recommended size in the colour selected on
+// the page, picked as quick view picks it, so the backend can ready that
+// garment's files while the shopper reads the page. Containers are left to
+// their try-on.
+async function prefetchTryOn(productData: LoadedProductData): Promise<void> {
+  const { currentProduct } = getStaticData()
+  const recommendation = productData.sizeFitRecommendation
+  const size = recommendation.available_sizes.find((s) => s.id === recommendation.recommended_size.id)
+  if (!currentProduct || productData.container || !size) {
+    return
+  }
+  try {
+    const { color } = await currentProduct.getSelectedOptions()
+    const offered = size.colorway_size_assets.flatMap((csa) => {
+      const variant = currentProduct.variants.find((v) => v.sku === csa.sku)
+      return variant ? [{ id: csa.id, color: variant.color || null }] : []
+    })
+    const csa = offered.find((c) => c.color === color) ?? offered[0]
+    if (csa) {
+      await prefetchVto(csa.id)
+    }
+  } catch (error) {
+    logger.logWarn('Try-on prefetch failed', { error })
+  }
+}
+
 export function loadProductDataToStore(externalId: string): void {
   async function loadAndStore() {
     try {
       const productData = await loadProductData(externalId)
       useMainStore.getState().setProductData(productData.externalId, productData)
       logger.logDebug(`Loaded product data for externalId: ${externalId}`, { productData })
+      if (externalId === getStaticData().currentProduct?.externalId) {
+        void prefetchTryOn(productData)
+      }
     } catch (error) {
       logger.logError(`Error loading product data for externalId: ${externalId}`, { error })
     } finally {
