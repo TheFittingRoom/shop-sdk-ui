@@ -258,13 +258,6 @@ export function getVtoOwnerGeneration(): number {
 // next owner.
 const inFlightVtoRequests = new Map<string, Promise<VtoCompositionResponse>>()
 
-// Finished VTO responses under the same key, so reopening an outfit the
-// shopper already saw skips the API round trip. The age limit keeps frame
-// URLs well inside any signing lifetime and bounds how long a merchant's
-// edit to the garment can stay hidden.
-const finishedVtoResponses = new Map<string, { response: VtoCompositionResponse; at: number }>()
-const FINISHED_VTO_RESPONSE_MS = 5 * 60 * 1000
-
 // canonicalVtoKey builds a stable key from the request items, sorted by
 // (colorway_size_asset_id, untucked) so submission order doesn't matter —
 // the same ordering the backend hashes into the composition token.
@@ -289,10 +282,6 @@ export function requestVto(items: VtoCompositionItem[]): Promise<VtoCompositionR
   if (existing) {
     return existing
   }
-  const finished = finishedVtoResponses.get(key)
-  if (finished && Date.now() - finished.at < FINISHED_VTO_RESPONSE_MS) {
-    return Promise.resolve(finished.response)
-  }
 
   const promise = execApiRequest<VtoCompositionResponse>({
     useToken: true,
@@ -300,19 +289,9 @@ export function requestVto(items: VtoCompositionItem[]): Promise<VtoCompositionR
     endpoint: '/v1/vto-compositions',
     body: { items },
     timeoutMs: getStaticData().config.api.vtoTimeoutMs,
+  }).finally(() => {
+    inFlightVtoRequests.delete(key)
   })
-    .then((response) => {
-      finishedVtoResponses.delete(key)
-      finishedVtoResponses.set(key, { response, at: Date.now() })
-      const oldest = finishedVtoResponses.keys().next().value
-      if (finishedVtoResponses.size > 100 && oldest !== undefined) {
-        finishedVtoResponses.delete(oldest)
-      }
-      return response
-    })
-    .finally(() => {
-      inFlightVtoRequests.delete(key)
-    })
   inFlightVtoRequests.set(key, promise)
   return promise
 }
