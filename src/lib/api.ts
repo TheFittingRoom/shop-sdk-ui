@@ -187,16 +187,6 @@ export async function getSizeRecommendation(styleId: number): Promise<SizeFitRec
   })
 }
 
-// Names the garment a try-on from this page would use, so the backend can
-// ready its files before the shopper asks. Nothing is rendered.
-export async function prefetchVto(colorwaySizeAssetId: number): Promise<void> {
-  await execApiRequest<unknown>({
-    useToken: true,
-    method: 'POST',
-    endpoint: `/v1/vto-prefetch/${colorwaySizeAssetId}`,
-  })
-}
-
 export async function getStyleCategories(): Promise<StyleCategory[]> {
   return await execApiRequest<StyleCategory[]>({
     useCache: true,

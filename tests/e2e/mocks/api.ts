@@ -13,7 +13,6 @@ export interface ApiMockOverrides {
   styleCategories?: (route: Route) => Promise<void> | void
   styleCategoryGroups?: (route: Route) => Promise<void> | void
   vtoComposition?: (route: Route) => Promise<void> | void
-  vtoPrefetch?: (route: Route) => Promise<void> | void
   frames?: (route: Route) => Promise<void> | void
 }
 
@@ -53,13 +52,6 @@ export async function installApiMocks(page: Page, overrides: ApiMockOverrides = 
       return overrides.styleCategoryGroups(route)
     }
     return route.fulfill({ json: EMPTY_STYLE_CATEGORY_GROUPS })
-  })
-
-  await page.route(/\/v1\/vto-prefetch\/\d+$/, (route) => {
-    if (overrides.vtoPrefetch) {
-      return overrides.vtoPrefetch(route)
-    }
-    return route.fulfill({ status: 204 })
   })
 
   await page.route(/\/v1\/vto-compositions$/, (route) => {
