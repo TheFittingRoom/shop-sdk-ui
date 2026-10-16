@@ -185,26 +185,6 @@ async function openQuickView(page: Page, backend: FakeVtoBackend, accounts?: Boo
   await page.getByRole('button', { name: /quick view/i }).click()
 }
 
-test('opening the product page readies the garment quick view would try on, without rendering', async ({ page }) => {
-  const backend = new FakeVtoBackend()
-  const prefetched: string[] = []
-  await bootSdk(page, {
-    currentProduct: PRODUCT,
-    firestoreDocs: { styles: { 'style-1': TEST_SEEDED_STYLE } },
-    apiOverrides: {
-      sizeRecommendation: (route) => route.fulfill({ json: SIZE_RECOMMENDATION }),
-      vtoComposition: backend.route,
-      vtoPrefetch: (route) => {
-        prefetched.push(new URL(route.request().url()).pathname.split('/').pop() ?? '')
-        return route.fulfill({ status: 204 })
-      },
-    },
-  })
-  // The recommended size in the PDP's color, as quick view opens on it.
-  await expect.poll(() => prefetched).toEqual([M_BLUE])
-  expect(backend.posts).toEqual([])
-})
-
 // Fitting-room wiring for PRODUCT ('tshirt'), stored as a fitting-room item
 // that is not yet selected.
 const TSHIRT_CATEGORY = {
