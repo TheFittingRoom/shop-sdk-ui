@@ -4,7 +4,7 @@ The Fitting Room's browser SDK. A React/TypeScript ESM library that brands embed
 on product pages to render virtual try-on, size recommendations, and avatar
 creation flows. Authenticates against Firebase and talks to `tfr-backend`.
 
-Distributed via npm and served to consumers through jsdelivr. The SDK registers
+Distributed via npm and served to consumers through unpkg. The SDK registers
 a `<tfr-widget>` custom element and exposes an `init()` entrypoint.
 
 ## Install
@@ -99,12 +99,12 @@ gh pr create --base main --head release-bump-manual --title "chore: release vX.Y
 ```
 
 **Demo storefront visibility:** the `shopify` theme's `tfr.js` loads
-the SDK from `unpkg.com/@thefittingroom/shop-ui@<exact version>`, pinned
-in its `PROD_URL`. Publishing a version does not change the store.
-Releasing to the store is a PR on the `shopify` `development` branch
-that bumps that pin (the live store syncs from that branch); versions
-published under `next` are available for the bump without a `latest`
-promotion.
+the SDK from `unpkg.com/@thefittingroom/shop-ui@5` (its `PROD_URL`).
+unpkg resolves that range to the highest published 5.x regardless of
+dist-tag, so a release is live on the store as soon as it is on npm
+(the redirect is cached for up to 5 minutes), with no theme change and
+no `latest` promotion. Anything the release depends on, such as a
+backend deploy, must be live first.
 
 > **Ruleset + auto-merge note:** `main` is protected by a repository
 > ruleset requiring PRs + a passing `verify` check. `release.yaml`
@@ -158,10 +158,11 @@ one. Which pointer depends on how the consumer loads the SDK:
 - Consumers on a semver range (an `@5` CDN URL or a `^5` install): these
   resolve to the highest published version regardless of dist-tag, so the
   same applies; only a newer publish moves them.
-- The demo store is pinned to an exact version in the `shopify` theme's
-  `tfr.js`, so a publish never reaches it on its own. To roll the store
-  back, bump `PROD_URL` to the previous version and push to
-  `origin/development`; to move it forward, bump it to the fixed one.
+- The demo store loads `@5`, so it is in the semver-range case above.
+  To hold it on a known-good version while a fix is prepared, pin
+  `PROD_URL` in the `shopify` theme's `tfr.js` to that exact version (a
+  PR on `development`, which the live store syncs from), and set it back
+  to `@5` once the fixed version is published.
 
 ## Environments
 
@@ -174,8 +175,8 @@ change the table and the test together.
 
 | `environment` | API host | Firebase project | Asset base | Release channel |
 |---|---|---|---|---|
-| `development` | `tfr.dev.thefittingroom.xyz` | `fittingroom-dev-5d248` | `objects.infra.thefittingroom.xyz/tfr-assets-dev` | The exact version pinned in the theme's `PROD_URL` (`unpkg.com/@thefittingroom/shop-ui@<exact version>`); a `next` publish is eligible for the pin bump, `latest` is optional |
-| `demo` | `demo.thefittingroom.xyz/api` | `fittingroom-dev-5d248` | `demo.thefittingroom.xyz/s3/tfr-assets-dev` | The same pinned version, selected with `?tfr-source=demo` |
+| `development` | `tfr.dev.thefittingroom.xyz` | `fittingroom-dev-5d248` | `objects.infra.thefittingroom.xyz/tfr-assets-dev` | The highest published 5.x, via the theme's `PROD_URL` (`unpkg.com/@thefittingroom/shop-ui@5`); live on publish, `latest` is not involved |
+| `demo` | `demo.thefittingroom.xyz/api` | `fittingroom-dev-5d248` | `demo.thefittingroom.xyz/s3/tfr-assets-dev` | The same bundle, selected with `?tfr-source=demo` |
 | `local` | `localhost:8080` | `fittingroom-dev-5d248` | `localhost:9000/tfr-assets-dev` | Local `dist/index.js` from `npm run watch-serve`, selected with `?tfr-source=local` |
 | `production` | none yet | | | `init` fails with "not available yet"; use `development` |
 
@@ -209,7 +210,7 @@ Run the SDK against the local backend stack from
    <https://tfrshop-1346.myshopify.com/products/blackbandana-fitted-dress?tfr-source=local>
 
    The `?tfr-source=local` query param tells the storefront's `tfr.js` to load
-   the SDK from `http://localhost:5173/dist/index.js` instead of jsdelivr, and
+   the SDK from `http://localhost:5173/dist/index.js` instead of unpkg, and
    to initialize it with `environment: 'local'` (see `src/lib/config.ts` —
    that env points at `http://localhost:8080` for the API and the local
    s3proxy bucket for assets at `http://localhost:9000`).
