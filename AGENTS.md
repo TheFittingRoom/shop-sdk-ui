@@ -553,9 +553,33 @@ the rules alone would let two coexist.
 
 `computeAvailability` disables a card only for a missing category or the
 garment cap, and counts the cap **after** those evictions (jacket + shirt +
-pants, then a 3-piece Set: 1 + 3 = 4, allowed). The eviction is silent;
-there's no notice of what left the outfit. Guarded by
-`e2e/outfit-conflicts.spec.ts`, verified to fail with the old disable rule.
+pants, then a 3-piece Set: 1 + 3 = 4, allowed).
+
+**A clash swap says what it removed.** A same-category swap (one pair of pants
+for another) is self-explanatory and stays silent. Any other eviction raises
+an info snackbar — "Removed X, Y from your outfit" with **Undo** — that closes
+after `SWAP_NOTICE_MS` (5s). Undo restores the selection from before the tap;
+nothing was removed from the fitting room, only deselected. The notice holds
+the selection its swap produced (`swapNotice.result`) and is dropped the
+moment the selection is anything else, so Undo can never throw away a later
+change. It yields to an error snackbar rather than stacking under it.
+
+`Snackbar`'s `variant="info"` fills with TFR teal (`theme.color_tfr_800`, as
+the help popups use) so a notice never reads as one of the near-black error
+pills; it also takes an `action` link, `autoDismissMs` and `bottom`. Info is
+`role="status"`, error `role="alert"`.
+
+**Fitting-room snackbars sit above the bottom controls**, error and info alike:
+80px on desktop and mobile try-on (clearing the 48px Add all / Try It On button
+inset 16px), 140px on mobile browse (also clearing the floating Clear All pill
+at 96px). `bottom` is applied outside `useCss`, which computes once per mount,
+because the layout can switch while a snackbar is up. If either layout's bottom
+controls move, update `SNACKBAR_BOTTOM*` in `fitting-room/index.tsx`. The
+overlap tests check vertical clearance only: the test host has no viewport
+meta, so the phone profile lays out 980px wide.
+
+Guarded by `e2e/outfit-conflicts.spec.ts`; the swap tests were verified to
+fail with the old disable rule, the notice test with a notice on every swap.
 
 ## Fitting-room icon widget — three responsibilities
 

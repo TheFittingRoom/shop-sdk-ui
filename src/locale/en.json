@@ -58,7 +58,9 @@
     "vto_error": "Couldn't load the try-on. Please try again.",
     "add_to_cart_error": "Couldn't add this item to your cart. Please try again.",
     "add_all_to_cart": "Add all to cart",
-    "add_all_to_cart_error": "Some items couldn't be added to your cart. Please try again."
+    "add_all_to_cart_error": "Some items couldn't be added to your cart. Please try again.",
+    "swap_removed": "Removed {{names}} from your outfit",
+    "undo": "Undo"
   },
   "landing": {
     "header": "Meet your mini me!",

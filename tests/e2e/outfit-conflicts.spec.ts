@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, test } from '@playwright/test'
+import { devices, expect, test } from '@playwright/test'
 import { bootSdk } from './helpers/boot'
 import {
   TEST_BRAND_ID,
@@ -68,7 +68,12 @@ const PRODUCTS = [
 
 // Opens the desktop fitting room holding Test Product (T-shirt), Second
 // Product (pants) and Test Suit Set (inner top + bottoms), none selected.
-async function bootFittingRoom(page: Page, categories: unknown[] = [TSHIRT, PANTS, SET, INNER_TOPS, BOTTOMS]) {
+// `secondProductCategory` re-categorises Second Product (pants by default).
+async function bootFittingRoom(
+  page: Page,
+  categories: unknown[] = [TSHIRT, PANTS, SET, INNER_TOPS, BOTTOMS],
+  secondProductCategory = 'pants',
+) {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.addInitScript(
     ({ brandId, uid, products }) => {
@@ -89,7 +94,7 @@ async function bootFittingRoom(page: Page, categories: unknown[] = [TSHIRT, PANT
     firestoreDocs: {
       styles: {
         'test-style': TEST_SEEDED_STYLE,
-        'test-style-b': TEST_SEEDED_STYLE_B,
+        'test-style-b': { ...TEST_SEEDED_STYLE_B, style_category_name: secondProductCategory },
         'container-style-1': TEST_CONTAINER_SEEDED_STYLE,
       },
     },
@@ -158,4 +163,88 @@ test('a cross-group Excludes rule swaps too', async ({ page }) => {
 
   await card(page, /Second Product/i).click()
   await expectOutfit(page, { in: ['Pant'], out: ['T-Shirt'] })
+})
+
+// --- The swap notice ---------------------------------------------------------
+
+const notice = (page: Page) => page.getByRole('status').filter({ hasText: /from your outfit/ })
+
+test('a clash swap shows a teal notice naming what left, and Undo restores it', async ({ page }) => {
+  await bootFittingRoom(page)
+  await card(page, /Test Product/i).click()
+  await card(page, /Second Product/i).click()
+  await expect(notice(page)).toHaveCount(0)
+
+  await card(page, /Test Suit Set/i).click()
+  await expect(notice(page)).toHaveText(/Removed Test Product, Second Product from your outfit/)
+  // TFR teal (theme.color_tfr_800), not the error snackbar's near-black.
+  await expect(notice(page)).toHaveCSS('background-color', 'rgb(38, 90, 100)')
+
+  await notice(page).getByRole('button', { name: 'Undo' }).click()
+  await expectOutfit(page, { in: ['T-Shirt', 'Pant'], out: ['Set'] })
+  await expect(notice(page)).toHaveCount(0)
+})
+
+test('a same-category swap shows no notice', async ({ page }) => {
+  // Second Product as a second T-shirt.
+  await bootFittingRoom(page, [TSHIRT, PANTS, SET, INNER_TOPS, BOTTOMS], 'tshirt')
+  await card(page, /Test Product/i).click()
+  await card(page, /Second Product/i).click()
+  // One T-shirt row: the second replaced the first.
+  await expect(row(page, 'T-Shirt')).toHaveCount(1)
+  await expect(notice(page)).toHaveCount(0)
+})
+
+test('the notice closes on its own, and as soon as the outfit changes again', async ({ page }) => {
+  await bootFittingRoom(page)
+  await card(page, /Test Product/i).click()
+  await card(page, /Test Suit Set/i).click()
+  await expect(notice(page)).toBeVisible()
+  // SWAP_NOTICE_MS is 5s.
+  await expect(notice(page)).toHaveCount(0, { timeout: 8000 })
+
+  // Another change makes Undo stale, so the notice goes with it.
+  await card(page, /Test Product/i).click()
+  await expect(notice(page)).toBeVisible()
+  await card(page, /Second Product/i).click()
+  await expect(notice(page)).toHaveCount(0)
+  await expectOutfit(page, { in: ['T-Shirt', 'Pant'], out: ['Set'] })
+})
+
+// The notice sits above the overlay's bottom controls, not over them.
+// Checked vertically only: the test host has no viewport meta, so the phone
+// profile lays out 980px wide and a horizontal check would miss overlaps a
+// real phone-width layout has.
+async function expectClearOf(page: Page, controls: RegExp[]) {
+  const box = await notice(page).boundingBox()
+  expect(box).not.toBeNull()
+  for (const name of controls) {
+    const other = await page.getByRole('dialog').getByRole('button', { name }).boundingBox()
+    expect(other, String(name)).not.toBeNull()
+    if (box && other) {
+      expect(box.y + box.height, `notice overlaps ${String(name)}`).toBeLessThanOrEqual(other.y)
+    }
+  }
+}
+
+test('desktop: the notice clears Add all to cart', async ({ page }) => {
+  await bootFittingRoom(page)
+  await card(page, /Test Product/i).click()
+  await card(page, /Test Suit Set/i).click()
+  await expectClearOf(page, [/^Add all to cart$/i])
+})
+
+test.describe('mobile', () => {
+  const { defaultBrowserType: _b, ...pixel5 } = devices['Pixel 5']
+  test.use(pixel5)
+
+  test('the notice clears Try It On and Clear All', async ({ page }) => {
+    await bootFittingRoom(page)
+    // bootFittingRoom sizes the viewport for desktop; the layout is picked
+    // from the device profile, so restoring a phone width is enough.
+    await page.setViewportSize(pixel5.viewport)
+    await card(page, /Test Product/i).click()
+    await card(page, /Test Suit Set/i).click()
+    await expectClearOf(page, [/^Try It On$/i, /^Clear All/i])
+  })
 })

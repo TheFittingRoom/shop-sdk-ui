@@ -57,6 +57,17 @@ function toWireItems(items: OutfitItem[]): VtoCompositionItem[] {
 
 const logger = getLogger('overlays/fitting-room')
 
+// How long the "Removed X from your outfit" notice stays up.
+const SWAP_NOTICE_MS = 5000
+
+// Snackbars sit above the overlay's bottom controls rather than over them.
+// Both layouts end in a 48px button inset 16px (desktop Add all to cart,
+// mobile Try It On), so 80px clears it with a 16px gap. Mobile browse also
+// floats Clear All just above that bar (bottom 96px, 30px tall), which a
+// phone-width snackbar would cover, so it goes above that too.
+const SNACKBAR_BOTTOM = '80px'
+const SNACKBAR_BOTTOM_MOBILE_BROWSE = '140px'
+
 function measureTopOffset(): number {
   const { getOverlayTopOffset } = getStaticData()
   if (!getOverlayTopOffset) {
@@ -99,6 +110,16 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   const [detailMode, setDetailMode] = useState<DetailMode>('compact')
   const [forceUntuck, setForceUntuck] = useState<boolean>(false)
   const [lastAddedExternalId, setLastAddedExternalId] = useState<string | null>(null)
+  // The last add that evicted a clashing item (not just a same-category
+  // swap), for the info snackbar and its Undo. `result` is the selection the
+  // add produced: once the selection moves on from it, Undo would throw away
+  // later changes, so the notice is dropped (see the effect below).
+  const [swapNotice, setSwapNotice] = useState<{
+    names: string[]
+    previous: Set<string>
+    result: Set<string>
+    at: number
+  } | null>(null)
   const [mobileMode, setMobileMode] = useState<MobileMode>('browse')
 
   const { snap: sheetSnap, setSnap: setSheetSnap, handleTouchStart: sheetTouchStart } = useMobileSheetSnap('collapsed')
@@ -206,15 +227,30 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
       if (isSelected) {
         nextSelected.delete(externalId)
       } else {
-        // Silent swap: adding an item evicts every selected item it can't be
-        // worn with (same category, or a composition-rule clash — a Set and a
+        // Swap: adding an item evicts every selected item it can't be worn
+        // with (same category, or a composition-rule clash — a Set and a
         // standalone top, say). computeAvailability already reflects this
         // (clashes don't disable the new card), so the eviction is the
         // shopper's implicit choice.
-        for (const evictedId of getOutfitConflicts(item, selectedExternalIds, resolved)) {
-          nextSelected.delete(evictedId)
+        const evicted = getOutfitConflicts(item, selectedExternalIds, resolved).flatMap(
+          (id) => resolved.items.find((i) => i.externalId === id) ?? [],
+        )
+        for (const e of evicted) {
+          nextSelected.delete(e.externalId)
         }
         nextSelected.add(externalId)
+        // A same-category swap (one pair of pants for another) explains
+        // itself. Anything else — picking a shirt removing a whole Set —
+        // gets a notice with Undo, naming everything that left.
+        const itemCategory = item.styleCategory?.name
+        if (evicted.some((e) => e.styleCategory?.name !== itemCategory)) {
+          setSwapNotice({
+            names: evicted.map((e) => e.merchantProduct?.productName ?? e.externalId),
+            previous: selectedExternalIds,
+            result: nextSelected,
+            at: Date.now(),
+          })
+        }
         ensureSizeForItem(item)
         setLastAddedExternalId(externalId)
         // Trigger a one-shot auto-rotation when the new product's VTO frames
@@ -396,6 +432,26 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
     },
     [openAccordionItemId, removeFromFittingRoom],
   )
+
+  // Undo restores the selection from before the swap. The added item stays in
+  // the fitting room, just deselected; the evicted ones were only ever
+  // deselected, so they come straight back.
+  const handleUndoSwap = useCallback(() => {
+    if (!swapNotice) {
+      return
+    }
+    setSelectedExternalIds(new Set(swapNotice.previous))
+    setSwapNotice(null)
+  }, [swapNotice])
+
+  // Drop the notice as soon as the selection is anything but what its swap
+  // produced — another tap, a removal, Clear All — so Undo can only ever
+  // reverse the change it describes.
+  useEffect(() => {
+    if (swapNotice && selectedExternalIds !== swapNotice.result) {
+      setSwapNotice(null)
+    }
+  }, [selectedExternalIds, swapNotice])
 
   const handleTryItOn = useCallback(() => {
     setMobileMode('try-on')
@@ -610,6 +666,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   // mode goes fullscreen — top: 0 — so the avatar image is flush with the
   // top of the screen.
   const isMobileTryOn = isMobileLayout && mobileMode === 'try-on'
+  const snackbarBottom = isMobileLayout && !isMobileTryOn ? SNACKBAR_BOTTOM_MOBILE_BROWSE : SNACKBAR_BOTTOM
   const overlayStyle = {
     top: isMobileTryOn ? 0 : `${topOffset}px`,
     left: 0,
@@ -713,9 +770,28 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             onClearAll={handleClearAll}
           />
         )}
-        {vtoError ? <Snackbar messageKey="fitting_room.vto_error" onDismiss={clearVtoError} /> : null}
+        {vtoError ? (
+          <Snackbar messageKey="fitting_room.vto_error" bottom={snackbarBottom} onDismiss={clearVtoError} />
+        ) : null}
         {cartError ? (
-          <Snackbar messageKey={cartError.messageKey} detail={cartError.detail} onDismiss={() => setCartError(null)} />
+          <Snackbar
+            messageKey={cartError.messageKey}
+            detail={cartError.detail}
+            bottom={snackbarBottom}
+            onDismiss={() => setCartError(null)}
+          />
+        ) : null}
+        {swapNotice && !vtoError && !cartError ? (
+          <Snackbar
+            key={swapNotice.at}
+            variant="info"
+            messageKey="fitting_room.swap_removed"
+            messageVars={{ names: swapNotice.names.join(', ') }}
+            action={{ labelKey: 'fitting_room.undo', onClick: handleUndoSwap }}
+            autoDismissMs={SWAP_NOTICE_MS}
+            bottom={snackbarBottom}
+            onDismiss={() => setSwapNotice(null)}
+          />
         ) : null}
       </div>
     </ModalFrame>

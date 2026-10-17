@@ -57,7 +57,9 @@
     "vto_error": "Impossible de charger l'essayage. Veuillez réessayer.",
     "add_to_cart_error": "Impossible d'ajouter cet article à votre panier. Veuillez réessayer.",
     "add_all_to_cart": "Tout ajouter au panier",
-    "add_all_to_cart_error": "Certains articles n'ont pas pu être ajoutés à votre panier. Veuillez réessayer."
+    "add_all_to_cart_error": "Certains articles n'ont pas pu être ajoutés à votre panier. Veuillez réessayer.",
+    "swap_removed": "Retiré de votre tenue : {{names}}",
+    "undo": "Annuler"
   },
   "landing": {
     "header": "Rencontrez votre mini-moi !",
