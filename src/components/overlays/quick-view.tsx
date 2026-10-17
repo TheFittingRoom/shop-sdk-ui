@@ -33,7 +33,8 @@ import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import type { LoadedProductData, VtoProductData, VtoSizeColorData, VtoSizeData } from '@/lib/product'
 import { buildVtoWireItems, loadProductDataToStore } from '@/lib/product'
-import { loadStyleCategoryIndex } from '@/lib/style-categories'
+import type { StyleCategoryIndex } from '@/lib/style-categories'
+import { loadStyleCategoryIndex, peekStyleCategoryIndex } from '@/lib/style-categories'
 import { getStaticData, useMainStore } from '@/lib/store'
 import type { CssProp, StyleProp } from '@/lib/theme'
 import { getThemeData, useCss } from '@/lib/theme'
@@ -161,10 +162,13 @@ export default function QuickViewOverlay() {
         // fitting-room accordion header uses. The style-category group's
         // label is plural ("Tops") and lacks a singular form, so we go
         // through `byName` for the StyleCategory itself, which carries
-        // `label_singular`.
-        const styleCategoryIndex = await loadStyleCategoryIndex()
-        const styleCategoryRecord = styleCategoryIndex.byName(storeProduct.style.style_category_name)
-        const styleCategoryLabel = styleCategoryRecord?.label_singular ?? styleCategoryRecord?.label ?? null
+        // `label_singular`. The try-on request does not need it, so if the
+        // index is not loaded yet the label fills in once it is.
+        const categoryLabel = (index: StyleCategoryIndex | null) => {
+          const record = index?.byName(storeProduct.style.style_category_name)
+          return record?.label_singular ?? record?.label ?? null
+        }
+        const styleCategoryLabel = categoryLabel(peekStyleCategoryIndex())
         const sizeRecommendationRecord = storeProduct.sizeFitRecommendation
         {
           const recommendedSizeId = sizeRecommendationRecord.recommended_size.id || null
@@ -253,6 +257,16 @@ export default function QuickViewOverlay() {
           setVtoProductData(vtoProductData)
           setSelectedSizeLabel(recommendedSizeLabel)
           setSelectedColorLabel(recommendedColorLabel)
+          if (styleCategoryLabel === null) {
+            loadStyleCategoryIndex()
+              .then((index) => {
+                const label = categoryLabel(index)
+                setVtoProductData((current) => (current ? { ...current, styleCategoryLabel: label } : current))
+              })
+              .catch((error) => {
+                logger.logError('failed to load style category index for the label', { error })
+              })
+          }
         }
 
         // (Legacy `userProfile.vto[brandId][sku]` ready-marking removed:

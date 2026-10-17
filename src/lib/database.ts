@@ -4,24 +4,29 @@ import { getFirestoreManager } from '@/lib/firebase'
 export type { FirestoreStyle, FirestoreColorwaySizeAsset }
 
 const recordCache: { [key: string]: unknown } = {}
+const styleLookups: { [key: string]: Promise<FirestoreStyle | null> } = {}
 
 export async function getStyleByExternalId(brandId: number, externalId: string): Promise<FirestoreStyle | null> {
   const cacheKey = `getStyleByExternalId/${brandId}/${externalId}`
-  if (recordCache[cacheKey]) {
-    return recordCache[cacheKey] as FirestoreStyle
+  if (cacheKey in recordCache) {
+    return recordCache[cacheKey] as FirestoreStyle | null
   }
+  // Callers during a lookup share it rather than querying again.
+  styleLookups[cacheKey] ??= queryStyle(cacheKey, brandId, externalId).finally(() => {
+    delete styleLookups[cacheKey]
+  })
+  return styleLookups[cacheKey]
+}
 
+async function queryStyle(cacheKey: string, brandId: number, externalId: string): Promise<FirestoreStyle | null> {
   const firestore = getFirestoreManager()
   const querySnapshot = await firestore.queryDocs<FirestoreStyle>('styles', [
     { field: 'brand_id', op: '==', value: brandId },
     { field: 'external_id', op: '==', value: externalId },
   ])
 
-  if (querySnapshot.empty) {
-    return null
-  }
-
-  const record = querySnapshot.docs[0].data()
+  // A product with no style is cached too, or every later lookup reads again.
+  const record = querySnapshot.empty ? null : querySnapshot.docs[0].data()
   recordCache[cacheKey] = record
   return record
 }
