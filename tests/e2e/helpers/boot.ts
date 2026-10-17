@@ -31,7 +31,22 @@ export interface BootSdkOptions {
   // needs the fields the SDK actually reads. See fixtures/seed.ts for
   // ready-made shapes (e.g. TEST_SEEDED_STYLE).
   firestoreDocs?: Record<string, Record<string, unknown>>
+  // Help popups (src/lib/help-tips.ts) are marked seen before boot unless this
+  // is true: they sit over the controls other specs click. help-tips.spec.ts
+  // opts in.
+  helpTips?: boolean
 }
+
+// Every HelpTipId in src/lib/help-tips.ts.
+const ALL_HELP_TIPS = [
+  'fitting_room_icon',
+  'add_to_fitting_room',
+  'fitting_room_card',
+  'fitting_room_try_it_on',
+  'avatar_rotate',
+  'sheet_swipe_up',
+  'sheet_expand_item',
+]
 
 /**
  * Boot the SDK in the test host fixture with sensible defaults. Returns once
@@ -47,9 +62,16 @@ export async function bootSdk(page: Page, options: BootSdkOptions = {}): Promise
     apiOverrides,
     firestoreDocs,
     accounts,
+    helpTips = false,
   } = options
 
   await installApiMocks(page, apiOverrides)
+
+  if (!helpTips) {
+    await page.addInitScript((ids) => {
+      window.localStorage.setItem('tfr:help-tips:v1', JSON.stringify(Object.fromEntries(ids.map((id) => [id, true]))))
+    }, ALL_HELP_TIPS)
+  }
 
   // Build the test config and stash it on `window` BEFORE the page's inline
   // script runs. The fixture HTML reads `__TFR_TEST_CONFIG__` and threads it

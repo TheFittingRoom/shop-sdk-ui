@@ -1583,6 +1583,7 @@ function Avatar({ frameUrls, autoRotateTrigger, setModalStyle }: AvatarProps) {
         imageStyle={layoutData.imageStyle}
         loadingT="quick-view.avatar_loading"
         onUserInteract={cancelAutoRotate}
+        rotateHelpTip
       />
       {isReady && !isMobileLayout ? (
         <Button variant="base" css={css.zoomPill} onClick={() => setZoomOpen(true)}>

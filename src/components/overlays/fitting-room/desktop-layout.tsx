@@ -259,7 +259,7 @@ export function DesktopLayout({
         <span css={{ ...css.utilityLink, ...css.clearAllWrapper }} onClick={onClearAll}>
           <LinkT variant="underline" css={css.utilityText} t="fitting_room.clear_all" />
         </span>
-        {resolved.groups.map((group) => (
+        {resolved.groups.map((group, index) => (
           <CardRail
             key={group.group.name}
             group={group}
@@ -268,6 +268,7 @@ export function DesktopLayout({
             onRemoveItem={onRemoveItem}
             onChangeColor={onChangeColor}
             sortSelectedFirst
+            firstCardHelpTip={index === 0 && !resolved.isLoading}
           />
         ))}
         <span css={{ ...css.utilityLink, ...css.signOutWrapper }} onClick={onSignOut}>

@@ -1,6 +1,8 @@
 import { keyframes } from '@emotion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { HelpTooltip } from '@/components/help-tooltip'
 import { FittingRoomIcon } from '@/lib/asset'
+import { useHelpTip } from '@/lib/help-tips'
 import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import { useMainStore } from '@/lib/store'
@@ -8,13 +10,11 @@ import { useCss } from '@/lib/theme'
 import type { WidgetProps } from '@/lib/view'
 import { OverlayName } from '@/lib/view'
 import { AddConfirmationDrawer } from './add-confirmation-drawer'
-import { FirstVisitTooltip } from './first-visit-tooltip'
 
 const logger = getLogger('widgets/fitting-room-icon')
 
 const DRAWER_AUTO_DISMISS_MS = 6000
 const TOOLTIP_AUTO_DISMISS_MS = 10000
-const FIRST_VISIT_KEY = 'tfr:first-visit-tooltip-seen:v1'
 
 // Soft teal box-shadow pulse — only animates while the first-visit tooltip
 // is showing. Reuses the #265A64 TFR teal (theme.color_tfr_800), the same
@@ -34,34 +34,17 @@ export default function FittingRoomIconWidget(_props: WidgetProps) {
   const lastAddEvent = useMainStore((state) => state.lastAddEvent)
 
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [showTooltip, setShowTooltip] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const drawerAutoDismissTimerRef = useRef<number | null>(null)
 
-  // First-visit detection. One-shot per browser via localStorage.
-  useEffect(() => {
-    try {
-      if (!window.localStorage.getItem(FIRST_VISIT_KEY)) {
-        setShowTooltip(true)
-      }
-    } catch (error) {
-      logger.logWarn('Failed to read first-visit flag', { error })
-    }
-  }, [])
+  // First-visit popup, once per browser. useHelpTip shows it only when no
+  // higher-priority popup is up, and records it as seen on dismiss.
+  const { show: showTooltip, dismiss: dismissTooltip } = useHelpTip('fitting_room_icon', true, 0)
 
-  const dismissTooltip = useCallback(() => {
-    setShowTooltip(false)
-    try {
-      window.localStorage.setItem(FIRST_VISIT_KEY, 'true')
-    } catch (error) {
-      logger.logWarn('Failed to write first-visit flag', { error })
-    }
-  }, [])
-
-  // Auto-dismiss the tooltip after 10s — the shopper has had time to see it;
-  // we still write the localStorage flag so it doesn't re-appear on the next
-  // page load.
+  // Auto-dismiss the tooltip after 10s — the shopper has had time to see it,
+  // so it is still recorded as seen and doesn't re-appear on the next page
+  // load.
   useEffect(() => {
     if (!showTooltip) {
       return
@@ -205,7 +188,7 @@ export default function FittingRoomIconWidget(_props: WidgetProps) {
           onInteract={cancelDrawerAutoDismiss}
         />
       ) : showTooltip ? (
-        <FirstVisitTooltip
+        <HelpTooltip
           text={t('first_visit_tooltip.body')}
           dismissAriaLabel={t('first_visit_tooltip.dismiss')}
           onDismiss={dismissTooltip}

@@ -1,7 +1,8 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { Button } from '@/components/button'
 import { ColorSelector } from '@/components/color-selector'
+import { HelpTip } from '@/components/help-tooltip'
 import { ItemFitDetails } from '@/components/item-fit-details'
 import { ItemFitText } from '@/components/item-fit-text'
 import { LinkT } from '@/components/link'
@@ -28,6 +29,9 @@ interface DetailAccordionItemProps {
   canTuck: boolean
   // Which wording the tuck control uses — from the VTO response.
   tuckLabel: VtoTuckLabel
+  // Mobile only: this row's expand chevron carries the "tap to see size
+  // recommendation info" help popup. Set on the first row.
+  expandHelpTip?: boolean
   // Mobile-only — desktop ignores these.
   detailMode: DetailMode
   isMobileQuickRow: boolean
@@ -50,6 +54,7 @@ export function DetailAccordionItem({
   forceUntuck,
   canTuck,
   tuckLabel,
+  expandHelpTip = false,
   detailMode,
   isMobileQuickRow,
   onToggleOpen,
@@ -151,6 +156,7 @@ export function DetailAccordionItem({
       isMobileQuickRow={isMobileQuickRow}
       tuckable={tuckable}
       tuckLabel={tuckLabel}
+      expandHelpTip={expandHelpTip}
       forceUntuck={forceUntuck}
       onToggleOpen={onToggleOpen}
       onChangeDetailMode={onChangeDetailMode}
@@ -472,6 +478,7 @@ interface MobileProps {
   isMobileQuickRow: boolean
   tuckable: boolean
   tuckLabel: VtoTuckLabel
+  expandHelpTip: boolean
   forceUntuck: boolean
   onToggleOpen: () => void
   onChangeDetailMode: (mode: DetailMode) => void
@@ -494,6 +501,7 @@ function MobileAccordionItem({
   isMobileQuickRow,
   tuckable,
   tuckLabel,
+  expandHelpTip,
   forceUntuck,
   onToggleOpen,
   onChangeDetailMode,
@@ -503,6 +511,7 @@ function MobileAccordionItem({
   onToggleUntuck,
 }: MobileProps) {
   const { t } = useTranslation()
+  const chevronRef = useRef<HTMLSpanElement>(null)
 
   // Light grey for the section card — the header tints over it and a ~6px
   // frame of it surrounds the white content.
@@ -648,10 +657,18 @@ function MobileAccordionItem({
             {productName}
           </Text>
         </div>
-        <span css={css.chevron}>
+        <span ref={chevronRef} css={css.chevron}>
           <Chevron direction={isOpen ? 'up' : 'down'} />
         </span>
       </Button>
+      {/* Offered while the row is closed: the chevron is what opens it. */}
+      <HelpTip
+        id="sheet_expand_item"
+        enabled={expandHelpTip && !isOpen}
+        anchorRef={chevronRef}
+        t="help_tip.sheet_expand_item"
+        placement="above"
+      />
 
       {isMobileQuickRow ? (
         <div css={css.content}>

@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Loading } from '@/components/content/loading'
+import { HelpTip } from '@/components/help-tooltip'
 import { useFrameRotation } from '@/components/use-frame-rotation'
 import { ChevronLeftIcon, ChevronRightIcon } from '@/lib/asset'
 import type { StyleProp } from '@/lib/theme'
@@ -17,6 +18,8 @@ interface AvatarFrameViewerProps {
   // (chevron tap or drag). Used by parents that run useAutoRotate to halt
   // an in-flight rotation as soon as the user takes control.
   onUserInteract?: () => void
+  // Offer the "tap the arrows to rotate" help popup once frames are showing.
+  rotateHelpTip?: boolean
 }
 
 // AvatarFrameViewer renders a single avatar/VTO frame from `frameUrls` with
@@ -32,7 +35,9 @@ export function AvatarFrameViewer({
   imageStyle,
   loadingT = 'quick-view.avatar_loading',
   onUserInteract,
+  rotateHelpTip = false,
 }: AvatarFrameViewerProps) {
+  const rightChevronRef = useRef<HTMLDivElement>(null)
   const css = useCss((_theme) => ({
     imageContainer: {
       position: 'absolute',
@@ -115,6 +120,7 @@ export function AvatarFrameViewer({
         <ChevronLeftIcon css={css.chevronIcon} />
       </div>
       <div
+        ref={rightChevronRef}
         role="button"
         aria-label="Rotate right"
         css={css.chevronRightContainer}
@@ -123,6 +129,7 @@ export function AvatarFrameViewer({
       >
         <ChevronRightIcon css={css.chevronIcon} />
       </div>
+      <HelpTip id="avatar_rotate" enabled={rotateHelpTip} anchorRef={rightChevronRef} t="help_tip.avatar_rotate" />
     </div>
   )
 }

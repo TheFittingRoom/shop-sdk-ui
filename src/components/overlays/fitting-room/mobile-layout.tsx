@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button, ButtonT } from '@/components/button'
+import { HelpTip } from '@/components/help-tooltip'
 import { Text, TextT } from '@/components/text'
 import type { VtoTuckLabel } from '@/api/gen/enums'
 import type { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
@@ -142,6 +143,7 @@ function BrowseView({
   onClearAll: () => void
 }) {
   const railsAreaRef = useRef<HTMLDivElement>(null)
+  const tryItOnRef = useRef<HTMLDivElement>(null)
   // group name → its wrapper element in the rails scroll area, for the
   // section-nav scroll-spy and jump-to-section.
   const sectionRefs = useRef<Map<string, HTMLDivElement>>(new Map())
@@ -279,7 +281,7 @@ function BrowseView({
         <SectionNav sections={sections} activeName={activeSectionName} onSelect={scrollToSection} />
       ) : null}
       <div ref={railsAreaRef} css={css.railsArea} onScroll={recomputeActiveSection}>
-        {resolved.groups.map((group) => (
+        {resolved.groups.map((group, index) => (
           <div
             key={group.group.name}
             ref={(el) => {
@@ -296,6 +298,7 @@ function BrowseView({
               onSelectItem={onSelectItem}
               onRemoveItem={onRemoveItem}
               onChangeColor={onChangeColor}
+              firstCardHelpTip={index === 0 && !resolved.isLoading}
             />
           </div>
         ))}
@@ -319,8 +322,17 @@ function BrowseView({
           briefly renders alone (with an empty rails area collapsed to zero
           height) and floats up to the top of the overlay. */}
       {resolved.groups.length > 0 ? (
-        <div css={css.bottomBar}>
+        <div ref={tryItOnRef} css={css.bottomBar}>
           <ButtonT variant="brand" t="fitting_room.try_it_on" onClick={onTryItOn} disabled={selectedCount === 0} />
+          {/* Offered once something is selected — before that the button is
+              disabled and there is no outfit to see. */}
+          <HelpTip
+            id="fitting_room_try_it_on"
+            enabled={selectedCount > 0}
+            anchorRef={tryItOnRef}
+            t="help_tip.fitting_room_try_it_on"
+            placement="above"
+          />
         </div>
       ) : null}
     </div>
@@ -366,6 +378,7 @@ function TryOnView({
   onToggleUntuck: () => void
 }) {
   const innerRef = useRef<HTMLDivElement>(null)
+  const sheetHandleRef = useRef<HTMLDivElement>(null)
   const [sheetStyle, setSheetStyle] = useState<StyleProp>({})
 
   // Quick-row form when sheet is in expanded but no item is open;
@@ -480,13 +493,20 @@ function TryOnView({
       </Button>
       <div css={css.sheetOuter} style={sheetStyle}>
         <div ref={innerRef} css={css.sheetInner} style={sheetStyle}>
-          <div css={css.sheetHandleRow} onTouchStart={sheetTouchStart}>
+          <div ref={sheetHandleRef} css={css.sheetHandleRow} onTouchStart={sheetTouchStart}>
             <DragHandleIcon />
             <Text variant="base" css={css.sheetTitle}>
               {/* "RECOMMENDED SIZES" header */}
               RECOMMENDED SIZES
             </Text>
           </div>
+          <HelpTip
+            id="sheet_swipe_up"
+            enabled={sheetSnap === 'collapsed' && selectedItems.length > 0}
+            anchorRef={sheetHandleRef}
+            t="help_tip.sheet_swipe_up"
+            placement="above"
+          />
           {sheetSnap === 'collapsed' ? null : (
             <div css={css.sheetContent}>
               <DetailAccordion

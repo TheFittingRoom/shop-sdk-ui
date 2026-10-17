@@ -54,7 +54,7 @@ export function DetailAccordion({
   const gap = platform === 'mobile' ? '10px' : '2px'
   return (
     <div css={css.container} style={{ gap }}>
-      {items.map((item) => {
+      {items.map((item, index) => {
         const isOpen = openItemExternalId === item.externalId
         return (
           <DetailAccordionItem
@@ -67,6 +67,7 @@ export function DetailAccordion({
             forceUntuck={forceUntuck}
             canTuck={canTuck}
             tuckLabel={tuckLabel}
+            expandHelpTip={platform === 'mobile' && index === 0}
             onToggleOpen={() => onOpenItem(isOpen ? null : item.externalId)}
             onOpen={() => onOpenItem(item.externalId)}
             onChangeDetailMode={onChangeDetailMode}

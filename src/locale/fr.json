@@ -13,6 +13,14 @@
     "body": "Ajoutez un article à votre cabine d'essayage ici",
     "dismiss": "Fermer"
   },
+  "help_tip": {
+    "dismiss": "Fermer",
+    "fitting_room_card": "Touchez les articles que vous voulez essayer",
+    "fitting_room_try_it_on": "Touchez ici pour voir votre tenue !",
+    "sheet_swipe_up": "Balayez vers le haut pour changer de taille",
+    "sheet_expand_item": "Touchez pour voir la recommandation de taille",
+    "avatar_rotate": "Touchez les flèches pour faire pivoter votre avatar"
+  },
   "add_confirmation": {
     "title": "Votre cabine d'essayage",
     "added_header": "Ajouté à votre cabine d'essayage",

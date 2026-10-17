@@ -482,17 +482,65 @@ to always be open would silently disable mobile's quick-row mode.
 header icon. It also hosts two anchored popovers that need to live next
 to the icon:
 
-- **First-visit tooltip** (`first-visit-tooltip.tsx`) — fires once per
-  browser the first time the widget mounts. Dismiss paths (icon click,
-  tooltip close, click-outside) all write the localStorage flag
-  `tfr:first-visit-tooltip-seen:v1`, a sibling to the existing
-  `tfr:fitting-room:v1`. While showing, the icon button gets a soft
-  green pulsing box-shadow.
+- **First-visit popup** — the `fitting_room_icon` help popup (see "Help
+  popups" below), shown once per browser. Dismiss paths (icon click,
+  popup close, click-outside, 10s timeout) all record it as seen. While
+  showing, the icon button gets a soft green pulsing box-shadow.
 - **Add-confirmation drawer** (`add-confirmation-drawer.tsx`) — fires
   whenever any item is added to the fitting room from any surface
   (catalog hanger, PDP, quick-view). Auto-dismisses after 4s; click-
   outside also dismisses. Items inside use a trash icon for remove
   (calls `removeFromFittingRoom`); CTA opens the overlay.
+
+## Help popups
+
+Seven one-time hints, each pointing at a control: the catalogue hanger and
+the header icon (store widgets, in that order), the first product card, the mobile TRY IT
+ON button, the avatar's rotate arrows (fitting room and quick view), and the
+mobile try-on sheet's swipe-up handle and first expand chevron.
+
+- **One flag per popup, one record per browser.** `src/lib/help-tips.ts`
+  keeps `tfr:help-tips:v1` = `{ "<HelpTipId>": true, ... }`. Per browser,
+  not per shopper: the store-widget popups show to signed-out visitors too.
+  The two store-widget popups used to keep their own flags
+  (`tfr:first-visit-tooltip-seen:v1`, `tfr:first-add-tooltip-seen:v1`);
+  those are still read, so a returning visitor isn't shown them again.
+- **Only one is ever on screen.** Each mounted popup that could show asks
+  `useHelpTip(id, enabled)`; the coordinator shows the highest-priority
+  unseen one (order: `HELP_TIP_PRIORITY`) on the first instance that asked,
+  and the next appears once it is dismissed. That is what turns them into a
+  sequence — cards → try it on → arrows → swipe up → expand — instead of a
+  pile that a single tap would clear. Two rules keep the order honest:
+  - a popup on screen is never swapped out by a higher-priority one that
+    becomes eligible later (frames arriving, say);
+  - requests arriving within `REQUEST_BATCH_MS` are decided together, so the
+    store widgets — separate React roots that mount one after another — are
+    ordered by priority rather than mount order.
+- **`enabled` is the hint making sense now**, not just the anchor existing:
+  the try-it-on popup waits for a selection (the button is disabled before),
+  the fitting room's rotate popup waits for an outfit rather than the bare
+  avatar (so the cards popup comes first), the expand popup only shows while
+  its row is closed.
+- **`HelpTip`** (`src/components/help-tooltip.tsx`) is the overlay wrapper:
+  dismissed by its close button, by the shopper touching anything else
+  (pointerdown, capture phase — usually the very control it points at, and
+  the touch still reaches that control), or after 10s. The store widgets
+  drive `HelpTooltip` through `useHelpTip` directly, because they fold its
+  dismissal into their drawer handling.
+- **`HelpTooltip` re-reads its anchor's position every animation frame**
+  while up. Overlay anchors move without a resize or scroll event (the
+  mobile sheet animates its height), and a popup is only up for seconds.
+
+**Adding a popup:** add the id to `HelpTipId` and `HELP_TIP_PRIORITY`, the
+id to `ALL_HELP_TIPS` in `tests/e2e/helpers/boot.ts`, and the text under
+`help_tip` in both locales; then render `<HelpTip>` beside its anchor.
+
+**e2e:** `bootSdk` marks every popup seen before boot unless
+`helpTips: true`, because popups sit over controls other specs click.
+`e2e/help-tips.spec.ts` opts in and covers the one-at-a-time sequence on
+desktop and mobile, and the legacy flags. Mobile layout is chosen from the
+user agent and touch support, not viewport width — that spec runs its mobile
+case on the Pixel 5 device profile.
 
 ### `lastAddEvent` — the cross-widget signal
 

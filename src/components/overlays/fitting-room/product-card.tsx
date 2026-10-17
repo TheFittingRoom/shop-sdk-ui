@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { Button } from '@/components/button'
+import { HelpTip } from '@/components/help-tooltip'
 import { Text } from '@/components/text'
 import { TrashIcon } from '@/lib/asset'
 import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
@@ -17,14 +18,25 @@ interface ProductCardProps {
   // Optional — when omitted, the per-card swatch row is hidden entirely.
   // CardRail passes this through on both desktop and mobile-browse.
   onChangeColor?: (externalId: string, colorLabel: string | null) => void
+  // This card carries the "tap the cards" help popup — the first card of the
+  // first rail.
+  helpTip?: boolean
 }
 
 // ProductCard renders one garment in the browse rail: image, name, price,
 // plus a top-right X to remove from the fitting room. `availability` drives
 // the border (selected → solid border) and disabled treatment (greyed +
 // non-clickable when other selections rule this one out).
-export function ProductCard({ item, availability, onClick, onRemove, onChangeColor }: ProductCardProps) {
+export function ProductCard({
+  item,
+  availability,
+  onClick,
+  onRemove,
+  onChangeColor,
+  helpTip = false,
+}: ProductCardProps) {
   const { t } = useTranslation()
+  const containerRef = useRef<HTMLDivElement>(null)
   const css = useCss((theme) => ({
     container: {
       position: 'relative',
@@ -172,6 +184,7 @@ export function ProductCard({ item, availability, onClick, onRemove, onChangeCol
 
   return (
     <div
+      ref={containerRef}
       css={{
         ...css.container,
         ...(selected && css.containerSelected),
@@ -219,6 +232,7 @@ export function ProductCard({ item, availability, onClick, onRemove, onChangeCol
       {onChangeColor ? (
         <ColorSwatchRow colors={swatchColors} selectedLabel={effectiveColor} onSelect={handleSwatchSelect} />
       ) : null}
+      <HelpTip id="fitting_room_card" enabled={helpTip} anchorRef={containerRef} t="help_tip.fitting_room_card" />
     </div>
   )
 }
