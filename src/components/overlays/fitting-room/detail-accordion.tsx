@@ -52,8 +52,11 @@ export function DetailAccordion({
   // wider gap separating the rounded section cards. Applied inline because
   // useCss memoizes and can't see the `platform` prop.
   const gap = platform === 'mobile' ? '10px' : '2px'
+  // Desktop: the accordion fills the detail pane's height so the open item
+  // can take what the collapsed rows leave (DesktopAccordionItem).
+  const fill = platform === 'desktop' ? { flex: '1 1 auto', minHeight: 0 } : {}
   return (
-    <div css={css.container} style={{ gap }}>
+    <div css={css.container} style={{ gap, ...fill }}>
       {items.map((item, index) => {
         const isOpen = openItemExternalId === item.externalId
         return (

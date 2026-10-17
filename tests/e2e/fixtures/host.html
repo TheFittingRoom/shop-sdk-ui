@@ -100,8 +100,20 @@
             }
             return handles.map((h) => catalog.find((p) => p.handle === h)).filter(Boolean)
           },
+          // Records every add (__TFR_TEST_ADDS__, in call order) as well as
+          // the last one. A test can make adds for given products fail by
+          // listing their ids in __TFR_TEST_ADD_FAIL__. The failure is shaped
+          // like the theme's (tfr.js embeds Shopify's 422 body in the error
+          // text); __TFR_TEST_ADD_FAIL_TEXT__ replaces the whole error text.
           addToCart: async (externalId, opts) => {
+            if ((window.__TFR_TEST_ADD_FAIL__ || []).includes(externalId)) {
+              throw new Error(
+                window.__TFR_TEST_ADD_FAIL_TEXT__ ||
+                  '[TFR] addToCart: /cart/add.js failed 422: {"status":422,"message":"Cart Error","description":"Cannot find variant"}',
+              )
+            }
             window.__TFR_TEST_LAST_ADD__ = { externalId, opts }
+            window.__TFR_TEST_ADDS__ = [...(window.__TFR_TEST_ADDS__ || []), { externalId, opts }]
           },
           getOverlayTopOffset: () => 0,
           // Exposes the Firebase mocks so tests can switch user or edit a doc

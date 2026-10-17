@@ -1,4 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { ButtonT } from '@/components/button'
 import { LinkT } from '@/components/link'
 import { TfrIcon } from '@/lib/asset'
 import type { VtoTuckLabel } from '@/api/gen/enums'
@@ -52,6 +53,9 @@ interface DesktopLayoutProps {
   onChangeSize: (externalId: string, sizeLabel: string) => void
   onChangeColor: (externalId: string, colorLabel: string | null) => void
   onAddToCart: (externalId: string) => void
+  // Add every selected item to the cart; `addingAllToCart` while it runs.
+  onAddAllToCart: () => void
+  addingAllToCart: boolean
   onToggleUntuck: () => void
   onSignOut: () => void
   onClearAll: () => void
@@ -77,6 +81,8 @@ export function DesktopLayout({
   onChangeSize,
   onChangeColor,
   onAddToCart,
+  onAddAllToCart,
+  addingAllToCart,
   onToggleUntuck,
   onSignOut,
   onClearAll,
@@ -151,11 +157,25 @@ export function DesktopLayout({
     // detail/rails paddingTop values are tuned so the first accordion title
     // ("Top") and the first card-rail header ("TOPS") sit on the same line:
     // 20 + 14 (detail header pad) == 26 + 8 (rail header pad) == 34px.
+    // The detail pane doesn't scroll as a whole: every selected item's row is
+    // always on screen, the open one fills the height left over and scrolls
+    // inside itself (see DetailAccordion), and Add All sits at the bottom.
+    // overflowY stays auto only as a fallback for a pane too short to fit the
+    // collapsed rows plus the open item's minimum height.
     detailColumn: {
       minWidth: 0,
       minHeight: 0,
       overflowY: 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px',
       padding: `20px 8px ${EDGE_INSET_PX}px`,
+    },
+    addAllToCart: {
+      flex: 'none',
+      // Pinned to the bottom of the pane even when nothing is open and the
+      // collapsed rows don't fill it.
+      marginTop: 'auto',
     },
     // The card pane: a box that does not scroll, holding the scrolling card
     // column and the Clear All pill floating over its bottom-right corner.
@@ -264,6 +284,13 @@ export function DesktopLayout({
             onChangeColor={onChangeColor}
             onAddToCart={onAddToCart}
             onToggleUntuck={onToggleUntuck}
+          />
+          <ButtonT
+            variant="brand"
+            css={css.addAllToCart}
+            t="fitting_room.add_all_to_cart"
+            onClick={onAddAllToCart}
+            disabled={addingAllToCart}
           />
         </div>
       ) : null}

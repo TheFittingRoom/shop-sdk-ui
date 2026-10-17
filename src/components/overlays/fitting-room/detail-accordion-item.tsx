@@ -168,6 +168,10 @@ export function DetailAccordionItem({
   )
 }
 
+// The least an open desktop item shrinks to when the pane is crowded with
+// collapsed rows. Below this the pane scrolls instead.
+const OPEN_ITEM_MIN_HEIGHT_PX = 240
+
 interface DesktopProps {
   isOpen: boolean
   categoryLabel: string
@@ -210,8 +214,17 @@ function DesktopAccordionItem({
       flexDirection: 'column',
       backgroundColor: ACCORDION_SHADE,
       overflow: 'hidden',
+      flex: 'none',
+    },
+    // Open, the item takes the height the collapsed rows leave in the pane,
+    // with a floor so a pane crowded with rows still shows a usable body —
+    // past that the pane itself scrolls.
+    containerOpen: {
+      flex: '1 1 auto',
+      minHeight: `${OPEN_ITEM_MIN_HEIGHT_PX}px`,
     },
     header: {
+      flex: 'none',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -268,7 +281,11 @@ function DesktopAccordionItem({
       justifyContent: 'center',
       gap: '12px',
     },
+    // Scrolls inside the open item rather than the pane scrolling.
     body: {
+      flex: '1 1 auto',
+      minHeight: 0,
+      overflowY: 'auto',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'stretch',
@@ -295,6 +312,9 @@ function DesktopAccordionItem({
     // details below them to introduce the larger break.
     sizeBox: {
       width: '100%',
+      // Padding and border inside the 100% — without this the box overran
+      // the body by its padding and its right edge was clipped.
+      boxSizing: 'border-box',
       border: `1px solid ${theme.color_fg_text}`,
       padding: '32px 56px',
       display: 'flex',
@@ -360,7 +380,7 @@ function DesktopAccordionItem({
   }))
 
   return (
-    <div css={css.container}>
+    <div css={isOpen ? { ...css.container, ...css.containerOpen } : css.container}>
       <Button variant="base" css={css.header} onClick={onToggleOpen}>
         <div css={css.headerLabel}>
           <Text variant="base" css={css.categoryLabel}>

@@ -15,6 +15,7 @@ import {
   findRecommendedColorSize,
   useResolvedFittingRoom,
 } from '@/lib/fitting-room-data'
+import { cartErrorDetail } from '@/lib/cart-error'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
@@ -292,12 +293,18 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   // Wire to the merchant's addToCart callback (StaticData) when configured.
   // The fitting-room may add ANY item, not just currentProduct — so we use the
   // top-level `addToCart` callback rather than `currentProduct.addToCart`.
-  const handleAddToCart = useCallback(
-    async (externalId: string) => {
+  // A cart add that failed, for the error snackbar: which of our messages to
+  // show, and the store's own reason when it gave one (see cartErrorDetail).
+  const [cartError, setCartError] = useState<{ messageKey: string; detail: string | null } | null>(null)
+
+  // Adds one item to the merchant's cart in its chosen size and colour.
+  // Resolves to whether it went in, with the store's reason when it didn't.
+  const addItemToCart = useCallback(
+    async (externalId: string): Promise<{ ok: true } | { ok: false; detail: string | null }> => {
       const { addToCart } = getStaticData()
       if (!addToCart) {
         logger.logWarn('No addToCart callback configured; skipping', { externalId })
-        return
+        return { ok: false, detail: null }
       }
       const item = resolved.items.find((i) => i.externalId === externalId)
       if (!item || !item.storage.size || !item.storage.color) {
@@ -306,17 +313,59 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
           size: item?.storage.size,
           color: item?.storage.color,
         })
-        return
+        return { ok: false, detail: null }
       }
       try {
         await addToCart(externalId, { size: item.storage.size, color: item.storage.color })
-        closeOverlay()
+        return { ok: true }
       } catch (error) {
         logger.logError('addToCart failed', { error, externalId })
+        return { ok: false, detail: cartErrorDetail(error) }
       }
     },
-    [resolved.items, closeOverlay],
+    [resolved.items],
   )
+
+  // Single item: closes the overlay once it is in, as before; a failure keeps
+  // it open with an error.
+  const handleAddToCart = useCallback(
+    async (externalId: string) => {
+      setCartError(null)
+      const result = await addItemToCart(externalId)
+      if (result.ok) {
+        closeOverlay()
+        return
+      }
+      setCartError({ messageKey: 'fitting_room.add_to_cart_error', detail: result.detail })
+    },
+    [addItemToCart, closeOverlay],
+  )
+
+  // "Add all to cart": every selected item, one after another. Sequential on
+  // purpose — the merchant callback adds one item per call, and concurrent
+  // Shopify /cart/add requests can drop each other's additions. The overlay
+  // closes once all of them are in; if any couldn't be added it stays open
+  // with an error, showing the store's reason for the first that failed.
+  const [addingAll, setAddingAll] = useState(false)
+  const handleAddAllToCart = useCallback(async () => {
+    setAddingAll(true)
+    setCartError(null)
+    let failed = false
+    let detail: string | null = null
+    for (const item of selectedItems) {
+      const result = await addItemToCart(item.externalId)
+      if (!result.ok) {
+        failed = true
+        detail = detail ?? result.detail
+      }
+    }
+    setAddingAll(false)
+    if (failed) {
+      setCartError({ messageKey: 'fitting_room.add_all_to_cart_error', detail })
+      return
+    }
+    closeOverlay()
+  }, [selectedItems, addItemToCart, closeOverlay])
 
   const handleToggleUntuck = useCallback(() => {
     setForceUntuck((prev) => !prev)
@@ -647,12 +696,17 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             onChangeSize={handleChangeSize}
             onChangeColor={handleChangeColor}
             onAddToCart={handleAddToCart}
+            onAddAllToCart={handleAddAllToCart}
+            addingAllToCart={addingAll}
             onToggleUntuck={handleToggleUntuck}
             onSignOut={handleSignOut}
             onClearAll={handleClearAll}
           />
         )}
         {vtoError ? <Snackbar messageKey="fitting_room.vto_error" onDismiss={clearVtoError} /> : null}
+        {cartError ? (
+          <Snackbar messageKey={cartError.messageKey} detail={cartError.detail} onDismiss={() => setCartError(null)} />
+        ) : null}
       </div>
     </ModalFrame>
   )

@@ -492,6 +492,31 @@ Two constraints hold this together:
   desktop open body already renders it as `variant="brand"`, so showing both
   would duplicate it; mobile's body has no product name, so it doesn't.
 
+**The pane itself doesn't scroll.** Every selected item's row is always on
+screen: collapsed rows take their natural height, the open item fills what is
+left (`containerOpen`) and its body scrolls inside itself. The open item has a
+floor (`OPEN_ITEM_MIN_HEIGHT_PX`); only a pane too short for the collapsed rows
+plus that floor falls back to scrolling as a whole. **Add all to cart** sits
+at the bottom of the pane (`marginTop: auto`, so also with nothing open). It
+calls the merchant `addToCart` once per selected item, one after another —
+concurrent Shopify `/cart/add` calls can drop each other's additions — closes
+the overlay when all went in, and otherwise stays open with an error snackbar.
+
+**A failed cart add shows an error** — the single-item Add to cart (desktop
+and mobile) as well as Add all. The snackbar is our own message, plus the
+store's reason on a second line when there is one: `cartErrorDetail`
+(`src/lib/cart-error.ts`) finds Shopify's cart error JSON inside the error the
+merchant callback threw (the theme's `tfr.js` embeds the 422 body in its error
+text) and takes `description`, falling back to `message` — Shopify's `message`
+is just the heading "Cart Error", and `description` is the actual reason
+("Cannot find variant"). Nothing else from the error text is shown: the rest
+is developer detail. Quick view is not covered — it adds through the PDP's own
+form after closing itself, so the store page reports those errors.
+
+Guarded by `e2e/desktop-detail-pane.spec.ts`. The host fixture records every
+add in `__TFR_TEST_ADDS__` and fails the ids listed in `__TFR_TEST_ADD_FAIL__`,
+with a theme-shaped error text (or `__TFR_TEST_ADD_FAIL_TEXT__`).
+
 This is desktop-only. Mobile keeps its own three-state sheet, where
 `isMobileQuickRow = sheetSnap === 'expanded' && openAccordionItemId == null`
 puts a size selector on *every* row when nothing is open. Note that expression
