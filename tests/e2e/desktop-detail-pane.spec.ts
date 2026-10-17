@@ -49,9 +49,23 @@ const BOTTOMS_GROUP = { name: 'bottoms', label: 'Bottoms', same_group_default: '
 
 const addAll = (page: Page) => page.getByRole('button', { name: 'Add all to cart' })
 
+// What the backend sends when no size fits: a 200 with an empty
+// recommendation (get_size_recommendation.go).
+const NO_FIT_RECOMMENDATION = {
+  fit_classification: '',
+  recommended_size: { id: 0 },
+  available_sizes: [],
+  fits: [],
+}
+
 // Opens the fitting room with both test products in it, and — on desktop —
 // both selected. `height` null leaves the viewport to the device profile.
-async function bootWithBothSelected(page: Page, height: number | null = 900) {
+// `secondProductRecommendation` replaces Second Product's size recommendation.
+async function bootWithBothSelected(
+  page: Page,
+  height: number | null = 900,
+  secondProductRecommendation: unknown = TEST_SIZE_FIT_RECOMMENDATION_B,
+) {
   if (height !== null) {
     await page.setViewportSize({ width: 1440, height })
   }
@@ -84,7 +98,7 @@ async function bootWithBothSelected(page: Page, height: number | null = 900) {
       sizeRecommendation: (route) =>
         route.fulfill({
           json: route.request().url().includes(`/styles/${TEST_STYLE_B_ID}/`)
-            ? TEST_SIZE_FIT_RECOMMENDATION_B
+            ? secondProductRecommendation
             : TEST_SIZE_FIT_RECOMMENDATION,
         }),
       styleCategories: (route) => route.fulfill({ json: [TOP_CATEGORY, PANTS_CATEGORY] }),
@@ -197,6 +211,36 @@ test('add to cart: an error with no store reason in it shows only our message', 
   await expect(page.getByText(/no variant matches/)).toHaveCount(0)
 })
 
+const NO_FIT_MESSAGE = 'There are currently no well fitting sizes available for this item.'
+
+test('detail pane: an item with no fitting size says so instead of loading forever', async ({ page }) => {
+  await bootWithBothSelected(page, 900, NO_FIT_RECOMMENDATION)
+
+  // Second Product is the open row; nothing in it can load.
+  await expect(page.getByText(NO_FIT_MESSAGE)).toBeVisible()
+  await expect(page.getByText('Loading...', { exact: true })).toHaveCount(0)
+
+  // Collapsed, the row still says so rather than showing an empty strip.
+  await page.getByRole('button', { name: /^Pant/ }).click()
+  await expect(page.getByText(NO_FIT_MESSAGE)).toBeVisible()
+})
+
+test('add all to cart: disabled while the selection holds an item with no fitting size', async ({ page }) => {
+  await bootWithBothSelected(page, 900, NO_FIT_RECOMMENDATION)
+  await expect(page.getByText(NO_FIT_MESSAGE)).toBeVisible()
+  await expect(addAll(page)).toBeDisabled()
+
+  // Deselecting it leaves an outfit that can all go in.
+  await page.getByRole('button', { name: /Second Product/i }).click()
+  await expect(addAll(page)).toBeEnabled()
+  await addAll(page).click()
+  await expect(addAll(page)).toHaveCount(0)
+  const adds = await page.evaluate(
+    () => (window as unknown as { __TFR_TEST_ADDS__?: { externalId: string }[] }).__TFR_TEST_ADDS__ ?? [],
+  )
+  expect(adds.map((a) => a.externalId)).toEqual([TEST_PRODUCT_EXTERNAL_ID])
+})
+
 test.describe('mobile', () => {
   const { defaultBrowserType: _browser, ...pixel5 } = devices['Pixel 5']
   test.use(pixel5)
@@ -236,5 +280,14 @@ test.describe('mobile', () => {
       () => (window as unknown as { __TFR_TEST_ADDS__?: { externalId: string }[] }).__TFR_TEST_ADDS__ ?? [],
     )
     expect(adds.map((a) => a.externalId)).toEqual([TEST_PRODUCT_EXTERNAL_ID, TEST_PRODUCT_B_EXTERNAL_ID])
+  })
+
+  test('try-on sheet: an item with no fitting size says so', async ({ page }) => {
+    await bootWithBothSelected(page, null, NO_FIT_RECOMMENDATION)
+    await page.getByRole('button', { name: 'Try it on', exact: true }).click()
+    await swipeSheetUp(page)
+
+    await expect(page.getByText(NO_FIT_MESSAGE)).toBeVisible()
+    await expect(addAll(page)).toBeDisabled()
   })
 })

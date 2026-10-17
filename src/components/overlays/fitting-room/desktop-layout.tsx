@@ -53,9 +53,10 @@ interface DesktopLayoutProps {
   onChangeSize: (externalId: string, sizeLabel: string) => void
   onChangeColor: (externalId: string, colorLabel: string | null) => void
   onAddToCart: (externalId: string) => void
-  // Add every selected item to the cart; `addingAllToCart` while it runs.
+  // Add every selected item to the cart. Disabled while it runs, and while
+  // the selection holds an item with no fitting size.
   onAddAllToCart: () => void
-  addingAllToCart: boolean
+  addAllToCartDisabled: boolean
   onToggleUntuck: () => void
   onSignOut: () => void
   onClearAll: () => void
@@ -82,7 +83,7 @@ export function DesktopLayout({
   onChangeColor,
   onAddToCart,
   onAddAllToCart,
-  addingAllToCart,
+  addAllToCartDisabled,
   onToggleUntuck,
   onSignOut,
   onClearAll,
@@ -290,7 +291,7 @@ export function DesktopLayout({
             css={css.addAllToCart}
             t="fitting_room.add_all_to_cart"
             onClick={onAddAllToCart}
-            disabled={addingAllToCart}
+            disabled={addAllToCartDisabled}
           />
         </div>
       ) : null}

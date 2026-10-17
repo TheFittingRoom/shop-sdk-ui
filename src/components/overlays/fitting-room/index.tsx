@@ -13,6 +13,7 @@ import {
   buildVtoProductDataFromResolved,
   findCsaByLabel,
   findRecommendedColorSize,
+  isItemNoFit,
   useResolvedFittingRoom,
 } from '@/lib/fitting-room-data'
 import { cartErrorDetail } from '@/lib/cart-error'
@@ -347,7 +348,15 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   // closes once all of them are in; if any couldn't be added it stays open
   // with an error, showing the store's reason for the first that failed.
   const [addingAll, setAddingAll] = useState(false)
+  // A selected item with no size that fits would go into the cart in a size
+  // we say doesn't fit (or not at all), so Add all is off until it's
+  // deselected or removed. Its row already says why.
+  const selectionHasNoFit = useMemo(() => selectedItems.some(isItemNoFit), [selectedItems])
+  const addAllToCartDisabled = addingAll || selectionHasNoFit
   const handleAddAllToCart = useCallback(async () => {
+    if (selectionHasNoFit) {
+      return
+    }
     setAddingAll(true)
     setCartError(null)
     let failed = false
@@ -365,7 +374,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
       return
     }
     closeOverlay()
-  }, [selectedItems, addItemToCart, closeOverlay])
+  }, [selectedItems, selectionHasNoFit, addItemToCart, closeOverlay])
 
   const handleToggleUntuck = useCallback(() => {
     setForceUntuck((prev) => !prev)
@@ -674,7 +683,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             onChangeColor={handleChangeColor}
             onAddToCart={handleAddToCart}
             onAddAllToCart={handleAddAllToCart}
-            addingAllToCart={addingAll}
+            addAllToCartDisabled={addAllToCartDisabled}
             onToggleUntuck={handleToggleUntuck}
             onSignOut={handleSignOut}
             onClearAll={handleClearAll}
@@ -699,7 +708,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             onChangeColor={handleChangeColor}
             onAddToCart={handleAddToCart}
             onAddAllToCart={handleAddAllToCart}
-            addingAllToCart={addingAll}
+            addAllToCartDisabled={addAllToCartDisabled}
             onToggleUntuck={handleToggleUntuck}
             onSignOut={handleSignOut}
             onClearAll={handleClearAll}

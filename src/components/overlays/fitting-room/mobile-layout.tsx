@@ -49,9 +49,10 @@ interface MobileLayoutProps {
   onChangeSize: (externalId: string, sizeLabel: string) => void
   onChangeColor: (externalId: string, colorLabel: string | null) => void
   onAddToCart: (externalId: string) => void
-  // Add every selected item to the cart; `addingAllToCart` while it runs.
+  // Add every selected item to the cart. Disabled while it runs, and while
+  // the selection holds an item with no fitting size.
   onAddAllToCart: () => void
-  addingAllToCart: boolean
+  addAllToCartDisabled: boolean
   onToggleUntuck: () => void
   onSignOut: () => void
   onClearAll: () => void
@@ -84,7 +85,7 @@ export function MobileLayout({
   onChangeColor,
   onAddToCart,
   onAddAllToCart,
-  addingAllToCart,
+  addAllToCartDisabled,
   onToggleUntuck,
   onSignOut,
   onClearAll,
@@ -123,7 +124,7 @@ export function MobileLayout({
       onChangeColor={onChangeColor}
       onAddToCart={onAddToCart}
       onAddAllToCart={onAddAllToCart}
-      addingAllToCart={addingAllToCart}
+      addAllToCartDisabled={addAllToCartDisabled}
       onToggleUntuck={onToggleUntuck}
     />
   )
@@ -331,7 +332,7 @@ function TryOnView({
   onChangeColor,
   onAddToCart,
   onAddAllToCart,
-  addingAllToCart,
+  addAllToCartDisabled,
   onToggleUntuck,
 }: {
   selectedItems: ResolvedFittingRoomItem[]
@@ -351,9 +352,10 @@ function TryOnView({
   onChangeSize: (externalId: string, sizeLabel: string) => void
   onChangeColor: (externalId: string, colorLabel: string | null) => void
   onAddToCart: (externalId: string) => void
-  // Add every selected item to the cart; `addingAllToCart` while it runs.
+  // Add every selected item to the cart. Disabled while it runs, and while
+  // the selection holds an item with no fitting size.
   onAddAllToCart: () => void
-  addingAllToCart: boolean
+  addAllToCartDisabled: boolean
   onToggleUntuck: () => void
 }) {
   const innerRef = useRef<HTMLDivElement>(null)
@@ -513,7 +515,7 @@ function TryOnView({
                 css={css.addAllToCart}
                 t="fitting_room.add_all_to_cart"
                 onClick={onAddAllToCart}
-                disabled={addingAllToCart}
+                disabled={addAllToCartDisabled}
               />
             </div>
           )}

@@ -504,6 +504,17 @@ calls the merchant `addToCart` once per selected item, one after another —
 concurrent Shopify `/cart/add` calls can drop each other's additions — closes
 the overlay when all went in, and otherwise stays open with an error snackbar.
 
+**An item with no fitting size says so.** The backend answers a no-fit
+product with an empty recommendation (200), so `buildVtoProductDataFromResolved`
+returns null for it exactly as it does while data is still loading. The two are
+told apart by `isItemLoadSettled` / `isItemNoFit` (`src/lib/fitting-room-data.ts`):
+once the merchant product and our size recommendation have both settled
+(loaded or failed) and there is still no usable size, the row shows quick
+view's "no well fitting sizes" message instead of "Loading..." — open or
+collapsed, desktop and mobile. **Add all to cart is disabled** while any
+selected item is no-fit: it would otherwise go in at its remembered PDP size,
+which we've just said doesn't fit. The row's message is the explanation.
+
 **A failed cart add shows an error** — the single-item Add to cart (desktop
 and mobile) as well as Add all. The snackbar is our own message, plus the
 store's reason on a second line when there is one: `cartErrorDetail`

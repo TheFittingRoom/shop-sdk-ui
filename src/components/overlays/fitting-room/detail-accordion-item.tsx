@@ -10,7 +10,7 @@ import { SizeSelector } from '@/components/size-selector'
 import { Text, TextT } from '@/components/text'
 import type { VtoTuckLabel } from '@/api/gen/enums'
 import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
-import { buildVtoProductDataFromResolved, isItemTuckable } from '@/lib/fitting-room-data'
+import { buildVtoProductDataFromResolved, isItemNoFit, isItemTuckable } from '@/lib/fitting-room-data'
 import { useTranslation } from '@/lib/locale'
 import { tuckActionKey } from '@/lib/tuck-control'
 import type { VtoProductData } from '@/lib/product'
@@ -66,6 +66,10 @@ export function DetailAccordionItem({
   onToggleUntuck,
 }: DetailAccordionItemProps) {
   const productData = useMemo(() => buildVtoProductDataFromResolved(item), [item])
+  // Loaded, but with no size to offer (isItemNoFit). Shown as quick view's
+  // "no well fitting sizes" message rather than a loading state that never
+  // ends.
+  const noFit = useMemo(() => isItemNoFit(item), [item])
 
   const selectedSizeLabel = useMemo(() => {
     if (!productData) {
@@ -127,6 +131,7 @@ export function DetailAccordionItem({
     return (
       <DesktopAccordionItem
         isOpen={isOpen}
+        noFit={noFit}
         categoryLabel={categoryLabel}
         productData={productData}
         currentPrice={currentPrice}
@@ -145,6 +150,7 @@ export function DetailAccordionItem({
   return (
     <MobileAccordionItem
       isOpen={isOpen}
+      noFit={noFit}
       categoryLabel={categoryLabel}
       productName={productName}
       productData={productData}
@@ -174,6 +180,8 @@ const OPEN_ITEM_MIN_HEIGHT_PX = 240
 
 interface DesktopProps {
   isOpen: boolean
+  // No size to offer; see DetailAccordionItem.
+  noFit: boolean
   categoryLabel: string
   productData: VtoProductData | null
   currentPrice: string | null
@@ -191,6 +199,7 @@ interface DesktopProps {
 
 function DesktopAccordionItem({
   isOpen,
+  noFit,
   categoryLabel,
   productData,
   currentPrice,
@@ -274,6 +283,12 @@ function DesktopAccordionItem({
       backgroundColor: '#FFFFFF',
       margin: '0 6px 6px 6px',
       padding: '16px',
+    },
+    noFit: {
+      fontSize: '14px',
+      fontWeight: '300',
+      lineHeight: 1.5,
+      textAlign: 'center',
     },
     collapsedSizeRow: {
       display: 'flex',
@@ -407,6 +422,11 @@ function DesktopAccordionItem({
           Deliberately NOT inside the header <Button> above: that button is
           the section toggle, so a size pill nested in it would collapse or
           expand the section on every size change. */}
+      {!isOpen && noFit ? (
+        <div css={css.content}>
+          <TextT variant="base" css={css.noFit} t="quick-view.no_recommendation" />
+        </div>
+      ) : null}
       {isOpen || !productData ? null : (
         <div css={css.content}>
           <div css={css.collapsedSizeRow}>
@@ -476,6 +496,8 @@ function DesktopAccordionItem({
                 <span dangerouslySetInnerHTML={{ __html: productData.productDescriptionHtml }} />
               </Text>
             </>
+          ) : noFit ? (
+            <TextT variant="base" css={css.noFit} t="quick-view.no_recommendation" />
           ) : (
             <TextT variant="base" t="loading" />
           )}
@@ -487,6 +509,8 @@ function DesktopAccordionItem({
 
 interface MobileProps {
   isOpen: boolean
+  // No size to offer; see DetailAccordionItem.
+  noFit: boolean
   categoryLabel: string
   productName: string
   productData: VtoProductData | null
@@ -510,6 +534,7 @@ interface MobileProps {
 
 function MobileAccordionItem({
   isOpen,
+  noFit,
   categoryLabel,
   productName,
   productData,
@@ -596,6 +621,12 @@ function MobileAccordionItem({
       alignItems: 'center',
       textAlign: 'center',
       gap: '16px',
+    },
+    noFit: {
+      fontSize: '14px',
+      fontWeight: '300',
+      lineHeight: 1.5,
+      textAlign: 'center',
     },
     quickRow: {
       display: 'flex',
@@ -699,6 +730,8 @@ function MobileAccordionItem({
                 selectedSizeLabel={selectedSizeLabel}
                 onChangeSize={onChangeSize}
               />
+            ) : noFit ? (
+              <TextT variant="base" css={css.noFit} t="quick-view.no_recommendation" />
             ) : null}
           </div>
         </div>
@@ -758,6 +791,8 @@ function MobileAccordionItem({
                   </div>
                 ) : null}
               </>
+            ) : noFit ? (
+              <TextT variant="base" css={css.noFit} t="quick-view.no_recommendation" />
             ) : (
               <TextT variant="base" t="loading" />
             )}

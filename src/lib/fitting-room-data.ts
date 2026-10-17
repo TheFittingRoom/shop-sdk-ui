@@ -59,6 +59,22 @@ export interface ResolvedFittingRoom {
   styleCategoryError: Error | null
 }
 
+// isItemLoadSettled reports whether everything an item's details are built
+// from has finished loading — the merchant's product and our style + size
+// recommendation — successfully or not. A settled item whose
+// buildVtoProductDataFromResolved is still null has no usable size: a "no
+// fit" item, not one still loading.
+export function isItemLoadSettled(item: ResolvedFittingRoomItem): boolean {
+  return (!!item.merchantProduct || !!item.merchantError) && (!!item.loadedProduct || !!item.loadedError)
+}
+
+// isItemNoFit: the item has loaded but offers no size — the size
+// recommendation found none that fits, or its data failed to load. The
+// fitting room says so on the item's row, and won't add it via Add all.
+export function isItemNoFit(item: ResolvedFittingRoomItem): boolean {
+  return isItemLoadSettled(item) && buildVtoProductDataFromResolved(item) == null
+}
+
 // isItemTuckable returns true when at least one of the item's effective
 // categories carries tuckable=true. For single-garment items this reduces to
 // the item's own category; for containers it's true when any child garment
