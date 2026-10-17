@@ -43,6 +43,8 @@
     "toggle_selection": "Toggle try-on selection",
     "tuck_in": "Tuck In",
     "untuck": "Untuck",
+    "top_over": "Top Over",
+    "top_under": "Top Under",
     "zoom_in": "Zoom In",
     "zoom_out": "Zoom Out",
     "vto_error": "Couldn't load the try-on. Please try again."

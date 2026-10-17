@@ -326,7 +326,7 @@ confirmed to fail when the preload is disabled — keep it that way.
 
 `requestVto(items)` in `src/lib/api.ts` posts a 1..4-garment composition to
 `/v1/vto-compositions`. The endpoint is **synchronous**: the backend renders
-inline and the resolved `VtoCompositionResponse` carries `{token, frames}`
+inline and the resolved `VtoCompositionResponse` carries `{token, frames, tuck}`
 directly — there is no Firestore subscription. A render failure rejects the
 promise (HTTP 500 → thrown `Error` carrying the backend's message). The
 request gets a client-side abort timeout (`config.api.vtoTimeoutMs`).
@@ -350,6 +350,44 @@ The fitting room passes multi-garment outfits plus prefetch alternates;
 its own. `useCache` on `execApiRequest` stays **off** for this endpoint; the
 in-flight dedup above plus the backend's content-hash cache cover repeat
 requests.
+
+### The tuck control is the backend's call
+
+Whether the tuck control appears, and what it says, comes from the `tuck`
+object on the VTO response (`{available, untucked, label}`) — **never from the
+style categories.** The backend owns the rules (an oversized top stays
+untucked; a dress in the outfit turns the wording into "Top Over" / "Top
+Under"; a loose top stays over a fitted dress; and the older "is there
+anything to tuck into" check). The SDK used to compute that last one itself
+(`canTuck` in `fitting-room/index.tsx`, `containerHasTuckableChild` in
+`quick-view.tsx`); both are gone, and re-adding a client-side rule would put
+the SDK back in disagreement with what was actually rendered.
+
+- `useVtoRequests` exposes `tuckControlForOutfit(items)` → `{available, label}`
+  or `null`. `null` (no response for those garments yet, or a backend that
+  sends no `tuck`) means **hidden** — there is deliberately no fallback.
+- The ruling is stored per **set of garments** (`garmentsKey`, the sorted CSA
+  ids), not per `outfitKey`. `available` and `label` do not depend on the
+  requested tuck state, so the flipped outfit's ruling is known the moment the
+  shopper presses the control and the mobile button under ADD TO CART does not
+  disappear for a whole render. (The desktop pill disappears anyway: `AvatarPane`
+  hides all its controls while frames load.)
+- `tuckActionKey(label, untucked, placement)` in `src/lib/tuck-control.ts` is
+  the one place that maps a ruling to a locale key. The control names the
+  action, so it reads from the state the outfit is *not* in: "Untuck" /
+  "Top Over" while tucked in, "Tuck In" / "Top Under" while untucked.
+- `forceUntuck` / `containerUntucked` are still only the shopper's *request*.
+  When the backend forces a top untucked the response says
+  `available: false, untucked: true` and the frames are the untucked render,
+  whatever the SDK asked for; with the control hidden there is nothing to
+  reconcile.
+
+Guarded by `e2e/tuck-control.spec.ts`, whose outfit "can be tucked" by its
+categories in every test — so a control that ignores the response fails the
+unavailable, no-ruling and Top Over cases.
+
+**Deploy order:** the backend must ship `tuck` before an SDK with this change
+is pinned by the theme. Against an older backend the control is simply hidden.
 
 ## Conventions
 

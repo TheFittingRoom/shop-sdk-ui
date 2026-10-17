@@ -27,7 +27,7 @@ docker run --rm \
   -v "$BACKEND_PATH:/backend" \
   -v "$SDK_PATH:/sdk" \
   -w /backend \
-  golang:1.25 \
+  golang:1.26 \
   sh -c "go install github.com/gzuidhof/tygo@v0.2.21 && tygo --config /sdk/tygo.yaml generate"
 
 echo "Regenerated $SDK_PATH/src/api/gen/*.ts from $BACKEND_PATH"

@@ -317,3 +317,23 @@ export const StyleCategorySuitsAndSets: StyleCategory = "suits_and_sets";
 
 export const ColorwaySizeAssetSizeLimit: number /* int64 */ = Megabyte * 40;
 export const ColorwayPropertiesSizeLimit: number /* int64 */ = Megabyte * 100;
+
+//////////
+// source: vto_tuck_label.go
+
+/**
+ * VtoTuckLabel tells the SDK which wording its tuck control uses for a VTO
+ * outfit. The control always toggles the same thing (a tuckable top's
+ * untucked flag); only the words change with what the top is worn with.
+ */
+export type VtoTuckLabel = string;
+/**
+ * VtoTuckLabelTuck: "Tuck In" / "Untuck" — the top tucks into bottoms.
+ */
+export const VtoTuckLabelTuck: VtoTuckLabel = "tuck";
+/**
+ * VtoTuckLabelTopOverUnder: "Top Under" / "Top Over" — the outfit has a
+ * dress / full-body garment, so tucked-in means the top is worn under it
+ * and untucked means over it.
+ */
+export const VtoTuckLabelTopOverUnder: VtoTuckLabel = "top_over_under";

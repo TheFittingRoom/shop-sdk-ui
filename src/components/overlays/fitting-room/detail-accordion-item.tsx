@@ -7,9 +7,11 @@ import { ItemFitText } from '@/components/item-fit-text'
 import { LinkT } from '@/components/link'
 import { SizeSelector } from '@/components/size-selector'
 import { Text, TextT } from '@/components/text'
+import type { VtoTuckLabel } from '@/api/gen/enums'
 import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { buildVtoProductDataFromResolved, isItemTuckable } from '@/lib/fitting-room-data'
 import { useTranslation } from '@/lib/locale'
+import { tuckActionKey } from '@/lib/tuck-control'
 import type { VtoProductData } from '@/lib/product'
 import { useCss } from '@/lib/theme'
 import { Chevron } from './chevron'
@@ -24,6 +26,8 @@ interface DetailAccordionItemProps {
   forceUntuck: boolean
   // The outfit has something to tuck into — gates the mobile tuck CTA.
   canTuck: boolean
+  // Which wording the tuck control uses — from the VTO response.
+  tuckLabel: VtoTuckLabel
   // Mobile-only — desktop ignores these.
   detailMode: DetailMode
   isMobileQuickRow: boolean
@@ -45,6 +49,7 @@ export function DetailAccordionItem({
   platform,
   forceUntuck,
   canTuck,
+  tuckLabel,
   detailMode,
   isMobileQuickRow,
   onToggleOpen,
@@ -145,6 +150,7 @@ export function DetailAccordionItem({
       detailMode={detailMode}
       isMobileQuickRow={isMobileQuickRow}
       tuckable={tuckable}
+      tuckLabel={tuckLabel}
       forceUntuck={forceUntuck}
       onToggleOpen={onToggleOpen}
       onChangeDetailMode={onChangeDetailMode}
@@ -465,6 +471,7 @@ interface MobileProps {
   detailMode: DetailMode
   isMobileQuickRow: boolean
   tuckable: boolean
+  tuckLabel: VtoTuckLabel
   forceUntuck: boolean
   onToggleOpen: () => void
   onChangeDetailMode: (mode: DetailMode) => void
@@ -486,6 +493,7 @@ function MobileAccordionItem({
   detailMode,
   isMobileQuickRow,
   tuckable,
+  tuckLabel,
   forceUntuck,
   onToggleOpen,
   onChangeDetailMode,
@@ -627,7 +635,7 @@ function MobileAccordionItem({
     onChangeDetailMode(detailMode === 'compact' ? 'expanded' : 'compact')
   }, [detailMode, onChangeDetailMode])
 
-  const tuckLabelKey = forceUntuck ? 'fitting_room.try_it_tucked_in' : 'fitting_room.try_it_untucked'
+  const tuckLabelKey = tuckActionKey(tuckLabel, forceUntuck, 'cta')
 
   return (
     <div css={css.container}>

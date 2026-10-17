@@ -570,7 +570,9 @@ export interface Joint {
  * before sending to sim-vis.
  * Untucked is the per-item override for Tuckable categories. Default
  * (false) keeps the garment tucked-in (under bottoms); true layers it
- * over bottoms. Ignored for non-tuckable categories.
+ * over bottoms. Ignored for non-tuckable categories. It is a request, not a
+ * guarantee: the backend renders a top untucked regardless when the outfit's
+ * tuck rules require it (see responses.VtoTuckOption).
  */
 export interface VtoCompositionItem {
   colorway_size_asset_id: number /* int64 */;

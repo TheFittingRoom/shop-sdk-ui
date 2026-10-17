@@ -2,8 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/button'
 import { Text } from '@/components/text'
 import { SelectedItemsIcon, TrashIcon, TuckIcon, ZoomIcon } from '@/lib/asset'
+import type { VtoTuckLabel } from '@/api/gen/enums'
 import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { useTranslation } from '@/lib/locale'
+import { tuckActionKey } from '@/lib/tuck-control'
 import type { CssProp, ThemeData } from '@/lib/theme'
 import { useCss } from '@/lib/theme'
 
@@ -33,6 +35,8 @@ interface AvatarControlsProps {
   selectedItems: ResolvedFittingRoomItem[]
   // The outfit has something to tuck into — see canTuck in desktop-layout.
   canTuck: boolean
+  // Which wording the tuck control uses — from the VTO response.
+  tuckLabel: VtoTuckLabel
   forceUntuck: boolean
   zoomed: boolean
   // When false, pills collapse to icon-only. The popover, when open, keeps the
@@ -50,6 +54,7 @@ interface AvatarControlsProps {
 export function AvatarControls({
   selectedItems,
   canTuck,
+  tuckLabel,
   forceUntuck,
   zoomed,
   expanded,
@@ -221,7 +226,7 @@ export function AvatarControls({
         <Button variant="base" css={pillCss(expanded)} onClick={onToggleUntuck}>
           <TuckIcon css={css.pillIcon} />
           <Text variant="base" css={labelCss(expanded)}>
-            {t(forceUntuck ? 'fitting_room.tuck_in' : 'fitting_room.untuck')}
+            {t(tuckActionKey(tuckLabel, forceUntuck, 'pill'))}
           </Text>
         </Button>
       ) : null}
@@ -238,6 +243,8 @@ export function AvatarControls({
 interface MobileTuckControlProps {
   // The outfit has something to tuck into — when false, nothing renders.
   canTuck: boolean
+  // Which wording the tuck control uses — from the VTO response.
+  tuckLabel: VtoTuckLabel
   forceUntuck: boolean
   onToggleUntuck: () => void
 }
@@ -246,7 +253,7 @@ interface MobileTuckControlProps {
 // this is a single, always-expanded pill — no collapse animation and none of
 // the other controls (See Selected Items, Zoom). Anchored bottom-right of the
 // VTO image.
-export function MobileTuckControl({ canTuck, forceUntuck, onToggleUntuck }: MobileTuckControlProps) {
+export function MobileTuckControl({ canTuck, tuckLabel, forceUntuck, onToggleUntuck }: MobileTuckControlProps) {
   const { t } = useTranslation()
   const css = useCss((theme) => ({
     wrapper: {
@@ -272,7 +279,7 @@ export function MobileTuckControl({ canTuck, forceUntuck, onToggleUntuck }: Mobi
     <div css={css.wrapper}>
       <Button variant="base" css={css.pill} onClick={onToggleUntuck}>
         <TuckIcon css={css.pillIcon} />
-        <Text variant="base">{t(forceUntuck ? 'fitting_room.tuck_in' : 'fitting_room.untuck')}</Text>
+        <Text variant="base">{t(tuckActionKey(tuckLabel, forceUntuck, 'pill'))}</Text>
       </Button>
     </div>
   )

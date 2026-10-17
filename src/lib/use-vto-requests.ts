@@ -3,6 +3,7 @@ import type { VtoCompositionItem } from '@/lib/api'
 import { getVtoOwnerGeneration, requestVto as apiRequestVto } from '@/lib/api'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
+import type { TuckControl } from '@/lib/tuck-control'
 import { applyFrameBaseUrl } from '@/lib/util'
 
 const logger = getLogger('use-vto-requests')
@@ -14,6 +15,19 @@ export function outfitKey(items: VtoCompositionItem[]): string {
   return items
     .map((i) => `${i.colorway_size_asset_id}:${i.untucked ? 1 : 0}`)
     .sort()
+    .join('|')
+}
+
+// garmentsKey identifies an outfit's garments regardless of how they are
+// tucked. The backend's ruling on the tuck control depends only on the
+// garments, so it is stored under this key: flipping the control changes the
+// outfitKey (new frames to wait for) but not the garmentsKey, so the ruling
+// is already known for the flipped outfit and the mobile tuck button under
+// ADD TO CART does not vanish for the length of a render.
+function garmentsKey(items: VtoCompositionItem[]): string {
+  return items
+    .map((i) => i.colorway_size_asset_id)
+    .sort((a, b) => a - b)
     .join('|')
 }
 
@@ -29,6 +43,9 @@ export interface UseVtoRequestsHandle {
   // Return rewritten (base-URL-applied) frame URLs for the given outfit, or
   // null when not ready / not yet requested.
   framesForOutfit: (items: VtoCompositionItem[]) => string[] | null
+  // The backend's ruling on the tuck control for the given outfit's garments,
+  // or null until a response for those garments has arrived (tucked or not).
+  tuckControlForOutfit: (items: VtoCompositionItem[]) => TuckControl | null
   // Latest error from the selected outfit's /v1/vto-compositions POST.
   // Resets after clearError().
   lastError: Error | null
@@ -54,6 +71,8 @@ export function useVtoRequests(): UseVtoRequestsHandle {
   const owner = useSyncExternalStore(useMainStore.subscribe, getVtoOwnerGeneration)
   // owner|outfitKey → rendered frame paths
   const [framesByKey, setFramesByKey] = useState<Record<string, string[]>>({})
+  // owner|garmentsKey → tuck control ruling
+  const [tuckByGarments, setTuckByGarments] = useState<Record<string, TuckControl>>({})
   // outfitKeys already requested (in-flight or completed) — dedup
   const requestedKeysRef = useRef<Set<string>>(new Set())
   // outfitKeys whose last POST failed. Not retried as prefetches; selecting
@@ -92,6 +111,19 @@ export function useVtoRequests(): UseVtoRequestsHandle {
         }
         logger.logDebug('VTO frames ready', { key, count: resp.frames.length })
         setFramesByKey((prev) => ({ ...prev, [key]: resp.frames }))
+        // A backend that predates the tuck ruling sends none; the control
+        // then stays hidden.
+        const tuck = resp.tuck as typeof resp.tuck | undefined
+        if (tuck) {
+          const tuckKey = `${generation}|${garmentsKey(items)}`
+          setTuckByGarments((prev) => {
+            const known = prev[tuckKey]
+            if (known && known.available === tuck.available && known.label === tuck.label) {
+              return prev
+            }
+            return { ...prev, [tuckKey]: { available: tuck.available, label: tuck.label } }
+          })
+        }
       })
       .catch((error) => {
         logger.logError('VTO request failed', { error, items, key })
@@ -198,6 +230,7 @@ export function useVtoRequests(): UseVtoRequestsHandle {
     inFlightRef.current.clear()
     select(null)
     setFramesByKey({})
+    setTuckByGarments({})
     setLastError(null)
   }, [owner, select])
 
@@ -216,5 +249,15 @@ export function useVtoRequests(): UseVtoRequestsHandle {
     [framesByKey, owner],
   )
 
-  return { request, framesForOutfit, lastError, clearError }
+  const tuckControlForOutfit = useCallback(
+    (items: VtoCompositionItem[]): TuckControl | null => {
+      if (items.length === 0) {
+        return null
+      }
+      return tuckByGarments[`${owner}|${garmentsKey(items)}`] ?? null
+    },
+    [tuckByGarments, owner],
+  )
+
+  return { request, framesForOutfit, tuckControlForOutfit, lastError, clearError }
 }

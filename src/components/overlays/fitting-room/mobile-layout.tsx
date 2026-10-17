@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button, ButtonT } from '@/components/button'
 import { Text, TextT } from '@/components/text'
+import type { VtoTuckLabel } from '@/api/gen/enums'
 import type { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { CloseIcon, DragHandleIcon, LeftArrowIcon, TfrIcon } from '@/lib/asset'
 import { LinkT } from '@/components/link'
@@ -31,6 +32,8 @@ interface MobileLayoutProps {
   forceUntuck: boolean
   // The outfit has something to tuck into — computed in FittingRoomOverlay.
   canTuck: boolean
+  // Which wording the tuck control uses — from the VTO response.
+  tuckLabel: VtoTuckLabel
   frameUrls: string[] | null
   autoRotateTrigger: number | undefined
   sheetSnap: SheetSnap
@@ -61,6 +64,7 @@ export function MobileLayout({
   detailMode,
   forceUntuck,
   canTuck,
+  tuckLabel,
   frameUrls,
   autoRotateTrigger,
   sheetSnap,
@@ -100,6 +104,7 @@ export function MobileLayout({
       detailMode={detailMode}
       forceUntuck={forceUntuck}
       canTuck={canTuck}
+      tuckLabel={tuckLabel}
       frameUrls={frameUrls}
       autoRotateTrigger={autoRotateTrigger}
       sheetSnap={sheetSnap}
@@ -328,6 +333,7 @@ function TryOnView({
   detailMode,
   forceUntuck,
   canTuck,
+  tuckLabel,
   frameUrls,
   autoRotateTrigger,
   sheetSnap,
@@ -345,6 +351,8 @@ function TryOnView({
   detailMode: DetailMode
   forceUntuck: boolean
   canTuck: boolean
+  // Which wording the tuck control uses — from the VTO response.
+  tuckLabel: VtoTuckLabel
   frameUrls: string[] | null
   autoRotateTrigger: number | undefined
   sheetSnap: SheetSnap
@@ -458,7 +466,14 @@ function TryOnView({
         frameUrls={frameUrls}
         autoRotateTrigger={autoRotateTrigger}
         mobileFullscreen
-        controls={<MobileTuckControl canTuck={canTuck} forceUntuck={forceUntuck} onToggleUntuck={onToggleUntuck} />}
+        controls={
+          <MobileTuckControl
+            canTuck={canTuck}
+            tuckLabel={tuckLabel}
+            forceUntuck={forceUntuck}
+            onToggleUntuck={onToggleUntuck}
+          />
+        }
       />
       <Button variant="base" css={css.backButton} onClick={onBackToBrowse} aria-label="Back to browse">
         <LeftArrowIcon css={css.backArrow} />
@@ -482,6 +497,7 @@ function TryOnView({
                 isMobileQuickRow={isMobileQuickRow}
                 forceUntuck={forceUntuck}
                 canTuck={canTuck}
+                tuckLabel={tuckLabel}
                 onOpenItem={onOpenAccordionItem}
                 onChangeDetailMode={onChangeDetailMode}
                 onChangeSize={onChangeSize}

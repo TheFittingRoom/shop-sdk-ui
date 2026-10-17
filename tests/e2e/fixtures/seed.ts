@@ -69,9 +69,15 @@ export const EMPTY_SIZE_RECOMMENDATION = {
   fits: [],
   available_sizes: [],
 }
+// The backend's ruling on the tuck control for a composition (the `tuck`
+// object on every VTO response). The default fixtures are single-garment
+// outfits, where there is nothing to tuck into.
+export const TEST_VTO_TUCK_UNAVAILABLE = { available: false, untucked: false, label: 'tuck' }
+
 export const TEST_VTO_COMPOSITION = {
   token: 'tok-test-1',
   frames: ['user-test/avatar-1/vto-tok-test-1/frames/image_0.png'],
+  tuck: TEST_VTO_TUCK_UNAVAILABLE,
 }
 
 // --- Rich VTO fixtures ----------------------------------------------------
@@ -85,6 +91,7 @@ export const TEST_VTO_COMPOSITION = {
 export const TEST_VTO_COMPOSITION_12 = {
   token: 'tok-test-12',
   frames: Array.from({ length: 12 }, (_, i) => `user-test/avatar-1/vto-test/frames/image_${i}.png`),
+  tuck: TEST_VTO_TUCK_UNAVAILABLE,
 }
 
 // Minimal-but-valid SizeFitRecommendation. The recommended size has a CSA
