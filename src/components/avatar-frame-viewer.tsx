@@ -1,7 +1,9 @@
-import type { Dispatch, SetStateAction } from 'react'
-import { useEffect } from 'react'
+import type { Dispatch, SetStateAction, TouchEvent as ReactTouchEvent } from 'react'
+import { useEffect, useRef } from 'react'
 import { Loading } from '@/components/content/loading'
+import { HelpTip } from '@/components/help-tooltip'
 import { useFrameRotation } from '@/components/use-frame-rotation'
+import { usePinchZoom } from '@/components/use-pinch-zoom'
 import { ChevronLeftIcon, ChevronRightIcon } from '@/lib/asset'
 import type { StyleProp } from '@/lib/theme'
 import { useCss } from '@/lib/theme'
@@ -17,6 +19,8 @@ interface AvatarFrameViewerProps {
   // (chevron tap or drag). Used by parents that run useAutoRotate to halt
   // an in-flight rotation as soon as the user takes control.
   onUserInteract?: () => void
+  // Offer the "tap the arrows to rotate" help popup once frames are showing.
+  rotateHelpTip?: boolean
 }
 
 // AvatarFrameViewer renders a single avatar/VTO frame from `frameUrls` with
@@ -32,10 +36,14 @@ export function AvatarFrameViewer({
   imageStyle,
   loadingT = 'quick-view.avatar_loading',
   onUserInteract,
+  rotateHelpTip = false,
 }: AvatarFrameViewerProps) {
+  const rightChevronRef = useRef<HTMLDivElement>(null)
   const css = useCss((_theme) => ({
     imageContainer: {
       position: 'absolute',
+      // Clips the image while it is pinch-zoomed.
+      overflow: 'hidden',
     },
     image: {
       objectFit: 'contain',
@@ -46,6 +54,13 @@ export function AvatarFrameViewer({
       // before our touchmove listener can preventDefault, which produced
       // the "janky first swipe" reports.
       touchAction: 'pan-y',
+      transformOrigin: '0 0',
+    },
+    // Zoomed, every touch on the image is ours: one finger pans it rather
+    // than scrolling the page.
+    imageZoomed: {
+      touchAction: 'none',
+      cursor: 'default',
     },
     chevronLeftContainer: {
       position: 'absolute',
@@ -88,6 +103,17 @@ export function AvatarFrameViewer({
     onUserInteract,
   )
 
+  // Pinch-zoom. Reset by a new frame set: a zoom carried onto a different
+  // outfit's frames would land somewhere arbitrary. The arrows still rotate
+  // while zoomed, keeping the zoom, so the shopper can look at the same
+  // detail from another angle.
+  const pinch = usePinchZoom(onUserInteract, frameUrls?.[0])
+  const handleTouchStart = (e: ReactTouchEvent<HTMLElement>) => {
+    if (!pinch.handleTouchStart(e)) {
+      handleTouchDragStart(e)
+    }
+  }
+
   if (!frameUrls || selectedFrameIndex == null) {
     return <Loading t={loadingT} />
   }
@@ -96,10 +122,15 @@ export function AvatarFrameViewer({
     <div css={css.imageContainer} style={imageContainerStyle}>
       <img
         src={frameUrls[selectedFrameIndex]}
-        css={css.image}
-        style={imageStyle}
+        css={[css.image, pinch.zoomed && css.imageZoomed]}
+        style={{
+          ...imageStyle,
+          transform: pinch.zoomed
+            ? `translate(${pinch.zoom.x}px, ${pinch.zoom.y}px) scale(${pinch.zoom.scale})`
+            : undefined,
+        }}
         onMouseDown={handleMouseDragStart}
-        onTouchStart={handleTouchDragStart}
+        onTouchStart={handleTouchStart}
       />
       {/* onMouseDown preventDefault keeps rapid clicks from initiating a text
           selection — otherwise the second/third click in a fast tap-tap-tap
@@ -115,6 +146,7 @@ export function AvatarFrameViewer({
         <ChevronLeftIcon css={css.chevronIcon} />
       </div>
       <div
+        ref={rightChevronRef}
         role="button"
         aria-label="Rotate right"
         css={css.chevronRightContainer}
@@ -123,6 +155,7 @@ export function AvatarFrameViewer({
       >
         <ChevronRightIcon css={css.chevronIcon} />
       </div>
+      <HelpTip id="avatar_rotate" enabled={rotateHelpTip} anchorRef={rightChevronRef} t="help_tip.avatar_rotate" />
     </div>
   )
 }

@@ -1,7 +1,8 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { Button } from '@/components/button'
 import { ColorSelector } from '@/components/color-selector'
+import { HelpTip } from '@/components/help-tooltip'
 import { ItemFitDetails } from '@/components/item-fit-details'
 import { ItemFitText } from '@/components/item-fit-text'
 import { LinkT } from '@/components/link'
@@ -9,7 +10,7 @@ import { SizeSelector } from '@/components/size-selector'
 import { Text, TextT } from '@/components/text'
 import type { VtoTuckLabel } from '@/api/gen/enums'
 import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
-import { buildVtoProductDataFromResolved, isItemTuckable } from '@/lib/fitting-room-data'
+import { buildVtoProductDataFromResolved, isItemNoFit, isItemTuckable } from '@/lib/fitting-room-data'
 import { useTranslation } from '@/lib/locale'
 import { tuckActionKey } from '@/lib/tuck-control'
 import type { VtoProductData } from '@/lib/product'
@@ -28,6 +29,9 @@ interface DetailAccordionItemProps {
   canTuck: boolean
   // Which wording the tuck control uses — from the VTO response.
   tuckLabel: VtoTuckLabel
+  // Mobile only: this row's expand chevron carries the "tap to see size
+  // recommendation info" help popup. Set on the first row.
+  expandHelpTip?: boolean
   // Mobile-only — desktop ignores these.
   detailMode: DetailMode
   isMobileQuickRow: boolean
@@ -50,6 +54,7 @@ export function DetailAccordionItem({
   forceUntuck,
   canTuck,
   tuckLabel,
+  expandHelpTip = false,
   detailMode,
   isMobileQuickRow,
   onToggleOpen,
@@ -61,6 +66,10 @@ export function DetailAccordionItem({
   onToggleUntuck,
 }: DetailAccordionItemProps) {
   const productData = useMemo(() => buildVtoProductDataFromResolved(item), [item])
+  // Loaded, but with no size to offer (isItemNoFit). Shown as quick view's
+  // "no well fitting sizes" message rather than a loading state that never
+  // ends.
+  const noFit = useMemo(() => isItemNoFit(item), [item])
 
   const selectedSizeLabel = useMemo(() => {
     if (!productData) {
@@ -122,6 +131,7 @@ export function DetailAccordionItem({
     return (
       <DesktopAccordionItem
         isOpen={isOpen}
+        noFit={noFit}
         categoryLabel={categoryLabel}
         productData={productData}
         currentPrice={currentPrice}
@@ -140,6 +150,7 @@ export function DetailAccordionItem({
   return (
     <MobileAccordionItem
       isOpen={isOpen}
+      noFit={noFit}
       categoryLabel={categoryLabel}
       productName={productName}
       productData={productData}
@@ -151,6 +162,7 @@ export function DetailAccordionItem({
       isMobileQuickRow={isMobileQuickRow}
       tuckable={tuckable}
       tuckLabel={tuckLabel}
+      expandHelpTip={expandHelpTip}
       forceUntuck={forceUntuck}
       onToggleOpen={onToggleOpen}
       onChangeDetailMode={onChangeDetailMode}
@@ -162,8 +174,14 @@ export function DetailAccordionItem({
   )
 }
 
+// The least an open desktop item shrinks to when the pane is crowded with
+// collapsed rows. Below this the pane scrolls instead.
+const OPEN_ITEM_MIN_HEIGHT_PX = 240
+
 interface DesktopProps {
   isOpen: boolean
+  // No size to offer; see DetailAccordionItem.
+  noFit: boolean
   categoryLabel: string
   productData: VtoProductData | null
   currentPrice: string | null
@@ -181,6 +199,7 @@ interface DesktopProps {
 
 function DesktopAccordionItem({
   isOpen,
+  noFit,
   categoryLabel,
   productData,
   currentPrice,
@@ -204,8 +223,17 @@ function DesktopAccordionItem({
       flexDirection: 'column',
       backgroundColor: ACCORDION_SHADE,
       overflow: 'hidden',
+      flex: 'none',
+    },
+    // Open, the item takes the height the collapsed rows leave in the pane,
+    // with a floor so a pane crowded with rows still shows a usable body —
+    // past that the pane itself scrolls.
+    containerOpen: {
+      flex: '1 1 auto',
+      minHeight: `${OPEN_ITEM_MIN_HEIGHT_PX}px`,
     },
     header: {
+      flex: 'none',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -256,13 +284,23 @@ function DesktopAccordionItem({
       margin: '0 6px 6px 6px',
       padding: '16px',
     },
+    noFit: {
+      fontSize: '14px',
+      fontWeight: '300',
+      lineHeight: 1.5,
+      textAlign: 'center',
+    },
     collapsedSizeRow: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       gap: '12px',
     },
+    // Scrolls inside the open item rather than the pane scrolling.
     body: {
+      flex: '1 1 auto',
+      minHeight: 0,
+      overflowY: 'auto',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'stretch',
@@ -289,6 +327,9 @@ function DesktopAccordionItem({
     // details below them to introduce the larger break.
     sizeBox: {
       width: '100%',
+      // Padding and border inside the 100% — without this the box overran
+      // the body by its padding and its right edge was clipped.
+      boxSizing: 'border-box',
       border: `1px solid ${theme.color_fg_text}`,
       padding: '32px 56px',
       display: 'flex',
@@ -354,7 +395,7 @@ function DesktopAccordionItem({
   }))
 
   return (
-    <div css={css.container}>
+    <div css={isOpen ? { ...css.container, ...css.containerOpen } : css.container}>
       <Button variant="base" css={css.header} onClick={onToggleOpen}>
         <div css={css.headerLabel}>
           <Text variant="base" css={css.categoryLabel}>
@@ -381,6 +422,11 @@ function DesktopAccordionItem({
           Deliberately NOT inside the header <Button> above: that button is
           the section toggle, so a size pill nested in it would collapse or
           expand the section on every size change. */}
+      {!isOpen && noFit ? (
+        <div css={css.content}>
+          <TextT variant="base" css={css.noFit} t="quick-view.no_recommendation" />
+        </div>
+      ) : null}
       {isOpen || !productData ? null : (
         <div css={css.content}>
           <div css={css.collapsedSizeRow}>
@@ -450,6 +496,8 @@ function DesktopAccordionItem({
                 <span dangerouslySetInnerHTML={{ __html: productData.productDescriptionHtml }} />
               </Text>
             </>
+          ) : noFit ? (
+            <TextT variant="base" css={css.noFit} t="quick-view.no_recommendation" />
           ) : (
             <TextT variant="base" t="loading" />
           )}
@@ -461,6 +509,8 @@ function DesktopAccordionItem({
 
 interface MobileProps {
   isOpen: boolean
+  // No size to offer; see DetailAccordionItem.
+  noFit: boolean
   categoryLabel: string
   productName: string
   productData: VtoProductData | null
@@ -472,6 +522,7 @@ interface MobileProps {
   isMobileQuickRow: boolean
   tuckable: boolean
   tuckLabel: VtoTuckLabel
+  expandHelpTip: boolean
   forceUntuck: boolean
   onToggleOpen: () => void
   onChangeDetailMode: (mode: DetailMode) => void
@@ -483,6 +534,7 @@ interface MobileProps {
 
 function MobileAccordionItem({
   isOpen,
+  noFit,
   categoryLabel,
   productName,
   productData,
@@ -494,6 +546,7 @@ function MobileAccordionItem({
   isMobileQuickRow,
   tuckable,
   tuckLabel,
+  expandHelpTip,
   forceUntuck,
   onToggleOpen,
   onChangeDetailMode,
@@ -503,6 +556,7 @@ function MobileAccordionItem({
   onToggleUntuck,
 }: MobileProps) {
   const { t } = useTranslation()
+  const chevronRef = useRef<HTMLSpanElement>(null)
 
   // Light grey for the section card — the header tints over it and a ~6px
   // frame of it surrounds the white content.
@@ -567,6 +621,12 @@ function MobileAccordionItem({
       alignItems: 'center',
       textAlign: 'center',
       gap: '16px',
+    },
+    noFit: {
+      fontSize: '14px',
+      fontWeight: '300',
+      lineHeight: 1.5,
+      textAlign: 'center',
     },
     quickRow: {
       display: 'flex',
@@ -648,10 +708,18 @@ function MobileAccordionItem({
             {productName}
           </Text>
         </div>
-        <span css={css.chevron}>
+        <span ref={chevronRef} css={css.chevron}>
           <Chevron direction={isOpen ? 'up' : 'down'} />
         </span>
       </Button>
+      {/* Offered while the row is closed: the chevron is what opens it. */}
+      <HelpTip
+        id="sheet_expand_item"
+        enabled={expandHelpTip && !isOpen}
+        anchorRef={chevronRef}
+        t="help_tip.sheet_expand_item"
+        placement="above"
+      />
 
       {isMobileQuickRow ? (
         <div css={css.content}>
@@ -662,6 +730,8 @@ function MobileAccordionItem({
                 selectedSizeLabel={selectedSizeLabel}
                 onChangeSize={onChangeSize}
               />
+            ) : noFit ? (
+              <TextT variant="base" css={css.noFit} t="quick-view.no_recommendation" />
             ) : null}
           </div>
         </div>
@@ -721,6 +791,8 @@ function MobileAccordionItem({
                   </div>
                 ) : null}
               </>
+            ) : noFit ? (
+              <TextT variant="base" css={css.noFit} t="quick-view.no_recommendation" />
             ) : (
               <TextT variant="base" t="loading" />
             )}

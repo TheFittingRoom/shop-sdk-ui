@@ -146,7 +146,7 @@ export const TEST_SEEDED_STYLE = {
 // was unreachable by external_id and both products resolved to the first one.
 //
 // Different category from TEST_SEEDED_STYLE ('tshirt'), so selecting this one
-// ADDS to the outfit rather than evicting the other: same-category items evict
+// ADDS to the outfit rather than evicting the other: items that clash evict
 // each other.
 export const TEST_PRODUCT_B_EXTERNAL_ID = 'gid://shopify/Product/67890'
 export const TEST_PRODUCT_B_HANDLE = 'test-product-b'

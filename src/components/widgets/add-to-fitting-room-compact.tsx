@@ -1,24 +1,18 @@
 import { keyframes } from '@emotion/react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
+import { HelpTooltip } from '@/components/help-tooltip'
 import { FittingRoomIcon } from '@/lib/asset'
 import { toggleFittingRoomItem } from '@/lib/fitting-room-storage'
+import { useHelpTip } from '@/lib/help-tips'
 import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
 import type { WidgetProps } from '@/lib/view'
-import { FirstVisitTooltip } from './first-visit-tooltip'
 
 const logger = getLogger('widgets/add-to-fitting-room-compact')
 
-const FIRST_ADD_KEY = 'tfr:first-add-tooltip-seen:v1'
 const TOOLTIP_AUTO_DISMISS_MS = 10000
-
-// Module-level claim: catalog pages render N of these widgets (one per
-// product card). Only the first instance to mount on a page run should
-// surface the first-add tooltip — without this guard every card would race
-// to show its own. Resets per SDK init (per page navigation).
-let firstAddTooltipClaimed = false
 
 // Soft teal box-shadow pulse — only animates while the first-add tooltip
 // is showing. Matches the pulse on the header fitting-room icon.
@@ -41,36 +35,13 @@ export default function AddToFittingRoomCompactWidget({ attributes }: WidgetProp
     productId == null ? false : state.fittingRoom.some((item) => item.externalId === productId),
   )
 
-  const [showTooltip, setShowTooltip] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  // Claim + show on first mount, only if no prior widget has already claimed
-  // in this SDK lifetime and the localStorage flag isn't set.
-  useEffect(() => {
-    if (firstAddTooltipClaimed) {
-      return
-    }
-    try {
-      if (window.localStorage.getItem(FIRST_ADD_KEY)) {
-        return
-      }
-    } catch (error) {
-      logger.logWarn('Failed to read first-add tooltip flag', { error })
-      return
-    }
-    firstAddTooltipClaimed = true
-    setShowTooltip(true)
-  }, [])
-
-  const dismissTooltip = useCallback(() => {
-    setShowTooltip(false)
-    try {
-      window.localStorage.setItem(FIRST_ADD_KEY, 'true')
-    } catch (error) {
-      logger.logWarn('Failed to write first-add tooltip flag', { error })
-    }
-  }, [])
+  // First-add popup, once per browser. Catalogue pages render one of these
+  // per product card; every instance asks, and useHelpTip shows it on the
+  // first to have asked only.
+  const { show: showTooltip, dismiss: dismissTooltip } = useHelpTip('add_to_fitting_room', true, 0)
 
   // Auto-dismiss after 10s.
   useEffect(() => {
@@ -156,7 +127,7 @@ export default function AddToFittingRoomCompactWidget({ attributes }: WidgetProp
         <FittingRoomIcon css={[css.icon, isInFittingRoom && css.iconAdded]} />
       </button>
       {showTooltip ? (
-        <FirstVisitTooltip
+        <HelpTooltip
           text={t('first_add_tooltip.body')}
           dismissAriaLabel={t('first_add_tooltip.dismiss')}
           onDismiss={dismissTooltip}

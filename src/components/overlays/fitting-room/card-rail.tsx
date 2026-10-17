@@ -21,6 +21,9 @@ interface CardRailProps {
   // scrolling. Mobile keeps the natural order so cards don't shuffle under
   // the shopper's finger.
   sortSelectedFirst?: boolean
+  // The first card carries the "tap the cards" help popup. Set on the first
+  // rail only, so there is one candidate card per screen.
+  firstCardHelpTip?: boolean
 }
 
 // CardRail renders one style-category group as a collapsible section. The
@@ -34,6 +37,7 @@ export function CardRail({
   onRemoveItem,
   onChangeColor,
   sortSelectedFirst,
+  firstCardHelpTip = false,
 }: CardRailProps) {
   const [collapsed, setCollapsed] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -154,7 +158,7 @@ export function CardRail({
       })
     : group.items
 
-  const cards = orderedItems.map((item) => (
+  const cards = orderedItems.map((item, index) => (
     <ProductCard
       key={item.externalId}
       item={item}
@@ -162,6 +166,7 @@ export function CardRail({
       onClick={() => onSelectItem(item.externalId)}
       onRemove={() => onRemoveItem(item.externalId)}
       onChangeColor={onChangeColor}
+      helpTip={firstCardHelpTip && index === 0}
     />
   ))
 

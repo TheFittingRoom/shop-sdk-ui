@@ -159,6 +159,9 @@ export function AvatarPane({
         imageStyle={css.frameImage}
         loadingT="quick-view.avatar_loading"
         onUserInteract={cancelAutoRotate}
+        // Offered on an outfit, not the bare avatar: until something is
+        // selected the cards popup is the one that matters.
+        rotateHelpTip={hasSelection}
       />
     )
     if (mobileFullscreen) {

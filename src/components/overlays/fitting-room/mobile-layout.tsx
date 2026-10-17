@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button, ButtonT } from '@/components/button'
-import { Text, TextT } from '@/components/text'
+import { HelpTip } from '@/components/help-tooltip'
+import { Text } from '@/components/text'
 import type { VtoTuckLabel } from '@/api/gen/enums'
 import type { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
-import { CloseIcon, DragHandleIcon, LeftArrowIcon, TfrIcon } from '@/lib/asset'
+import { DragHandleIcon, LeftArrowIcon, TfrIcon } from '@/lib/asset'
 import { LinkT } from '@/components/link'
 import type { SheetSnap } from '@/lib/use-mobile-sheet-snap'
 import type { StyleProp } from '@/lib/theme'
@@ -12,6 +13,7 @@ import type { Availability } from '@/lib/fitting-room-outfit'
 import { AvatarPane } from './avatar-pane'
 import { MobileTuckControl } from './avatar-controls'
 import { CardRail } from './card-rail'
+import { ClearAllPill } from './clear-all-pill'
 import { DetailAccordion } from './detail-accordion'
 import type { DetailMode } from './detail-accordion-item'
 import { SectionNav } from './section-nav'
@@ -47,6 +49,10 @@ interface MobileLayoutProps {
   onChangeSize: (externalId: string, sizeLabel: string) => void
   onChangeColor: (externalId: string, colorLabel: string | null) => void
   onAddToCart: (externalId: string) => void
+  // Add every selected item to the cart. Disabled while it runs, and while
+  // the selection holds an item with no fitting size.
+  onAddAllToCart: () => void
+  addAllToCartDisabled: boolean
   onToggleUntuck: () => void
   onSignOut: () => void
   onClearAll: () => void
@@ -78,6 +84,8 @@ export function MobileLayout({
   onChangeSize,
   onChangeColor,
   onAddToCart,
+  onAddAllToCart,
+  addAllToCartDisabled,
   onToggleUntuck,
   onSignOut,
   onClearAll,
@@ -115,6 +123,8 @@ export function MobileLayout({
       onChangeSize={onChangeSize}
       onChangeColor={onChangeColor}
       onAddToCart={onAddToCart}
+      onAddAllToCart={onAddAllToCart}
+      addAllToCartDisabled={addAllToCartDisabled}
       onToggleUntuck={onToggleUntuck}
     />
   )
@@ -142,6 +152,7 @@ function BrowseView({
   onClearAll: () => void
 }) {
   const railsAreaRef = useRef<HTMLDivElement>(null)
+  const tryItOnRef = useRef<HTMLDivElement>(null)
   // group name → its wrapper element in the rails scroll area, for the
   // section-nav scroll-spy and jump-to-section.
   const sectionRefs = useRef<Map<string, HTMLDivElement>>(new Map())
@@ -228,39 +239,12 @@ function BrowseView({
       color: theme.color_tfr_800,
       fontSize: '14px',
     },
-    // Clear All — white pill with thin black border, black text. Positioned
-    // absolute over the BrowseView container, bottom-right, offset to clear
-    // the Try It On CTA bar below it. Pill shape matches the SectionNav
-    // pill at the top-right, but inverted on color for visual contrast.
-    clearAllPill: {
+    // Clear All floats bottom-right of the BrowseView container, offset to
+    // clear the Try It On CTA bar below it.
+    clearAllPosition: {
       position: 'absolute',
       bottom: '96px',
       right: '16px',
-      zIndex: 5,
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '6px 16px',
-      borderRadius: '999px',
-      backgroundColor: '#FFFFFF',
-      color: theme.color_fg_text,
-      border: `1px solid ${theme.color_fg_text}`,
-      cursor: 'pointer',
-      fontSize: '13px',
-      fontWeight: '500',
-      letterSpacing: '0.5px',
-      textTransform: 'uppercase',
-      whiteSpace: 'nowrap',
-    },
-    clearAllText: {
-      color: theme.color_fg_text,
-    },
-    clearAllIcon: {
-      width: '12px',
-      height: '12px',
-      flex: 'none',
-      // close-icon.svg's <path>s have a hardcoded dark fill — already matches
-      // the new black-on-white pill, no override needed.
     },
     bottomBar: {
       flex: 'none',
@@ -279,7 +263,7 @@ function BrowseView({
         <SectionNav sections={sections} activeName={activeSectionName} onSelect={scrollToSection} />
       ) : null}
       <div ref={railsAreaRef} css={css.railsArea} onScroll={recomputeActiveSection}>
-        {resolved.groups.map((group) => (
+        {resolved.groups.map((group, index) => (
           <div
             key={group.group.name}
             ref={(el) => {
@@ -296,6 +280,7 @@ function BrowseView({
               onSelectItem={onSelectItem}
               onRemoveItem={onRemoveItem}
               onChangeColor={onChangeColor}
+              firstCardHelpTip={index === 0 && !resolved.isLoading}
             />
           </div>
         ))}
@@ -306,21 +291,23 @@ function BrowseView({
         </span>
       </div>
       {/* Floating Clear All pill — bottom-right of the BrowseView container,
-          mirrors the SectionNav pill at the top-right. The pill carries the
-          uppercase + font-size styling; the explicit color override on the
-          inner TextT is needed because Text's `base` variant sets its own
-          color (theme.color_fg_text) which would otherwise win over the
-          pill's white. */}
-      <Button variant="base" css={css.clearAllPill} onClick={onClearAll}>
-        <TextT variant="base" css={css.clearAllText} t="fitting_room.clear_all" />
-        <CloseIcon css={css.clearAllIcon} />
-      </Button>
+          mirrors the SectionNav pill at the top-right. */}
+      <ClearAllPill onClick={onClearAll} position={css.clearAllPosition} />
       {/* Hold the CTA back until the card rails have resolved — otherwise it
           briefly renders alone (with an empty rails area collapsed to zero
           height) and floats up to the top of the overlay. */}
       {resolved.groups.length > 0 ? (
-        <div css={css.bottomBar}>
+        <div ref={tryItOnRef} css={css.bottomBar}>
           <ButtonT variant="brand" t="fitting_room.try_it_on" onClick={onTryItOn} disabled={selectedCount === 0} />
+          {/* Offered once something is selected — before that the button is
+              disabled and there is no outfit to see. */}
+          <HelpTip
+            id="fitting_room_try_it_on"
+            enabled={selectedCount > 0}
+            anchorRef={tryItOnRef}
+            t="help_tip.fitting_room_try_it_on"
+            placement="above"
+          />
         </div>
       ) : null}
     </div>
@@ -344,6 +331,8 @@ function TryOnView({
   onChangeSize,
   onChangeColor,
   onAddToCart,
+  onAddAllToCart,
+  addAllToCartDisabled,
   onToggleUntuck,
 }: {
   selectedItems: ResolvedFittingRoomItem[]
@@ -363,9 +352,14 @@ function TryOnView({
   onChangeSize: (externalId: string, sizeLabel: string) => void
   onChangeColor: (externalId: string, colorLabel: string | null) => void
   onAddToCart: (externalId: string) => void
+  // Add every selected item to the cart. Disabled while it runs, and while
+  // the selection holds an item with no fitting size.
+  onAddAllToCart: () => void
+  addAllToCartDisabled: boolean
   onToggleUntuck: () => void
 }) {
   const innerRef = useRef<HTMLDivElement>(null)
+  const sheetHandleRef = useRef<HTMLDivElement>(null)
   const [sheetStyle, setSheetStyle] = useState<StyleProp>({})
 
   // Quick-row form when sheet is in expanded but no item is open;
@@ -457,6 +451,9 @@ function TryOnView({
     sheetContent: {
       overflowY: 'auto',
     },
+    addAllToCart: {
+      marginTop: '12px',
+    },
   }))
 
   return (
@@ -480,13 +477,20 @@ function TryOnView({
       </Button>
       <div css={css.sheetOuter} style={sheetStyle}>
         <div ref={innerRef} css={css.sheetInner} style={sheetStyle}>
-          <div css={css.sheetHandleRow} onTouchStart={sheetTouchStart}>
+          <div ref={sheetHandleRef} css={css.sheetHandleRow} onTouchStart={sheetTouchStart}>
             <DragHandleIcon />
             <Text variant="base" css={css.sheetTitle}>
               {/* "RECOMMENDED SIZES" header */}
               RECOMMENDED SIZES
             </Text>
           </div>
+          <HelpTip
+            id="sheet_swipe_up"
+            enabled={sheetSnap === 'collapsed' && selectedItems.length > 0}
+            anchorRef={sheetHandleRef}
+            t="help_tip.sheet_swipe_up"
+            placement="above"
+          />
           {sheetSnap === 'collapsed' ? null : (
             <div css={css.sheetContent}>
               <DetailAccordion
@@ -504,6 +508,14 @@ function TryOnView({
                 onChangeColor={onChangeColor}
                 onAddToCart={onAddToCart}
                 onToggleUntuck={onToggleUntuck}
+              />
+              {/* After the product rows, as on desktop. */}
+              <ButtonT
+                variant="brand"
+                css={css.addAllToCart}
+                t="fitting_room.add_all_to_cart"
+                onClick={onAddAllToCart}
+                disabled={addAllToCartDisabled}
               />
             </div>
           )}

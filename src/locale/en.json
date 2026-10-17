@@ -13,6 +13,14 @@
     "body": "Add item to your fitting room here",
     "dismiss": "Dismiss"
   },
+  "help_tip": {
+    "dismiss": "Dismiss",
+    "fitting_room_card": "Tap the cards you want to try on",
+    "fitting_room_try_it_on": "Tap here to see your outfit!",
+    "sheet_swipe_up": "Swipe up to change sizes",
+    "sheet_expand_item": "Tap to see size recommendation info",
+    "avatar_rotate": "Tap the arrows to rotate your avatar"
+  },
   "add_confirmation": {
     "title": "Your Fitting Room",
     "added_header": "Added to your fitting room",
@@ -47,7 +55,12 @@
     "top_under": "Top Under",
     "zoom_in": "Zoom In",
     "zoom_out": "Zoom Out",
-    "vto_error": "Couldn't load the try-on. Please try again."
+    "vto_error": "Couldn't load the try-on. Please try again.",
+    "add_to_cart_error": "Couldn't add this item to your cart. Please try again.",
+    "add_all_to_cart": "Add all to cart",
+    "add_all_to_cart_error": "Some items couldn't be added to your cart. Please try again.",
+    "swap_removed": "Removed {{names}} from your outfit",
+    "undo": "Undo"
   },
   "landing": {
     "header": "Meet your mini me!",

@@ -1,4 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { ButtonT } from '@/components/button'
 import { LinkT } from '@/components/link'
 import { TfrIcon } from '@/lib/asset'
 import type { VtoTuckLabel } from '@/api/gen/enums'
@@ -8,6 +9,7 @@ import type { Availability } from '@/lib/fitting-room-outfit'
 import { AvatarControls } from './avatar-controls'
 import { AvatarPane } from './avatar-pane'
 import { CardRail } from './card-rail'
+import { ClearAllPill } from './clear-all-pill'
 import { DetailAccordion } from './detail-accordion'
 import type { DetailMode } from './detail-accordion-item'
 import { ZoomModal } from '@/components/zoom-modal'
@@ -27,6 +29,9 @@ const AVATAR_MAX_WIDTH_PX = 560
 const DETAILS_MIN_WIDTH_PX = 350
 const DETAILS_FR = 2
 const CARDS_FR = 3
+// Bottom padding of the scrolling card column: room for the floating Clear
+// All pill (~30px tall, inset 24px) so the last row can scroll clear of it.
+const CLEAR_ALL_CLEARANCE_PX = 72
 
 interface DesktopLayoutProps {
   resolved: ResolvedFittingRoom
@@ -48,6 +53,10 @@ interface DesktopLayoutProps {
   onChangeSize: (externalId: string, sizeLabel: string) => void
   onChangeColor: (externalId: string, colorLabel: string | null) => void
   onAddToCart: (externalId: string) => void
+  // Add every selected item to the cart. Disabled while it runs, and while
+  // the selection holds an item with no fitting size.
+  onAddAllToCart: () => void
+  addAllToCartDisabled: boolean
   onToggleUntuck: () => void
   onSignOut: () => void
   onClearAll: () => void
@@ -73,6 +82,8 @@ export function DesktopLayout({
   onChangeSize,
   onChangeColor,
   onAddToCart,
+  onAddAllToCart,
+  addAllToCartDisabled,
   onToggleUntuck,
   onSignOut,
   onClearAll,
@@ -147,25 +158,49 @@ export function DesktopLayout({
     // detail/rails paddingTop values are tuned so the first accordion title
     // ("Top") and the first card-rail header ("TOPS") sit on the same line:
     // 20 + 14 (detail header pad) == 26 + 8 (rail header pad) == 34px.
+    // The detail pane doesn't scroll as a whole: every selected item's row is
+    // always on screen, the open one fills the height left over and scrolls
+    // inside itself (see DetailAccordion), and Add All sits at the bottom.
+    // overflowY stays auto only as a fallback for a pane too short to fit the
+    // collapsed rows plus the open item's minimum height.
     detailColumn: {
       minWidth: 0,
       minHeight: 0,
       overflowY: 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px',
       padding: `20px 8px ${EDGE_INSET_PX}px`,
     },
-    railsColumn: {
+    addAllToCart: {
+      flex: 'none',
+      // Pinned to the bottom of the pane even when nothing is open and the
+      // collapsed rows don't fill it.
+      marginTop: 'auto',
+    },
+    // The card pane: a box that does not scroll, holding the scrolling card
+    // column and the Clear All pill floating over its bottom-right corner.
+    railsPane: {
       position: 'relative',
+      minWidth: 0,
+      minHeight: 0,
+      display: 'flex',
+      flexDirection: 'column',
+    },
+    railsColumn: {
+      flex: 1,
       minWidth: 0,
       minHeight: 0,
       overflowY: 'auto',
       display: 'flex',
       flexDirection: 'column',
       gap: '24px',
-      padding: `26px ${EDGE_INSET_PX}px ${EDGE_INSET_PX}px 8px`,
+      // Extra bottom padding so the end of the list (Sign Out) can scroll
+      // clear of the floating Clear All pill.
+      padding: `26px ${EDGE_INSET_PX}px ${CLEAR_ALL_CLEARANCE_PX}px 8px`,
     },
-    // Shared icon+link visual for the rails column's two utility actions
-    // (Clear All in the top-right corner, Sign Out at the bottom). Callers
-    // add their own positioning on top.
+    // Icon+link visual for the rails column's Sign Out action. Callers add
+    // their own positioning on top.
     utilityLink: {
       display: 'inline-flex',
       alignItems: 'center',
@@ -183,15 +218,13 @@ export function DesktopLayout({
       color: _theme.color_tfr_800,
       fontSize: '14px',
     },
-    // Clear All is overlaid on the top-right corner of the rails column so it
-    // shares a row with the first card-rail header rather than reserving its
-    // own row. It scrolls away with the content, which is fine — it only
-    // needs to overlap that first header.
-    clearAllWrapper: {
+    // Clear All floats bottom-right of the card pane, mirroring the mobile
+    // browse view's pill. Inset a little more on the right than the cards so
+    // it clears the column's scrollbar.
+    clearAllPosition: {
       position: 'absolute',
-      top: '15px',
-      right: '24px',
-      zIndex: 3,
+      bottom: `${EDGE_INSET_PX + 8}px`,
+      right: `${EDGE_INSET_PX + 8}px`,
     },
     // Sign Out sits at the bottom of the rails column, after the last card
     // rail. It scrolls with the content — visible once the shopper reaches
@@ -253,27 +286,35 @@ export function DesktopLayout({
             onAddToCart={onAddToCart}
             onToggleUntuck={onToggleUntuck}
           />
+          <ButtonT
+            variant="brand"
+            css={css.addAllToCart}
+            t="fitting_room.add_all_to_cart"
+            onClick={onAddAllToCart}
+            disabled={addAllToCartDisabled}
+          />
         </div>
       ) : null}
-      <div css={css.railsColumn}>
-        <span css={{ ...css.utilityLink, ...css.clearAllWrapper }} onClick={onClearAll}>
-          <LinkT variant="underline" css={css.utilityText} t="fitting_room.clear_all" />
-        </span>
-        {resolved.groups.map((group) => (
-          <CardRail
-            key={group.group.name}
-            group={group}
-            availabilityByExternalId={availabilityByExternalId}
-            onSelectItem={onSelectItem}
-            onRemoveItem={onRemoveItem}
-            onChangeColor={onChangeColor}
-            sortSelectedFirst
-          />
-        ))}
-        <span css={{ ...css.utilityLink, ...css.signOutWrapper }} onClick={onSignOut}>
-          <TfrIcon css={css.utilityIcon} />
-          <LinkT variant="underline" css={css.utilityText} t="fitting_room.sign_out" />
-        </span>
+      <div css={css.railsPane}>
+        <div css={css.railsColumn}>
+          {resolved.groups.map((group, index) => (
+            <CardRail
+              key={group.group.name}
+              group={group}
+              availabilityByExternalId={availabilityByExternalId}
+              onSelectItem={onSelectItem}
+              onRemoveItem={onRemoveItem}
+              onChangeColor={onChangeColor}
+              sortSelectedFirst
+              firstCardHelpTip={index === 0 && !resolved.isLoading}
+            />
+          ))}
+          <span css={{ ...css.utilityLink, ...css.signOutWrapper }} onClick={onSignOut}>
+            <TfrIcon css={css.utilityIcon} />
+            <LinkT variant="underline" css={css.utilityText} t="fitting_room.sign_out" />
+          </span>
+        </div>
+        <ClearAllPill onClick={onClearAll} position={css.clearAllPosition} />
       </div>
       {zoomOpen && frameUrls && frameUrls.length > 0 ? (
         <ZoomModal

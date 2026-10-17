@@ -13,8 +13,10 @@ import {
   buildVtoProductDataFromResolved,
   findCsaByLabel,
   findRecommendedColorSize,
+  isItemNoFit,
   useResolvedFittingRoom,
 } from '@/lib/fitting-room-data'
+import { cartErrorDetail } from '@/lib/cart-error'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
@@ -22,7 +24,7 @@ import { useMobileSheetSnap } from '@/lib/use-mobile-sheet-snap'
 import { applyFrameBaseUrl, getSizeLabelFromSize } from '@/lib/util'
 import { DeviceLayout, OverlayName } from '@/lib/view'
 import type { Availability, OutfitItem } from '@/lib/fitting-room-outfit'
-import { buildOutfit, computeAvailability, getSameCategoryConflicts } from '@/lib/fitting-room-outfit'
+import { buildOutfit, computeAvailability, getOutfitConflicts } from '@/lib/fitting-room-outfit'
 import { DesktopLayout } from './desktop-layout'
 import type { DetailMode } from './detail-accordion-item'
 import type { MobileMode } from './mobile-layout'
@@ -54,6 +56,17 @@ function toWireItems(items: OutfitItem[]): VtoCompositionItem[] {
 }
 
 const logger = getLogger('overlays/fitting-room')
+
+// How long the "Removed X from your outfit" notice stays up.
+const SWAP_NOTICE_MS = 5000
+
+// Snackbars sit above the overlay's bottom controls rather than over them.
+// Both layouts end in a 48px button inset 16px (desktop Add all to cart,
+// mobile Try It On), so 80px clears it with a 16px gap. Mobile browse also
+// floats Clear All just above that bar (bottom 96px, 30px tall), which a
+// phone-width snackbar would cover, so it goes above that too.
+const SNACKBAR_BOTTOM = '80px'
+const SNACKBAR_BOTTOM_MOBILE_BROWSE = '140px'
 
 function measureTopOffset(): number {
   const { getOverlayTopOffset } = getStaticData()
@@ -97,6 +110,16 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   const [detailMode, setDetailMode] = useState<DetailMode>('compact')
   const [forceUntuck, setForceUntuck] = useState<boolean>(false)
   const [lastAddedExternalId, setLastAddedExternalId] = useState<string | null>(null)
+  // The last add that evicted a clashing item (not just a same-category
+  // swap), for the info snackbar and its Undo. `result` is the selection the
+  // add produced: once the selection moves on from it, Undo would throw away
+  // later changes, so the notice is dropped (see the effect below).
+  const [swapNotice, setSwapNotice] = useState<{
+    names: string[]
+    previous: Set<string>
+    result: Set<string>
+    at: number
+  } | null>(null)
   const [mobileMode, setMobileMode] = useState<MobileMode>('browse')
 
   const { snap: sheetSnap, setSnap: setSheetSnap, handleTouchStart: sheetTouchStart } = useMobileSheetSnap('collapsed')
@@ -204,16 +227,30 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
       if (isSelected) {
         nextSelected.delete(externalId)
       } else {
-        // Silent swap: only one item per style category can be in the outfit
-        // at a time (one pair of pants, one long-sleeve top, etc), so adding
-        // a new same-category item evicts whichever same-category item was
-        // already selected. computeAvailability already reflects this (those
-        // items don't disable the new card), so the eviction is the user's
-        // implicit choice.
-        for (const evictedId of getSameCategoryConflicts(item, selectedExternalIds, resolved)) {
-          nextSelected.delete(evictedId)
+        // Swap: adding an item evicts every selected item it can't be worn
+        // with (same category, or a composition-rule clash — a Set and a
+        // standalone top, say). computeAvailability already reflects this
+        // (clashes don't disable the new card), so the eviction is the
+        // shopper's implicit choice.
+        const evicted = getOutfitConflicts(item, selectedExternalIds, resolved).flatMap(
+          (id) => resolved.items.find((i) => i.externalId === id) ?? [],
+        )
+        for (const e of evicted) {
+          nextSelected.delete(e.externalId)
         }
         nextSelected.add(externalId)
+        // A same-category swap (one pair of pants for another) explains
+        // itself. Anything else — picking a shirt removing a whole Set —
+        // gets a notice with Undo, naming everything that left.
+        const itemCategory = item.styleCategory?.name
+        if (evicted.some((e) => e.styleCategory?.name !== itemCategory)) {
+          setSwapNotice({
+            names: evicted.map((e) => e.merchantProduct?.productName ?? e.externalId),
+            previous: selectedExternalIds,
+            result: nextSelected,
+            at: Date.now(),
+          })
+        }
         ensureSizeForItem(item)
         setLastAddedExternalId(externalId)
         // Trigger a one-shot auto-rotation when the new product's VTO frames
@@ -292,12 +329,18 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   // Wire to the merchant's addToCart callback (StaticData) when configured.
   // The fitting-room may add ANY item, not just currentProduct — so we use the
   // top-level `addToCart` callback rather than `currentProduct.addToCart`.
-  const handleAddToCart = useCallback(
-    async (externalId: string) => {
+  // A cart add that failed, for the error snackbar: which of our messages to
+  // show, and the store's own reason when it gave one (see cartErrorDetail).
+  const [cartError, setCartError] = useState<{ messageKey: string; detail: string | null } | null>(null)
+
+  // Adds one item to the merchant's cart in its chosen size and colour.
+  // Resolves to whether it went in, with the store's reason when it didn't.
+  const addItemToCart = useCallback(
+    async (externalId: string): Promise<{ ok: true } | { ok: false; detail: string | null }> => {
       const { addToCart } = getStaticData()
       if (!addToCart) {
         logger.logWarn('No addToCart callback configured; skipping', { externalId })
-        return
+        return { ok: false, detail: null }
       }
       const item = resolved.items.find((i) => i.externalId === externalId)
       if (!item || !item.storage.size || !item.storage.color) {
@@ -306,17 +349,67 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
           size: item?.storage.size,
           color: item?.storage.color,
         })
-        return
+        return { ok: false, detail: null }
       }
       try {
         await addToCart(externalId, { size: item.storage.size, color: item.storage.color })
-        closeOverlay()
+        return { ok: true }
       } catch (error) {
         logger.logError('addToCart failed', { error, externalId })
+        return { ok: false, detail: cartErrorDetail(error) }
       }
     },
-    [resolved.items, closeOverlay],
+    [resolved.items],
   )
+
+  // Single item: closes the overlay once it is in, as before; a failure keeps
+  // it open with an error.
+  const handleAddToCart = useCallback(
+    async (externalId: string) => {
+      setCartError(null)
+      const result = await addItemToCart(externalId)
+      if (result.ok) {
+        closeOverlay()
+        return
+      }
+      setCartError({ messageKey: 'fitting_room.add_to_cart_error', detail: result.detail })
+    },
+    [addItemToCart, closeOverlay],
+  )
+
+  // "Add all to cart": every selected item, one after another. Sequential on
+  // purpose — the merchant callback adds one item per call, and concurrent
+  // Shopify /cart/add requests can drop each other's additions. The overlay
+  // closes once all of them are in; if any couldn't be added it stays open
+  // with an error, showing the store's reason for the first that failed.
+  const [addingAll, setAddingAll] = useState(false)
+  // A selected item with no size that fits would go into the cart in a size
+  // we say doesn't fit (or not at all), so Add all is off until it's
+  // deselected or removed. Its row already says why.
+  const selectionHasNoFit = useMemo(() => selectedItems.some(isItemNoFit), [selectedItems])
+  const addAllToCartDisabled = addingAll || selectionHasNoFit
+  const handleAddAllToCart = useCallback(async () => {
+    if (selectionHasNoFit) {
+      return
+    }
+    setAddingAll(true)
+    setCartError(null)
+    let failed = false
+    let detail: string | null = null
+    for (const item of selectedItems) {
+      const result = await addItemToCart(item.externalId)
+      if (!result.ok) {
+        failed = true
+        detail = detail ?? result.detail
+      }
+    }
+    setAddingAll(false)
+    if (failed) {
+      setCartError({ messageKey: 'fitting_room.add_all_to_cart_error', detail })
+      return
+    }
+    closeOverlay()
+  }, [selectedItems, selectionHasNoFit, addItemToCart, closeOverlay])
 
   const handleToggleUntuck = useCallback(() => {
     setForceUntuck((prev) => !prev)
@@ -340,6 +433,26 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
     [openAccordionItemId, removeFromFittingRoom],
   )
 
+  // Undo restores the selection from before the swap. The added item stays in
+  // the fitting room, just deselected; the evicted ones were only ever
+  // deselected, so they come straight back.
+  const handleUndoSwap = useCallback(() => {
+    if (!swapNotice) {
+      return
+    }
+    setSelectedExternalIds(new Set(swapNotice.previous))
+    setSwapNotice(null)
+  }, [swapNotice])
+
+  // Drop the notice as soon as the selection is anything but what its swap
+  // produced — another tap, a removal, Clear All — so Undo can only ever
+  // reverse the change it describes.
+  useEffect(() => {
+    if (swapNotice && selectedExternalIds !== swapNotice.result) {
+      setSwapNotice(null)
+    }
+  }, [selectedExternalIds, swapNotice])
+
   const handleTryItOn = useCallback(() => {
     setMobileMode('try-on')
     setSheetSnap('collapsed')
@@ -350,7 +463,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   }, [])
 
   // The open item stopped being selected (deselected, removed via its X, or
-  // evicted by a same-category add). Hand the open state to another selected
+  // evicted by a clashing add). Hand the open state to another selected
   // item rather than leaving every section collapsed — at most one section is
   // open, and normally one *is*.
   //
@@ -553,6 +666,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   // mode goes fullscreen — top: 0 — so the avatar image is flush with the
   // top of the screen.
   const isMobileTryOn = isMobileLayout && mobileMode === 'try-on'
+  const snackbarBottom = isMobileLayout && !isMobileTryOn ? SNACKBAR_BOTTOM_MOBILE_BROWSE : SNACKBAR_BOTTOM
   const overlayStyle = {
     top: isMobileTryOn ? 0 : `${topOffset}px`,
     left: 0,
@@ -624,6 +738,8 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             onChangeSize={handleChangeSize}
             onChangeColor={handleChangeColor}
             onAddToCart={handleAddToCart}
+            onAddAllToCart={handleAddAllToCart}
+            addAllToCartDisabled={addAllToCartDisabled}
             onToggleUntuck={handleToggleUntuck}
             onSignOut={handleSignOut}
             onClearAll={handleClearAll}
@@ -647,12 +763,36 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             onChangeSize={handleChangeSize}
             onChangeColor={handleChangeColor}
             onAddToCart={handleAddToCart}
+            onAddAllToCart={handleAddAllToCart}
+            addAllToCartDisabled={addAllToCartDisabled}
             onToggleUntuck={handleToggleUntuck}
             onSignOut={handleSignOut}
             onClearAll={handleClearAll}
           />
         )}
-        {vtoError ? <Snackbar messageKey="fitting_room.vto_error" onDismiss={clearVtoError} /> : null}
+        {vtoError ? (
+          <Snackbar messageKey="fitting_room.vto_error" bottom={snackbarBottom} onDismiss={clearVtoError} />
+        ) : null}
+        {cartError ? (
+          <Snackbar
+            messageKey={cartError.messageKey}
+            detail={cartError.detail}
+            bottom={snackbarBottom}
+            onDismiss={() => setCartError(null)}
+          />
+        ) : null}
+        {swapNotice && !vtoError && !cartError ? (
+          <Snackbar
+            key={swapNotice.at}
+            variant="info"
+            messageKey="fitting_room.swap_removed"
+            messageVars={{ names: swapNotice.names.join(', ') }}
+            action={{ labelKey: 'fitting_room.undo', onClick: handleUndoSwap }}
+            autoDismissMs={SWAP_NOTICE_MS}
+            bottom={snackbarBottom}
+            onDismiss={() => setSwapNotice(null)}
+          />
+        ) : null}
       </div>
     </ModalFrame>
   )

@@ -13,6 +13,14 @@
     "body": "Ajoutez un article à votre cabine d'essayage ici",
     "dismiss": "Fermer"
   },
+  "help_tip": {
+    "dismiss": "Fermer",
+    "fitting_room_card": "Touchez les articles que vous voulez essayer",
+    "fitting_room_try_it_on": "Touchez ici pour voir votre tenue !",
+    "sheet_swipe_up": "Balayez vers le haut pour changer de taille",
+    "sheet_expand_item": "Touchez pour voir la recommandation de taille",
+    "avatar_rotate": "Touchez les flèches pour faire pivoter votre avatar"
+  },
   "add_confirmation": {
     "title": "Votre cabine d'essayage",
     "added_header": "Ajouté à votre cabine d'essayage",
@@ -46,7 +54,12 @@
     "top_under": "Haut en dessous",
     "zoom_in": "Zoom +",
     "zoom_out": "Zoom −",
-    "vto_error": "Impossible de charger l'essayage. Veuillez réessayer."
+    "vto_error": "Impossible de charger l'essayage. Veuillez réessayer.",
+    "add_to_cart_error": "Impossible d'ajouter cet article à votre panier. Veuillez réessayer.",
+    "add_all_to_cart": "Tout ajouter au panier",
+    "add_all_to_cart_error": "Certains articles n'ont pas pu être ajoutés à votre panier. Veuillez réessayer.",
+    "swap_removed": "Retiré de votre tenue : {{names}}",
+    "undo": "Annuler"
   },
   "landing": {
     "header": "Rencontrez votre mini-moi !",

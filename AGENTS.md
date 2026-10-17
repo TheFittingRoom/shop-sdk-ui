@@ -322,6 +322,28 @@ the user's own chevron taps.
 per tick), the rotation advancing, and user-cancel. The preload test was
 confirmed to fail when the preload is disabled — keep it that way.
 
+## Pinch-zoom on the frame
+
+`AvatarFrameViewer` zooms with two fingers (`src/components/use-pinch-zoom.ts`),
+so it works wherever the frame does — fitting room and quick view, phone
+layouts. Desktop keeps its separate Zoom In modal.
+
+- **Pinch** zooms 1×–4× about the fingers' midpoint. Pinching back to within
+  5% of 1× snaps out; a **double tap** while zoomed resets.
+- **Zoomed, one finger pans** instead of rotating, and the image switches to
+  `touch-action: none` so the page doesn't scroll under it. The arrows still
+  rotate and keep the zoom, so a detail can be compared across angles.
+- **A new frame set resets the zoom** (keyed on the first frame URL).
+- **Each finger fires its own touchstart.** A second finger landing during a
+  gesture restarts that gesture as a pinch (`restartRef`) rather than
+  starting a second one, and `useFrameRotation`'s touch drag gives itself up
+  when it sees two touches, so a drag that becomes a pinch never rotates.
+- The pinch counts as user control (`onUserInteract`), so it stops an
+  auto-rotate like a drag does.
+
+Guarded by `e2e/pinch-zoom.spec.ts` (Pixel 5 profile, synthetic multi-touch),
+confirmed to fail when the pinch is disabled.
+
 ## VTO request flow
 
 `requestVto(items)` in `src/lib/api.ts` posts a 1..4-garment composition to
@@ -438,9 +460,9 @@ The desktop middle pane (`detail-accordion.tsx` → `DesktopAccordionItem` in
 open section — so nothing may auto-open unconditionally, or the collapse
 control becomes impossible to use. The one case that does re-open
 automatically is the effect in `index.tsx` watching for the open item leaving
-the selection (deselected, removed via its X, or evicted by a same-category
-add): the open state moves to another selected item rather than leaving
-everything collapsed.
+the selection (deselected, removed via its X, or evicted by a clashing add):
+the open state moves to another selected item rather than leaving everything
+collapsed.
 
 **That effect is the only place allowed to react to it.** The three call sites
 that drop an item previously cleared the open id themselves. Because those
@@ -470,11 +492,94 @@ Two constraints hold this together:
   desktop open body already renders it as `variant="brand"`, so showing both
   would duplicate it; mobile's body has no product name, so it doesn't.
 
+**The pane itself doesn't scroll.** Every selected item's row is always on
+screen: collapsed rows take their natural height, the open item fills what is
+left (`containerOpen`) and its body scrolls inside itself. The open item has a
+floor (`OPEN_ITEM_MIN_HEIGHT_PX`); only a pane too short for the collapsed rows
+plus that floor falls back to scrolling as a whole. **Add all to cart** sits
+at the bottom of the pane (`marginTop: auto`, so also with nothing open); on
+mobile it follows the product rows in the try-on sheet, so it shows whenever
+the sheet is not collapsed. It
+calls the merchant `addToCart` once per selected item, one after another —
+concurrent Shopify `/cart/add` calls can drop each other's additions — closes
+the overlay when all went in, and otherwise stays open with an error snackbar.
+
+**An item with no fitting size says so.** The backend answers a no-fit
+product with an empty recommendation (200), so `buildVtoProductDataFromResolved`
+returns null for it exactly as it does while data is still loading. The two are
+told apart by `isItemLoadSettled` / `isItemNoFit` (`src/lib/fitting-room-data.ts`):
+once the merchant product and our size recommendation have both settled
+(loaded or failed) and there is still no usable size, the row shows quick
+view's "no well fitting sizes" message instead of "Loading..." — open or
+collapsed, desktop and mobile. **Add all to cart is disabled** while any
+selected item is no-fit: it would otherwise go in at its remembered PDP size,
+which we've just said doesn't fit. The row's message is the explanation.
+
+**A failed cart add shows an error** — the single-item Add to cart (desktop
+and mobile) as well as Add all. The snackbar is our own message, plus the
+store's reason on a second line when there is one: `cartErrorDetail`
+(`src/lib/cart-error.ts`) finds Shopify's cart error JSON inside the error the
+merchant callback threw (the theme's `tfr.js` embeds the 422 body in its error
+text) and takes `description`, falling back to `message` — Shopify's `message`
+is just the heading "Cart Error", and `description` is the actual reason
+("Cannot find variant"). Nothing else from the error text is shown: the rest
+is developer detail. Quick view is not covered — it adds through the PDP's own
+form after closing itself, so the store page reports those errors.
+
+Guarded by `e2e/desktop-detail-pane.spec.ts`. The host fixture records every
+add in `__TFR_TEST_ADDS__` and fails the ids listed in `__TFR_TEST_ADD_FAIL__`,
+with a theme-shaped error text (or `__TFR_TEST_ADD_FAIL_TEXT__`).
+
 This is desktop-only. Mobile keeps its own three-state sheet, where
 `isMobileQuickRow = sheetSnap === 'expanded' && openAccordionItemId == null`
 puts a size selector on *every* row when nothing is open. Note that expression
 depends on the shared `openAccordionItemId` being nullable — forcing a section
 to always be open would silently disable mobile's quick-row mode.
+
+## Outfit composition: clashes swap, only the cap disables
+
+The composition rules (`includes` / `excludes` per category, each group's
+`same_group_default`) come from the backend's style-category config, but
+**only the SDK applies them** — the backend checks nothing but the 4-garment
+cap. They live in `src/lib/fitting-room-outfit.ts`.
+
+A clash never disables a fitting-room card. Selecting an item evicts every
+selected item it can't be worn with (`getOutfitConflicts`): the same parent
+category, or any pair `itemsCompatible` rejects. A Suits & Sets container is
+judged by its pieces, so a shirt + trousers Set evicts a standalone shirt and
+pants, and either of those evicts the whole Set — a Set is never partly
+selected. Same parent category still swaps inside a `compatible` group, where
+the rules alone would let two coexist.
+
+`computeAvailability` disables a card only for a missing category or the
+garment cap, and counts the cap **after** those evictions (jacket + shirt +
+pants, then a 3-piece Set: 1 + 3 = 4, allowed).
+
+**A clash swap says what it removed.** A same-category swap (one pair of pants
+for another) is self-explanatory and stays silent. Any other eviction raises
+an info snackbar — "Removed X, Y from your outfit" with **Undo** — that closes
+after `SWAP_NOTICE_MS` (5s). Undo restores the selection from before the tap;
+nothing was removed from the fitting room, only deselected. The notice holds
+the selection its swap produced (`swapNotice.result`) and is dropped the
+moment the selection is anything else, so Undo can never throw away a later
+change. It yields to an error snackbar rather than stacking under it.
+
+`Snackbar`'s `variant="info"` fills with TFR teal (`theme.color_tfr_800`, as
+the help popups use) so a notice never reads as one of the near-black error
+pills; it also takes an `action` link, `autoDismissMs` and `bottom`. Info is
+`role="status"`, error `role="alert"`.
+
+**Fitting-room snackbars sit above the bottom controls**, error and info alike:
+80px on desktop and mobile try-on (clearing the 48px Add all / Try It On button
+inset 16px), 140px on mobile browse (also clearing the floating Clear All pill
+at 96px). `bottom` is applied outside `useCss`, which computes once per mount,
+because the layout can switch while a snackbar is up. If either layout's bottom
+controls move, update `SNACKBAR_BOTTOM*` in `fitting-room/index.tsx`. The
+overlap tests check vertical clearance only: the test host has no viewport
+meta, so the phone profile lays out 980px wide.
+
+Guarded by `e2e/outfit-conflicts.spec.ts`; the swap tests were verified to
+fail with the old disable rule, the notice test with a notice on every swap.
 
 ## Fitting-room icon widget — three responsibilities
 
@@ -482,17 +587,65 @@ to always be open would silently disable mobile's quick-row mode.
 header icon. It also hosts two anchored popovers that need to live next
 to the icon:
 
-- **First-visit tooltip** (`first-visit-tooltip.tsx`) — fires once per
-  browser the first time the widget mounts. Dismiss paths (icon click,
-  tooltip close, click-outside) all write the localStorage flag
-  `tfr:first-visit-tooltip-seen:v1`, a sibling to the existing
-  `tfr:fitting-room:v1`. While showing, the icon button gets a soft
-  green pulsing box-shadow.
+- **First-visit popup** — the `fitting_room_icon` help popup (see "Help
+  popups" below), shown once per browser. Dismiss paths (icon click,
+  popup close, click-outside, 10s timeout) all record it as seen. While
+  showing, the icon button gets a soft green pulsing box-shadow.
 - **Add-confirmation drawer** (`add-confirmation-drawer.tsx`) — fires
   whenever any item is added to the fitting room from any surface
   (catalog hanger, PDP, quick-view). Auto-dismisses after 4s; click-
   outside also dismisses. Items inside use a trash icon for remove
   (calls `removeFromFittingRoom`); CTA opens the overlay.
+
+## Help popups
+
+Seven one-time hints, each pointing at a control: the catalogue hanger and
+the header icon (store widgets, in that order), the first product card, the mobile TRY IT
+ON button, the avatar's rotate arrows (fitting room and quick view), and the
+mobile try-on sheet's swipe-up handle and first expand chevron.
+
+- **One flag per popup, one record per browser.** `src/lib/help-tips.ts`
+  keeps `tfr:help-tips:v1` = `{ "<HelpTipId>": true, ... }`. Per browser,
+  not per shopper: the store-widget popups show to signed-out visitors too.
+  The two store-widget popups used to keep their own flags
+  (`tfr:first-visit-tooltip-seen:v1`, `tfr:first-add-tooltip-seen:v1`);
+  those are still read, so a returning visitor isn't shown them again.
+- **Only one is ever on screen.** Each mounted popup that could show asks
+  `useHelpTip(id, enabled)`; the coordinator shows the highest-priority
+  unseen one (order: `HELP_TIP_PRIORITY`) on the first instance that asked,
+  and the next appears once it is dismissed. That is what turns them into a
+  sequence — cards → try it on → arrows → swipe up → expand — instead of a
+  pile that a single tap would clear. Two rules keep the order honest:
+  - a popup on screen is never swapped out by a higher-priority one that
+    becomes eligible later (frames arriving, say);
+  - requests arriving within `REQUEST_BATCH_MS` are decided together, so the
+    store widgets — separate React roots that mount one after another — are
+    ordered by priority rather than mount order.
+- **`enabled` is the hint making sense now**, not just the anchor existing:
+  the try-it-on popup waits for a selection (the button is disabled before),
+  the fitting room's rotate popup waits for an outfit rather than the bare
+  avatar (so the cards popup comes first), the expand popup only shows while
+  its row is closed.
+- **`HelpTip`** (`src/components/help-tooltip.tsx`) is the overlay wrapper:
+  dismissed by its close button, by the shopper touching anything else
+  (pointerdown, capture phase — usually the very control it points at, and
+  the touch still reaches that control), or after 10s. The store widgets
+  drive `HelpTooltip` through `useHelpTip` directly, because they fold its
+  dismissal into their drawer handling.
+- **`HelpTooltip` re-reads its anchor's position every animation frame**
+  while up. Overlay anchors move without a resize or scroll event (the
+  mobile sheet animates its height), and a popup is only up for seconds.
+
+**Adding a popup:** add the id to `HelpTipId` and `HELP_TIP_PRIORITY`, the
+id to `ALL_HELP_TIPS` in `tests/e2e/helpers/boot.ts`, and the text under
+`help_tip` in both locales; then render `<HelpTip>` beside its anchor.
+
+**e2e:** `bootSdk` marks every popup seen before boot unless
+`helpTips: true`, because popups sit over controls other specs click.
+`e2e/help-tips.spec.ts` opts in and covers the one-at-a-time sequence on
+desktop and mobile, and the legacy flags. Mobile layout is chosen from the
+user agent and touch support, not viewport width — that spec runs its mobile
+case on the Pixel 5 device profile.
 
 ### `lastAddEvent` — the cross-widget signal
 
