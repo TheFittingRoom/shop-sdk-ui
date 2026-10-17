@@ -30,7 +30,7 @@ and renders a `<tfr-widget>` custom element.
   `npm run build` cleans + builds. CI runs `check` + `build`. ESLint ignores
   `src/api/gen/` (tygo-generated). Non-null assertions and `any` are errors;
   control statements must be braced; `react-hooks/exhaustive-deps` is a warning.
-- Consumers load the SDK via `<script type="module">` from a CDN URL backed by the npm package `@thefittingroom/shop-ui`. The `shopify` theme's `tfr.js` pins `unpkg.com/@thefittingroom/shop-ui@<exact version>` in its `PROD_URL`. **Consequence: publishing, under any dist-tag, never changes the store; a store release is a PR on the theme's `development` branch that bumps that pin.**
+- Consumers load the SDK via `<script type="module">` from a CDN URL backed by the npm package `@thefittingroom/shop-ui`. The `shopify` theme's `tfr.js` loads `unpkg.com/@thefittingroom/shop-ui@5` in its `PROD_URL`, a semver range that unpkg resolves to the highest published 5.x **regardless of dist-tag**. **Consequence: every release is live on the store as soon as it is on npm (unpkg caches the redirect for up to 5 minutes), with no theme change. Anything the release depends on, such as a backend deploy, must be live first.**
 
 ### Release flow
 
@@ -52,9 +52,9 @@ README.md for the full walkthrough. Summary:
    (README "Release process"). The npm trusted-publisher entry for
    `@thefittingroom/shop-ui` **must point at `release.yaml`**.
 
-   The published version is not live on the demo storefront until the
-   theme's `PROD_URL` pin is bumped to it by a PR on `development`;
-   npm publish and that bump are independent steps.
+   The published version goes live on the storefront as soon as the
+   publish lands (the theme loads `@5`, see above), so the release run
+   is the store release.
 
 2. **(Optional) Promote to `latest` dist-tag.** Only matters for
    consumers who install without a version pin (`npm install
@@ -409,7 +409,7 @@ categories in every test — so a control that ignores the response fails the
 unavailable, no-ruling and Top Over cases.
 
 **Deploy order:** the backend must ship `tuck` before an SDK with this change
-is pinned by the theme. Against an older backend the control is simply hidden.
+is released. Against an older backend the control is simply hidden.
 
 ## Conventions
 
@@ -427,7 +427,7 @@ syncs to `tfrshop-1346.myshopify.com` automatically on push. The theme's
 `assets/tfr.js` is the bootstrap layer — it builds `currentProduct` from
 Shopify's product object, wires merchant-supplied callbacks
 (`getSelectedOptions`, `addToCart`, `productLookup`, `getOverlayTopOffset`),
-and chooses the SDK URL: jsdelivr in production, `localhost:5173` when the
+and chooses the SDK URL: unpkg (`@5`) by default, `localhost:5173` when the
 page URL has `?tfr-source=local`.
 
 The widgets are embedded as `<tfr-widget>` custom elements in
