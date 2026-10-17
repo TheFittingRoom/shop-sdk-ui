@@ -49,6 +49,9 @@ interface MobileLayoutProps {
   onChangeSize: (externalId: string, sizeLabel: string) => void
   onChangeColor: (externalId: string, colorLabel: string | null) => void
   onAddToCart: (externalId: string) => void
+  // Add every selected item to the cart; `addingAllToCart` while it runs.
+  onAddAllToCart: () => void
+  addingAllToCart: boolean
   onToggleUntuck: () => void
   onSignOut: () => void
   onClearAll: () => void
@@ -80,6 +83,8 @@ export function MobileLayout({
   onChangeSize,
   onChangeColor,
   onAddToCart,
+  onAddAllToCart,
+  addingAllToCart,
   onToggleUntuck,
   onSignOut,
   onClearAll,
@@ -117,6 +122,8 @@ export function MobileLayout({
       onChangeSize={onChangeSize}
       onChangeColor={onChangeColor}
       onAddToCart={onAddToCart}
+      onAddAllToCart={onAddAllToCart}
+      addingAllToCart={addingAllToCart}
       onToggleUntuck={onToggleUntuck}
     />
   )
@@ -323,6 +330,8 @@ function TryOnView({
   onChangeSize,
   onChangeColor,
   onAddToCart,
+  onAddAllToCart,
+  addingAllToCart,
   onToggleUntuck,
 }: {
   selectedItems: ResolvedFittingRoomItem[]
@@ -342,6 +351,9 @@ function TryOnView({
   onChangeSize: (externalId: string, sizeLabel: string) => void
   onChangeColor: (externalId: string, colorLabel: string | null) => void
   onAddToCart: (externalId: string) => void
+  // Add every selected item to the cart; `addingAllToCart` while it runs.
+  onAddAllToCart: () => void
+  addingAllToCart: boolean
   onToggleUntuck: () => void
 }) {
   const innerRef = useRef<HTMLDivElement>(null)
@@ -437,6 +449,9 @@ function TryOnView({
     sheetContent: {
       overflowY: 'auto',
     },
+    addAllToCart: {
+      marginTop: '12px',
+    },
   }))
 
   return (
@@ -491,6 +506,14 @@ function TryOnView({
                 onChangeColor={onChangeColor}
                 onAddToCart={onAddToCart}
                 onToggleUntuck={onToggleUntuck}
+              />
+              {/* After the product rows, as on desktop. */}
+              <ButtonT
+                variant="brand"
+                css={css.addAllToCart}
+                t="fitting_room.add_all_to_cart"
+                onClick={onAddAllToCart}
+                disabled={addingAllToCart}
               />
             </div>
           )}

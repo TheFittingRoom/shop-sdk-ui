@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, test } from '@playwright/test'
+import { devices, expect, test } from '@playwright/test'
 import { bootSdk } from './helpers/boot'
 import {
   TEST_BRAND_ID,
@@ -49,9 +49,12 @@ const BOTTOMS_GROUP = { name: 'bottoms', label: 'Bottoms', same_group_default: '
 
 const addAll = (page: Page) => page.getByRole('button', { name: 'Add all to cart' })
 
-// Opens the desktop fitting room with both test products selected.
-async function bootWithBothSelected(page: Page, height = 900) {
-  await page.setViewportSize({ width: 1440, height })
+// Opens the fitting room with both test products in it, and — on desktop —
+// both selected. `height` null leaves the viewport to the device profile.
+async function bootWithBothSelected(page: Page, height: number | null = 900) {
+  if (height !== null) {
+    await page.setViewportSize({ width: 1440, height })
+  }
   await page.addInitScript(
     ({ brandId, uid, a, b }) => {
       const items = [
@@ -91,7 +94,9 @@ async function bootWithBothSelected(page: Page, height = 900) {
   await page.getByRole('button', { name: 'Fitting Room', exact: true }).click()
   await page.getByRole('button', { name: /Test Product/i }).click()
   await page.getByRole('button', { name: /Second Product/i }).click()
-  await expect(addAll(page)).toBeVisible()
+  if (height !== null) {
+    await expect(addAll(page)).toBeVisible()
+  }
 }
 
 test('detail pane: every row stays on screen, the open item scrolls inside itself', async ({ page }) => {
@@ -190,4 +195,46 @@ test('add to cart: an error with no store reason in it shows only our message', 
   await expect(page.getByText("Couldn't add this item to your cart. Please try again.")).toBeVisible()
   // Developer detail from the callback never reaches the shopper.
   await expect(page.getByText(/no variant matches/)).toHaveCount(0)
+})
+
+test.describe('mobile', () => {
+  const { defaultBrowserType: _browser, ...pixel5 } = devices['Pixel 5']
+  test.use(pixel5)
+
+  // Swipes the try-on sheet up one snap from its handle row.
+  async function swipeSheetUp(page: Page) {
+    await page.getByText('RECOMMENDED SIZES').evaluate((handle) => {
+      const rect = handle.getBoundingClientRect()
+      const x = rect.left + rect.width / 2
+      const y = rect.top + rect.height / 2
+      const touch = (clientY: number) => new Touch({ identifier: 1, target: handle, clientX: x, clientY })
+      handle.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: [touch(y)] }))
+      document.dispatchEvent(new TouchEvent('touchmove', { bubbles: true, touches: [touch(y - 80)] }))
+      document.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [] }))
+    })
+  }
+
+  test('try-on sheet: Add all to cart sits after the product rows and adds them all', async ({ page }) => {
+    await bootWithBothSelected(page, null)
+    await page.getByRole('button', { name: 'Try it on', exact: true }).click()
+
+    // Collapsed, the sheet shows no rows — and no button.
+    await expect(addAll(page)).toHaveCount(0)
+    await swipeSheetUp(page)
+    await expect(addAll(page)).toBeVisible()
+
+    // After the last product row.
+    const order = await addAll(page).evaluate((button) => {
+      const pant = [...document.querySelectorAll('button')].find((b) => b.textContent?.startsWith('Pant'))
+      return pant ? pant.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING : 0
+    })
+    expect(order, 'the button comes after the product rows').toBeTruthy()
+
+    await addAll(page).click()
+    await expect(addAll(page)).toHaveCount(0)
+    const adds = await page.evaluate(
+      () => (window as unknown as { __TFR_TEST_ADDS__?: { externalId: string }[] }).__TFR_TEST_ADDS__ ?? [],
+    )
+    expect(adds.map((a) => a.externalId)).toEqual([TEST_PRODUCT_EXTERNAL_ID, TEST_PRODUCT_B_EXTERNAL_ID])
+  })
 })

@@ -497,7 +497,9 @@ screen: collapsed rows take their natural height, the open item fills what is
 left (`containerOpen`) and its body scrolls inside itself. The open item has a
 floor (`OPEN_ITEM_MIN_HEIGHT_PX`); only a pane too short for the collapsed rows
 plus that floor falls back to scrolling as a whole. **Add all to cart** sits
-at the bottom of the pane (`marginTop: auto`, so also with nothing open). It
+at the bottom of the pane (`marginTop: auto`, so also with nothing open); on
+mobile it follows the product rows in the try-on sheet, so it shows whenever
+the sheet is not collapsed. It
 calls the merchant `addToCart` once per selected item, one after another —
 concurrent Shopify `/cart/add` calls can drop each other's additions — closes
 the overlay when all went in, and otherwise stays open with an error snackbar.

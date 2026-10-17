@@ -673,6 +673,8 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             onChangeSize={handleChangeSize}
             onChangeColor={handleChangeColor}
             onAddToCart={handleAddToCart}
+            onAddAllToCart={handleAddAllToCart}
+            addingAllToCart={addingAll}
             onToggleUntuck={handleToggleUntuck}
             onSignOut={handleSignOut}
             onClearAll={handleClearAll}
