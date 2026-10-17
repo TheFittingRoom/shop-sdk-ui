@@ -460,9 +460,9 @@ The desktop middle pane (`detail-accordion.tsx` → `DesktopAccordionItem` in
 open section — so nothing may auto-open unconditionally, or the collapse
 control becomes impossible to use. The one case that does re-open
 automatically is the effect in `index.tsx` watching for the open item leaving
-the selection (deselected, removed via its X, or evicted by a same-category
-add): the open state moves to another selected item rather than leaving
-everything collapsed.
+the selection (deselected, removed via its X, or evicted by a clashing add):
+the open state moves to another selected item rather than leaving everything
+collapsed.
 
 **That effect is the only place allowed to react to it.** The three call sites
 that drop an item previously cleared the open id themselves. Because those
@@ -535,6 +535,27 @@ This is desktop-only. Mobile keeps its own three-state sheet, where
 puts a size selector on *every* row when nothing is open. Note that expression
 depends on the shared `openAccordionItemId` being nullable — forcing a section
 to always be open would silently disable mobile's quick-row mode.
+
+## Outfit composition: clashes swap, only the cap disables
+
+The composition rules (`includes` / `excludes` per category, each group's
+`same_group_default`) come from the backend's style-category config, but
+**only the SDK applies them** — the backend checks nothing but the 4-garment
+cap. They live in `src/lib/fitting-room-outfit.ts`.
+
+A clash never disables a fitting-room card. Selecting an item evicts every
+selected item it can't be worn with (`getOutfitConflicts`): the same parent
+category, or any pair `itemsCompatible` rejects. A Suits & Sets container is
+judged by its pieces, so a shirt + trousers Set evicts a standalone shirt and
+pants, and either of those evicts the whole Set — a Set is never partly
+selected. Same parent category still swaps inside a `compatible` group, where
+the rules alone would let two coexist.
+
+`computeAvailability` disables a card only for a missing category or the
+garment cap, and counts the cap **after** those evictions (jacket + shirt +
+pants, then a 3-piece Set: 1 + 3 = 4, allowed). The eviction is silent;
+there's no notice of what left the outfit. Guarded by
+`e2e/outfit-conflicts.spec.ts`, verified to fail with the old disable rule.
 
 ## Fitting-room icon widget — three responsibilities
 

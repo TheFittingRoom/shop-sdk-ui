@@ -24,7 +24,7 @@ import { useMobileSheetSnap } from '@/lib/use-mobile-sheet-snap'
 import { applyFrameBaseUrl, getSizeLabelFromSize } from '@/lib/util'
 import { DeviceLayout, OverlayName } from '@/lib/view'
 import type { Availability, OutfitItem } from '@/lib/fitting-room-outfit'
-import { buildOutfit, computeAvailability, getSameCategoryConflicts } from '@/lib/fitting-room-outfit'
+import { buildOutfit, computeAvailability, getOutfitConflicts } from '@/lib/fitting-room-outfit'
 import { DesktopLayout } from './desktop-layout'
 import type { DetailMode } from './detail-accordion-item'
 import type { MobileMode } from './mobile-layout'
@@ -206,13 +206,12 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
       if (isSelected) {
         nextSelected.delete(externalId)
       } else {
-        // Silent swap: only one item per style category can be in the outfit
-        // at a time (one pair of pants, one long-sleeve top, etc), so adding
-        // a new same-category item evicts whichever same-category item was
-        // already selected. computeAvailability already reflects this (those
-        // items don't disable the new card), so the eviction is the user's
-        // implicit choice.
-        for (const evictedId of getSameCategoryConflicts(item, selectedExternalIds, resolved)) {
+        // Silent swap: adding an item evicts every selected item it can't be
+        // worn with (same category, or a composition-rule clash — a Set and a
+        // standalone top, say). computeAvailability already reflects this
+        // (clashes don't disable the new card), so the eviction is the
+        // shopper's implicit choice.
+        for (const evictedId of getOutfitConflicts(item, selectedExternalIds, resolved)) {
           nextSelected.delete(evictedId)
         }
         nextSelected.add(externalId)
@@ -408,7 +407,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   }, [])
 
   // The open item stopped being selected (deselected, removed via its X, or
-  // evicted by a same-category add). Hand the open state to another selected
+  // evicted by a clashing add). Hand the open state to another selected
   // item rather than leaving every section collapsed — at most one section is
   // open, and normally one *is*.
   //

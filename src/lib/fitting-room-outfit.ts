@@ -114,14 +114,22 @@ function pairCompatible(a: StyleCategory, b: StyleCategory, group: StyleCategory
   return aIncl.includes(bName) || bIncl.includes(aName)
 }
 
-// Same-category items can never coexist in an outfit (one pair of pants,
-// one long-sleeve top, etc), but the UI handles them as a *silent swap* on
-// select: tapping a new same-category card adds it and evicts the previous
-// selection in the same category. This helper returns the externalIds that
-// would be evicted, so both the availability check (which must treat the
-// would-evict items as "not occupying a slot") and the select handler
-// (which performs the eviction) work from the same rule.
-export function getSameCategoryConflicts(
+// getOutfitConflicts returns the selected items that adding `item` would
+// evict. Clashes never disable a card; the UI resolves them as a *silent
+// swap*: the new item goes in and everything it can't be worn with comes out.
+// Both the availability check (which must treat those items as freed slots)
+// and the select handler (which performs the eviction) use this one rule.
+//
+// An item conflicts when:
+//   - it has the same PARENT category (one pair of pants, one Set). This also
+//     covers categories in a `compatible` group, which pairCompatible lets
+//     coexist; two of the same category still swap.
+//   - or itemsCompatible fails: an Excludes entry, or two categories in an
+//     exclusive group without an Includes. Containers compare by their
+//     children, so a shirt + trousers Set evicts a standalone shirt or pants,
+//     and picking either standalone evicts the whole Set (a Set can't be
+//     partly selected).
+export function getOutfitConflicts(
   item: ResolvedFittingRoomItem,
   selectedExternalIds: ReadonlySet<string>,
   resolved: ResolvedFittingRoom,
@@ -141,13 +149,17 @@ export function getSameCategoryConflicts(
     if (!sel.styleCategory) {
       continue
     }
-    if (catName(sel.styleCategory) === itemName) {
+    if (catName(sel.styleCategory) === itemName || !itemsCompatible(sel, item)) {
       out.push(sel.externalId)
     }
   }
   return out
 }
 
+// computeAvailability: a card is only ever disabled for having no category or
+// for the garment cap. Clashes are evicted on select (getOutfitConflicts), so
+// the cap is counted without them — e.g. jacket + shirt + pants, then a
+// 3-piece Set: the shirt and pants leave, jacket + 3 = 4, allowed.
 export function computeAvailability(
   item: ResolvedFittingRoomItem,
   selectedExternalIds: ReadonlySet<string>,
@@ -160,42 +172,22 @@ export function computeAvailability(
     return 'disabled'
   }
 
-  // Same-category items would be silently evicted on add. Treat them as
-  // freed slots when computing effective outfit size and when checking
-  // pair-compatibility — they're about to leave the outfit anyway.
-  //
-  // Same-category conflict keys on the PARENT category (so Set-vs-Set
-  // silent-swaps, and Pants-vs-Pants silent-swaps). Set-vs-standalone-Pants
-  // does not silent-swap even when the Set includes pants — the pairwise
-  // check below catches that as an incompatible add.
-  const sameCategoryEvictions = new Set(getSameCategoryConflicts(item, selectedExternalIds, resolved))
+  const evictions = new Set(getOutfitConflicts(item, selectedExternalIds, resolved))
 
-  // Garment-count cap: sum children per selected item, plus the new item's
-  // own garment count. Containers count as N.
+  // Garment-count cap: sum children per remaining selected item, plus the new
+  // item's own garment count. Containers count as N.
   let effectiveGarments = getGarmentCount(item)
   for (const sel of resolved.items) {
     if (!selectedExternalIds.has(sel.externalId)) {
       continue
     }
-    if (sameCategoryEvictions.has(sel.externalId)) {
+    if (evictions.has(sel.externalId)) {
       continue
     }
     effectiveGarments += getGarmentCount(sel)
   }
   if (effectiveGarments > MAX_OUTFIT_ITEMS) {
     return 'disabled'
-  }
-
-  for (const sel of resolved.items) {
-    if (!selectedExternalIds.has(sel.externalId)) {
-      continue
-    }
-    if (sameCategoryEvictions.has(sel.externalId)) {
-      continue
-    }
-    if (!itemsCompatible(sel, item)) {
-      return 'disabled'
-    }
   }
   return 'available'
 }
