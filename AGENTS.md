@@ -322,6 +322,28 @@ the user's own chevron taps.
 per tick), the rotation advancing, and user-cancel. The preload test was
 confirmed to fail when the preload is disabled — keep it that way.
 
+## Pinch-zoom on the frame
+
+`AvatarFrameViewer` zooms with two fingers (`src/components/use-pinch-zoom.ts`),
+so it works wherever the frame does — fitting room and quick view, phone
+layouts. Desktop keeps its separate Zoom In modal.
+
+- **Pinch** zooms 1×–4× about the fingers' midpoint. Pinching back to within
+  5% of 1× snaps out; a **double tap** while zoomed resets.
+- **Zoomed, one finger pans** instead of rotating, and the image switches to
+  `touch-action: none` so the page doesn't scroll under it. The arrows still
+  rotate and keep the zoom, so a detail can be compared across angles.
+- **A new frame set resets the zoom** (keyed on the first frame URL).
+- **Each finger fires its own touchstart.** A second finger landing during a
+  gesture restarts that gesture as a pinch (`restartRef`) rather than
+  starting a second one, and `useFrameRotation`'s touch drag gives itself up
+  when it sees two touches, so a drag that becomes a pinch never rotates.
+- The pinch counts as user control (`onUserInteract`), so it stops an
+  auto-rotate like a drag does.
+
+Guarded by `e2e/pinch-zoom.spec.ts` (Pixel 5 profile, synthetic multi-touch),
+confirmed to fail when the pinch is disabled.
+
 ## VTO request flow
 
 `requestVto(items)` in `src/lib/api.ts` posts a 1..4-garment composition to

@@ -1,8 +1,9 @@
-import type { Dispatch, SetStateAction } from 'react'
+import type { Dispatch, SetStateAction, TouchEvent as ReactTouchEvent } from 'react'
 import { useEffect, useRef } from 'react'
 import { Loading } from '@/components/content/loading'
 import { HelpTip } from '@/components/help-tooltip'
 import { useFrameRotation } from '@/components/use-frame-rotation'
+import { usePinchZoom } from '@/components/use-pinch-zoom'
 import { ChevronLeftIcon, ChevronRightIcon } from '@/lib/asset'
 import type { StyleProp } from '@/lib/theme'
 import { useCss } from '@/lib/theme'
@@ -41,6 +42,8 @@ export function AvatarFrameViewer({
   const css = useCss((_theme) => ({
     imageContainer: {
       position: 'absolute',
+      // Clips the image while it is pinch-zoomed.
+      overflow: 'hidden',
     },
     image: {
       objectFit: 'contain',
@@ -51,6 +54,13 @@ export function AvatarFrameViewer({
       // before our touchmove listener can preventDefault, which produced
       // the "janky first swipe" reports.
       touchAction: 'pan-y',
+      transformOrigin: '0 0',
+    },
+    // Zoomed, every touch on the image is ours: one finger pans it rather
+    // than scrolling the page.
+    imageZoomed: {
+      touchAction: 'none',
+      cursor: 'default',
     },
     chevronLeftContainer: {
       position: 'absolute',
@@ -93,6 +103,17 @@ export function AvatarFrameViewer({
     onUserInteract,
   )
 
+  // Pinch-zoom. Reset by a new frame set: a zoom carried onto a different
+  // outfit's frames would land somewhere arbitrary. The arrows still rotate
+  // while zoomed, keeping the zoom, so the shopper can look at the same
+  // detail from another angle.
+  const pinch = usePinchZoom(onUserInteract, frameUrls?.[0])
+  const handleTouchStart = (e: ReactTouchEvent<HTMLElement>) => {
+    if (!pinch.handleTouchStart(e)) {
+      handleTouchDragStart(e)
+    }
+  }
+
   if (!frameUrls || selectedFrameIndex == null) {
     return <Loading t={loadingT} />
   }
@@ -101,10 +122,15 @@ export function AvatarFrameViewer({
     <div css={css.imageContainer} style={imageContainerStyle}>
       <img
         src={frameUrls[selectedFrameIndex]}
-        css={css.image}
-        style={imageStyle}
+        css={[css.image, pinch.zoomed && css.imageZoomed]}
+        style={{
+          ...imageStyle,
+          transform: pinch.zoomed
+            ? `translate(${pinch.zoom.x}px, ${pinch.zoom.y}px) scale(${pinch.zoom.scale})`
+            : undefined,
+        }}
         onMouseDown={handleMouseDragStart}
-        onTouchStart={handleTouchDragStart}
+        onTouchStart={handleTouchStart}
       />
       {/* onMouseDown preventDefault keeps rapid clicks from initiating a text
           selection — otherwise the second/third click in a fast tap-tap-tap

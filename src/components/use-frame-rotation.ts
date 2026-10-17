@@ -111,6 +111,12 @@ export function useFrameRotation(
       let mode: 'unknown' | 'horizontal' | 'vertical' = 'unknown'
 
       const onMove = (move: TouchEvent) => {
+        // A second finger makes this a pinch (usePinchZoom), not a rotation.
+        // Give the rest of the gesture up rather than rotate under it.
+        if (move.touches.length > 1) {
+          onEnd()
+          return
+        }
         const currentX = move.touches[0].clientX
         const currentY = move.touches[0].clientY
         if (mode === 'unknown') {
