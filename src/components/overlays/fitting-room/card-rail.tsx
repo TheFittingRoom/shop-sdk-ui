@@ -1,6 +1,7 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Button } from '@/components/button'
 import { Text } from '@/components/text'
+import { useScrollOverflow } from '@/components/use-scroll-overflow'
 import type { ResolvedFittingRoomGroup } from '@/lib/fitting-room-data'
 import { useCss } from '@/lib/theme'
 import type { Availability } from '@/lib/fitting-room-outfit'
@@ -41,37 +42,11 @@ export function CardRail({
 }: CardRailProps) {
   const [collapsed, setCollapsed] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [canScrollLeft, setCanScrollLeft] = useState(false)
-  const [canScrollRight, setCanScrollRight] = useState(false)
-
-  // Recompute which scroll-edge affordances to show. Cheap — most scroll
-  // events leave the booleans unchanged so React bails on the re-render.
-  const updateScrollState = useCallback(() => {
-    const el = scrollRef.current
-    if (!el) {
-      setCanScrollLeft(false)
-      setCanScrollRight(false)
-      return
-    }
-    setCanScrollLeft(el.scrollLeft > 1)
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
-  }, [])
-
-  // Re-measure on mount, on container resize, and when the item set or
-  // collapsed state changes (all of which can change scrollWidth).
-  useLayoutEffect(() => {
-    if (collapsed) {
-      return
-    }
-    const el = scrollRef.current
-    if (!el) {
-      return
-    }
-    updateScrollState()
-    const observer = new ResizeObserver(updateScrollState)
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [collapsed, group.items, updateScrollState])
+  // Re-measured when the item set or collapsed state changes, as well as on
+  // resize (all of which can change scrollWidth).
+  const overflow = useScrollOverflow(scrollRef, 'x', [collapsed, group.items])
+  const canScrollLeft = overflow.start
+  const canScrollRight = overflow.end
 
   const scrollByPage = useCallback((dir: 1 | -1) => {
     const el = scrollRef.current
@@ -191,7 +166,7 @@ export function CardRail({
               <Chevron direction="left" size={20} />
             </Button>
           ) : null}
-          <div ref={scrollRef} css={css.horizontal} onScroll={updateScrollState}>
+          <div ref={scrollRef} css={css.horizontal} onScroll={overflow.update}>
             {cards}
           </div>
           {canScrollRight ? (

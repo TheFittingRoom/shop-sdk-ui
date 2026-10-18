@@ -496,7 +496,27 @@ Two constraints hold this together:
 screen: collapsed rows take their natural height, the open item fills what is
 left (`containerOpen`) and its body scrolls inside itself. The open item has a
 floor (`OPEN_ITEM_MIN_HEIGHT_PX`); only a pane too short for the collapsed rows
-plus that floor falls back to scrolling as a whole. **Add all to cart** sits
+plus that floor falls back to scrolling as a whole.
+
+**The open item says when there's more below.** macOS hides overlay
+scrollbars until you scroll, so on its own the body gives no sign it scrolls.
+Two cues, because neither works everywhere:
+
+- **A styled scrollbar** (`::-webkit-scrollbar` on the body). Once styled,
+  Chrome, Edge and Safari draw a classic, always-visible bar instead of the
+  fading overlay. Don't add `scrollbar-width` / `scrollbar-color` to the same
+  element: Chrome 121+ ignores the `::-webkit-scrollbar` rules when either is
+  set. Firefox can't be forced; on macOS it follows the system setting.
+- **A white fade with a Scroll down button** over the body's bottom edge,
+  shown only while there's more below (`useScrollOverflow`, shared with the
+  card rails' edge handles). The fade sits outside the scroller in a
+  `bodyFrame` so it doesn't scroll away with the content, has
+  `pointer-events: none` so it never blocks the controls under it (Add to
+  cart is often there), and stops short of the scrollbar. Only the button
+  takes clicks; it scrolls 80% of the body's height.
+
+Playwright's headless Chromium runs with `--hide-scrollbars`, so the e2e
+checks the scrollbar *rule* on the body, not its width. **Add all to cart** sits
 at the bottom of the pane (`marginTop: auto`, so also with nothing open); on
 mobile it follows the product rows in the try-on sheet, so it shows whenever
 the sheet is not collapsed. It
