@@ -5,7 +5,7 @@ import { LinkT } from '@/components/link'
 import { ContentModal } from '@/components/modal'
 import { TextT } from '@/components/text'
 import { PoweredByFooter } from '@/components/content/powered-by-footer'
-import { getExternalAssetUrl } from '@/lib/asset'
+import { GET_APP_QR_CODE_URL, getExternalAssetUrl } from '@/lib/asset'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
 import type { OverlayProps } from '@/lib/view'
@@ -81,7 +81,7 @@ export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverl
   } else {
     getAppNode = (
       <div css={css.getAppQrContainer}>
-        <img src={getExternalAssetUrl('get-app-qr-code.png')} alt="QR Code" css={css.getAppQrImage} />
+        <img src={GET_APP_QR_CODE_URL} alt="QR Code" css={css.getAppQrImage} />
       </div>
     )
   }

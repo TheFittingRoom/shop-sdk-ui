@@ -605,6 +605,30 @@ meta, so the phone profile lays out 980px wide.
 Guarded by `e2e/outfit-conflicts.spec.ts`; the swap tests were verified to
 fail with the old disable rule, the notice test with a notice on every swap.
 
+## Get-app QR code
+
+The get-app screen's QR code (`src/assets/get-app-qr-code.svg`, to
+`https://www.thefittingroom.tech/download`) is **bundled**, not fetched from
+the assets bucket like the store badges beside it. The bucket's
+`get-app-qr-code.png` pointed at a short link on a paid QR service we no
+longer use, so it no longer scans to anything useful; nothing reads it now.
+
+It is generated, not drawn: `scripts/make-get-app-qr.py` (needs
+`pip install segno==1.6.1`; usage in its docstring) renders the old image's
+style — teal round modules, black square finders, the TFR door in the
+centre — at error correction H so the logo doesn't break scanning. To change
+the URL, regenerate rather than editing the SVG, and keep the dot radius at
+0.5 of a module: smaller dots leave gaps jsQR fails to decode. Check the
+result with a real phone camera before shipping it.
+
+On a phone the screen shows App Store / Google Play badges instead, which
+open `config.links` (`src/lib/config.ts`). The Play listing moved to package
+`com.thefittingroom.app` (the old `com.thefittingroom.marketplace` is gone).
+
+`e2e/get-app.spec.ts` checks the screen shows the bundled image (a
+`data:image/svg+xml` URI carrying the URL in its header comment), not the
+bucket file, and that the phone badges open those two store URLs.
+
 ## Fitting-room icon widget — three responsibilities
 
 `src/components/widgets/fitting-room-icon.tsx` is no longer just the

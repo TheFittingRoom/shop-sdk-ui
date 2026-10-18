@@ -57,8 +57,11 @@ export enum EnvName {
 
 const SHARED_CONFIG = {
   links: {
-    appAppleStoreUrl: 'https://apps.apple.com/us/app/the-fitting-room-3d-body-scan/id1577417373',
-    appGooglePlayUrl: 'https://play.google.com/store/apps/details?id=com.thefittingroom.marketplace',
+    // No country in the path, so it opens each shopper's own storefront.
+    appAppleStoreUrl: 'https://apps.apple.com/app/id1577417373',
+    // The app's new package id (was com.thefittingroom.marketplace, now
+    // delisted).
+    appGooglePlayUrl: 'https://play.google.com/store/apps/details?id=com.thefittingroom.app',
   },
   build: {
     version: `${process.env.BUILD_VERSION}`,
