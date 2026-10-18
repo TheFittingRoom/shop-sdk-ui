@@ -55,6 +55,9 @@ export function DetailAccordion({
   // Desktop: the accordion fills the detail pane's height so the open item
   // can take what the collapsed rows leave (DesktopAccordionItem).
   const fill = platform === 'desktop' ? { flex: '1 1 auto', minHeight: 0 } : {}
+  // Desktop's expand popup goes on the first collapsed row, and only when
+  // there is one (a single selected item is always the open one).
+  const firstCollapsedIndex = items.findIndex((item) => item.externalId !== openItemExternalId)
   return (
     <div css={css.container} style={{ gap, ...fill }}>
       {items.map((item, index) => {
@@ -70,7 +73,7 @@ export function DetailAccordion({
             forceUntuck={forceUntuck}
             canTuck={canTuck}
             tuckLabel={tuckLabel}
-            expandHelpTip={platform === 'mobile' && index === 0}
+            expandHelpTip={platform === 'mobile' ? index === 0 : index === firstCollapsedIndex}
             onToggleOpen={() => onOpenItem(isOpen ? null : item.externalId)}
             onOpen={() => onOpenItem(item.externalId)}
             onChangeDetailMode={onChangeDetailMode}

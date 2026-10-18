@@ -360,6 +360,7 @@ function TryOnView({
 }) {
   const innerRef = useRef<HTMLDivElement>(null)
   const sheetHandleRef = useRef<HTMLDivElement>(null)
+  const backButtonRef = useRef<HTMLButtonElement>(null)
   const [sheetStyle, setSheetStyle] = useState<StyleProp>({})
 
   // Quick-row form when sheet is in expanded but no item is open;
@@ -472,9 +473,16 @@ function TryOnView({
           />
         }
       />
-      <Button variant="base" css={css.backButton} onClick={onBackToBrowse} aria-label="Back to browse">
+      <Button
+        ref={backButtonRef}
+        variant="base"
+        css={css.backButton}
+        onClick={onBackToBrowse}
+        aria-label="Back to browse"
+      >
         <LeftArrowIcon css={css.backArrow} />
       </Button>
+      <HelpTip id="try_on_back" enabled anchorRef={backButtonRef} t="help_tip.try_on_back" />
       <div css={css.sheetOuter} style={sheetStyle}>
         <div ref={innerRef} css={css.sheetInner} style={sheetStyle}>
           <div ref={sheetHandleRef} css={css.sheetHandleRow} onTouchStart={sheetTouchStart}>

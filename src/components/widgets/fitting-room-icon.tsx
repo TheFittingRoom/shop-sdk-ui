@@ -2,7 +2,7 @@ import { keyframes } from '@emotion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { HelpTooltip } from '@/components/help-tooltip'
 import { FittingRoomIcon } from '@/lib/asset'
-import { useHelpTip } from '@/lib/help-tips'
+import { HELP_TIP_AUTO_DISMISS_MS, useHelpTip } from '@/lib/help-tips'
 import { useTranslation } from '@/lib/locale'
 import { getLogger } from '@/lib/logger'
 import { useMainStore } from '@/lib/store'
@@ -14,7 +14,6 @@ import { AddConfirmationDrawer } from './add-confirmation-drawer'
 const logger = getLogger('widgets/fitting-room-icon')
 
 const DRAWER_AUTO_DISMISS_MS = 6000
-const TOOLTIP_AUTO_DISMISS_MS = 10000
 
 // Soft teal box-shadow pulse — only animates while the first-visit tooltip
 // is showing. Reuses the #265A64 TFR teal (theme.color_tfr_800), the same
@@ -49,7 +48,7 @@ export default function FittingRoomIconWidget(_props: WidgetProps) {
     if (!showTooltip) {
       return
     }
-    const timer = window.setTimeout(dismissTooltip, TOOLTIP_AUTO_DISMISS_MS)
+    const timer = window.setTimeout(dismissTooltip, HELP_TIP_AUTO_DISMISS_MS)
     return () => window.clearTimeout(timer)
   }, [showTooltip, dismissTooltip])
 

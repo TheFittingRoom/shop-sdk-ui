@@ -55,6 +55,8 @@ const CARD_TIP = 'Tap the cards you want to try on'
 const TRY_IT_ON_TIP = 'Tap here to see your outfit!'
 const ROTATE_TIP = 'Tap the arrows to rotate your avatar'
 const SWIPE_TIP = 'Swipe up to change sizes'
+const BACK_TIP = 'Tap here to go back to your items'
+const DETAIL_EXPAND_TIP = 'Click to see item details'
 
 // Marks the given popups seen before the page loads.
 async function seedSeen(page: Page, ids: string[]) {
@@ -161,13 +163,53 @@ test('desktop fitting room: card popup, then the rotate popup once an outfit ren
   await expect(anyTip(page)).toHaveCount(0)
 })
 
+test('desktop fitting room: the first collapsed row gets the expand popup', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await seedSeen(page, ['fitting_room_icon', 'add_to_fitting_room', 'fitting_room_card', 'avatar_rotate'])
+  await bootFittingRoom(page)
+  await page.getByRole('button', { name: 'Fitting Room', exact: true }).click()
+
+  // One item selected: it is the open row, there is nothing collapsed.
+  await page.getByRole('button', { name: /Test Product/i }).click()
+  await page.waitForTimeout(1000)
+  await expect(anyTip(page)).toHaveCount(0)
+
+  // The second one opens and the first collapses; its chevron gets the popup.
+  await page.getByRole('button', { name: /Second Product/i }).click()
+  await expect(tip(page, DETAIL_EXPAND_TIP)).toBeVisible()
+  await expect(anyTip(page)).toHaveCount(1)
+  const chevron = await page
+    .getByRole('button', { name: /^T-Shirt/ })
+    .locator('span')
+    .last()
+    .boundingBox()
+  const popup = await tip(page, DETAIL_EXPAND_TIP).boundingBox()
+  expect(chevron && popup && popup.y > chevron.y).toBe(true)
+
+  // Opening it is what the popup asked for.
+  await page.getByRole('button', { name: /^T-Shirt/ }).click()
+  await expect(anyTip(page)).toHaveCount(0)
+})
+
+test('a popup closes on its own after 4 seconds and the next takes over', async ({ page }) => {
+  await bootSdk(page, { helpTips: true })
+
+  await expect(tip(page, 'Add item to your fitting room here')).toBeVisible()
+  await page.waitForTimeout(3000)
+  await expect(tip(page, 'Add item to your fitting room here')).toBeVisible()
+  await expect(tip(page, 'Add item to your fitting room here')).toHaveCount(0, { timeout: 2000 })
+  const stored = await page.evaluate((key) => window.localStorage.getItem(key), STORAGE_KEY)
+  expect(JSON.parse(stored ?? '{}')).toMatchObject({ add_to_fitting_room: true })
+  await expect(tip(page, 'See items added to your fitting room here')).toBeVisible()
+})
+
 test.describe('mobile', () => {
   // The SDK picks its mobile layout from the user agent and touch support,
   // not the viewport width alone.
   const { defaultBrowserType: _browser, ...pixel5 } = devices['Pixel 5']
   test.use(pixel5)
 
-  test('mobile fitting room: cards → try it on → arrows → swipe up', async ({ page }) => {
+  test('mobile fitting room: cards → try it on → arrows → swipe up → back', async ({ page }) => {
     await seedSeen(page, ['fitting_room_icon', 'add_to_fitting_room'])
     await bootFittingRoom(page)
     await page.getByRole('button', { name: 'Fitting Room', exact: true }).click()
@@ -185,5 +227,12 @@ test.describe('mobile', () => {
     await tip(page, ROTATE_TIP).getByRole('button', { name: 'Dismiss' }).click()
     await expect(tip(page, SWIPE_TIP)).toBeVisible()
     await expect(anyTip(page)).toHaveCount(1)
+
+    // Then the back button, which returns to the cards.
+    await tip(page, SWIPE_TIP).getByRole('button', { name: 'Dismiss' }).click()
+    await expect(tip(page, BACK_TIP)).toBeVisible()
+    await expect(anyTip(page)).toHaveCount(1)
+    await page.getByRole('button', { name: 'Back to browse' }).click()
+    await expect(anyTip(page)).toHaveCount(0)
   })
 })

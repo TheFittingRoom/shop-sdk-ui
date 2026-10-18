@@ -29,8 +29,9 @@ interface DetailAccordionItemProps {
   canTuck: boolean
   // Which wording the tuck control uses — from the VTO response.
   tuckLabel: VtoTuckLabel
-  // Mobile only: this row's expand chevron carries the "tap to see size
-  // recommendation info" help popup. Set on the first row.
+  // This row's expand chevron carries the expand help popup: on mobile the
+  // first row ("tap to see size recommendation info"), on desktop the first
+  // collapsed row ("click to see item details").
   expandHelpTip?: boolean
   // Mobile-only — desktop ignores these.
   detailMode: DetailMode
@@ -138,6 +139,7 @@ export function DetailAccordionItem({
         selectedSizeLabel={selectedSizeLabel}
         availableColorLabels={availableColorLabels}
         selectedColorLabel={item.storage.color}
+        expandHelpTip={expandHelpTip}
         onToggleOpen={onToggleOpen}
         onOpen={onOpen}
         onChangeSize={onChangeSize}
@@ -188,6 +190,8 @@ interface DesktopProps {
   selectedSizeLabel: string | null
   availableColorLabels: string[]
   selectedColorLabel: string | null
+  // This collapsed row's chevron carries the expand help popup.
+  expandHelpTip: boolean
   onToggleOpen: () => void
   // Open this section unconditionally (as opposed to onToggleOpen, which
   // closes it when already open). Used by the collapsed size selector.
@@ -206,12 +210,14 @@ function DesktopAccordionItem({
   selectedSizeLabel,
   availableColorLabels,
   selectedColorLabel,
+  expandHelpTip,
   onToggleOpen,
   onOpen,
   onChangeSize,
   onChangeColor,
   onAddToCart,
 }: DesktopProps) {
+  const chevronRef = useRef<HTMLSpanElement>(null)
   // Card shade, matching mobile. The header tints over it and a ~6px frame of
   // it surrounds the white content area — that frame IS the "border", rather
   // than a drawn one.
@@ -410,10 +416,17 @@ function DesktopAccordionItem({
             </Text>
           )}
         </div>
-        <span css={css.chevron}>
+        <span ref={chevronRef} css={css.chevron}>
           <Chevron direction={isOpen ? 'up' : 'down'} />
         </span>
       </Button>
+      {/* Offered while the row is closed: the chevron is what opens it. */}
+      <HelpTip
+        id="detail_expand_item"
+        enabled={expandHelpTip && !isOpen}
+        anchorRef={chevronRef}
+        t="help_tip.detail_expand_item"
+      />
       {/* Collapsed rows surface the product name and size selector, so a
           shopper can re-size a garment without opening it. The name appears
           here only while collapsed — the open body renders it far more

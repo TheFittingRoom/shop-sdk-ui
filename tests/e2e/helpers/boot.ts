@@ -46,6 +46,8 @@ const ALL_HELP_TIPS = [
   'avatar_rotate',
   'sheet_swipe_up',
   'sheet_expand_item',
+  'try_on_back',
+  'detail_expand_item',
 ]
 
 /**

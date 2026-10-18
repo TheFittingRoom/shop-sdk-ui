@@ -589,7 +589,7 @@ to the icon:
 
 - **First-visit popup** — the `fitting_room_icon` help popup (see "Help
   popups" below), shown once per browser. Dismiss paths (icon click,
-  popup close, click-outside, 10s timeout) all record it as seen. While
+  popup close, click-outside, 4s timeout) all record it as seen. While
   showing, the icon button gets a soft green pulsing box-shadow.
 - **Add-confirmation drawer** (`add-confirmation-drawer.tsx`) — fires
   whenever any item is added to the fitting room from any surface
@@ -599,10 +599,12 @@ to the icon:
 
 ## Help popups
 
-Seven one-time hints, each pointing at a control: the catalogue hanger and
+Nine one-time hints, each pointing at a control: the catalogue hanger and
 the header icon (store widgets, in that order), the first product card, the mobile TRY IT
-ON button, the avatar's rotate arrows (fitting room and quick view), and the
-mobile try-on sheet's swipe-up handle and first expand chevron.
+ON button, the avatar's rotate arrows (fitting room and quick view), the
+mobile try-on view's sheet swipe-up handle, first expand chevron and back
+button, and on desktop the detail pane's first *collapsed* row's chevron
+(only shown when a row is collapsed, i.e. two or more items are selected).
 
 - **One flag per popup, one record per browser.** `src/lib/help-tips.ts`
   keeps `tfr:help-tips:v1` = `{ "<HelpTipId>": true, ... }`. Per browser,
@@ -615,7 +617,10 @@ mobile try-on sheet's swipe-up handle and first expand chevron.
   unseen one (order: `HELP_TIP_PRIORITY`) on the first instance that asked,
   and the next appears once it is dismissed. That is what turns them into a
   sequence — cards → try it on → arrows → swipe up → expand — instead of a
-  pile that a single tap would clear. Two rules keep the order honest:
+  pile that a single tap would clear. Each closes on its own after
+  `HELP_TIP_AUTO_DISMISS_MS` (4s, shared by the overlay and store-widget
+  popups), which is also the gap before the next one. Two rules keep the
+  order honest:
   - a popup on screen is never swapped out by a higher-priority one that
     becomes eligible later (frames arriving, say);
   - requests arriving within `REQUEST_BATCH_MS` are decided together, so the
@@ -629,7 +634,7 @@ mobile try-on sheet's swipe-up handle and first expand chevron.
 - **`HelpTip`** (`src/components/help-tooltip.tsx`) is the overlay wrapper:
   dismissed by its close button, by the shopper touching anything else
   (pointerdown, capture phase — usually the very control it points at, and
-  the touch still reaches that control), or after 10s. The store widgets
+  the touch still reaches that control), or after 4s. The store widgets
   drive `HelpTooltip` through `useHelpTip` directly, because they fold its
   dismissal into their drawer handling.
 - **`HelpTooltip` re-reads its anchor's position every animation frame**
