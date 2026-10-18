@@ -516,7 +516,11 @@ Two cues, because neither works everywhere:
   takes clicks; it scrolls 80% of the body's height.
 
 Playwright's headless Chromium runs with `--hide-scrollbars`, so the e2e
-checks the scrollbar *rule* on the body, not its width. **Add all to cart** sits
+checks the scrollbar *rule* on the body, not its width.
+
+**Add all to cart** shows only with two or more items selected (for one, that
+item's own Add to cart is the same action), in TFR teal rather than the brand
+colour so it reads as a different action from the per-item button. It sits
 at the bottom of the pane (`marginTop: auto`, so also with nothing open); on
 mobile it follows the product rows in the try-on sheet, so it shows whenever
 the sheet is not collapsed. It

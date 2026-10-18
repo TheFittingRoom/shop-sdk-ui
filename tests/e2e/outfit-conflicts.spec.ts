@@ -58,6 +58,8 @@ const GROUPS = [
   { name: 'tops', label: 'Tops', same_group_default: 'exclusive', display_order: 1 },
   { name: 'bottoms', label: 'Bottoms', same_group_default: 'exclusive', display_order: 2 },
   { name: 'sets', label: 'Sets', same_group_default: 'exclusive', display_order: 3 },
+  // Unused by default; a test moves the T-shirt here so it clashes with nothing.
+  { name: 'outerwear', label: 'Outerwear', same_group_default: 'exclusive', display_order: 4 },
 ]
 
 const PRODUCTS = [
@@ -228,9 +230,14 @@ async function expectClearOf(page: Page, controls: RegExp[]) {
 }
 
 test('desktop: the notice clears Add all to cart', async ({ page }) => {
-  await bootFittingRoom(page)
+  // Add all only shows with two or more selected, so the swap has to leave
+  // two: the T-shirt sits in a group of its own here, and the Set only
+  // evicts the pants.
+  await bootFittingRoom(page, [{ ...TSHIRT, group: 'outerwear' }, PANTS, SET, INNER_TOPS, BOTTOMS])
   await card(page, /Test Product/i).click()
+  await card(page, /Second Product/i).click()
   await card(page, /Test Suit Set/i).click()
+  await expect(notice(page)).toHaveText(/Removed Second Product from your outfit/)
   await expectClearOf(page, [/^Add all to cart$/i])
 })
 

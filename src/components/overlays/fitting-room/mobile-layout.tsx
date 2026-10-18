@@ -387,7 +387,7 @@ function TryOnView({
     return () => clearTimeout(timeoutId)
   }, [sheetSnap, openAccordionItemId, detailMode])
 
-  const css = useCss((_theme) => ({
+  const css = useCss((theme) => ({
     container: {
       width: '100%',
       height: '100%',
@@ -452,7 +452,10 @@ function TryOnView({
     sheetContent: {
       overflowY: 'auto',
     },
+    // TFR teal rather than the brand colour, as on desktop.
     addAllToCart: {
+      backgroundColor: theme.color_tfr_800,
+      color: '#FFFFFF',
       marginTop: '12px',
     },
   }))
@@ -517,14 +520,17 @@ function TryOnView({
                 onAddToCart={onAddToCart}
                 onToggleUntuck={onToggleUntuck}
               />
-              {/* After the product rows, as on desktop. */}
-              <ButtonT
-                variant="brand"
-                css={css.addAllToCart}
-                t="fitting_room.add_all_to_cart"
-                onClick={onAddAllToCart}
-                disabled={addAllToCartDisabled}
-              />
+              {/* After the product rows, as on desktop, and likewise only with
+                  two or more selected. */}
+              {selectedItems.length > 1 ? (
+                <ButtonT
+                  variant="brand"
+                  css={css.addAllToCart}
+                  t="fitting_room.add_all_to_cart"
+                  onClick={onAddAllToCart}
+                  disabled={addAllToCartDisabled}
+                />
+              ) : null}
             </div>
           )}
         </div>

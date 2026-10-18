@@ -113,6 +113,21 @@ async function bootWithBothSelected(
   }
 }
 
+test('add all to cart: only with two or more selected, in TFR teal', async ({ page }) => {
+  await bootWithBothSelected(page)
+  // TFR teal (theme.color_tfr_800), not the brand orange of each item's own
+  // Add to cart.
+  await expect(addAll(page)).toHaveCSS('background-color', 'rgb(38, 90, 100)')
+
+  // Down to one: its own Add to cart does the same thing, so Add all goes.
+  await page.getByRole('button', { name: /Second Product/i }).click()
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Add to cart', exact: true })).toBeVisible()
+  await expect(addAll(page)).toHaveCount(0)
+
+  await page.getByRole('button', { name: /Second Product/i }).click()
+  await expect(addAll(page)).toBeVisible()
+})
+
 test('detail pane: every row stays on screen, the open item scrolls inside itself', async ({ page }) => {
   // Short enough that the open item's content can't fit.
   await bootWithBothSelected(page, 620)
@@ -230,15 +245,13 @@ test('add all to cart: disabled while the selection holds an item with no fittin
   await expect(page.getByText(NO_FIT_MESSAGE)).toBeVisible()
   await expect(addAll(page)).toBeDisabled()
 
-  // Deselecting it leaves an outfit that can all go in.
+  // Deselecting it leaves one item, so Add all goes rather than enabling:
+  // that item's own Add to cart is the same action.
   await page.getByRole('button', { name: /Second Product/i }).click()
-  await expect(addAll(page)).toBeEnabled()
-  await addAll(page).click()
   await expect(addAll(page)).toHaveCount(0)
-  const adds = await page.evaluate(
-    () => (window as unknown as { __TFR_TEST_ADDS__?: { externalId: string }[] }).__TFR_TEST_ADDS__ ?? [],
-  )
-  expect(adds.map((a) => a.externalId)).toEqual([TEST_PRODUCT_EXTERNAL_ID])
+  // Selecting it again brings Add all back, still disabled.
+  await page.getByRole('button', { name: /Second Product/i }).click()
+  await expect(addAll(page)).toBeDisabled()
 })
 
 test.describe('mobile', () => {
@@ -280,6 +293,16 @@ test.describe('mobile', () => {
       () => (window as unknown as { __TFR_TEST_ADDS__?: { externalId: string }[] }).__TFR_TEST_ADDS__ ?? [],
     )
     expect(adds.map((a) => a.externalId)).toEqual([TEST_PRODUCT_EXTERNAL_ID, TEST_PRODUCT_B_EXTERNAL_ID])
+  })
+
+  test('try-on sheet: no Add all to cart with one item selected', async ({ page }) => {
+    await bootWithBothSelected(page, null)
+    // Back down to one.
+    await page.getByRole('button', { name: /Second Product/i }).click()
+    await page.getByRole('button', { name: 'Try it on', exact: true }).click()
+    await swipeSheetUp(page)
+    await expect(page.getByRole('button', { name: /^T-Shirt/ })).toBeVisible()
+    await expect(addAll(page)).toHaveCount(0)
   })
 
   test('try-on sheet: an item with no fitting size says so', async ({ page }) => {
