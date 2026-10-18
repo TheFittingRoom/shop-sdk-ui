@@ -19,7 +19,9 @@
     "fitting_room_try_it_on": "Touchez ici pour voir votre tenue !",
     "sheet_swipe_up": "Balayez vers le haut pour changer de taille",
     "sheet_expand_item": "Touchez pour voir la recommandation de taille",
-    "avatar_rotate": "Touchez les flèches pour faire pivoter votre avatar"
+    "avatar_rotate": "Touchez les flèches pour faire pivoter votre avatar",
+    "try_on_back": "Touchez ici pour revenir à vos articles",
+    "detail_expand_item": "Cliquez pour voir les détails de l’article"
   },
   "add_confirmation": {
     "title": "Votre cabine d'essayage",

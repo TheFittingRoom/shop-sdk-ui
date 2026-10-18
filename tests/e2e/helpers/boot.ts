@@ -21,6 +21,8 @@ export interface BootSdkOptions {
   // cards. host.html already merges these into its lookup catalog.
   productCatalog?: (typeof TEST_CURRENT_PRODUCT)[]
   loggedIn?: boolean // default true (seeds TestHooks.auth with the standard test user)
+  // The signed-in user's profile; default TEST_USER_PROFILE (has an avatar).
+  profile?: FirestoreUser
   // Further accounts the sign-in form can sign in to (TestHooks.accounts).
   // An account without a profile has none until the test writes users/<uid>.
   accounts?: { uid: string; email: string; idToken: string; profile?: FirestoreUser }[]
@@ -46,6 +48,8 @@ const ALL_HELP_TIPS = [
   'avatar_rotate',
   'sheet_swipe_up',
   'sheet_expand_item',
+  'try_on_back',
+  'detail_expand_item',
 ]
 
 /**
@@ -59,6 +63,7 @@ export async function bootSdk(page: Page, options: BootSdkOptions = {}): Promise
     currentProduct = TEST_CURRENT_PRODUCT,
     productCatalog,
     loggedIn = true,
+    profile = TEST_USER_PROFILE,
     apiOverrides,
     firestoreDocs,
     accounts,
@@ -104,7 +109,7 @@ export async function bootSdk(page: Page, options: BootSdkOptions = {}): Promise
       uid: TEST_UID,
       email: TEST_EMAIL,
       idToken: TEST_ID_TOKEN,
-      profile: TEST_USER_PROFILE,
+      profile,
       firestoreDocs: firestoreDocs ?? null,
       accounts: accounts ?? null,
     },

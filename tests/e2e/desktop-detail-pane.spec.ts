@@ -113,6 +113,21 @@ async function bootWithBothSelected(
   }
 }
 
+test('add all to cart: only with two or more selected, in TFR teal', async ({ page }) => {
+  await bootWithBothSelected(page)
+  // TFR teal (theme.color_tfr_800), not the brand orange of each item's own
+  // Add to cart.
+  await expect(addAll(page)).toHaveCSS('background-color', 'rgb(38, 90, 100)')
+
+  // Down to one: its own Add to cart does the same thing, so Add all goes.
+  await page.getByRole('button', { name: /Second Product/i }).click()
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Add to cart', exact: true })).toBeVisible()
+  await expect(addAll(page)).toHaveCount(0)
+
+  await page.getByRole('button', { name: /Second Product/i }).click()
+  await expect(addAll(page)).toBeVisible()
+})
+
 test('detail pane: every row stays on screen, the open item scrolls inside itself', async ({ page }) => {
   // Short enough that the open item's content can't fit.
   await bootWithBothSelected(page, 620)
@@ -230,15 +245,13 @@ test('add all to cart: disabled while the selection holds an item with no fittin
   await expect(page.getByText(NO_FIT_MESSAGE)).toBeVisible()
   await expect(addAll(page)).toBeDisabled()
 
-  // Deselecting it leaves an outfit that can all go in.
+  // Deselecting it leaves one item, so Add all goes rather than enabling:
+  // that item's own Add to cart is the same action.
   await page.getByRole('button', { name: /Second Product/i }).click()
-  await expect(addAll(page)).toBeEnabled()
-  await addAll(page).click()
   await expect(addAll(page)).toHaveCount(0)
-  const adds = await page.evaluate(
-    () => (window as unknown as { __TFR_TEST_ADDS__?: { externalId: string }[] }).__TFR_TEST_ADDS__ ?? [],
-  )
-  expect(adds.map((a) => a.externalId)).toEqual([TEST_PRODUCT_EXTERNAL_ID])
+  // Selecting it again brings Add all back, still disabled.
+  await page.getByRole('button', { name: /Second Product/i }).click()
+  await expect(addAll(page)).toBeDisabled()
 })
 
 test.describe('mobile', () => {
@@ -282,6 +295,16 @@ test.describe('mobile', () => {
     expect(adds.map((a) => a.externalId)).toEqual([TEST_PRODUCT_EXTERNAL_ID, TEST_PRODUCT_B_EXTERNAL_ID])
   })
 
+  test('try-on sheet: no Add all to cart with one item selected', async ({ page }) => {
+    await bootWithBothSelected(page, null)
+    // Back down to one.
+    await page.getByRole('button', { name: /Second Product/i }).click()
+    await page.getByRole('button', { name: 'Try it on', exact: true }).click()
+    await swipeSheetUp(page)
+    await expect(page.getByRole('button', { name: /^T-Shirt/ })).toBeVisible()
+    await expect(addAll(page)).toHaveCount(0)
+  })
+
   test('try-on sheet: an item with no fitting size says so', async ({ page }) => {
     await bootWithBothSelected(page, null, NO_FIT_RECOMMENDATION)
     await page.getByRole('button', { name: 'Try it on', exact: true }).click()
@@ -290,4 +313,87 @@ test.describe('mobile', () => {
     await expect(page.getByText(NO_FIT_MESSAGE)).toBeVisible()
     await expect(addAll(page)).toBeDisabled()
   })
+})
+
+// --- "More below" cue on the open item -------------------------------------
+
+const moreBelow = (page: Page) => page.getByRole('button', { name: 'Scroll down' })
+
+// Runs `fn` against the open item's scrolling body.
+function onOpenBody<T>(page: Page, fn: (body: HTMLElement) => T) {
+  return page.getByText('Recommended Size:').evaluate((el, src) => {
+    let body: HTMLElement | null = el as HTMLElement
+    while (body && getComputedStyle(body).overflowY !== 'auto') {
+      body = body.parentElement
+    }
+    if (!body) {
+      throw new Error('no scrolling body')
+    }
+    return (new Function('body', `return (${src})(body)`) as (b: HTMLElement) => T)(body)
+  }, fn.toString())
+}
+
+test('open item: a fade and Scroll down button while there is more below', async ({ page }) => {
+  await bootWithBothSelected(page, 620)
+  await expect(page.getByText('Recommended Size:')).toBeVisible()
+  await expect(moreBelow(page)).toBeVisible()
+
+  // The styled scrollbar. Playwright's headless Chromium runs with
+  // --hide-scrollbars, so the bar takes no width here; check the rule that
+  // makes Chrome and Safari draw a permanent one is on the body instead.
+  const scrollbarRule = await onOpenBody(page, (b) => {
+    const root = b.getRootNode() as Document | ShadowRoot
+    const sheets = [...root.styleSheets, ...(root.adoptedStyleSheets ?? [])]
+    for (const sheet of sheets) {
+      for (const rule of [...sheet.cssRules]) {
+        const r = rule as CSSStyleRule
+        if (!r.selectorText?.includes('::-webkit-scrollbar') || r.selectorText.includes('-thumb')) {
+          continue
+        }
+        if (r.selectorText.includes('-track')) {
+          continue
+        }
+        const cls = r.selectorText.split('::')[0].replace(/^\./, '')
+        if (b.classList.contains(cls)) {
+          return r.style.width
+        }
+      }
+    }
+    return null
+  })
+  expect(scrollbarRule).toBe('8px')
+
+  // The button scrolls the body down.
+  await moreBelow(page).click()
+  await expect.poll(() => onOpenBody(page, (b) => b.scrollTop)).toBeGreaterThan(100)
+
+  // At the bottom there is nothing more, so the cue goes.
+  await onOpenBody(page, (b) => {
+    b.scrollTop = b.scrollHeight
+  })
+  await expect(moreBelow(page)).toHaveCount(0)
+})
+
+test('open item: the fade does not block what is under it', async ({ page }) => {
+  await bootWithBothSelected(page, 620)
+  await expect(moreBelow(page)).toBeVisible()
+  const hit = await page.evaluate(() => {
+    const button = [...document.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === 'Scroll down')
+    const fade = button?.parentElement
+    if (!fade) {
+      return null
+    }
+    const r = fade.getBoundingClientRect()
+    // A point in the fade, well clear of the button.
+    const target = document.elementFromPoint(r.left + 10, r.top + r.height / 2)
+    return { fadeIsTarget: target === fade || fade.contains(target) }
+  })
+  expect(hit).toEqual({ fadeIsTarget: false })
+})
+
+test('open item: no cue when everything fits', async ({ page }) => {
+  await bootWithBothSelected(page, 1600)
+  await expect(page.getByText('Recommended Size:')).toBeVisible()
+  expect(await onOpenBody(page, (b) => b.scrollHeight <= b.clientHeight + 1)).toBe(true)
+  await expect(moreBelow(page)).toHaveCount(0)
 })

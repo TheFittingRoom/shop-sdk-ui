@@ -15,9 +15,12 @@ export type HelpTipId =
   | 'fitting_room_try_it_on'
   // Avatar frame, fitting room and quick view.
   | 'avatar_rotate'
-  // Fitting room mobile try-on sheet.
+  // Fitting room mobile try-on view.
   | 'sheet_swipe_up'
   | 'sheet_expand_item'
+  | 'try_on_back'
+  // Fitting room desktop detail pane.
+  | 'detail_expand_item'
 
 const HELP_TIP_PRIORITY: HelpTipId[] = [
   // The hanger before the header icon: adding something comes before
@@ -29,6 +32,11 @@ const HELP_TIP_PRIORITY: HelpTipId[] = [
   'avatar_rotate',
   'sheet_swipe_up',
   'sheet_expand_item',
+  // Last on mobile: getting back to the cards matters once the try-on view
+  // has been explored.
+  'try_on_back',
+  // Desktop: after the cards and arrows, the collapsed rows.
+  'detail_expand_item',
 ]
 
 // Every popup the browser has seen, one flag each:
@@ -172,6 +180,10 @@ export interface HelpTipHandle {
   // Record the popup as seen and hide it. Safe to call when not shown.
   dismiss: () => void
 }
+
+// A popup that has been up this long has been seen, and the next one (if
+// any) can take its place. Shared by every popup, overlay and store widget.
+export const HELP_TIP_AUTO_DISMISS_MS = 4000
 
 // How long a popup waits once it could show. Gives a freshly mounted or
 // re-laid-out anchor time to settle, and spaces out a run of popups.

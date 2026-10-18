@@ -138,7 +138,7 @@ export function DesktopLayout({
     ? `${avatarWidth}px minmax(${DETAILS_MIN_WIDTH_PX}px, ${DETAILS_FR}fr) ${CARDS_FR}fr`
     : `${avatarWidth}px 1fr`
 
-  const css = useCss((_theme) => ({
+  const css = useCss((theme) => ({
     container: {
       display: 'grid',
       gap: '16px',
@@ -172,7 +172,11 @@ export function DesktopLayout({
       gap: '12px',
       padding: `20px 8px ${EDGE_INSET_PX}px`,
     },
+    // TFR teal rather than the brand colour, so it reads as a different action
+    // from each item's own Add to cart.
     addAllToCart: {
+      backgroundColor: theme.color_tfr_800,
+      color: '#FFFFFF',
       flex: 'none',
       // Pinned to the bottom of the pane even when nothing is open and the
       // collapsed rows don't fill it.
@@ -206,16 +210,16 @@ export function DesktopLayout({
       alignItems: 'center',
       gap: '8px',
       cursor: 'pointer',
-      color: _theme.color_tfr_800,
+      color: theme.color_tfr_800,
     },
     utilityIcon: {
       width: '12px',
       height: '22px',
-      fill: _theme.color_tfr_800,
+      fill: theme.color_tfr_800,
       flex: 'none',
     },
     utilityText: {
-      color: _theme.color_tfr_800,
+      color: theme.color_tfr_800,
       fontSize: '14px',
     },
     // Clear All floats bottom-right of the card pane, mirroring the mobile
@@ -286,13 +290,17 @@ export function DesktopLayout({
             onAddToCart={onAddToCart}
             onToggleUntuck={onToggleUntuck}
           />
-          <ButtonT
-            variant="brand"
-            css={css.addAllToCart}
-            t="fitting_room.add_all_to_cart"
-            onClick={onAddAllToCart}
-            disabled={addAllToCartDisabled}
-          />
+          {/* Only with two or more: for one item, its own Add to cart is the
+              same action. */}
+          {selectedItems.length > 1 ? (
+            <ButtonT
+              variant="brand"
+              css={css.addAllToCart}
+              t="fitting_room.add_all_to_cart"
+              onClick={onAddAllToCart}
+              disabled={addAllToCartDisabled}
+            />
+          ) : null}
         </div>
       ) : null}
       <div css={css.railsPane}>

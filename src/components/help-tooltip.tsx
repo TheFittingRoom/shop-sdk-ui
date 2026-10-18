@@ -2,7 +2,7 @@ import type { RefObject } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { Text } from '@/components/text'
 import type { HelpTipId } from '@/lib/help-tips'
-import { useHelpTip } from '@/lib/help-tips'
+import { HELP_TIP_AUTO_DISMISS_MS, useHelpTip } from '@/lib/help-tips'
 import { useTranslation } from '@/lib/locale'
 import { useCss } from '@/lib/theme'
 
@@ -170,9 +170,6 @@ export function HelpTooltip({ text, dismissAriaLabel, onDismiss, anchorRef, plac
   )
 }
 
-// A popup that has been up this long has been seen.
-const AUTO_DISMISS_MS = 10000
-
 interface HelpTipProps {
   id: HelpTipId
   // The popup may show: its anchor is on screen and the hint makes sense now.
@@ -186,7 +183,7 @@ interface HelpTipProps {
 // HelpTip is a one-time help popup for the overlays. It shows when useHelpTip
 // makes it the active popup, and is dismissed — and never shown again in this
 // browser — by its close button, by the shopper touching anything else (most
-// often the very control it points at), or after AUTO_DISMISS_MS.
+// often the very control it points at), or after HELP_TIP_AUTO_DISMISS_MS.
 //
 // The store widgets drive HelpTooltip through useHelpTip directly instead,
 // because they fold its dismissal into their own drawer handling.
@@ -200,7 +197,7 @@ export function HelpTip({ id, enabled, anchorRef, t: textKey, placement }: HelpT
     if (!show) {
       return
     }
-    const timer = window.setTimeout(() => dismissRef.current(), AUTO_DISMISS_MS)
+    const timer = window.setTimeout(() => dismissRef.current(), HELP_TIP_AUTO_DISMISS_MS)
     // Capture phase, so a control that stops propagation still counts. The
     // touch is not swallowed: the control under it still gets it.
     const onPointerDown = (e: PointerEvent) => {

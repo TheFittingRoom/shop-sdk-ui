@@ -496,7 +496,31 @@ Two constraints hold this together:
 screen: collapsed rows take their natural height, the open item fills what is
 left (`containerOpen`) and its body scrolls inside itself. The open item has a
 floor (`OPEN_ITEM_MIN_HEIGHT_PX`); only a pane too short for the collapsed rows
-plus that floor falls back to scrolling as a whole. **Add all to cart** sits
+plus that floor falls back to scrolling as a whole.
+
+**The open item says when there's more below.** macOS hides overlay
+scrollbars until you scroll, so on its own the body gives no sign it scrolls.
+Two cues, because neither works everywhere:
+
+- **A styled scrollbar** (`::-webkit-scrollbar` on the body). Once styled,
+  Chrome, Edge and Safari draw a classic, always-visible bar instead of the
+  fading overlay. Don't add `scrollbar-width` / `scrollbar-color` to the same
+  element: Chrome 121+ ignores the `::-webkit-scrollbar` rules when either is
+  set. Firefox can't be forced; on macOS it follows the system setting.
+- **A white fade with a Scroll down button** over the body's bottom edge,
+  shown only while there's more below (`useScrollOverflow`, shared with the
+  card rails' edge handles). The fade sits outside the scroller in a
+  `bodyFrame` so it doesn't scroll away with the content, has
+  `pointer-events: none` so it never blocks the controls under it (Add to
+  cart is often there), and stops short of the scrollbar. Only the button
+  takes clicks; it scrolls 80% of the body's height.
+
+Playwright's headless Chromium runs with `--hide-scrollbars`, so the e2e
+checks the scrollbar *rule* on the body, not its width.
+
+**Add all to cart** shows only with two or more items selected (for one, that
+item's own Add to cart is the same action), in TFR teal rather than the brand
+colour so it reads as a different action from the per-item button. It sits
 at the bottom of the pane (`marginTop: auto`, so also with nothing open); on
 mobile it follows the product rows in the try-on sheet, so it shows whenever
 the sheet is not collapsed. It
@@ -581,6 +605,30 @@ meta, so the phone profile lays out 980px wide.
 Guarded by `e2e/outfit-conflicts.spec.ts`; the swap tests were verified to
 fail with the old disable rule, the notice test with a notice on every swap.
 
+## Get-app QR code
+
+The get-app screen's QR code (`src/assets/get-app-qr-code.svg`, to
+`https://www.thefittingroom.tech/download`) is **bundled**, not fetched from
+the assets bucket like the store badges beside it. The bucket's
+`get-app-qr-code.png` pointed at a short link on a paid QR service we no
+longer use, so it no longer scans to anything useful; nothing reads it now.
+
+It is generated, not drawn: `scripts/make-get-app-qr.py` (needs
+`pip install segno==1.6.1`; usage in its docstring) renders the old image's
+style — teal round modules, black square finders, the TFR door in the
+centre — at error correction H so the logo doesn't break scanning. To change
+the URL, regenerate rather than editing the SVG, and keep the dot radius at
+0.5 of a module: smaller dots leave gaps jsQR fails to decode. Check the
+result with a real phone camera before shipping it.
+
+On a phone the screen shows App Store / Google Play badges instead, which
+open `config.links` (`src/lib/config.ts`). The Play listing moved to package
+`com.thefittingroom.app` (the old `com.thefittingroom.marketplace` is gone).
+
+`e2e/get-app.spec.ts` checks the screen shows the bundled image (a
+`data:image/svg+xml` URI carrying the URL in its header comment), not the
+bucket file, and that the phone badges open those two store URLs.
+
 ## Fitting-room icon widget — three responsibilities
 
 `src/components/widgets/fitting-room-icon.tsx` is no longer just the
@@ -589,7 +637,7 @@ to the icon:
 
 - **First-visit popup** — the `fitting_room_icon` help popup (see "Help
   popups" below), shown once per browser. Dismiss paths (icon click,
-  popup close, click-outside, 10s timeout) all record it as seen. While
+  popup close, click-outside, 4s timeout) all record it as seen. While
   showing, the icon button gets a soft green pulsing box-shadow.
 - **Add-confirmation drawer** (`add-confirmation-drawer.tsx`) — fires
   whenever any item is added to the fitting room from any surface
@@ -599,10 +647,12 @@ to the icon:
 
 ## Help popups
 
-Seven one-time hints, each pointing at a control: the catalogue hanger and
+Nine one-time hints, each pointing at a control: the catalogue hanger and
 the header icon (store widgets, in that order), the first product card, the mobile TRY IT
-ON button, the avatar's rotate arrows (fitting room and quick view), and the
-mobile try-on sheet's swipe-up handle and first expand chevron.
+ON button, the avatar's rotate arrows (fitting room and quick view), the
+mobile try-on view's sheet swipe-up handle, first expand chevron and back
+button, and on desktop the detail pane's first *collapsed* row's chevron
+(only shown when a row is collapsed, i.e. two or more items are selected).
 
 - **One flag per popup, one record per browser.** `src/lib/help-tips.ts`
   keeps `tfr:help-tips:v1` = `{ "<HelpTipId>": true, ... }`. Per browser,
@@ -615,7 +665,10 @@ mobile try-on sheet's swipe-up handle and first expand chevron.
   unseen one (order: `HELP_TIP_PRIORITY`) on the first instance that asked,
   and the next appears once it is dismissed. That is what turns them into a
   sequence — cards → try it on → arrows → swipe up → expand — instead of a
-  pile that a single tap would clear. Two rules keep the order honest:
+  pile that a single tap would clear. Each closes on its own after
+  `HELP_TIP_AUTO_DISMISS_MS` (4s, shared by the overlay and store-widget
+  popups), which is also the gap before the next one. Two rules keep the
+  order honest:
   - a popup on screen is never swapped out by a higher-priority one that
     becomes eligible later (frames arriving, say);
   - requests arriving within `REQUEST_BATCH_MS` are decided together, so the
@@ -629,7 +682,7 @@ mobile try-on sheet's swipe-up handle and first expand chevron.
 - **`HelpTip`** (`src/components/help-tooltip.tsx`) is the overlay wrapper:
   dismissed by its close button, by the shopper touching anything else
   (pointerdown, capture phase — usually the very control it points at, and
-  the touch still reaches that control), or after 10s. The store widgets
+  the touch still reaches that control), or after 4s. The store widgets
   drive `HelpTooltip` through `useHelpTip` directly, because they fold its
   dismissal into their drawer handling.
 - **`HelpTooltip` re-reads its anchor's position every animation frame**

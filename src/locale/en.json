@@ -19,7 +19,9 @@
     "fitting_room_try_it_on": "Tap here to see your outfit!",
     "sheet_swipe_up": "Swipe up to change sizes",
     "sheet_expand_item": "Tap to see size recommendation info",
-    "avatar_rotate": "Tap the arrows to rotate your avatar"
+    "avatar_rotate": "Tap the arrows to rotate your avatar",
+    "try_on_back": "Tap here to go back to your items",
+    "detail_expand_item": "Click to see item details"
   },
   "add_confirmation": {
     "title": "Your Fitting Room",

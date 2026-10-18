@@ -8,6 +8,7 @@ import { ItemFitText } from '@/components/item-fit-text'
 import { LinkT } from '@/components/link'
 import { SizeSelector } from '@/components/size-selector'
 import { Text, TextT } from '@/components/text'
+import { useScrollOverflow } from '@/components/use-scroll-overflow'
 import type { VtoTuckLabel } from '@/api/gen/enums'
 import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { buildVtoProductDataFromResolved, isItemNoFit, isItemTuckable } from '@/lib/fitting-room-data'
@@ -29,8 +30,9 @@ interface DetailAccordionItemProps {
   canTuck: boolean
   // Which wording the tuck control uses — from the VTO response.
   tuckLabel: VtoTuckLabel
-  // Mobile only: this row's expand chevron carries the "tap to see size
-  // recommendation info" help popup. Set on the first row.
+  // This row's expand chevron carries the expand help popup: on mobile the
+  // first row ("tap to see size recommendation info"), on desktop the first
+  // collapsed row ("click to see item details").
   expandHelpTip?: boolean
   // Mobile-only — desktop ignores these.
   detailMode: DetailMode
@@ -138,6 +140,7 @@ export function DetailAccordionItem({
         selectedSizeLabel={selectedSizeLabel}
         availableColorLabels={availableColorLabels}
         selectedColorLabel={item.storage.color}
+        expandHelpTip={expandHelpTip}
         onToggleOpen={onToggleOpen}
         onOpen={onOpen}
         onChangeSize={onChangeSize}
@@ -188,6 +191,8 @@ interface DesktopProps {
   selectedSizeLabel: string | null
   availableColorLabels: string[]
   selectedColorLabel: string | null
+  // This collapsed row's chevron carries the expand help popup.
+  expandHelpTip: boolean
   onToggleOpen: () => void
   // Open this section unconditionally (as opposed to onToggleOpen, which
   // closes it when already open). Used by the collapsed size selector.
@@ -206,12 +211,23 @@ function DesktopAccordionItem({
   selectedSizeLabel,
   availableColorLabels,
   selectedColorLabel,
+  expandHelpTip,
   onToggleOpen,
   onOpen,
   onChangeSize,
   onChangeColor,
   onAddToCart,
 }: DesktopProps) {
+  const chevronRef = useRef<HTMLSpanElement>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  // Re-measured when the item opens and when its content changes.
+  const bodyOverflow = useScrollOverflow(bodyRef, 'y', [isOpen, productData, noFit])
+  const scrollBodyDown = useCallback(() => {
+    const el = bodyRef.current
+    if (el) {
+      el.scrollBy({ top: el.clientHeight * 0.8, behavior: 'smooth' })
+    }
+  }, [])
   // Card shade, matching mobile. The header tints over it and a ~6px frame of
   // it surrounds the white content area — that frame IS the "border", rather
   // than a drawn one.
@@ -296,6 +312,18 @@ function DesktopAccordionItem({
       justifyContent: 'center',
       gap: '12px',
     },
+    // Holds the scrolling body and the fade pinned over its bottom edge — the
+    // fade has to sit outside the scroller, or it would scroll away with the
+    // content.
+    bodyFrame: {
+      position: 'relative',
+      flex: '1 1 auto',
+      minHeight: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      backgroundColor: '#FFFFFF',
+      margin: '0 6px 6px 6px',
+    },
     // Scrolls inside the open item rather than the pane scrolling.
     body: {
       flex: '1 1 auto',
@@ -307,8 +335,50 @@ function DesktopAccordionItem({
       gap: '14px',
       padding: '16px 18px 18px 18px',
       textAlign: 'left',
+      // An always-visible scrollbar in Chrome, Edge and Safari: once styled,
+      // they draw a classic scrollbar instead of macOS's fading overlay one.
+      // Don't add scrollbar-width / scrollbar-color here — Chrome 121+ drops
+      // these rules when either is set. Firefox keeps its own, which on macOS
+      // follows the system setting; the fade below covers it.
+      '&::-webkit-scrollbar': {
+        width: '8px',
+      },
+      '&::-webkit-scrollbar-track': {
+        backgroundColor: 'transparent',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: 'rgba(0, 0, 0, 0.25)',
+        borderRadius: '4px',
+      },
+    },
+    // White fade over the bottom of the body while there's more below. Clicks
+    // pass through it to the content; only the button takes them.
+    moreBelow: {
+      position: 'absolute',
+      left: 0,
+      bottom: 0,
+      height: '56px',
+      display: 'flex',
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+      paddingBottom: '8px',
+      background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0), #FFFFFF 75%)',
+      pointerEvents: 'none',
+    },
+    moreBelowButton: {
+      pointerEvents: 'auto',
+      width: '32px',
+      height: '32px',
+      padding: 0,
+      borderRadius: '16px',
+      border: '1px solid rgba(0, 0, 0, 0.12)',
       backgroundColor: '#FFFFFF',
-      margin: '0 6px 6px 6px',
+      boxShadow: '0 1px 4px rgba(0, 0, 0, 0.12)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: theme.color_fg_text,
+      cursor: 'pointer',
     },
     productName: {
       fontSize: '24px',
@@ -410,10 +480,17 @@ function DesktopAccordionItem({
             </Text>
           )}
         </div>
-        <span css={css.chevron}>
+        <span ref={chevronRef} css={css.chevron}>
           <Chevron direction={isOpen ? 'up' : 'down'} />
         </span>
       </Button>
+      {/* Offered while the row is closed: the chevron is what opens it. */}
+      <HelpTip
+        id="detail_expand_item"
+        enabled={expandHelpTip && !isOpen}
+        anchorRef={chevronRef}
+        t="help_tip.detail_expand_item"
+      />
       {/* Collapsed rows surface the product name and size selector, so a
           shopper can re-size a garment without opening it. The name appears
           here only while collapsed — the open body renders it far more
@@ -454,53 +531,63 @@ function DesktopAccordionItem({
         </div>
       )}
       {!isOpen ? null : (
-        <div css={css.body}>
-          {productData ? (
-            <>
-              <Text variant="brand" css={css.productName}>
-                {productData.productName}
-              </Text>
-              {currentPrice ? (
-                <Text variant="base" css={css.price}>
-                  {currentPrice}
+        <div css={css.bodyFrame}>
+          <div ref={bodyRef} css={css.body} onScroll={bodyOverflow.update}>
+            {productData ? (
+              <>
+                <Text variant="brand" css={css.productName}>
+                  {productData.productName}
                 </Text>
-              ) : null}
-              <div css={css.colorSelectorContainer}>
-                <ColorSelector
-                  availableColorLabels={availableColorLabels}
-                  selectedColorLabel={selectedColorLabel}
-                  onChangeColor={onChangeColor}
-                />
-              </div>
-              <div css={css.sizeBox}>
-                <Text variant="base" css={css.recommendedSize}>
-                  Recommended Size: {productData.recommendedSizeLabel}
-                </Text>
-                <ItemFitText loadedProductData={productData} textCss={css.fitText} />
-                <TextT variant="base" css={css.selectPrompt} t="size-rec.select_size" />
-                <div css={css.sizeRow}>
-                  <SizeSelector
-                    loadedProductData={productData}
-                    selectedSizeLabel={selectedSizeLabel}
-                    onChangeSize={onChangeSize}
+                {currentPrice ? (
+                  <Text variant="base" css={css.price}>
+                    {currentPrice}
+                  </Text>
+                ) : null}
+                <div css={css.colorSelectorContainer}>
+                  <ColorSelector
+                    availableColorLabels={availableColorLabels}
+                    selectedColorLabel={selectedColorLabel}
+                    onChangeColor={onChangeColor}
                   />
                 </div>
-                <div css={css.fitDetails}>
-                  <ItemFitDetails loadedProductData={productData} selectedSizeLabel={selectedSizeLabel} />
+                <div css={css.sizeBox}>
+                  <Text variant="base" css={css.recommendedSize}>
+                    Recommended Size: {productData.recommendedSizeLabel}
+                  </Text>
+                  <ItemFitText loadedProductData={productData} textCss={css.fitText} />
+                  <TextT variant="base" css={css.selectPrompt} t="size-rec.select_size" />
+                  <div css={css.sizeRow}>
+                    <SizeSelector
+                      loadedProductData={productData}
+                      selectedSizeLabel={selectedSizeLabel}
+                      onChangeSize={onChangeSize}
+                    />
+                  </div>
+                  <div css={css.fitDetails}>
+                    <ItemFitDetails loadedProductData={productData} selectedSizeLabel={selectedSizeLabel} />
+                  </div>
                 </div>
-              </div>
-              <div css={css.cartContainer}>
-                <AddToCartButton onClick={onAddToCart} />
-              </div>
-              <Text variant="base" css={css.description}>
-                <span dangerouslySetInnerHTML={{ __html: productData.productDescriptionHtml }} />
-              </Text>
-            </>
-          ) : noFit ? (
-            <TextT variant="base" css={css.noFit} t="quick-view.no_recommendation" />
-          ) : (
-            <TextT variant="base" t="loading" />
-          )}
+                <div css={css.cartContainer}>
+                  <AddToCartButton onClick={onAddToCart} />
+                </div>
+                <Text variant="base" css={css.description}>
+                  <span dangerouslySetInnerHTML={{ __html: productData.productDescriptionHtml }} />
+                </Text>
+              </>
+            ) : noFit ? (
+              <TextT variant="base" css={css.noFit} t="quick-view.no_recommendation" />
+            ) : (
+              <TextT variant="base" t="loading" />
+            )}
+          </div>
+          {bodyOverflow.end ? (
+            // Stops short of the scrollbar so the fade doesn't cover its thumb.
+            <div css={css.moreBelow} style={{ right: bodyOverflow.scrollbarSize }}>
+              <Button variant="base" css={css.moreBelowButton} onClick={scrollBodyDown} aria-label="Scroll down">
+                <Chevron direction="down" size={18} />
+              </Button>
+            </div>
+          ) : null}
         </div>
       )}
     </div>
