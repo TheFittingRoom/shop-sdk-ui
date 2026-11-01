@@ -207,6 +207,36 @@ paths and edge cases.
 `npm run check` stays cheap (tsc + ESLint + Prettier). `npm run test` runs the
 e2e suite. CI runs both — see `.github/workflows/build.yml`.
 
+### A test isn't done until it has failed
+
+The standard across our repos: a test is not ready until it has been shown
+to fail when the code it guards does the wrong thing. A green test proves
+nothing on its own — a selector that matches nothing, an assertion made
+before the state it checks, or a fixture that hides the behaviour all pass.
+
+For each new or changed test:
+
+1. Name the behaviour it guards and write a **mutant**: the smallest change
+   to `src/` that breaks that behaviour (drop a condition, return early,
+   render nothing, skip a call).
+2. Run the test against the mutant and see it fail, **for the reason it
+   should** (read the failure, not just the count).
+3. Restore the code and see it pass again.
+
+A test no relevant mutant fails is fixed or deleted. Record the mutants and
+what each one caught in the PR, and in this file where a test guards
+something easy to undo (as the frame-display and outfit sections do).
+
+Two traps:
+
+- **Playwright reuses a running server.** `reuseExistingServer` is on
+  locally, so if anything is serving `:5173` (`npm run watch-serve`, a
+  previous run) the mutant is never built and every run tests the old
+  bundle. Check nothing holds the port before a mutation run.
+- **Restore from a copy, and verify the restore.** Use `/bin/cp -f` (a
+  `cp` alias that prompts hangs a script) or keep the original in memory,
+  and diff afterwards; a mutant left behind ships.
+
 **The host page is not the store.** `host.html` has none of the theme's fonts
 or CSS, so layout that fits there can overflow or collapse on a real
 storefront. For any visual change, also run
@@ -713,7 +743,44 @@ overlay shows Loading.
 "Try it now, scan later" button (Button variant `secondary`), "OR", then
 "Create your Mini Me" (the get-app screen) and Sign in.
 
-Guarded by `e2e/demo-avatar.spec.ts`.
+**Errors.** The SDK has no special handling for the backend's 409 (gender
+required) or 503 (no demo avatar set up). It never sends a request that
+could get the 409: nothing loads for a `needs_gender` shopper until they
+choose. A 503 is a failed try-on like any other (the try-on error
+snackbar). A failed gender save keeps the prompt up with an error.
+
+Guarded by `e2e/demo-avatar.spec.ts`. Each mutant below was applied to
+`src/` alone and failed the tests named (2026-11-01, 25 mutants, all
+caught):
+
+| Mutant | Fails |
+|---|---|
+| no watermark | every demo test that shows a try-on |
+| no watermark in the zoom view | the zoom view is watermarked too |
+| pill for every shopper | own avatar sees no pill; PENDING / NOT_CREATED |
+| pill popup won't close | a demo shopper sees the demo avatar (returns to the fitting room) |
+| quick view keeps its title for a demo shopper | sign-up creates the account; own avatar arrives |
+| no pill on mobile try-on | mobile |
+| demo avatarKey blank | own avatar arrives |
+| no `avatar_frames` clause in `userAvatarFromProfile` | PENDING / NOT_CREATED keep their own avatar |
+| no `CREATED` clause | `vto-prefetch.spec.ts` "a new avatar while quick view stays open" |
+| own frames shown for a demo shopper | a demo shopper sees the demo avatar |
+| no gender prompt (quick view) | no gender chooses first; saving the gender fails |
+| product data loads without a gender | no gender chooses first (no requests before choosing) |
+| gender not patched locally | no gender chooses first |
+| gender save failure silent | saving the gender fails |
+| `putUser` without gender | sign-up creates the account |
+| retry signs up to Firebase again | retries only the record |
+| no email / password / gender check | sign-up creates the account; malformed email (email, password) |
+| email in use offers no sign in | already has an account |
+| intro video never plays | landing screen |
+| no section selector on desktop | jump-to-section |
+| product data kept on avatar change | own avatar arrives |
+| VTO caches kept on avatar change | own avatar arrives |
+| try-on error hidden | the backend refuses |
+
+Not covered: the French copy, and the fitting room's own gender prompt
+(the same component as quick view's, but its call site is untested).
 
 ## Landing intro video
 
@@ -871,6 +938,9 @@ gen / Firestore-conventions notes above are easy to drift from when
 files move or shapes change — keep AGENTS.md edits in the same change as
 the code they describe.
 
+- [ ] **Every new or changed test has been seen to fail** — see "A test
+      isn't done until it has failed" below. Say in the PR which mutant each
+      test caught.
 - [ ] `npm run check` (tsc --noEmit + ESLint + Prettier) clean
 - [ ] `npm run build` produces `dist/index.js` without errors
 - [ ] `npm run test:e2e` passes (locally or in CI)
