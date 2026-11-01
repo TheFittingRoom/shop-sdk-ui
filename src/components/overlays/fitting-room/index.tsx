@@ -271,7 +271,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
       }
       setSelectedExternalIds(nextSelected)
     },
-    [resolved, selectedExternalIds, openAccordionItemId, isMobileLayout, ensureSizeForItem],
+    [resolved, selectedExternalIds, isMobileLayout, ensureSizeForItem],
   )
 
   const handleChangeSize = useCallback(
@@ -435,7 +435,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
       // this the X only deselected the item within the current overlay.
       removeFromFittingRoom(externalId)
     },
-    [openAccordionItemId, removeFromFittingRoom],
+    [removeFromFittingRoom],
   )
 
   // Undo restores the selection from before the swap. The added item stays in

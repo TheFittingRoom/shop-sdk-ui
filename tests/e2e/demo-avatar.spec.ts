@@ -134,9 +134,9 @@ test('sign-up creates the account, then tries on with the demo avatar', async ({
   await dialog.getByText('I agree to the').click()
   await dialog.getByRole('button', { name: 'Create account' }).click()
 
-  await expect.poll(() => putUserBodies).toEqual([
-    { full_name: 'Sam Shopper', is_gte_18: true, is_tos_accepted: true, gender: 'male' },
-  ])
+  await expect
+    .poll(() => putUserBodies)
+    .toEqual([{ full_name: 'Sam Shopper', is_gte_18: true, is_tos_accepted: true, gender: 'male' }])
 
   // The backend syncs the new profile to Firestore; quick view (where the
   // shopper started) carries on with the male demo avatar.
