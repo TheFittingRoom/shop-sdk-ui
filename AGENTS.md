@@ -726,11 +726,9 @@ start everywhere) and `playsInline` (iPhones would otherwise go fullscreen).
 The box is `min(100%, 30vh)` square: see "The host page is not the store"
 for why the landing image is capped.
 
-The poster is the old landing thumbnail re-made without its baked-in play
-button. It is not a frame of the video. The alternative, if asked: the
-video's 17 s frame ("SEE YOUR FIT", the wine dress in our mobile try-on) with
-its "STEP 4" label removed. Swapping is an upload to the same key, no code
-change. The old `intro-video-thumbnail.png` stays in the bucket for released
+The poster is the video's first frame ("Step 1 — Download the app"), so
+playback starts on exactly what was shown. Swapping it is an upload to the
+same key, no code change. The old `intro-video-thumbnail.png` stays in the bucket for released
 SDK versions.
 
 ## Fitting-room section selector
