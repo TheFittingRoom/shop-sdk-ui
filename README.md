@@ -62,16 +62,19 @@ The `release.yaml` workflow does everything in one run, in this order:
 2. Creates a fresh `release-bump-<timestamp>` branch and runs
    `npm version <bump>`: bumps `package.json` and `package-lock.json`,
    creates the bump commit, tags it `vX.Y.Z`. Nothing is pushed yet.
-3. Rebuilds with the new version embedded and runs the verification
-   again on the bump commit, the exact commit about to be published.
+3. Checks the bump commit changes nothing but the version
+   (`scripts/check-version-bump.sh`), so it is exactly the code verified
+   in step 1, then rebuilds it with the new version embedded and checks
+   the bundle carries it. The tests are not run a second time.
 4. Publishes to npm under dist-tag `next` via
    [npm trusted publishing](https://docs.npmjs.com/trusted-publishers)
    (OIDC, no long-lived secret) with `--provenance` for supply-chain
    attestation.
 5. Pushes the bump branch + tag (not to `main`, see below).
 6. Opens a PR from the bump branch to `main`, posts a `verify` check
-   run on the bump SHA through the Checks API (the run just verified
-   that commit in step 3; the check links back to the run), and
+   run on the bump SHA through the Checks API (the run verified its code
+   in step 1 and checked the commit in step 3; the check links back to
+   the run), and
    queues auto-merge.
 
 The npm trusted-publisher entry for `@thefittingroom/shop-ui` must

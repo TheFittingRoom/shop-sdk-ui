@@ -41,9 +41,10 @@ README.md for the full walkthrough. Summary:
    manually.** Actions tab → Release → Run workflow → pick patch /
    minor / major. The workflow, in one job: checks out main, runs
    the same `check` + `build` + e2e verification as `pr-checks.yml`,
-   runs `npm version` on a fresh `release-bump-<ts>` branch, rebuilds
-   with the new version and runs the verification again on the bump
-   commit (any failure stops the run before anything is published,
+   runs `npm version` on a fresh `release-bump-<ts>` branch, checks
+   the bump commit changes only the version
+   (`scripts/check-version-bump.sh`) and rebuilds it with the new
+   version (any failure stops the run before anything is published,
    pushed or opened), publishes to npm under dist-tag `next` via OIDC
    trusted publishing with `--provenance`, pushes the branch + tag,
    opens a PR to main, posts a `verify` check run on the bump SHA
@@ -51,6 +52,12 @@ README.md for the full walkthrough. Summary:
    succeeds but a later step fails, recreate the bump and PR by hand
    (README "Release process"). The npm trusted-publisher entry for
    `@thefittingroom/shop-ui` **must point at `release.yaml`**.
+
+   The bump commit is not tested again: it is main plus the version,
+   which the script proves, so it is the code just verified. Running
+   everything twice took a release to ~5 minutes for no new
+   information. Problems are meant to be caught before merge, in
+   `pr-checks.yml`; the run on main is a last check before going live.
 
    The published version goes live on the storefront as soon as the
    publish lands (the theme loads `@5`, see above), so the release run
