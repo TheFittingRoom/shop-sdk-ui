@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction, TouchEvent as ReactTouchEvent } from 'react'
 import { useEffect, useRef } from 'react'
 import { Loading } from '@/components/content/loading'
+import { DemoWatermark } from '@/components/demo-watermark'
 import { HelpTip } from '@/components/help-tooltip'
 import { useFrameRotation } from '@/components/use-frame-rotation'
 import { usePinchZoom } from '@/components/use-pinch-zoom'
@@ -132,6 +133,7 @@ export function AvatarFrameViewer({
         onMouseDown={handleMouseDragStart}
         onTouchStart={handleTouchStart}
       />
+      <DemoWatermark />
       {/* onMouseDown preventDefault keeps rapid clicks from initiating a text
           selection — otherwise the second/third click in a fast tap-tap-tap
           starts dragging a selection that extends across nearby overlay text

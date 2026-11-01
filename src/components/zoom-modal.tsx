@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { applyDragSteps, useFrameRotation } from '@/components/use-frame-rotation'
 import { ChevronLeftIcon, ChevronRightIcon } from '@/lib/asset'
 import { useCss } from '@/lib/theme'
+import { DemoWatermark } from '@/components/demo-watermark'
 
 // How far the pointer moves before the axis-lock commits to scroll-or-rotate.
 // The horizontal step size is owned by applyDragSteps in use-frame-rotation
@@ -118,6 +119,8 @@ export function ZoomModal({
     // Centres the frame when it fits; grows past the scroll area when it
     // doesn't, so the scroll area scrolls instead of shrinking the image.
     imageWrap: {
+      // Positions the demo watermark over the image.
+      position: 'relative',
       minWidth: '100%',
       minHeight: '100%',
       display: 'flex',
@@ -190,6 +193,7 @@ export function ZoomModal({
       <div ref={scrollAreaRef} css={css.scrollArea}>
         <div css={css.imageWrap}>
           <img src={imageUrl} css={css.image} alt="" onMouseDown={handleImageMouseDown} />
+          <DemoWatermark />
         </div>
       </div>
       <div css={{ ...css.chevron, ...css.chevronLeft }} onMouseDown={(e) => e.preventDefault()} onClick={rotateLeft}>

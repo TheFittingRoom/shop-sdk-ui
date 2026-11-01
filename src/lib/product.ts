@@ -11,12 +11,13 @@ import type {
   SizeFitRecommendation,
   VtoCompositionItem,
 } from '@/lib/api'
-import { getSizeRecommendation as apiGetSizeRecommendation } from '@/lib/api'
+import { getSizeRecommendation as apiGetSizeRecommendation, getVtoOwnerGeneration } from '@/lib/api'
 import type { FirestoreStyle } from '@/lib/database'
 import { getStyleByExternalId } from '@/lib/database'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { loadStyleCategoryIndex } from '@/lib/style-categories'
+import { canTryOn } from '@/lib/user-avatar'
 
 export type { FitClassification, MeasurementLocationFit, SizeFit, SizeFitRecommendation }
 
@@ -112,14 +113,27 @@ export function _init() {
   if (useMainStore.getState().userIsLoggedIn) {
     lookUpStyle()
   }
-  if (useMainStore.getState().userHasAvatar) {
+  if (canTryOn(useMainStore.getState().userAvatar)) {
     preload()
   }
+  // Size recommendations are computed on the shopper's avatar — their own,
+  // or the demo avatar they borrow until they scan. When that avatar is
+  // replaced (their scan finished, or they signed in as someone else) the
+  // stored ones are stale. api.ts tracks the avatar and moves the owner
+  // generation on; its subscriber is registered first, so the generation is
+  // already current here.
+  let ownerGeneration = getVtoOwnerGeneration()
   useMainStore.subscribe((state, prevState) => {
     if (state.userIsLoggedIn && !prevState.userIsLoggedIn) {
       lookUpStyle()
     }
-    if (state.userHasAvatar && !prevState.userHasAvatar) {
+    const generation = getVtoOwnerGeneration()
+    const avatarReplaced = generation !== ownerGeneration
+    ownerGeneration = generation
+    if (avatarReplaced && Object.keys(state.productData).length > 0) {
+      useMainStore.getState().clearProductData()
+    }
+    if (canTryOn(state.userAvatar) && (avatarReplaced || !canTryOn(prevState.userAvatar))) {
       preload()
     }
   })
@@ -309,8 +323,15 @@ export function loadProductDataToStore(externalId: string): void {
       productDataLoading.delete(externalId)
     }
   }
-  const { userIsLoggedIn, userHasAvatar, productData } = useMainStore.getState()
-  if (productData[externalId] || productDataLoading.has(externalId) || !userIsLoggedIn || userHasAvatar === false) {
+  const { userIsLoggedIn, userAvatar, productData } = useMainStore.getState()
+  // Loads before the profile has arrived (userAvatar null) too, as before;
+  // only a shopper known to have nothing to try on with waits.
+  if (
+    productData[externalId] ||
+    productDataLoading.has(externalId) ||
+    !userIsLoggedIn ||
+    userAvatar?.kind === 'needs_gender'
+  ) {
     // Already loaded, loading, or cannot load yet
     return
   }

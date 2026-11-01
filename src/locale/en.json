@@ -67,12 +67,16 @@
   "landing": {
     "header": "Meet your mini me!",
     "description": "Loose on your waist but tight on your hips? We’ll show you.",
-    "get_the_app": "Get the app",
     "already_have_account": "Already have an account?",
-    "sign_in": "Sign in."
+    "sign_in": "Sign in.",
+    "try_before_you_scan": "Try before you scan with a demo avatar",
+    "demo_account": "Try it now, scan later",
+    "or": "OR",
+    "play_video": "Play the video",
+    "intro_video": "How The Fitting Room works"
   },
   "get-app": {
-    "create_avatar": "Create your avatar"
+    "create_mini_me": "Create your Mini Me"
   },
   "sign-in": {
     "email": "Email",
@@ -80,10 +84,10 @@
     "forgot_password": "Forgot password?",
     "sign_in": "Sign in",
     "no_account": "Don’t have an account?",
-    "download_app": "Download the app.",
     "invalid_email": "Please enter a valid email address.",
     "missing_password": "Please enter your password.",
-    "login_failed": "Incorrect email or password."
+    "login_failed": "Incorrect email or password.",
+    "create_account": "Create one."
   },
   "forgot-password": {
     "title": "Forgot password",
@@ -172,5 +176,38 @@
       "low_hip": "Low Hip",
       "thigh": "Thigh"
     }
+  },
+  "sign-up": {
+    "title": "Create account",
+    "intro": "You will be able to use this profile to create your Mini Me later.",
+    "name": "Name",
+    "gender": "Demo avatar",
+    "confirm_18": "I am 18 or older",
+    "accept_terms": "I agree to the",
+    "terms_of_service": "Terms of Service",
+    "and": "and",
+    "privacy_policy": "Privacy Policy",
+    "submit": "Create account",
+    "password_too_short": "Password must be at least {{count}} characters.",
+    "missing_name": "Please enter your name.",
+    "missing_gender": "Please choose male or female.",
+    "must_be_18": "You must be 18 or older.",
+    "must_accept_terms": "Please accept the Terms of Service and Privacy Policy.",
+    "email_in_use": "An account with this email already exists.",
+    "email_in_use_sign_in": "Is it yours?",
+    "failed": "Couldn't create your account. Please try again."
+  },
+  "gender": {
+    "female": "Female",
+    "male": "Male"
+  },
+  "gender_prompt": {
+    "header": "Choose your sample Mini Me",
+    "description": "Try on with a sample Mini Me until you create your own.",
+    "failed": "Couldn't save your choice. Please try again."
+  },
+  "mini_me": {
+    "create": "Create your Mini Me",
+    "demo_watermark": "Demo avatar"
   }
 }

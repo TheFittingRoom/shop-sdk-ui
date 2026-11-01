@@ -103,6 +103,9 @@ export interface IAuthManager {
   getAuthToken(forceRefresh?: boolean): Promise<string>
   getUserProfile(forceRefresh?: boolean): Promise<UserProfile | null>
   login(email: string, password: string): Promise<AuthUser>
+  // Create a Firebase account and sign in to it. Only the Firebase half of
+  // sign-up: the account record is created by api.putUser afterwards.
+  signUp(email: string, password: string): Promise<AuthUser>
   logout(): Promise<void>
   sendPasswordResetEmail(email: string): Promise<void>
   confirmPasswordReset(code: string, newPassword: string): Promise<void>
@@ -305,6 +308,25 @@ export class MockAuthManager implements IAuthManager {
     if (!account) {
       throw new Error(`MockAuthManager.login: no account for ${email} in InitParams.testHooks.accounts`)
     }
+    const user = makeMockAuthUser(account)
+    this.seed = account
+    this.currentUser = user
+    this.authStateChangeListeners.forEach((cb) => cb(user))
+    return user
+  }
+
+  // Signs up a new account with uid `signup-<email>`, which a test can use to
+  // write the profile the backend would sync. An email that already has an
+  // account (the seeded user or testHooks.accounts) fails like Firebase does.
+  async signUp(email: string, _password: string): Promise<AuthUser> {
+    const taken = [this.seed, ...this.accounts].some((a) => a?.email === email)
+    if (taken) {
+      throw Object.assign(new Error('Firebase: Error (auth/email-already-in-use).'), {
+        code: 'auth/email-already-in-use',
+      })
+    }
+    const account = { uid: `signup-${email}`, email, idToken: `mock-signup-token-${email}` }
+    this.accounts.push(account)
     const user = makeMockAuthUser(account)
     this.seed = account
     this.currentUser = user

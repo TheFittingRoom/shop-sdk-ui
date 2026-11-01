@@ -127,8 +127,8 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
   const handleForgotPasswordClick = useCallback(() => {
     openOverlay(OverlayName.FORGOT_PASSWORD, { returnToOverlay })
   }, [openOverlay, returnToOverlay])
-  const handleGetAppClick = useCallback(() => {
-    openOverlay(OverlayName.GET_APP, { returnToOverlay })
+  const handleSignUpClick = useCallback(() => {
+    openOverlay(OverlayName.SIGN_UP, { returnToOverlay })
   }, [openOverlay, returnToOverlay])
 
   return (
@@ -168,7 +168,7 @@ export default function SignInOverlay({ returnToOverlay }: SignInOverlayProps) {
         <div css={css.noAccountContainer}>
           <TextT variant="base" css={css.noAccountText} t="sign-in.no_account" />
           &nbsp;
-          <LinkT onClick={handleGetAppClick} variant="semibold" css={css.getAppLink} t="sign-in.download_app" />
+          <LinkT onClick={handleSignUpClick} variant="semibold" css={css.getAppLink} t="sign-in.create_account" />
         </div>
       </form>
     </ContentModal>

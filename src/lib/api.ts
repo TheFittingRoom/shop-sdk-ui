@@ -7,6 +7,7 @@ import type {
   // FirestoreStyleGarmentCategory,
   // FirestoreUser,
   ColorwaySizeAsset,
+  DemoAvatar,
   MeasurementLocationFit as GenMeasurementLocationFit,
   Size,
   SizeFit as GenSizeFit,
@@ -15,9 +16,12 @@ import type {
   StyleCategoryGroup,
   VtoCompositionResponse,
 } from '@/api/gen/responses'
+import type { User as UserRequest } from '@/api/gen/requests'
 import type { UserProfile } from '@/lib/firebase'
 import { getAuthManager } from '@/lib/firebase'
 import { getStaticData, useMainStore } from '@/lib/store'
+import type { DemoGender } from '@/lib/user-avatar'
+import { AvatarKeyTracker, avatarKey } from '@/lib/user-avatar'
 
 export enum FitClassification {
   FORM_FITTING = 'form_fitting',
@@ -205,39 +209,67 @@ export async function getStyleCategoryGroups(): Promise<StyleCategoryGroup[]> {
   })
 }
 
+// putUser creates (or updates) the signed-in user's account record — the
+// second half of sign-up, after the Firebase account exists. The backend
+// requires the 18+ and terms flags on every call.
+export async function putUser(body: Omit<UserRequest, 'first_name' | 'last_name' | 'job'>): Promise<void> {
+  const uid = getAuthManager().getAuthUser()?.uid
+  if (!uid) {
+    throw new Error('No authenticated user')
+  }
+  await execApiRequest<unknown>({
+    useToken: true,
+    method: 'PUT',
+    endpoint: `/v1/users/${uid}`,
+    body: { ...body },
+  })
+}
+
+// putUserGender sets the signed-in user's gender, which picks their demo
+// avatar. For accounts created before sign-up asked for one.
+export async function putUserGender(gender: DemoGender): Promise<void> {
+  const uid = getAuthManager().getAuthUser()?.uid
+  if (!uid) {
+    throw new Error('No authenticated user')
+  }
+  await execApiRequest<unknown>({
+    useToken: true,
+    method: 'PUT',
+    endpoint: `/v1/users/${uid}/gender`,
+    body: { gender },
+  })
+}
+
+// getDemoAvatar returns the demo avatar lent to shoppers without one of their
+// own: bare frame paths, like a user's avatar_frames.
+export async function getDemoAvatar(gender: DemoGender): Promise<DemoAvatar> {
+  return await execApiRequest<DemoAvatar>({
+    useCache: true,
+    useToken: true,
+    method: 'GET',
+    endpoint: `/v1/demo-avatars/${gender}`,
+  })
+}
+
 export type VtoCompositionItem = {
   colorway_size_asset_id: number
   untucked?: boolean
 }
 
-// A VTO render belongs to the signed-in user and the avatar it was rendered
-// against (the backend uses their latest one). The owner generation moves on
-// when the user or the avatar changes, and the VTO caches (the in-flight map
-// below, useVtoRequests) are scoped to it.
+// A VTO render (and a size recommendation) belongs to the signed-in user and
+// the avatar it was computed on: their own latest one, or the demo avatar they
+// borrow until they scan (see src/lib/user-avatar.ts). The owner generation
+// moves on when the user or that avatar changes, and the caches of its results
+// — the in-flight map below, useVtoRequests, the response cache, and the
+// product data in the store (product.ts) — are scoped to it.
 let vtoOwnerGeneration = 0
-let vtoOwnerUid: string | null = null
-let vtoOwnerAvatar = ''
+const avatarTracker = new AvatarKeyTracker()
 
 function updateVtoOwner(profile: UserProfile | null) {
   const uid = getAuthManager().getAuthUser()?.uid ?? null
-  // The first frame path names the avatar and its user
-  // (user-<uid>/avatar-<id>/...). A new uid can arrive while the store still
-  // holds the previous user's profile, so only this user's frames count.
-  const frame = profile?.avatar_frames?.[0] ?? ''
-  const avatar = uid && frame.startsWith(`user-${uid}/`) ? frame : ''
-  if (uid !== vtoOwnerUid) {
-    vtoOwnerUid = uid
-    vtoOwnerAvatar = avatar
+  if (avatarTracker.update(uid, avatarKey(profile, uid))) {
     vtoOwnerGeneration += 1
-  } else if (avatar && avatar !== vtoOwnerAvatar) {
-    // Only replacing one avatar with another is a new owner. The user's first
-    // frames to arrive are the avatar they already had, and an empty frame
-    // set is passing: the avatar sync rewrites the user doc first and adds
-    // avatar_frames back after.
-    if (vtoOwnerAvatar) {
-      vtoOwnerGeneration += 1
-    }
-    vtoOwnerAvatar = avatar
+    clearApiCache()
   }
 }
 
