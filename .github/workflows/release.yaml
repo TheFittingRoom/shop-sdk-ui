@@ -8,19 +8,26 @@ name: Release
 #
 # Flow, in one job: verify main (the same check + build + e2e steps as
 # the verify job in pr-checks.yml) → bump on a fresh release-bump-<ts>
-# branch → verify the bump commit the same way → publish to npm via
-# OIDC trusted publishing → push branch + tag → open PR to main → post
-# a `verify` check run on the bump SHA → enable auto-merge. Any
-# verification failure stops the run before anything is published,
+# branch → confirm the bump commit changes only the version, and rebuild
+# → publish to npm via OIDC trusted publishing → push branch + tag →
+# open PR to main → post a `verify` check run on the bump SHA → enable
+# auto-merge. Any failure stops the run before anything is published,
 # pushed or opened.
+#
+# The bump commit is not run through the tests again: it is main plus
+# the version, which scripts/check-version-bump.sh proves, so it is the
+# code that was just verified. (Running everything twice doubled a
+# release to ~5 minutes for no new information.) Problems are meant to
+# be caught before merge, in pr-checks.yml; the main run here is a
+# last check before something goes live on the store.
 #
 # Pushes made with GITHUB_TOKEN never trigger pr-checks.yml, and the PR
 # it opens gets its pull_request run only in an approval-required
 # state (GitHub anti-loop rule: "events triggered by the GITHUB_TOKEN
 # will not create a new workflow run", except workflow_dispatch and
 # repository_dispatch). This job therefore posts the `verify` check
-# run the main ruleset requires itself, after running that
-# verification on the bump commit. No PAT or GitHub App needed.
+# run the main ruleset requires itself, once it has verified main and
+# checked the bump commit. No PAT or GitHub App needed.
 #
 # No long-lived secrets: GITHUB_TOKEN handles the branch push, PR
 # creation, the check run and auto-merge queueing; npm publish uses
@@ -73,9 +80,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Same verification as pr-checks.yml's verify job, first on main's
-      # SHA so a broken main fails fast, then again below on the bump
-      # commit, which is what actually gets published.
+      # Same verification as pr-checks.yml's verify job, on main's SHA.
+      # The bump commit below differs only in its version, which is
+      # checked rather than re-verified.
       - name: Type-check + lint + format-check
         run: npm run check
 
@@ -107,7 +114,7 @@ jobs:
 
       # Bumps package.json + package-lock.json, creates a bump commit,
       # and creates a vX.Y.Z tag locally on that commit. Nothing leaves
-      # the runner until the bump commit has passed verification and
+      # the runner until the bump commit has been checked and
       # been published.
       - name: Bump version
         id: bump
@@ -116,22 +123,26 @@ jobs:
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
-      # Verify the bump commit itself: rebuild so the version embedded
-      # in dist/ matches what we're about to publish (vite config picks
-      # up packageJson.version at build time), then the same check +
-      # e2e steps as above.
-      - name: Type-check + lint + format-check (bump commit)
-        run: npm run check
+      # The bump commit must be main plus the version and nothing else:
+      # that is what makes it the code verified above.
+      - name: Check the bump commit changes only the version
+        run: scripts/check-version-bump.sh
 
+      # Rebuild so the version embedded in dist/ (vite config defines
+      # BUILD_VERSION from packageJson.version) is the one we publish,
+      # and check it is there.
       - name: Build (bump commit)
-        run: npm run build
-
-      - name: E2E tests (bump commit)
-        id: e2e_bump
-        run: npm run test:e2e
+        env:
+          NEW_VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          npm run build
+          grep -qF "\"${NEW_VERSION}\"" dist/index.js || {
+            echo "::error::dist/index.js does not contain version ${NEW_VERSION}"
+            exit 1
+          }
 
       - name: Upload Playwright report
-        if: failure() && (steps.e2e_main.conclusion == 'failure' || steps.e2e_bump.conclusion == 'failure')
+        if: failure() && steps.e2e_main.conclusion == 'failure'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
@@ -143,7 +154,7 @@ jobs:
       # and the main commit it started from (github.sha); the tarball is
       # built from the bump commit, which is that commit plus the
       # version change. Publishing is the irreversible step, so it comes
-      # right after the bump commit has passed verification and before
+      # right after the bump commit has been checked and before
       # anything is pushed; README "Release process" covers recovery
       # when a later step fails.
       - name: Publish to npm (next)
@@ -174,13 +185,14 @@ jobs:
           - Published to npm as \`v${NEW_VERSION}\` under dist-tag \`next\`
           - Tag \`v${NEW_VERSION}\` already pushed to the bump commit
 
-          \`release.yaml\` ran \`npm run check\`, \`npm run build\` and the Playwright suite on \`main\` and again on this bump commit before publishing. The \`verify\` check on this PR is posted by that run (${RUN_URL}); auto-merge fires once GitHub records it.
+          \`release.yaml\` ran \`npm run check\`, \`npm run build\` and the Playwright suite on \`main\`, confirmed this bump commit changes only the version, and rebuilt it before publishing. The \`verify\` check on this PR is posted by that run (${RUN_URL}); auto-merge fires once GitHub records it.
           EOF
           )"
 
       # The main ruleset requires a passing `verify` context on the head
-      # SHA. Post it from here: this job ran exactly that verification on
-      # the bump commit above, and the check links back to this run.
+      # SHA. Post it from here: this job verified main and confirmed the
+      # bump commit is main plus the version, and the check links back to
+      # this run.
       # pr-checks.yml's own run for the PR exists only in an
       # approval-required state and is redundant with this check.
       - name: Post verify check run on the bump SHA
@@ -196,7 +208,7 @@ jobs:
             -f conclusion=success \
             -f details_url="$RUN_URL" \
             -f "output[title]=verify" \
-            -f "output[summary]=npm run check, npm run build and the Playwright suite passed on ${BUMP_SHA} in release.yaml run ${RUN_URL}"
+            -f "output[summary]=npm run check, npm run build and the Playwright suite passed on main, and ${BUMP_SHA} changes only the version (scripts/check-version-bump.sh), in release.yaml run ${RUN_URL}"
 
       # GitHub finishes the squash-merge once the check above is
       # recorded; gh merges immediately if the PR is already mergeable.
