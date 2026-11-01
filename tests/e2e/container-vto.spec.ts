@@ -11,7 +11,7 @@ import {
 } from './fixtures/seed'
 
 // End-to-end coverage for container (Suits & Sets) VTO expansion. Wire
-// contract for /v1/vto-compositions is unchanged (1..4 leaf-garment items);
+// contract for /v1/vto-compositions is unchanged (1..3 leaf-garment items);
 // containers require the SDK to fan out the shopper's one parent-CSA
 // selection into N leaf-CSA items[] entries before posting. This test
 // intercepts the composition POST body and asserts on the wire shape.
@@ -53,8 +53,8 @@ test('quick-view container: POST /v1/vto-compositions carries child CSAs, not th
   // ever appears, the resolver has regressed to no-op / bypass.
   expect(emittedCsaIds).not.toContain(TEST_CONTAINER_PARENT_CSA_ID)
 
-  // Wire item count must never exceed 4 (backend + sim-vis cap). A 2-piece
+  // Wire item count must never exceed MAX_OUTFIT_ITEMS (3 for now, WEB-36). A 2-piece
   // Set alone shouldn't approach it, but this locks in the invariant the
   // Phase B garment-count cap enforces client-side.
-  expect(items.length).toBeLessThanOrEqual(4)
+  expect(items.length).toBeLessThanOrEqual(3)
 })

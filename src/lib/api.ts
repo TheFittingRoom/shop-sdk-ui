@@ -300,7 +300,7 @@ function canonicalVtoKey(items: VtoCompositionItem[]): string {
   return JSON.stringify(normalized)
 }
 
-// requestVto dispatches a 1..4-garment VTO composition. The endpoint is
+// requestVto dispatches a 1..MAX_OUTFIT_ITEMS-garment VTO composition. The endpoint is
 // synchronous: the backend calls sim-vis inline and returns the rendered
 // frame paths directly, so the resolved VtoCompositionResponse already
 // carries `frames`. A render failure surfaces as a rejected promise
