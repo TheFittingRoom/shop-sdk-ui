@@ -578,6 +578,11 @@ export interface FirestoreSizeSystem {
 export interface SizeValue {
   id: any /* enums.SizeValueID */;
   name: string;
+  /**
+   * SortOrder is the value's place in its size system, smallest first.
+   * Sort size values by it, never by id.
+   */
+  sort_order: number /* int */;
 }
 /**
  * FirestoreSizeValue is the inline shape of a SizeValue when embedded
@@ -587,6 +592,7 @@ export interface SizeValue {
 export interface FirestoreSizeValue {
   id: number /* int */;
   name: string;
+  sort_order: number /* int */;
 }
 
 //////////
