@@ -43,6 +43,10 @@ import { getSizeLabelFromSize } from '@/lib/util'
 import { useMobileSheetSnap } from '@/lib/use-mobile-sheet-snap'
 import { DeviceLayout, OverlayName } from '@/lib/view'
 import { useVtoRequests } from '@/lib/use-vto-requests'
+import { GenderPrompt } from '@/components/gender-prompt'
+import { MiniMePill } from '@/components/mini-me-pill'
+import { useIsDemoAvatar } from '@/lib/demo-avatar'
+import { canTryOn } from '@/lib/user-avatar'
 
 interface ElementSize {
   width: number
@@ -70,7 +74,7 @@ const logger = getLogger('overlays/quick-view')
 
 export default function QuickViewOverlay() {
   const userIsLoggedIn = useMainStore((state) => state.userIsLoggedIn)
-  const userHasAvatar = useMainStore((state) => state.userHasAvatar)
+  const userAvatar = useMainStore((state) => state.userAvatar)
   const userProfile = useMainStore((state) => state.userProfile)
   const storeProductData = useMainStore((state) => state.productData)
   const deviceLayout = useMainStore((state) => state.deviceLayout)
@@ -114,17 +118,13 @@ export default function QuickViewOverlay() {
     clearError: clearVtoError,
   } = useVtoRequests()
 
-  // Redirect if not logged in or no avatar
+  // Redirect if not logged in. A shopper without an avatar of their own tries
+  // on with the demo avatar (or picks one first: see the gender prompt below).
   useEffect(() => {
     if (!userIsLoggedIn) {
       openOverlay(OverlayName.LANDING, { returnToOverlay: OverlayName.QUICK_VIEW })
-      return
     }
-    if (userIsLoggedIn && userHasAvatar === false) {
-      openOverlay(OverlayName.GET_APP, { returnToOverlay: OverlayName.QUICK_VIEW, noAvatar: true })
-      return
-    }
-  }, [userIsLoggedIn, userHasAvatar, openOverlay])
+  }, [userIsLoggedIn, openOverlay])
 
   // On load, load store product data (in case not already loaded)
   useEffect(() => {
@@ -469,7 +469,11 @@ export default function QuickViewOverlay() {
     )
   }
 
-  if (!userIsLoggedIn || !userHasAvatar || vtoProductData == null || !selectedColorSizeRecord) {
+  if (userIsLoggedIn && userAvatar?.kind === 'needs_gender') {
+    return <GenderPrompt onClose={closeOverlay} />
+  }
+
+  if (!userIsLoggedIn || !canTryOn(userAvatar) || vtoProductData == null || !selectedColorSizeRecord) {
     return (
       <SidecarModalFrame onRequestClose={closeOverlay}>
         <Loading />
@@ -510,8 +514,15 @@ export default function QuickViewOverlay() {
   )
 }
 
-function NoFitLayout({ onClose, onSignOut }: { onClose: () => void; onSignOut: () => void }) {
+// QuickViewTitle: while the shopper is on the demo avatar, the title bar
+// carries "Create your Mini Me" instead of the overlay's name.
+function QuickViewTitle() {
   const { t } = useTranslation()
+  const isDemo = useIsDemoAvatar()
+  return isDemo ? <MiniMePill /> : <>{t('quick-view.title')}</>
+}
+
+function NoFitLayout({ onClose, onSignOut }: { onClose: () => void; onSignOut: () => void }) {
   const css = useCss((_theme) => ({
     mainContainer: {
       width: '100%',
@@ -537,7 +548,7 @@ function NoFitLayout({ onClose, onSignOut }: { onClose: () => void; onSignOut: (
   return (
     <div css={css.mainContainer}>
       <div css={css.titlebarContainer}>
-        <ModalTitlebar title={t('quick-view.title')} onCloseClick={onClose} />
+        <ModalTitlebar title={<QuickViewTitle />} onCloseClick={onClose} />
       </div>
       <div css={css.contentContainer}>
         <div>&nbsp;</div>
@@ -727,6 +738,11 @@ function MobileLayout({
       width: '16px',
       height: '16px',
     },
+    miniMePosition: {
+      position: 'absolute',
+      top: '12px',
+      left: '10px',
+    },
     bottomFrameOuter: {
       position: 'absolute',
       width: 'calc(100% - 16px)',
@@ -829,6 +845,9 @@ function MobileLayout({
       <button onClick={onClose} aria-label="Close modal" css={css.closeButton}>
         <CloseIcon css={css.closeIcon} />
       </button>
+      {/* No title bar on a phone: the pill takes the top-left corner, across
+          from the close button. */}
+      <MiniMePill position={css.miniMePosition} />
       <div css={css.bottomFrameOuter} style={bottomFrameOuterStyle}>
         <div ref={bottomFrameInnerRef} css={css.bottomFrameInner} style={bottomFrameInnerStyle}>
           <div css={css.headerContainer} onTouchStart={handleBottomFrameTouchStart}>
@@ -1202,7 +1221,6 @@ function DesktopLayout({
   containerUntucked,
   onToggleUntuck,
 }: LayoutProps) {
-  const { t } = useTranslation()
   const [fitChartOpen, setFitChartOpen] = useState<boolean>(false)
   const css = useCss((_theme) => ({
     mainContainer: {
@@ -1316,7 +1334,7 @@ function DesktopLayout({
     <div css={css.mainContainer}>
       <Avatar frameUrls={frameUrls} autoRotateTrigger={autoRotateTrigger} setModalStyle={setModalStyle} />
       <div css={css.rightContainer}>
-        <ModalTitlebar title={t('quick-view.title')} onCloseClick={onClose} />
+        <ModalTitlebar title={<QuickViewTitle />} onCloseClick={onClose} />
         <div css={css.contentContainer}>
           <div css={css.productNameContainer}>
             <Text variant="brand" css={css.productNameText}>

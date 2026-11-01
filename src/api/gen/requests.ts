@@ -544,6 +544,19 @@ export interface User {
   is_gte_18: boolean;
   is_tos_accepted: boolean;
   job: string;
+  /**
+   * Gender (female | male) picks the demo avatar the user tries on with
+   * until they scan. Optional: the mobile app doesn't send it, and an
+   * omitted value leaves a stored one unchanged.
+   */
+  gender: string;
+}
+/**
+ * UserGender sets the signed-in user's own gender, for accounts created
+ * before sign-up asked for one.
+ */
+export interface UserGender {
+  gender: string;
 }
 export interface PatchUser {
   brand_id?: number /* int64 */;

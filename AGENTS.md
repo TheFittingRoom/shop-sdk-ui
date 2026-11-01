@@ -185,13 +185,77 @@ fixture reads `window.__TFR_TEST_CONFIG__` and threads it into `init`).
 Production callers MUST NOT set `InitParams.testHooks`. The field is
 namespaced and documented as test-only.
 
+**Any of `testHooks.auth`, `testHooks.accounts` or `testHooks.firestore`
+switches the mocks on; nothing else does.** A test with none of them runs
+against **real Firebase** (the dev project). `accounts` was added to that
+list after a signed-out sign-up test that only listed accounts created a real
+account (`taken@example.com`) in the dev project. `bootSdk` now always sets
+`accounts` (empty by default), so every e2e test runs on the mocks; a test
+that builds its own `testHooks` must do the same.
+
+`MockAuthManager.signUp` creates uid `signup-<email>` and refuses an email the
+seeded user or `accounts` already has (`auth/email-already-in-use`). No
+profile exists until the test writes `users/<uid>` through
+`window.__TFR_TEST_MOCKS__`, as the backend's Firestore sync would.
+
 REST endpoints (`/v1/styles/{id}/recommendation`, `/v1/style-categories`,
-`/v1/style-category-groups`, `/v1/vto-compositions`) are mocked via Playwright
+`/v1/style-category-groups`, `/v1/vto-compositions`, `PUT /v1/users/{uid}`,
+`PUT /v1/users/{uid}/gender`, `/v1/demo-avatars/{gender}`) are mocked via Playwright
 `page.route()` from `tests/e2e/mocks/api.ts`. Per-test overrides drive error
 paths and edge cases.
 
 `npm run check` stays cheap (tsc + ESLint + Prettier). `npm run test` runs the
 e2e suite. CI runs both — see `.github/workflows/build.yml`.
+
+### A test isn't done until it has failed
+
+The standard across our repos: a test is not ready until it has been shown
+to fail when the code it guards does the wrong thing. A green test proves
+nothing on its own — a selector that matches nothing, an assertion made
+before the state it checks, or a fixture that hides the behaviour all pass.
+
+For each new or changed test:
+
+1. Name the behaviour it guards and write a **mutant**: the smallest change
+   to `src/` that breaks that behaviour (drop a condition, return early,
+   render nothing, skip a call).
+2. Run the test against the mutant and see it fail, **for the reason it
+   should** (read the failure, not just the count).
+3. Restore the code and see it pass again.
+
+A test no relevant mutant fails is fixed or deleted. Record the mutants and
+what each one caught in the PR, and in this file where a test guards
+something easy to undo (as the frame-display and outfit sections do).
+
+Two traps:
+
+- **Playwright reuses a running server.** `reuseExistingServer` is on
+  locally, so if anything is serving `:5173` (`npm run watch-serve`, a
+  previous run) the mutant is never built and every run tests the old
+  bundle. Check nothing holds the port before a mutation run.
+- **Restore from a copy, and verify the restore.** Use `/bin/cp -f` (a
+  `cp` alias that prompts hangs a script) or keep the original in memory,
+  and diff afterwards; a mutant left behind ships.
+
+**The host page is not the store.** `host.html` has none of the theme's fonts
+or CSS, so layout that fits there can overflow or collapse on a real
+storefront. For any visual change, also run
+`node scripts/storefront-screenshots.cjs <out-dir>` (after `npm run build`):
+it loads the demo storefront in a headless browser and answers the store's
+unpkg request with `dist/index.js`, so the theme runs this build (desktop and
+phone; signed-out screens only, so no renders). It deliberately doesn't use
+`?tfr-source=local-dev`: Chrome's local network access rules block a public
+site loading from localhost unless the user has allowed it. Two things it
+caught that the e2e host page never showed:
+
+- **Storefront themes hide empty elements** (Shopify Dawn has
+  `div:empty { display: none }`). Never rely on an empty element for spacing
+  (e.g. an always-present error row); space with margins and render the row
+  only when it has content.
+- **Content can outgrow the modal.** `ContentModal`'s body has `minHeight: 0`
+  so it scrolls inside the fixed-height frame instead of clipping its buttons
+  out of reach, and the landing image is capped at 30vh so the pinned
+  "Powered by" footer doesn't cover the sign-in line.
 
 ## Environment selection
 
@@ -605,6 +669,146 @@ meta, so the phone profile lays out 980px wide.
 Guarded by `e2e/outfit-conflicts.spec.ts`; the swap tests were verified to
 fail with the old disable rule, the notice test with a notice on every swap.
 
+## Sign-up and the demo avatar (WEB-25)
+
+Shoppers can create an account in the SDK and try on before they ever scan:
+until they have an avatar of their own they **borrow** a shared demo avatar
+for the gender they chose. The backend decides which avatar size-rec and VTO
+use (tfr-backend `AGENTS.md` → "Demo avatars"); the SDK mirrors that decision
+so what it shows matches what was rendered.
+
+**Which avatar — `src/lib/user-avatar.ts`.** `userAvatarFromProfile` turns
+the Firestore profile into `store.userAvatar`:
+
+- `own` — `avatar_frames` present **or** `avatar_status === 'CREATED'`. Both
+  halves matter. The status covers the avatar sync, which rewrites the whole
+  user doc and adds `avatar_frames` back a moment later (without it, a
+  shopper with an avatar and a gender flickers to the demo one; guarded by
+  `vto-prefetch.spec.ts` "a new avatar while quick view stays open"). The
+  frames cover a re-scan (`PENDING`) or a failed render (`NOT_CREATED`), where
+  the previous avatar is still theirs — the backend uses it too.
+- `demo` — no own avatar, `gender` is `female` or `male`.
+- `needs_gender` — neither (an app account that never scanned). Quick view
+  and the fitting room show `GenderPrompt` instead of the try-on; choosing
+  calls `PUT /v1/users/:uid/gender` and patches the profile locally rather
+  than waiting for the Firestore sync.
+
+`userHasAvatar` and the redirect to the get-app screen for shoppers without
+an avatar are gone.
+
+**Demo frames come from `GET /v1/demo-avatars/:gender`**, loaded by
+`src/lib/demo-avatar.ts` into `store.demoAvatarFrames` — never from the
+shopper's own `avatar_frames`, which the backend keeps free of them because
+the mobile app shows that field as the user's own avatar. `useAvatarFrames()`
+gives whichever applies; the fitting room's bare-avatar pane uses it.
+
+**Caches follow the avatar.** `avatarKey` names the avatar results were
+computed on (`demo:<gender>`, or an own avatar's first frame path) and
+`AvatarKeyTracker` reports when one known avatar replaces another. api.ts
+then moves the owner generation on (VTO caches, see "VTO request flow") and
+clears the response cache, and product.ts drops the stored product data, so
+size recommendations made on the demo avatar's measurements are fetched
+again once the shopper's own avatar arrives. The demo key is what makes the
+demo → own switch count as a replacement; `demo-avatar.spec.ts` "when the
+shopper's own avatar arrives" fails without it.
+
+**UI pieces**, each rendering nothing for a shopper with their own avatar so
+layouts can place them unconditionally:
+
+- `DemoWatermark` — "DEMO AVATAR" over every try-on image: inside
+  `AvatarFrameViewer` (fitting room, quick view) and the desktop
+  `ZoomModal`. `pointer-events: none`, so dragging and pinching still reach
+  the image.
+- `MiniMePill` — "Create your Mini Me", TFR teal, opens `GetAppPopup`: the
+  get-app content as its own modal over the current overlay, so closing it
+  returns the shopper exactly where they were (switching to the GET_APP
+  overlay would unmount the fitting room and lose its state). Placement:
+  quick view desktop replaces the title; quick view mobile top-left (close is
+  top-right); fitting room mobile try-on top-right; fitting room desktop and
+  mobile browse in `TopRightPills` beside the `SectionNav`.
+
+**Sign-up (`overlays/sign-up.tsx`, OverlayName.SIGN_UP)**, from the landing
+screen's "Try it now, scan later" and the sign-in screen's "Create one.": email,
+password (Firebase's 6-character minimum), name, Female/Male, and the 18+ and
+Terms/Privacy checkboxes (`config.links`), all required. It does what the
+mobile app does: `authManager.signUp` (Firebase), then `api.putUser` with
+`gender`, then refreshes the token so it carries the role the backend just
+assigned. If the Firebase account was created but `putUser` failed, the
+shopper is still signed in to it and the next submit skips straight to
+`putUser` (signing up again would fail with "email already in use"). The
+profile doc appears once the backend's Firestore sync runs; until then the
+overlay shows Loading.
+
+**Landing screen:** "Try before you scan with a demo avatar", a white
+"Try it now, scan later" button (Button variant `secondary`), "OR", then
+"Create your Mini Me" (the get-app screen) and Sign in.
+
+**Errors.** The SDK has no special handling for the backend's 409 (gender
+required) or 503 (no demo avatar set up). It never sends a request that
+could get the 409: nothing loads for a `needs_gender` shopper until they
+choose. A 503 is a failed try-on like any other (the try-on error
+snackbar). A failed gender save keeps the prompt up with an error.
+
+Guarded by `e2e/demo-avatar.spec.ts`. Each mutant below was applied to
+`src/` alone and failed the tests named (2026-11-01, 25 mutants, all
+caught):
+
+| Mutant | Fails |
+|---|---|
+| no watermark | every demo test that shows a try-on |
+| no watermark in the zoom view | the zoom view is watermarked too |
+| pill for every shopper | own avatar sees no pill; PENDING / NOT_CREATED |
+| pill popup won't close | a demo shopper sees the demo avatar (returns to the fitting room) |
+| quick view keeps its title for a demo shopper | sign-up creates the account; own avatar arrives |
+| no pill on mobile try-on | mobile |
+| demo avatarKey blank | own avatar arrives |
+| no `avatar_frames` clause in `userAvatarFromProfile` | PENDING / NOT_CREATED keep their own avatar |
+| no `CREATED` clause | `vto-prefetch.spec.ts` "a new avatar while quick view stays open" |
+| own frames shown for a demo shopper | a demo shopper sees the demo avatar |
+| no gender prompt (quick view) | no gender chooses first; saving the gender fails |
+| product data loads without a gender | no gender chooses first (no requests before choosing) |
+| gender not patched locally | no gender chooses first |
+| gender save failure silent | saving the gender fails |
+| `putUser` without gender | sign-up creates the account |
+| retry signs up to Firebase again | retries only the record |
+| no email / password / gender check | sign-up creates the account; malformed email (email, password) |
+| email in use offers no sign in | already has an account |
+| intro video never plays | landing screen |
+| no section selector on desktop | jump-to-section |
+| product data kept on avatar change | own avatar arrives |
+| VTO caches kept on avatar change | own avatar arrives |
+| try-on error hidden | the backend refuses |
+
+Not covered: the French copy, and the fitting room's own gender prompt
+(the same component as quick view's, but its call site is untested).
+
+## Landing intro video
+
+The landing screen shows `intro-video-poster.jpg` with a play button the SDK
+draws (`landing.tsx`); tapping it swaps in `intro-video.mp4` in the same
+square box, so nothing moves. Both come from the assets bucket
+(`config.asset.baseUrl`, `shop-sdk/assets/v5/`), not the bundle — the video is
+1.6 MB. It plays `muted` (it has no sound track; muted is what lets autoplay
+start everywhere) and `playsInline` (iPhones would otherwise go fullscreen).
+The box is `min(100%, 30vh)` square: see "The host page is not the store"
+for why the landing image is capped.
+
+The poster is the video's first frame ("Step 1 — Download the app"), so
+playback starts on exactly what was shown. Swapping it is an upload to the
+same key, no code change. The old `intro-video-thumbnail.png` stays in the bucket for released
+SDK versions.
+
+## Fitting-room section selector
+
+`SectionNav`, the dark jump-to-section pill, sits over the card rails on
+**both** layouts (desktop since WEB-25). `useSectionNav` (in
+`section-nav.tsx`) is the shared scroll-spy: attach `scrollerRef`/`onScroll`
+to the scrolling column and `sectionRef(name)` to each rail's wrapper.
+`SectionNav` no longer positions itself; `TopRightPills` floats it top-right
+next to `MiniMePill` and lets the row wrap on a narrow screen (the second
+pill drops below the first). It is held back while the rails load and hidden
+with a single section.
+
 ## Get-app QR code
 
 The get-app screen's QR code (`src/assets/get-app-qr-code.svg`, to
@@ -624,6 +828,10 @@ result with a real phone camera before shipping it.
 On a phone the screen shows App Store / Google Play badges instead, which
 open `config.links` (`src/lib/config.ts`). The Play listing moved to package
 `com.thefittingroom.app` (the old `com.thefittingroom.marketplace` is gone).
+
+The same content appears in two places: the signed-out GET_APP overlay
+(from the landing screen's "Create your Mini Me") and `GetAppPopup` (the
+pill on the try-on overlays, see "Sign-up and the demo avatar").
 
 `e2e/get-app.spec.ts` checks the screen shows the bundled image (a
 `data:image/svg+xml` URI carrying the URL in its header comment), not the
@@ -730,6 +938,9 @@ gen / Firestore-conventions notes above are easy to drift from when
 files move or shapes change — keep AGENTS.md edits in the same change as
 the code they describe.
 
+- [ ] **Every new or changed test has been seen to fail** — see "A test
+      isn't done until it has failed" below. Say in the PR which mutant each
+      test caught.
 - [ ] `npm run check` (tsc --noEmit + ESLint + Prettier) clean
 - [ ] `npm run build` produces `dist/index.js` without errors
 - [ ] `npm run test:e2e` passes (locally or in CI)

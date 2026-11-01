@@ -29,6 +29,9 @@ export interface Config {
   links: {
     appAppleStoreUrl: string
     appGooglePlayUrl: string
+    // Linked from the sign-up checkbox, as the mobile app links them.
+    termsOfServiceUrl: string
+    privacyPolicyUrl: string
   }
   build: {
     version: string
@@ -62,6 +65,8 @@ const SHARED_CONFIG = {
     // The app's new package id (was com.thefittingroom.marketplace, now
     // delisted).
     appGooglePlayUrl: 'https://play.google.com/store/apps/details?id=com.thefittingroom.app',
+    termsOfServiceUrl: 'https://www.thefittingroom.tech/terms-of-service',
+    privacyPolicyUrl: 'https://www.thefittingroom.tech/privacy-policy',
   },
   build: {
     version: `${process.env.BUILD_VERSION}`,

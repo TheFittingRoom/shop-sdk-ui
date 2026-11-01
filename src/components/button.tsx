@@ -3,7 +3,7 @@ import { useTranslation } from '@/lib/locale'
 import type { CssProp } from '@/lib/theme'
 import { useVariantCss } from '@/lib/theme'
 
-export type ButtonVariant = 'base' | 'primary' | 'brand'
+export type ButtonVariant = 'base' | 'primary' | 'secondary' | 'brand'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant: ButtonVariant
@@ -27,6 +27,26 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ children, va
       border: 'none',
       borderRadius: '25px',
       padding: '16px 24px',
+      cursor: 'pointer',
+      fontFamily: theme.font_family,
+      fontSize: '16px',
+      fontWeight: 'bold',
+      textAlign: 'center',
+      '&:disabled': {
+        opacity: 0.4,
+        cursor: 'not-allowed',
+      },
+    },
+    // The primary button's outline: white, with TFR teal border and text. For
+    // a second choice next to a primary button.
+    secondary: {
+      display: 'block',
+      width: '100%',
+      backgroundColor: '#FFFFFF',
+      color: theme.color_tfr_800,
+      border: `1px solid ${theme.color_tfr_800}`,
+      borderRadius: '25px',
+      padding: '15px 24px',
       cursor: 'pointer',
       fontFamily: theme.font_family,
       fontSize: '16px',

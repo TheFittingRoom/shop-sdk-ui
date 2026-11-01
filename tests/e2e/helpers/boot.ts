@@ -90,9 +90,10 @@ export async function bootSdk(page: Page, options: BootSdkOptions = {}): Promise
       if (firestoreDocs) {
         testHooks.firestore = { docs: firestoreDocs }
       }
-      if (accounts) {
-        testHooks.accounts = accounts
-      }
+      // Always set, even empty: any of auth / accounts / firestore switches
+      // the SDK to the Firebase mocks, and without one a signed-out test would
+      // run against real Firebase — where a sign-up creates a real account.
+      testHooks.accounts = accounts ?? []
       ;(window as unknown as { __TFR_TEST_CONFIG__: unknown }).__TFR_TEST_CONFIG__ = {
         brandId,
         environment: 'demo',

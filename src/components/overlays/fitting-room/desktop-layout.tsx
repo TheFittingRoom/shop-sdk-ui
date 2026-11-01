@@ -11,6 +11,9 @@ import { AvatarPane } from './avatar-pane'
 import { CardRail } from './card-rail'
 import { ClearAllPill } from './clear-all-pill'
 import { DetailAccordion } from './detail-accordion'
+import { SectionNav, useSectionNav } from './section-nav'
+import { TopRightPills } from './top-right-pills'
+import { MiniMePill } from '@/components/mini-me-pill'
 import type { DetailMode } from './detail-accordion-item'
 import { ZoomModal } from '@/components/zoom-modal'
 
@@ -89,6 +92,8 @@ export function DesktopLayout({
   onClearAll,
 }: DesktopLayoutProps) {
   const hasSelection = selectedItems.length > 0
+  const sections = resolved.groups.map((g) => ({ name: g.group.name, label: g.group.label }))
+  const sectionNav = useSectionNav(sections)
   // Avatar-pane hover collapses the AvatarControls pills to icon-only when
   // the cursor isn't over the image pane.
   const [avatarHovered, setAvatarHovered] = useState<boolean>(false)
@@ -304,18 +309,29 @@ export function DesktopLayout({
         </div>
       ) : null}
       <div css={css.railsPane}>
-        <div css={css.railsColumn}>
+        {/* "Create your Mini Me" and the jump-to-section control, floating
+            top-right over the cards as on mobile browse. The section control
+            waits for the rails to finish loading (its readout would flicker as
+            they appear) and needs more than one section to be useful. */}
+        <TopRightPills>
+          <MiniMePill />
+          {!resolved.isLoading && resolved.groups.length > 1 ? (
+            <SectionNav sections={sections} activeName={sectionNav.activeName} onSelect={sectionNav.scrollToSection} />
+          ) : null}
+        </TopRightPills>
+        <div ref={sectionNav.scrollerRef} css={css.railsColumn} onScroll={sectionNav.onScroll}>
           {resolved.groups.map((group, index) => (
-            <CardRail
-              key={group.group.name}
-              group={group}
-              availabilityByExternalId={availabilityByExternalId}
-              onSelectItem={onSelectItem}
-              onRemoveItem={onRemoveItem}
-              onChangeColor={onChangeColor}
-              sortSelectedFirst
-              firstCardHelpTip={index === 0 && !resolved.isLoading}
-            />
+            <div key={group.group.name} ref={sectionNav.sectionRef(group.group.name)}>
+              <CardRail
+                group={group}
+                availabilityByExternalId={availabilityByExternalId}
+                onSelectItem={onSelectItem}
+                onRemoveItem={onRemoveItem}
+                onChangeColor={onChangeColor}
+                sortSelectedFirst
+                firstCardHelpTip={index === 0 && !resolved.isLoading}
+              />
+            </div>
           ))}
           <span css={{ ...css.utilityLink, ...css.signOutWrapper }} onClick={onSignOut}>
             <TfrIcon css={css.utilityIcon} />

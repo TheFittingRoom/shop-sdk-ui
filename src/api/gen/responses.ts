@@ -24,6 +24,15 @@ export interface FirestoreAvatar {
   created_at: any /* time.Time */;
   updated_at?: any /* time.Time */;
 }
+/**
+ * DemoAvatar is the demo avatar lent to users who have no avatar of their own
+ * yet (GET /v1/demo-avatars/:gender). Frames are bare paths, like
+ * FirestoreUser.AvatarFrames: clients prepend their frames host.
+ */
+export interface DemoAvatar {
+  gender: string;
+  frames: string[];
+}
 
 //////////
 // source: base_body.go
@@ -851,6 +860,13 @@ export interface FirestoreUser {
   job: string;
   avatar_status: string;
   avatar_gender: string;
+  /**
+   * Gender is the user's own choice (female | male), which picks the demo
+   * avatar they try on with until they have an avatar of their own. Empty
+   * when they haven't chosen. Not the same as AvatarGender, which comes from
+   * the scan.
+   */
+  gender: string;
   created_at: any /* time.Time */;
   updated_at?: any /* time.Time */;
   is_tos_accepted: boolean;

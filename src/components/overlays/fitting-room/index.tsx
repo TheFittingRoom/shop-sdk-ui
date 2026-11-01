@@ -30,6 +30,9 @@ import type { DetailMode } from './detail-accordion-item'
 import type { MobileMode } from './mobile-layout'
 import { MobileLayout } from './mobile-layout'
 import { useVtoRequests } from '@/lib/use-vto-requests'
+import { GenderPrompt } from '@/components/gender-prompt'
+import { useAvatarFrames } from '@/lib/demo-avatar'
+import { canTryOn } from '@/lib/user-avatar'
 
 // Map our local OutfitItem shape (which carries the externalId for UI bookkeeping)
 // to the wire shape expected by the VTO API.
@@ -90,8 +93,10 @@ export interface FittingRoomOverlayProps {
 export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomOverlayProps) {
   const deviceLayout = useMainStore((state) => state.deviceLayout)
   const userIsLoggedIn = useMainStore((state) => state.userIsLoggedIn)
-  const userHasAvatar = useMainStore((state) => state.userHasAvatar)
-  const userProfile = useMainStore((state) => state.userProfile)
+  const userAvatar = useMainStore((state) => state.userAvatar)
+  const tryOnReady = canTryOn(userAvatar)
+  // The shopper's own avatar, or the demo one they borrow until they scan.
+  const avatarFrames = useAvatarFrames()
   const closeOverlay = useMainStore((state) => state.closeOverlay)
   const openOverlay = useMainStore((state) => state.openOverlay)
   const updateFittingRoomItem = useMainStore((state) => state.updateFittingRoomItem)
@@ -266,7 +271,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
       }
       setSelectedExternalIds(nextSelected)
     },
-    [resolved, selectedExternalIds, openAccordionItemId, isMobileLayout, ensureSizeForItem],
+    [resolved, selectedExternalIds, isMobileLayout, ensureSizeForItem],
   )
 
   const handleChangeSize = useCallback(
@@ -430,7 +435,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
       // this the X only deselected the item within the current overlay.
       removeFromFittingRoom(externalId)
     },
-    [openAccordionItemId, removeFromFittingRoom],
+    [removeFromFittingRoom],
   )
 
   // Undo restores the selection from before the swap. The added item stays in
@@ -541,8 +546,8 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   const tuckLabel = tuckControl?.label ?? VtoTuckLabelTuck
 
   // Fire VTO for the primary outfit + pre-warm alternates. Gated on auth and
-  // an existing avatar — anonymous / no-avatar users can still browse but
-  // can't fire compositions (the redirect kicks in elsewhere). The alternate
+  // an avatar to render on (their own or the demo) — the redirect and the
+  // gender prompt handle everyone else. The alternate
   // pre-warm is speculative and gated behind config.features.vtoPrefetch.
   //
   // Mobile-browse is also gated: while the user is in the BrowseView the
@@ -553,7 +558,7 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   // until it lands. Desktop is unaffected (isMobileLayout is false) and
   // keeps firing eagerly because the avatar pane is always visible there.
   useEffect(() => {
-    if (!userIsLoggedIn || !userHasAvatar) {
+    if (!userIsLoggedIn || !tryOnReady) {
       return
     }
     if (isMobileLayout && mobileMode === 'browse') {
@@ -567,37 +572,31 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
         requestVtoComposition(toWireItems(alt), false)
       }
     }
-  }, [userIsLoggedIn, userHasAvatar, isMobileLayout, mobileMode, outfit, requestVtoComposition])
+  }, [userIsLoggedIn, tryOnReady, isMobileLayout, mobileMode, outfit, requestVtoComposition])
 
   // Frames for the currently-active outfit, OR the bare-avatar frames when
   // nothing is selected (so the user always sees their avatar in the pane).
   const frameUrls = useMemo<string[] | null>(() => {
     if (outfit.items.length === 0) {
-      const bareFrames = userProfile?.avatar_frames
-      if (!bareFrames || bareFrames.length === 0) {
+      if (!avatarFrames) {
         return null
       }
       const baseUrl = getStaticData().config.frames.baseUrl
-      return bareFrames.map((u) => applyFrameBaseUrl(u, baseUrl))
+      return avatarFrames.map((u) => applyFrameBaseUrl(u, baseUrl))
     }
     return framesForOutfit(toWireItems(outfit.items))
-  }, [outfit, framesForOutfit, userProfile])
+  }, [outfit, framesForOutfit, avatarFrames])
 
   // Auth gate: fire at overlay-open time (mirrors quick-view). Anonymous
-  // users get bounced to LANDING; logged-in-but-no-avatar users get bounced
-  // to GET_APP. Both pass returnToOverlay=FITTING_ROOM so the post-auth
-  // flow brings them back here. userHasAvatar starts as null while the
-  // user profile is loading — only redirect to GET_APP once it's
-  // explicitly false.
+  // users get bounced to LANDING with returnToOverlay=FITTING_ROOM, so
+  // signing in or up brings them back here. A shopper without an avatar of
+  // their own tries on with the demo avatar, or first picks one (the gender
+  // prompt below).
   useEffect(() => {
     if (!userIsLoggedIn) {
       openOverlay(OverlayName.LANDING, { returnToOverlay: OverlayName.FITTING_ROOM })
-      return
     }
-    if (userHasAvatar === false) {
-      openOverlay(OverlayName.GET_APP, { returnToOverlay: OverlayName.FITTING_ROOM, noAvatar: true })
-    }
-  }, [userIsLoggedIn, userHasAvatar, openOverlay])
+  }, [userIsLoggedIn, openOverlay])
 
   const handleSignOut = useCallback(() => {
     closeOverlay()
@@ -689,7 +688,10 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   // user profile is still loading), don't render the overlay's body — we'd
   // either flash an empty rails view or briefly render the layout before
   // the redirect lands. Match quick-view's gating behavior.
-  const authResolved = userIsLoggedIn && userHasAvatar === true
+  if (userIsLoggedIn && userAvatar?.kind === 'needs_gender') {
+    return <GenderPrompt onClose={closeOverlay} />
+  }
+  const authResolved = userIsLoggedIn && tryOnReady
   if (!authResolved) {
     return (
       <ModalFrame isOpen onRequestClose={closeOverlay} overlayStyle={overlayStyle} contentStyle={contentStyle}>

@@ -7,6 +7,7 @@ import type { Auth, User } from 'firebase/auth'
 import {
   browserLocalPersistence,
   confirmPasswordReset,
+  createUserWithEmailAndPassword,
   getAuth,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -244,6 +245,11 @@ export class AuthManager implements IAuthManager {
     return userCredential.user
   }
 
+  async signUp(email: string, password: string): Promise<AuthUser> {
+    const userCredential = await createUserWithEmailAndPassword(this.auth, email, password)
+    return userCredential.user
+  }
+
   async logout(): Promise<void> {
     await this.auth.signOut()
   }
@@ -329,13 +335,21 @@ export function getAuthManager(): IAuthManager {
 export async function _init() {
   const { brandId, config, testHooks } = getStaticData()
 
-  // Test-only hatch: when testHooks.auth or testHooks.firestore is set, swap
-  // in mock managers and skip Firebase entirely. Production callers never set
-  // this field; the real init path below runs unchanged. We check for the
-  // specific keys (not just `testHooks !== undefined`) so other unrelated
-  // hooks — e.g. `testHooks.device` — can be set without accidentally
-  // disabling real Firebase. See src/lib/firebase-mock.ts.
-  if (testHooks && (testHooks.auth !== undefined || testHooks.firestore !== undefined)) {
+  // Test-only hatch: when testHooks.auth, testHooks.accounts or
+  // testHooks.firestore is set, swap in mock managers and skip Firebase
+  // entirely. Production callers never set this field; the real init path
+  // below runs unchanged. We check for the specific keys (not just
+  // `testHooks !== undefined`) so other unrelated hooks — e.g.
+  // `testHooks.device` — can be set without accidentally disabling real
+  // Firebase. See src/lib/firebase-mock.ts.
+  //
+  // `accounts` counts on its own: a signed-out test that only lists accounts
+  // to sign in or sign up against would otherwise run against real Firebase,
+  // and a sign-up would create a real account.
+  if (
+    testHooks &&
+    (testHooks.auth !== undefined || testHooks.accounts !== undefined || testHooks.firestore !== undefined)
+  ) {
     const seedDocs: Record<string, Record<string, Record<string, unknown>>> = {
       ...(testHooks.firestore?.docs ?? {}),
     }

@@ -4,6 +4,7 @@ import { OverlayManager } from '@/components/overlay-manager'
 import { Widget } from '@/components/widget'
 import { _init as initApi } from '@/lib/api'
 import { _init as initAsset } from '@/lib/asset'
+import { _init as initDemoAvatar } from '@/lib/demo-avatar'
 import { getConfig, EnvName } from '@/lib/config'
 import { _init as initFirebase, getAuthManager } from '@/lib/firebase'
 import type { TestHooks } from '@/lib/firebase-mock'
@@ -138,6 +139,10 @@ export async function init(initParams: InitParams): Promise<boolean> {
 
     // Initialize product data
     initProduct()
+
+    // Load the demo avatar's frames for shoppers who borrow one. After
+    // initApi: the request needs the API base URL.
+    initDemoAvatar()
 
     // Inject styles
     {

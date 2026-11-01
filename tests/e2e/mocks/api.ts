@@ -4,6 +4,7 @@ import {
   EMPTY_STYLE_CATEGORIES,
   EMPTY_STYLE_CATEGORY_GROUPS,
   TEST_VTO_COMPOSITION,
+  testDemoAvatar,
 } from '../fixtures/seed'
 
 // Per-test override hooks. Each receives the matched Route — call .fulfill /
@@ -13,6 +14,11 @@ export interface ApiMockOverrides {
   styleCategories?: (route: Route) => Promise<void> | void
   styleCategoryGroups?: (route: Route) => Promise<void> | void
   vtoComposition?: (route: Route) => Promise<void> | void
+  // PUT /v1/users/:uid (sign-up) and PUT /v1/users/:uid/gender. Default: 200.
+  putUser?: (route: Route) => Promise<void> | void
+  putUserGender?: (route: Route) => Promise<void> | void
+  // GET /v1/demo-avatars/:gender. Default: testDemoAvatar(gender).
+  demoAvatar?: (route: Route) => Promise<void> | void
   frames?: (route: Route) => Promise<void> | void
 }
 
@@ -60,6 +66,32 @@ export async function installApiMocks(page: Page, overrides: ApiMockOverrides = 
     }
     return route.fulfill({ json: TEST_VTO_COMPOSITION })
   })
+
+  await page.route(/\/v1\/users\/[^/]+$/, (route) => {
+    if (overrides.putUser) {
+      return overrides.putUser(route)
+    }
+    return route.fulfill({ status: 200, json: { user_id: route.request().url().split('/').pop() } })
+  })
+
+  await page.route(/\/v1\/users\/[^/]+\/gender$/, (route) => {
+    if (overrides.putUserGender) {
+      return overrides.putUserGender(route)
+    }
+    return route.fulfill({ status: 200, json: {} })
+  })
+
+  await page.route(/\/v1\/demo-avatars\/[^/]+$/, (route) => {
+    if (overrides.demoAvatar) {
+      return overrides.demoAvatar(route)
+    }
+    const gender = route.request().url().split('/').pop() ?? ''
+    return route.fulfill({ json: testDemoAvatar(gender) })
+  })
+
+  // Videos (the landing screen's intro video): an empty body is enough, the
+  // tests only check what is requested and shown.
+  await page.route(/\.mp4(\?.*)?$/i, (route) => route.fulfill({ contentType: 'video/mp4', body: '' }))
 
   // Catch-all for frame images. Must come last so the more specific REST
   // routes above take precedence.

@@ -66,9 +66,14 @@ export function ContentModal({ onRequestClose, title, onBackClick, children }: C
       flexDirection: 'column',
       justifyContent: 'center',
     },
+    // minHeight 0 lets the body shrink inside the fixed-height frame (a flex
+    // item otherwise never goes below its content's height), so a modal taller
+    // than the screen scrolls instead of being clipped with its buttons out of
+    // reach — e.g. sign-up on a phone with every field showing an error.
     body: {
       margin: '16px',
       overflowY: 'auto',
+      minHeight: 0,
     },
     contentContainer: {
       maxWidth: '390px',

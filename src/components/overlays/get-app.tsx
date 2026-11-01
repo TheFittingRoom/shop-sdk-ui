@@ -13,14 +13,55 @@ import { OverlayName } from '@/lib/view'
 
 export interface GetAppOverlayProps extends OverlayProps {
   returnToOverlay?: OverlayName
-  noAvatar?: boolean
 }
 
-export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverlayProps) {
+// GetAppOverlay is the signed-out "Create your Mini Me" screen, reached from
+// the landing and sign-in screens: how to get the app, and a way back to
+// signing in.
+export default function GetAppOverlay({ returnToOverlay }: GetAppOverlayProps) {
   const closeOverlay = useMainStore((state) => state.closeOverlay)
   const openOverlay = useMainStore((state) => state.openOverlay)
-  const isMobileDevice = useMainStore((state) => state.isMobileDevice)
   const css = useCss((theme) => ({
+    signInContainer: {
+      marginTop: '32px',
+    },
+    signInText: {
+      fontSize: '16px',
+    },
+    signInLink: {
+      color: theme.color_tfr_800,
+      fontSize: '16px',
+    },
+  }))
+
+  const handleSignInClick = useCallback(() => {
+    openOverlay(OverlayName.SIGN_IN, { returnToOverlay })
+  }, [openOverlay, returnToOverlay])
+
+  return (
+    <GetAppModal onRequestClose={closeOverlay}>
+      <div css={css.signInContainer}>
+        <TextT variant="base" css={css.signInText} t="landing.already_have_account" />
+        &nbsp;
+        <LinkT onClick={handleSignInClick} variant="base" css={css.signInLink} t="landing.sign_in" />
+      </div>
+    </GetAppModal>
+  )
+}
+
+// GetAppPopup shows the same content over whatever overlay is open, for a
+// signed-in shopper still using the demo avatar ("Create your Mini Me"
+// pills). It is a modal of its own rather than a switch to GET_APP, so
+// closing it returns them to the overlay exactly as they left it.
+export function GetAppPopup({ onClose }: { onClose: () => void }) {
+  return <GetAppModal onRequestClose={onClose} />
+}
+
+// GetAppModal: what the Mini Me is, and how to get the app — a QR code on
+// desktop, the store badges on a phone.
+function GetAppModal({ onRequestClose, children }: { onRequestClose: () => void; children?: ReactNode }) {
+  const isMobileDevice = useMainStore((state) => state.isMobileDevice)
+  const css = useCss((_theme) => ({
     titleText: {
       textTransform: 'uppercase',
     },
@@ -42,21 +83,8 @@ export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverl
     getAppMobileImage: {
       width: '150px',
     },
-    signInContainer: {
-      marginTop: '32px',
-    },
-    signInText: {
-      fontSize: '16px',
-    },
-    signInLink: {
-      color: theme.color_tfr_800,
-      fontSize: '16px',
-    },
   }))
 
-  const handleSignInClick = useCallback(() => {
-    openOverlay(OverlayName.SIGN_IN, { returnToOverlay })
-  }, [openOverlay, returnToOverlay])
   const handleGetAppAppleClick = useCallback(() => {
     const url = getStaticData().config.links.appAppleStoreUrl
     window.open(url, '_blank')
@@ -86,19 +114,15 @@ export default function GetAppOverlay({ returnToOverlay, noAvatar }: GetAppOverl
     )
   }
   return (
-    <ContentModal onRequestClose={closeOverlay} title={<TextT variant="brand" css={css.titleText} t="try_it_on" />}>
+    <ContentModal onRequestClose={onRequestClose} title={<TextT variant="brand" css={css.titleText} t="try_it_on" />}>
       <div>
-        <TextT variant="brand" css={css.headerText} t={noAvatar ? 'get-app.create_avatar' : 'landing.get_the_app'} />
+        <TextT variant="brand" css={css.headerText} t="get-app.create_mini_me" />
       </div>
       <div>
         <TextT variant="base" t="landing.description" />
       </div>
       {getAppNode}
-      <div css={css.signInContainer}>
-        <TextT variant="base" css={css.signInText} t="landing.already_have_account" />
-        &nbsp;
-        <LinkT onClick={handleSignInClick} variant="base" css={css.signInLink} t="landing.sign_in" />
-      </div>
+      {children}
       <PoweredByFooter />
     </ContentModal>
   )

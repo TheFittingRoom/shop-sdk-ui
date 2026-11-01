@@ -66,12 +66,16 @@
   "landing": {
     "header": "Rencontrez votre mini-moi !",
     "description": "Lâche à la taille mais serré aux hanches ? Nous allons vous montrer.",
-    "get_the_app": "Obtenez l'application",
     "already_have_account": "Vous avez déjà un compte ?",
-    "sign_in": "Connectez-vous."
+    "sign_in": "Connectez-vous.",
+    "try_before_you_scan": "Essayez avant de vous scanner avec un avatar de démonstration",
+    "demo_account": "Essayez maintenant, scannez plus tard",
+    "or": "OU",
+    "play_video": "Lire la vidéo",
+    "intro_video": "Comment fonctionne The Fitting Room"
   },
   "get-app": {
-    "create_avatar": "Créez votre avatar"
+    "create_mini_me": "Créez votre mini-moi"
   },
   "sign-in": {
     "email": "Email",
@@ -79,10 +83,10 @@
     "forgot_password": "Mot de passe oublié ?",
     "sign_in": "Se connecter",
     "no_account": "Vous n'avez pas de compte ?",
-    "download_app": "Téléchargez l'application.",
     "invalid_email": "Veuillez entrer une adresse e-mail valide.",
     "missing_password": "Veuillez entrer votre mot de passe.",
-    "login_failed": "Email ou mot de passe incorrect."
+    "login_failed": "Email ou mot de passe incorrect.",
+    "create_account": "Créez-en un."
   },
   "forgot-password": {
     "title": "Mot de passe oublié",
@@ -171,5 +175,38 @@
       "low_hip": "Bas des hanches",
       "thigh": "Cuisse"
     }
+  },
+  "sign-up": {
+    "title": "Créer un compte",
+    "intro": "Vous pourrez utiliser ce profil pour créer votre mini-moi plus tard.",
+    "name": "Nom",
+    "gender": "Avatar de démonstration",
+    "confirm_18": "J'ai 18 ans ou plus",
+    "accept_terms": "J'accepte les",
+    "terms_of_service": "Conditions d'utilisation",
+    "and": "et la",
+    "privacy_policy": "Politique de confidentialité",
+    "submit": "Créer le compte",
+    "password_too_short": "Le mot de passe doit contenir au moins {{count}} caractères.",
+    "missing_name": "Veuillez entrer votre nom.",
+    "missing_gender": "Veuillez choisir homme ou femme.",
+    "must_be_18": "Vous devez avoir 18 ans ou plus.",
+    "must_accept_terms": "Veuillez accepter les Conditions d'utilisation et la Politique de confidentialité.",
+    "email_in_use": "Un compte existe déjà avec cette adresse e-mail.",
+    "email_in_use_sign_in": "C'est le vôtre ?",
+    "failed": "Impossible de créer votre compte. Veuillez réessayer."
+  },
+  "gender": {
+    "female": "Femme",
+    "male": "Homme"
+  },
+  "gender_prompt": {
+    "header": "Choisissez votre mini-moi d'exemple",
+    "description": "Essayez avec un mini-moi d'exemple en attendant de créer le vôtre.",
+    "failed": "Impossible d'enregistrer votre choix. Veuillez réessayer."
+  },
+  "mini_me": {
+    "create": "Créez votre mini-moi",
+    "demo_watermark": "Avatar de démonstration"
   }
 }

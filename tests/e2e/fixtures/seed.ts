@@ -20,6 +20,7 @@ export const TEST_USER_PROFILE: FirestoreUser = {
   job: '',
   avatar_status: 'CREATED',
   avatar_gender: 'female',
+  gender: 'female',
   // Real frame paths name their user: user-<uid>/avatar-<id>/frames/...
   avatar_frames: [`user-${TEST_UID}/avatar-1/frames/image_0.jpg`, `user-${TEST_UID}/avatar-1/frames/image_1.jpg`],
   is_tos_accepted: true,
@@ -343,4 +344,23 @@ export const TEST_CONTAINER_SEEDED_STYLE = {
     { parent_size_id: TEST_CONTAINER_PARENT_SIZE_ID, child_size_id: TEST_CONTAINER_CHILD_SHIRT_SIZE_ID },
     { parent_size_id: TEST_CONTAINER_PARENT_SIZE_ID, child_size_id: TEST_CONTAINER_CHILD_PANTS_SIZE_ID },
   ],
+}
+
+// A signed-up shopper who hasn't scanned (WEB-25): no avatar of their own, so
+// they try on with the demo avatar for their gender.
+export const TEST_DEMO_USER_PROFILE: FirestoreUser = {
+  ...TEST_USER_PROFILE,
+  avatar_status: 'NOT_CREATED',
+  avatar_gender: '',
+  avatar_frames: undefined,
+  gender: 'female',
+}
+
+// GET /v1/demo-avatars/:gender. The paths are in the demo user's folder, as
+// the backend stores them.
+export function testDemoAvatar(gender: string) {
+  return {
+    gender,
+    frames: [`user-demo-${gender}/avatar-9/frames/image_0.jpg`, `user-demo-${gender}/avatar-9/frames/image_1.jpg`],
+  }
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button, ButtonT } from '@/components/button'
 import { HelpTip } from '@/components/help-tooltip'
 import { Text } from '@/components/text'
@@ -16,13 +16,11 @@ import { CardRail } from './card-rail'
 import { ClearAllPill } from './clear-all-pill'
 import { DetailAccordion } from './detail-accordion'
 import type { DetailMode } from './detail-accordion-item'
-import { SectionNav } from './section-nav'
+import { SectionNav, useSectionNav } from './section-nav'
+import { TopRightPills } from './top-right-pills'
+import { MiniMePill } from '@/components/mini-me-pill'
 
 export type MobileMode = 'browse' | 'try-on'
-
-// When jumping to a section, stop this far short of the very top so the
-// floating section-nav pill doesn't sit over the section title.
-const SECTION_SCROLL_TOP_GAP_PX = 50
 
 interface MobileLayoutProps {
   mode: MobileMode
@@ -151,54 +149,9 @@ function BrowseView({
   onSignOut: () => void
   onClearAll: () => void
 }) {
-  const railsAreaRef = useRef<HTMLDivElement>(null)
   const tryItOnRef = useRef<HTMLDivElement>(null)
-  // group name → its wrapper element in the rails scroll area, for the
-  // section-nav scroll-spy and jump-to-section.
-  const sectionRefs = useRef<Map<string, HTMLDivElement>>(new Map())
-  const [activeSectionName, setActiveSectionName] = useState<string | null>(null)
-
   const sections = resolved.groups.map((g) => ({ name: g.group.name, label: g.group.label }))
-
-  // The active section is the topmost one whose top edge is still at or below
-  // the rails-area top — i.e. the section whose start (content-area top) is
-  // still visible. Once a section's top scrolls above the fold it's no longer
-  // current; the next section, whose top is now visible, takes over. When
-  // every section's top has scrolled off (deep in the last section), the last
-  // section stays current.
-  const recomputeActiveSection = useCallback(() => {
-    const container = railsAreaRef.current
-    if (!container) {
-      return
-    }
-    const containerTop = container.getBoundingClientRect().top
-    let active: string | null = null
-    for (const [name, el] of sectionRefs.current) {
-      if (el.getBoundingClientRect().top >= containerTop - 1) {
-        active = name
-        break
-      }
-    }
-    if (active == null) {
-      const groups = resolved.groups
-      active = groups.length > 0 ? groups[groups.length - 1].group.name : null
-    }
-    setActiveSectionName(active)
-  }, [resolved.groups])
-
-  useLayoutEffect(() => {
-    recomputeActiveSection()
-  }, [recomputeActiveSection, resolved.groups])
-
-  const scrollToSection = useCallback((name: string) => {
-    const container = railsAreaRef.current
-    const el = sectionRefs.current.get(name)
-    if (!container || !el) {
-      return
-    }
-    const delta = el.getBoundingClientRect().top - container.getBoundingClientRect().top
-    container.scrollBy({ top: delta - SECTION_SCROLL_TOP_GAP_PX, behavior: 'smooth' })
-  }, [])
+  const sectionNav = useSectionNav(sections)
 
   const css = useCss((theme) => ({
     container: {
@@ -259,21 +212,15 @@ function BrowseView({
           while groups are still resolving the active-section readout flickers
           as rails appear and shift. Also hide when there's only one section:
           the dropdown has nothing to navigate to. */}
-      {!resolved.isLoading && resolved.groups.length > 1 ? (
-        <SectionNav sections={sections} activeName={activeSectionName} onSelect={scrollToSection} />
-      ) : null}
-      <div ref={railsAreaRef} css={css.railsArea} onScroll={recomputeActiveSection}>
+      <TopRightPills>
+        <MiniMePill />
+        {!resolved.isLoading && resolved.groups.length > 1 ? (
+          <SectionNav sections={sections} activeName={sectionNav.activeName} onSelect={sectionNav.scrollToSection} />
+        ) : null}
+      </TopRightPills>
+      <div ref={sectionNav.scrollerRef} css={css.railsArea} onScroll={sectionNav.onScroll}>
         {resolved.groups.map((group, index) => (
-          <div
-            key={group.group.name}
-            ref={(el) => {
-              if (el) {
-                sectionRefs.current.set(group.group.name, el)
-              } else {
-                sectionRefs.current.delete(group.group.name)
-              }
-            }}
-          >
+          <div key={group.group.name} ref={sectionNav.sectionRef(group.group.name)}>
             <CardRail
               group={group}
               availabilityByExternalId={availabilityByExternalId}
@@ -411,6 +358,12 @@ function TryOnView({
       width: '14px',
       height: '15px',
     },
+    // Top-right, across from the back button.
+    miniMePosition: {
+      position: 'absolute',
+      top: '12px',
+      right: '10px',
+    },
     sheetOuter: {
       position: 'absolute',
       // 8px gap to either side, matching quick-view's mobile sheet.
@@ -486,6 +439,7 @@ function TryOnView({
         <LeftArrowIcon css={css.backArrow} />
       </Button>
       <HelpTip id="try_on_back" enabled anchorRef={backButtonRef} t="help_tip.try_on_back" />
+      <MiniMePill position={css.miniMePosition} />
       <div css={css.sheetOuter} style={sheetStyle}>
         <div ref={innerRef} css={css.sheetInner} style={sheetStyle}>
           <div ref={sheetHandleRef} css={css.sheetHandleRow} onTouchStart={sheetTouchStart}>

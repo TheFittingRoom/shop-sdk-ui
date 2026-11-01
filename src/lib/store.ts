@@ -5,6 +5,8 @@ import type { TestHooks } from '@/lib/firebase-mock'
 import type { FittingRoomItem } from '@/lib/fitting-room-storage'
 import { readFittingRoom, writeFittingRoom } from '@/lib/fitting-room-storage'
 import type { LoadedProductData, LoadedProductError } from '@/lib/product'
+import type { DemoGender, UserAvatar } from '@/lib/user-avatar'
+import { userAvatarFromProfile } from '@/lib/user-avatar'
 import type { OverlayName } from '@/lib/view'
 import { DeviceLayout } from '@/lib/view'
 
@@ -85,12 +87,23 @@ export interface MainStoreState {
   userIsLoggedIn: boolean
   setAuthUser: (authUser: AuthUser | null) => void
   userProfile: UserProfile | null
-  userHasAvatar: boolean | null
+  // Which avatar the shopper tries on with: their own, a borrowed demo avatar,
+  // or none yet (they must pick a demo gender). Null while signed out or while
+  // the profile is loading. See src/lib/user-avatar.ts.
+  userAvatar: UserAvatar | null
   setUserProfile: (userProfile: UserProfile | null) => void
+  // Bare frame paths of the demo avatars, by gender, as GET
+  // /v1/demo-avatars/:gender returned them. Loaded on demand by
+  // src/lib/demo-avatar.ts.
+  demoAvatarFrames: Partial<Record<DemoGender, string[]>>
+  setDemoAvatarFrames: (gender: DemoGender, frames: string[]) => void
 
   // Product data:
   productData: Record<string, LoadedProductData | LoadedProductError>
   setProductData: (externalId: string, data: LoadedProductData | LoadedProductError) => void
+  // Drop every product's data, e.g. when the avatar behind its size
+  // recommendations has changed.
+  clearProductData: () => void
 
   // Merchant-supplied product data (Shopify, etc.) keyed by externalId:
   merchantProductData: Record<string, ExternalProduct | MerchantProductError>
@@ -134,11 +147,14 @@ export const useMainStore = create<MainStoreState>((set) => ({
     set({ userIsLoggedIn: isLoggedIn })
   },
   userProfile: null,
-  userHasAvatar: null,
+  userAvatar: null,
   setUserProfile: (userProfile: UserProfile | null) => {
-    const userHasAvatar = userProfile ? userProfile.avatar_status === 'CREATED' : null
-    set({ userProfile, userHasAvatar })
+    const userAvatar = userProfile ? userAvatarFromProfile(userProfile) : null
+    set({ userProfile, userAvatar })
   },
+  demoAvatarFrames: {},
+  setDemoAvatarFrames: (gender: DemoGender, frames: string[]) =>
+    set((prevState) => ({ demoAvatarFrames: { ...prevState.demoAvatarFrames, [gender]: frames } })),
 
   // Product data:
   productData: {},
@@ -149,6 +165,7 @@ export const useMainStore = create<MainStoreState>((set) => ({
         [externalId]: data,
       },
     })),
+  clearProductData: () => set({ productData: {} }),
 
   // Merchant-supplied product data:
   merchantProductData: {},
