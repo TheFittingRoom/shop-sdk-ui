@@ -6,11 +6,14 @@ import { resolveContainerExpansion } from '@/lib/product'
 export type Availability = 'available' | 'selected' | 'disabled'
 
 // MAX_OUTFIT_ITEMS caps GARMENTS (not products) in an outfit — matches the
-// backend + sim-vis wire cap of 4 items on /v1/vto-compositions. A container
-// product's garment count is its children.length (via item.effective.length),
-// so a 3-piece Set consumes 3 slots and adding a fifth garment (of any shape)
-// hits the cap.
-export const MAX_OUTFIT_ITEMS = 4
+// backend's cap on /v1/vto-compositions items. A container product's garment
+// count is its children.length (via item.effective.length), so a 3-piece Set
+// consumes 3 slots and adding a fourth garment (of any shape) hits the cap.
+//
+// Temporarily 3, not 4 (WEB-36): 4-layer renders need more testing against
+// real outerwear first. Raising it again: the backend's max rules first
+// (tfr-backend AGENTS.md → "Garment cap"), then this, then release.
+export const MAX_OUTFIT_ITEMS = 3
 
 // Garment count per resolved item: containers contribute one per child (via
 // EffectiveCategory list); single-garment items contribute 1. Returns 0
@@ -158,8 +161,9 @@ export function getOutfitConflicts(
 
 // computeAvailability: a card is only ever disabled for having no category or
 // for the garment cap. Clashes are evicted on select (getOutfitConflicts), so
-// the cap is counted without them — e.g. jacket + shirt + pants, then a
-// 3-piece Set: the shirt and pants leave, jacket + 3 = 4, allowed.
+// the cap is counted without them — e.g. shirt + pants, then a 3-piece Set
+// with a shirt and trousers: both leave, 0 + 3 = 3, allowed; add a jacket to
+// the selection first and it is 1 + 3 = 4, over the cap.
 export function computeAvailability(
   item: ResolvedFittingRoomItem,
   selectedExternalIds: ReadonlySet<string>,
@@ -248,7 +252,7 @@ function makeOutfitItem(r: ResolvedFittingRoomItem, forceUntuck: boolean): Outfi
   return { outfitItem, layerOrder, garmentCount: childCsaIds?.length ?? 1 }
 }
 
-// buildOutfit derives the wire-shape outfit (1..4 items, layer-ordered) plus a
+// buildOutfit derives the wire-shape outfit (1..MAX_OUTFIT_ITEMS items, layer-ordered) plus a
 // list of pre-warm alternate outfits keyed off `lastAddedExternalId`. Items
 // without a chosen colorway_size_asset_id are dropped silently — the caller is
 // responsible for auto-size-rec before invoking this.
@@ -277,7 +281,7 @@ export function buildOutfit(
   entries.sort((a, b) => a.layerOrder - b.layerOrder)
   // Trim by garment count, not entry count: a 3-piece Set fills 3 wire
   // slots. computeAvailability blocks the add before we get here, but this
-  // defensive slice keeps a stale selection from posting > 4 garments (e.g.
+  // defensive slice keeps a stale selection from posting > MAX_OUTFIT_ITEMS garments (e.g.
   // if the merchant's container-child count changed since the shopper
   // selected it).
   const items: OutfitItem[] = []

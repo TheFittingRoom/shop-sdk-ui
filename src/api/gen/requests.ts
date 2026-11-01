@@ -222,6 +222,8 @@ export interface SetSizeMappingRef {
  * child tables; callers pick their own indexes and the handler
  * validates that Mappings reference existing (slot_index, set_size_index)
  * pairs and that each pair is covered exactly once per slot.
+ * Slots are capped at 3, temporarily (WEB-36; was 4): each slot becomes a
+ * garment in the try-on, which is capped at 3 — see VtoCompositionRequest.
  */
 export interface SetTemplate {
   name: string;
@@ -425,7 +427,8 @@ export interface Style {
    * Each child inherits BrandID / Description / SaleType / IsVTO /
    * MeasurementUnit / PublishedAt / CycleID from the parent and
    * carries its own StyleCategoryName / Sleeves / SizeSystemID /
-   * VerticalSizeSystemID. Max 4 per parent (Q7).
+   * VerticalSizeSystemID. Max 3 per parent: every piece is a garment in
+   * the try-on, which is temporarily capped at 3 (WEB-36; was 4, Q7).
    */
   children: StyleChild[];
   /**
@@ -486,7 +489,8 @@ export interface PutStyle {
    * Children carries the desired complete list of child styles for a
    * container. Each entry with a non-zero ID updates an existing
    * child; entries with ID=0 create a new child. Any existing child
-   * NOT present in the list (by ID) is deleted. Max 4 (Q7).
+   * NOT present in the list (by ID) is deleted. Max 3, temporarily
+   * (WEB-36; was 4, Q7) — see Style.Children.
    */
   children: PutStyleChild[];
   /**
@@ -593,8 +597,12 @@ export interface VtoCompositionItem {
 }
 /**
  * VtoCompositionRequest is the SDK → backend POST body. Backend enforces
- * 1 <= len(Items) <= 4. Includes/Excludes composition rules are validated
+ * 1 <= len(Items) <= 3. Includes/Excludes composition rules are validated
  * client-side; backend does not enforce them.
+ * The cap is temporarily 3, not 4 (WEB-36): 4-layer renders need more
+ * testing against real outerwear first. Raising it again means max=4 here
+ * and on the Set limits (style.go Children, set_template.go Slots), then
+ * the SDK's MAX_OUTFIT_ITEMS; deploy the backend before releasing the SDK.
  */
 export interface VtoCompositionRequest {
   items: VtoCompositionItem[];

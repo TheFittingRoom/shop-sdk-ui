@@ -410,7 +410,7 @@ confirmed to fail when the pinch is disabled.
 
 ## VTO request flow
 
-`requestVto(items)` in `src/lib/api.ts` posts a 1..4-garment composition to
+`requestVto(items)` in `src/lib/api.ts` posts a 1..3-garment composition (`MAX_OUTFIT_ITEMS`, see "The garment cap") to
 `/v1/vto-compositions`. The endpoint is **synchronous**: the backend renders
 inline and the resolved `VtoCompositionResponse` carries `{token, frames, tuck}`
 directly — there is no Firestore subscription. A render failure rejects the
@@ -628,7 +628,7 @@ to always be open would silently disable mobile's quick-row mode.
 
 The composition rules (`includes` / `excludes` per category, each group's
 `same_group_default`) come from the backend's style-category config, but
-**only the SDK applies them** — the backend checks nothing but the 4-garment
+**only the SDK applies them** — the backend checks nothing but the garment
 cap. They live in `src/lib/fitting-room-outfit.ts`.
 
 A clash never disables a fitting-room card. Selecting an item evicts every
@@ -640,8 +640,27 @@ selected. Same parent category still swaps inside a `compatible` group, where
 the rules alone would let two coexist.
 
 `computeAvailability` disables a card only for a missing category or the
-garment cap, and counts the cap **after** those evictions (jacket + shirt +
-pants, then a 3-piece Set: 1 + 3 = 4, allowed).
+garment cap, and counts the cap **after** those evictions (shirt + pants, then
+a 3-piece Set with a shirt and trousers: both leave, 0 + 3 = 3, allowed).
+
+### The garment cap: 3, temporarily (WEB-36)
+
+`MAX_OUTFIT_ITEMS` caps the garments in a try-on, a Set counting one per
+piece. It is **3 for now** (normally 4): 4-layer renders need more testing
+against real outerwear first. The backend enforces the same cap on
+`/v1/vto-compositions` and caps Sets and Set templates at 3 pieces
+(tfr-backend AGENTS.md → "Garment cap"), so no new 4-piece Set can be made; one
+made before is disabled in the fitting room, being over the cap on its own.
+
+**Order matters.** Lowering: release the SDK before deploying the backend,
+or an older SDK on the store sends 4-garment outfits to a backend that
+refuses them. Raising back to 4: the backend first, then this constant, then
+release.
+
+Guarded by `e2e/garment-cap.spec.ts`, each test confirmed to fail with the
+cap at 4 or at 2 (as named in it), with a Set counted as one garment, and
+with evicted items still counted. `buildOutfit`'s trim to the cap is not
+covered: `computeAvailability` stops an over-cap selection before it runs.
 
 **A clash swap says what it removed.** A same-category swap (one pair of pants
 for another) is self-explanatory and stays silent. Any other eviction raises
