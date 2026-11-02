@@ -24,6 +24,7 @@ npm ci
 | `npm run watch-serve` | Both `watch` and `serve` together; Ctrl+C stops both |
 | `npm run test` / `npm run test:e2e` | Playwright e2e suite (Chromium) against the built bundle |
 | `npm run test:e2e:ui` | Playwright UI runner for local debugging |
+| `npm run screenshots` | PNGs of the signed-in try-on screens into `screenshots/` (see below) |
 | `npm run gen-types` | Regenerate `src/api/gen/*.ts` from `tfr-backend` Go types |
 | `npm run promote-latest [version]` | Move npm dist-tag `latest` onto a published version (defaults to current `package.json` version) |
 
@@ -41,6 +42,33 @@ theme provides. Firebase is mocked via `InitParams.testHooks`
 For an interactive debug loop, `npm run watch-serve &` in one terminal and
 `npm run test:e2e:ui` in another — Playwright reuses the live-rebuilt
 `:5173`.
+
+## Screenshots
+
+`npm run screenshots` saves PNGs of the try-on screens a shopper sees once
+signed in: quick view, the fitting room (bare avatar, with an item, zoom) and
+the phone browse and try-on views, each at desktop (1440x900) and phone
+(Pixel 5) size, for a demo shopper and one with their own avatar. It uses the
+e2e harness, so nothing reaches a backend and it costs no renders. Use it to
+check a visual change by eye and to illustrate a PR.
+
+```sh
+npm run screenshots                       # all 14, into screenshots/
+npm run screenshots -- -g "phone"         # only the phone scenes
+SHOTS_SHOPPERS=demo npm run screenshots   # only the demo shopper
+SHOTS_DIR=/tmp/shots npm run screenshots  # somewhere else
+```
+
+Frames are real renders from the `local-deployment` seed data (the ones the
+mock sim-vis returns), read from `../../local-data`; point
+`SHOTS_VTO_FRAMES` / `SHOTS_AVATAR_FRAMES` at any directory of `image_N.jpg`
+files to use others. Renders are scans of real people, so none are committed
+here; without the seed data every frame is a grey placeholder. The scenes
+live in `tests/screenshots/scenes.spec.ts`; add one there for a new screen.
+
+The host page has none of a store's fonts or CSS. For the signed-out screens
+on the real demo storefront, use `node scripts/storefront-screenshots.cjs`
+(AGENTS.md, "The host page is not the store").
 
 ## Release process
 

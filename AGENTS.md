@@ -244,6 +244,15 @@ Two traps:
   `cp` alias that prompts hangs a script) or keep the original in memory,
   and diff afterwards; a mutant left behind ships.
 
+**Screenshots of the try-on screens: `npm run screenshots`** (README
+"Screenshots"). It runs `tests/screenshots/scenes.spec.ts` on the e2e harness
+with real render frames from `local-data` (never committed: they are scans of
+real people), at desktop and phone size, demo and own-avatar shopper, into
+`screenshots/`. It asserts nothing and is not in `test:e2e`; its own config
+is `playwright.screenshots.config.ts`. Boot helpers it shares with the specs
+are in `tests/e2e/helpers/try-on.ts`. Use it for any visual change to a
+try-on screen, and attach the shots to the PR.
+
 **The host page is not the store.** `host.html` has none of the theme's fonts
 or CSS, so layout that fits there can overflow or collapse on a real
 storefront. For any visual change, also run
