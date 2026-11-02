@@ -360,6 +360,10 @@ export interface SizeSystem {
   is_global: boolean;
   is_horizontal: boolean;
   is_vertical: boolean;
+  /**
+   * SizeValues in size order, smallest first: each value's position
+   * becomes its sort_order.
+   */
   size_values: SizeValue[];
 }
 
