@@ -244,6 +244,15 @@ Two traps:
   `cp` alias that prompts hangs a script) or keep the original in memory,
   and diff afterwards; a mutant left behind ships.
 
+**Screenshots of the try-on screens: `npm run screenshots`** (README
+"Screenshots"). It runs `tests/screenshots/scenes.spec.ts` on the e2e harness
+with real render frames from `local-data` (never committed: they are scans of
+real people), at desktop and phone size, demo and own-avatar shopper, into
+`screenshots/`. It asserts nothing and is not in `test:e2e`; its own config
+is `playwright.screenshots.config.ts`. Boot helpers it shares with the specs
+are in `tests/e2e/helpers/try-on.ts`. Use it for any visual change to a
+try-on screen, and attach the shots to the PR.
+
 **The host page is not the store.** `host.html` has none of the theme's fonts
 or CSS, so layout that fits there can overflow or collapse on a real
 storefront. For any visual change, also run
@@ -741,10 +750,10 @@ shopper's own avatar arrives" fails without it.
 **UI pieces**, each rendering nothing for a shopper with their own avatar so
 layouts can place them unconditionally:
 
-- `DemoWatermark` — "DEMO AVATAR" over every try-on image: inside
-  `AvatarFrameViewer` (fitting room, quick view) and the desktop
-  `ZoomModal`. `pointer-events: none`, so dragging and pinching still reach
-  the image.
+- `DemoWatermark` — "DEMO" / "AVATAR", one word per line, over every
+  try-on image: inside `AvatarFrameViewer` (fitting room, quick view) and
+  the desktop `ZoomModal`. `pointer-events: none`, so dragging and pinching
+  still reach the image. See "Where the watermark goes" below.
 - `MiniMePill` — "Create your Mini Me", TFR teal, opens `GetAppPopup`: the
   get-app content as its own modal over the current overlay, so closing it
   returns the shopper exactly where they were (switching to the GET_APP
@@ -776,7 +785,7 @@ choose. A 503 is a failed try-on like any other (the try-on error
 snackbar). A failed gender save keeps the prompt up with an error.
 
 Guarded by `e2e/demo-avatar.spec.ts`. Each mutant below was applied to
-`src/` alone and failed the tests named (2026-11-01, 25 mutants, all
+`src/` alone and failed the tests named (2026-11-01, 25 + 6 mutants, all
 caught):
 
 | Mutant | Fails |
@@ -804,9 +813,46 @@ caught):
 | product data kept on avatar change | own avatar arrives |
 | VTO caches kept on avatar change | own avatar arrives |
 | try-on error hidden | the backend refuses |
+| watermark placed by the box, not the picture (the original layout) | sits on the picture; zoom view; quick view sheet |
+| no object-fit contain math | sits on the picture, not the letterbox |
+| clipping ancestors ignored | zoom view (watermark scrolled off) |
+| the walk counts `<body>` | all four placement tests |
+| occluders ignored / quick view's sheet not marked | quick view stays above the collapsed sheet |
 
 Not covered: the French copy, and the fitting room's own gender prompt
 (the same component as quick view's, but its call site is untested).
+
+### Where the watermark goes
+
+It belongs in the bottom-left corner of **the part of the picture the
+shopper can see**, inset 12px, never in the space around it. The `<img>` box
+is not that: frames are `object-fit: contain`, so a 2:3 frame in the desktop
+pane's 560x900 box is drawn 560x840 with 30px bands above and below, and a
+watermark anchored to the box sat half in the band. `visibleImageRect`
+(`demo-watermark.tsx`) works it out each animation frame (frames load, the
+viewer resizes, sheets animate, the zoom view scrolls, with no event for any
+of it):
+
+1. the picture from the image's natural size and its layout size, before any
+   pinch-zoom transform (the watermark doesn't zoom);
+2. cut to every ancestor that clips, which is how the zoom view's watermark
+   follows its scroll area rather than the bottom of a 1500px image;
+3. stopped above any element marked `data-avatar-occluder`. Quick view's
+   mobile sheet and the fitting room's mobile try-on sheet carry it: on a
+   Pixel 5 the collapsed quick-view sheet covers the picture's bottom 26px.
+   Anything new drawn over the try-on image should carry it too.
+
+The walk in step 2 stops below `<body>`. The overlays are mounted on it and
+it does not clip them, but a store locks page scroll with `overflow: hidden`
+on a `<body>` that can be much shorter than the screen; counting it put the
+watermark mid-image. The watermark hides until the image has a size, and
+when the visible picture is too small to hold it.
+
+`demo-avatar.spec.ts` checks placement with 2:3 frames (the default mock
+frame is a square 1x1) and, on mobile, with a viewport meta added, since the
+host page has none and the phone profile would otherwise lay out 980px wide.
+Not covered: the fitting room's sheet marker (that sheet doesn't reach the
+picture today).
 
 ## Landing intro video
 

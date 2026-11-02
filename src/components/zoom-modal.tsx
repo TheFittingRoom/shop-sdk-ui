@@ -52,6 +52,7 @@ export function ZoomModal({
   const { rotateLeft, rotateRight } = useFrameRotation(frameUrls, setSelectedFrameIndex, onUserInteract)
 
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const imageRef = useRef<HTMLImageElement>(null)
 
   // Image-drag handler with an axis lock: after the first AXIS_LOCK_PX of
   // pointer travel, commit to either *scrolling* the inset scroll area
@@ -192,8 +193,8 @@ export function ZoomModal({
     <div css={css.backdrop}>
       <div ref={scrollAreaRef} css={css.scrollArea}>
         <div css={css.imageWrap}>
-          <img src={imageUrl} css={css.image} alt="" onMouseDown={handleImageMouseDown} />
-          <DemoWatermark />
+          <img ref={imageRef} src={imageUrl} css={css.image} alt="" onMouseDown={handleImageMouseDown} />
+          <DemoWatermark imageRef={imageRef} />
         </div>
       </div>
       <div css={{ ...css.chevron, ...css.chevronLeft }} onMouseDown={(e) => e.preventDefault()} onClick={rotateLeft}>
