@@ -82,7 +82,7 @@
         const { init } = await import('/dist/index.js')
         const ok = await init({
           brandId: cfg.brandId ?? 1,
-          environment: cfg.environment ?? 'demo',
+          environment: cfg.environment ?? 'local',
           debug: true,
           currentProduct,
           // Resolve the current product by handle so fitting-room items that

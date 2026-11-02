@@ -96,7 +96,9 @@ export async function bootSdk(page: Page, options: BootSdkOptions = {}): Promise
       testHooks.accounts = accounts ?? []
       ;(window as unknown as { __TFR_TEST_CONFIG__: unknown }).__TFR_TEST_CONFIG__ = {
         brandId,
-        environment: 'demo',
+        // local (localhost:8080), so a request a test forgot to mock goes
+        // nowhere real. It used to be the demo server's, retired 2026-11.
+        environment: 'local',
         currentProduct,
         productCatalog,
         testHooks,

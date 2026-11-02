@@ -207,7 +207,6 @@ change the table and the test together.
 | `environment` | API host | Firebase project | Asset base | Release channel |
 |---|---|---|---|---|
 | `development` | `tfr.dev.thefittingroom.xyz` | `fittingroom-dev-5d248` | `objects.infra.thefittingroom.xyz/tfr-assets-dev` | The highest published 5.x, via the theme's `PROD_URL` (`unpkg.com/@thefittingroom/shop-ui@5`); live on publish, `latest` is not involved |
-| `demo` | `demo.thefittingroom.xyz/api` | `fittingroom-dev-5d248` | `demo.thefittingroom.xyz/s3/tfr-assets-dev` | The same bundle, selected with `?tfr-source=demo` |
 | `local` | `localhost:8080` | `fittingroom-dev-5d248` | `localhost:9000/tfr-assets-dev` | Local `dist/index.js` from `npm run watch-serve`, selected with `?tfr-source=local` |
 | `production` | none yet | | | `init` fails with "not available yet"; use `development` |
 
@@ -215,6 +214,11 @@ The shared backend at `tfr-synteq.thefittingroom.xyz` also verifies
 tokens against `fittingroom-dev-5d248`; it is not a production host. A
 `production` profile will be added together with a backend that
 verifies tokens against `fittingroom-prod`.
+
+There was also a `demo` profile for the hosted demo server
+(`demo.thefittingroom.xyz`); the server was retired in 2026-11 and the
+profile removed with it. `init` now refuses `environment: 'demo'` as an
+invalid environment.
 
 ## Local development
 

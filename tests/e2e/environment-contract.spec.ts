@@ -10,7 +10,6 @@ import { TEST_BRAND_ID, TEST_CURRENT_PRODUCT } from './fixtures/seed'
 const SUPPORTED: Record<string, { firebaseProject: string; assetBucket: string }> = {
   'tfr.dev.thefittingroom.xyz': { firebaseProject: 'fittingroom-dev-5d248', assetBucket: 'tfr-assets-dev' },
   'tfr-synteq.thefittingroom.xyz': { firebaseProject: 'fittingroom-dev-5d248', assetBucket: 'tfr-assets-dev' },
-  'demo.thefittingroom.xyz': { firebaseProject: 'fittingroom-dev-5d248', assetBucket: 'tfr-assets-dev' },
   'localhost:8080': { firebaseProject: 'fittingroom-dev-5d248', assetBucket: 'tfr-assets-dev' },
 }
 
@@ -54,6 +53,43 @@ async function loggedErrorText(msg: ConsoleMessage): Promise<string> {
   )
   return parts.join(' ')
 }
+
+test('init with environment "demo" (the retired demo server) is refused', async ({ page }) => {
+  const logged: Promise<string>[] = []
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') {
+      logged.push(loggedErrorText(msg))
+    }
+  })
+
+  await page.addInitScript(
+    ({ brandId, currentProduct }) => {
+      ;(window as unknown as { __TFR_TEST_CONFIG__: unknown }).__TFR_TEST_CONFIG__ = {
+        brandId,
+        currentProduct,
+        environment: 'demo',
+        testHooks: { firestore: { docs: {} } },
+      }
+    },
+    { brandId: TEST_BRAND_ID, currentProduct: TEST_CURRENT_PRODUCT },
+  )
+  await page.goto('/tests/e2e/fixtures/host.html')
+
+  await page.waitForFunction(
+    () => {
+      const w = window as unknown as { __TFR_TEST_INIT_OK__?: boolean; __TFR_TEST_INIT_ERROR__?: string }
+      return w.__TFR_TEST_INIT_OK__ !== undefined || w.__TFR_TEST_INIT_ERROR__ !== undefined
+    },
+    undefined,
+    { timeout: 10_000 },
+  )
+
+  const initOk = await page.evaluate(
+    () => (window as unknown as { __TFR_TEST_INIT_OK__?: boolean }).__TFR_TEST_INIT_OK__,
+  )
+  expect(initOk).toBe(false)
+  expect((await Promise.all(logged)).join('\n')).toContain('Invalid environment "demo"')
+})
 
 test('init with environment "production" fails instead of signing in to the wrong project', async ({ page }) => {
   const logged: Promise<string>[] = []
