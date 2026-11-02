@@ -849,7 +849,7 @@ function MobileLayout({
           from the close button. */}
       <MiniMePill position={css.miniMePosition} />
       <div css={css.bottomFrameOuter} style={bottomFrameOuterStyle}>
-        <div ref={bottomFrameInnerRef} css={css.bottomFrameInner} style={bottomFrameInnerStyle}>
+        <div ref={bottomFrameInnerRef} css={css.bottomFrameInner} style={bottomFrameInnerStyle} data-avatar-occluder="">
           <div css={css.headerContainer} onTouchStart={handleBottomFrameTouchStart}>
             <DragHandleIcon css={css.dragHandleIcon} />
             <div css={css.recommendedSizeContainer}>

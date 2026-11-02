@@ -40,6 +40,7 @@ export function AvatarFrameViewer({
   rotateHelpTip = false,
 }: AvatarFrameViewerProps) {
   const rightChevronRef = useRef<HTMLDivElement>(null)
+  const imageRef = useRef<HTMLImageElement>(null)
   const css = useCss((_theme) => ({
     imageContainer: {
       position: 'absolute',
@@ -122,6 +123,7 @@ export function AvatarFrameViewer({
   return (
     <div css={css.imageContainer} style={imageContainerStyle}>
       <img
+        ref={imageRef}
         src={frameUrls[selectedFrameIndex]}
         css={[css.image, pinch.zoomed && css.imageZoomed]}
         style={{
@@ -133,7 +135,7 @@ export function AvatarFrameViewer({
         onMouseDown={handleMouseDragStart}
         onTouchStart={handleTouchStart}
       />
-      <DemoWatermark />
+      <DemoWatermark imageRef={imageRef} />
       {/* onMouseDown preventDefault keeps rapid clicks from initiating a text
           selection — otherwise the second/third click in a fast tap-tap-tap
           starts dragging a selection that extends across nearby overlay text

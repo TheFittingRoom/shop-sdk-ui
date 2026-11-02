@@ -441,7 +441,7 @@ function TryOnView({
       <HelpTip id="try_on_back" enabled anchorRef={backButtonRef} t="help_tip.try_on_back" />
       <MiniMePill position={css.miniMePosition} />
       <div css={css.sheetOuter} style={sheetStyle}>
-        <div ref={innerRef} css={css.sheetInner} style={sheetStyle}>
+        <div ref={innerRef} css={css.sheetInner} style={sheetStyle} data-avatar-occluder="">
           <div ref={sheetHandleRef} css={css.sheetHandleRow} onTouchStart={sheetTouchStart}>
             <DragHandleIcon />
             <Text variant="base" css={css.sheetTitle}>

@@ -63,6 +63,81 @@ function writeUserDoc(page: Page, uid: string, data: FirestoreUser) {
 
 const watermark = (page: Page) => page.getByTestId('demo-watermark')
 
+// Frames shaped like real renders: portrait 2:3 (sim-vis renders 1000x1500).
+// The default 1x1 mock frame is square, which letterboxes differently.
+const PORTRAIT_FRAME = Buffer.from(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1500"><rect width="1000" height="1500" fill="#ccc"/></svg>',
+)
+const portraitFrames = (route: Route) => route.fulfill({ contentType: 'image/svg+xml', body: PORTRAIT_FRAME })
+
+// The host page has no viewport meta, so a phone profile would lay out 980px
+// wide. The store has one; add it, so the phone layout is the real one.
+async function phoneViewport(page: Page) {
+  await page.addInitScript(() => {
+    document.addEventListener('DOMContentLoaded', () => {
+      const meta = document.createElement('meta')
+      meta.name = 'viewport'
+      meta.content = 'width=device-width, initial-scale=1'
+      document.head.prepend(meta)
+    })
+  })
+}
+
+// expectWatermarkOnPicture: the nth watermark lies wholly on its image's
+// picture — inside the frame as drawn with object-fit: contain, not in the
+// letterbox bands around it — nothing covers any of it (a sheet, the edge of
+// a scroll area, the edge of the screen), and it sits in the bottom-left
+// corner of the part that can be seen.
+async function expectWatermarkOnPicture(page: Page, nth = 0) {
+  const mark = watermark(page).nth(nth)
+  await expect(mark).toBeVisible()
+  await expect
+    .poll(() =>
+      mark.evaluate((el) => {
+        const img = el.parentElement?.querySelector('img')
+        if (!img || !img.naturalWidth) {
+          return 'no image'
+        }
+        const box = img.getBoundingClientRect()
+        const scale = Math.min(box.width / img.naturalWidth, box.height / img.naturalHeight)
+        const w = img.naturalWidth * scale
+        const h = img.naturalHeight * scale
+        const pic = {
+          left: box.left + (box.width - w) / 2,
+          top: box.top + (box.height - h) / 2,
+          right: box.left + (box.width + w) / 2,
+          bottom: box.top + (box.height + h) / 2,
+        }
+        const m = el.getBoundingClientRect()
+        if (m.left < pic.left || m.right > pic.right || m.top < pic.top || m.bottom > pic.bottom) {
+          return `off the picture: mark ${JSON.stringify(m)} picture ${JSON.stringify(pic)}`
+        }
+        // The watermark ignores pointer events, so what is "at" its corners is
+        // whatever is drawn under or over it: that must be the image.
+        for (const [x, y] of [
+          [m.left + 1, m.top + 1],
+          [m.right - 1, m.top + 1],
+          [m.left + 1, m.bottom - 1],
+          [m.right - 1, m.bottom - 1],
+        ]) {
+          if (document.elementFromPoint(x, y) !== img) {
+            return `covered at ${x},${y}`
+          }
+        }
+        // ...and in the corner of what can be seen of it: just past its inset
+        // (12px) to the left and below, the visible picture has ended.
+        const beyond = 16
+        const shownAt = (x: number, y: number) =>
+          x >= pic.left && x < pic.right && y >= pic.top && y < pic.bottom && document.elementFromPoint(x, y) === img
+        if (shownAt(m.left - beyond, m.top + 1) || shownAt(m.left + 1, m.bottom + beyond)) {
+          return `not in the corner: mark ${JSON.stringify(m)} picture ${JSON.stringify(pic)}`
+        }
+        return 'ok'
+      }),
+    )
+    .toBe('ok')
+}
+
 // --- signed out ----------------------------------------------------------------
 
 test('the landing screen plays the intro video, and offers a demo account, the app, and sign in', async ({ page }) => {
@@ -283,7 +358,7 @@ const GROUPS = [
 ]
 
 // Opens the fitting room holding a T-shirt and a pair of pants, nothing selected.
-async function bootFittingRoom(page: Page, profile: FirestoreUser) {
+async function bootFittingRoom(page: Page, profile: FirestoreUser, frames?: (route: Route) => Promise<void>) {
   await page.addInitScript(
     ({ brandId, uid, products }) => {
       const items = products.map((p, i) => ({
@@ -318,6 +393,7 @@ async function bootFittingRoom(page: Page, profile: FirestoreUser) {
         }),
       styleCategories: (route) => route.fulfill({ json: CATEGORIES }),
       styleCategoryGroups: (route) => route.fulfill({ json: GROUPS }),
+      frames,
     },
   })
   await page.getByRole('button', { name: 'Fitting Room', exact: true }).click()
@@ -364,12 +440,23 @@ test.describe('desktop', () => {
     })
   }
 
-  test('the zoom view is watermarked too', async ({ page }) => {
-    await bootFittingRoom(page, TEST_DEMO_USER_PROFILE)
+  // The pane is 560x900 and a frame 2:3, so the picture is 560x840 with 30px
+  // bands above and below it: a watermark placed by the box lands in the band.
+  test('the watermark sits on the picture, not the letterbox around it', async ({ page }) => {
+    await bootFittingRoom(page, TEST_DEMO_USER_PROFILE, portraitFrames)
+    await page.getByRole('button', { name: /Test Product/i }).click()
+    await expectWatermarkOnPicture(page)
+  })
+
+  test('the zoom view is watermarked too, on the part of the picture in view', async ({ page }) => {
+    await bootFittingRoom(page, TEST_DEMO_USER_PROFILE, portraitFrames)
     await page.getByRole('button', { name: /Test Product/i }).click()
     await page.getByRole('button', { name: 'Zoom In' }).click()
     // The pane's image and the zoomed one.
     await expect(watermark(page)).toHaveCount(2)
+    // The zoomed image is taller than the screen, so its own bottom corner is
+    // scrolled out of sight: the watermark follows what is in view.
+    await expectWatermarkOnPicture(page, 1)
   })
 
   test('the card pane has the jump-to-section control', async ({ page }) => {
@@ -493,5 +580,30 @@ test.describe('mobile', () => {
     // Try-on: top right, and the frames carry the watermark.
     await expect(page.getByRole('button', MINI_ME)).toBeVisible()
     await expect(watermark(page)).toBeVisible()
+  })
+
+  test.describe('with the phone viewport', () => {
+    test.beforeEach(async ({ page }) => {
+      await phoneViewport(page)
+    })
+
+    test('the try-on watermark sits on the picture', async ({ page }) => {
+      await bootFittingRoom(page, TEST_DEMO_USER_PROFILE, portraitFrames)
+      await page.getByRole('button', { name: /Test Product/i }).click()
+      await page.getByRole('button', { name: 'Try it on', exact: true }).click()
+      await expectWatermarkOnPicture(page)
+    })
+
+    // On a Pixel 5 the collapsed sheet covers the bottom ~26px of the picture:
+    // a watermark in the picture's corner would be half under it.
+    test('in quick view the watermark stays above the collapsed sheet', async ({ page }) => {
+      await bootSdk(page, {
+        profile: TEST_DEMO_USER_PROFILE,
+        ...quickViewBoot(),
+        apiOverrides: { ...quickViewBoot().apiOverrides, frames: portraitFrames },
+      })
+      await page.getByRole('button', { name: /quick view/i }).click()
+      await expectWatermarkOnPicture(page)
+    })
   })
 })
