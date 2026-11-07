@@ -15,6 +15,10 @@ export function PoweredByFooter() {
       gap: '2px',
       paddingTop: '24px',
       fontSize: '12px',
+      // Nothing in it is interactive, and a fillHeight modal body runs under
+      // its (empty) paddingTop: taps there must reach the body (the landing
+      // screen's sign-in link), not stop on the footer.
+      pointerEvents: 'none',
     },
     poweredBy: {
       fontSize: '12px',

@@ -109,6 +109,71 @@ test('the landing screen plays the intro video, and offers a demo account, the a
   await expect(page.getByRole('img', { name: 'QR Code' })).toBeVisible()
 })
 
+// WEB-45: the intro video takes the height the screen leaves (it was a fixed
+// 30vh), as a square, so it grows on taller screens; the body reserves the
+// pinned "Powered by" footer's space, so on a short screen the sign-in line
+// scrolls into view above the footer instead of under it.
+async function openLanding(page: Page, width: number, height: number) {
+  await page.setViewportSize({ width, height })
+  await bootSdk(page, { loggedIn: false })
+  await page.getByRole('button', { name: /quick view/i }).click()
+  const poster = page.getByRole('dialog').getByRole('button', { name: 'Play the video' })
+  await expect(poster).toBeVisible()
+  return poster
+}
+
+test('the intro video grows into the height the screen leaves, staying square', async ({ page }) => {
+  const sizes: number[] = []
+  for (const height of [700, 900]) {
+    const poster = await openLanding(page, 1440, height)
+    const box = await poster.boundingBox()
+    expect(box).not.toBeNull()
+    expect(Math.abs((box?.width ?? 0) - (box?.height ?? 0))).toBeLessThanOrEqual(1)
+    sizes.push(box?.width ?? 0)
+  }
+  // 30vh at 900 would be 270.
+  expect(sizes[1]).toBeGreaterThan(0.3 * 900 + 20)
+  expect(sizes[1]).toBeGreaterThan(sizes[0] + 50)
+
+  // Playing swaps in the video at the poster's size, so nothing moves.
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('button', { name: 'Play the video' }).click()
+  const videoBox = await dialog.locator('video').boundingBox()
+  expect(Math.abs((videoBox?.width ?? 0) - sizes[1])).toBeLessThanOrEqual(1)
+})
+
+test('on a short screen the sign-in line scrolls into view above the footer', async ({ page }) => {
+  await openLanding(page, 1280, 560)
+  const dialog = page.getByRole('dialog')
+  const signIn = dialog.getByText('Sign in.')
+  // Scroll the modal body all the way down: the sign-in line is the last
+  // thing in it, so this is where the footer would cover it.
+  await signIn.evaluate((el) => {
+    for (let e = el.parentElement; e; e = e.parentElement) {
+      if (/(auto|scroll)/.test(getComputedStyle(e).overflowY)) {
+        e.scrollTop = e.scrollHeight
+        return
+      }
+    }
+  })
+  const signInBox = await signIn.boundingBox()
+  const footerBox = await dialog.getByText('Powered by').boundingBox()
+  expect(signInBox && footerBox).toBeTruthy()
+  expect(signInBox?.y ?? 0).toBeGreaterThan(0)
+  // Clear of the footer's text. The body ends 8px above the footer's logo row
+  // (FOOTER_SPACE); with the body scrolled to the bottom the sign-in line ends
+  // there too, whatever the font, so 4px leaves room for rounding.
+  const clearance = (footerBox?.y ?? 0) - ((signInBox?.y ?? 0) + (signInBox?.height ?? 0))
+  expect(clearance).toBeGreaterThanOrEqual(4)
+  // Not far above it either: reserving too much left a blank band above the
+  // footer on a 720px laptop, height the video could have had.
+  expect(clearance).toBeLessThanOrEqual(20)
+  // ...and it takes a tap: the footer's empty padding reaches over the end of
+  // the body, so a footer that caught pointer events would swallow it.
+  await signIn.click()
+  await expect(dialog.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible()
+})
+
 test('sign-up creates the account, then tries on with the demo avatar', async ({ page }) => {
   const putUserBodies: unknown[] = []
   const boot = quickViewBoot()
@@ -313,6 +378,38 @@ test.describe('desktop', () => {
     await bootFittingRoom(page, TEST_DEMO_USER_PROFILE, portraitFrames)
     await page.getByRole('button', { name: /Test Product/i }).click()
     await expectWatermarkOnPicture(page)
+  })
+
+  // Every step of a rotation points the <img> at the next frame, and until
+  // that has loaded the browser reports no natural size (it keeps painting
+  // the old picture). The watermark used to hide for those moments, so it
+  // blinked during rotations and was missing from screenshots.
+  test('the watermark stays put while the next frame loads', async ({ page }) => {
+    await bootFittingRoom(page, TEST_DEMO_USER_PROFILE, portraitFrames)
+    await page.getByRole('button', { name: /Test Product/i }).click()
+    await expectWatermarkOnPicture(page)
+    await page.route('**/frame-that-never-loads.png', () => {
+      // Never answered: the frame stays loading.
+    })
+    const seen = await watermark(page)
+      .first()
+      .evaluate(async (el) => {
+        const img = el.parentElement?.querySelector('img')
+        if (!img) {
+          return ['no image']
+        }
+        const before = el.getBoundingClientRect().top
+        img.src = `${location.origin}/frame-that-never-loads.png`
+        const samples: string[] = []
+        for (let i = 0; i < 8; i++) {
+          await new Promise((resolve) => setTimeout(resolve, 60))
+          const moved = Math.abs(el.getBoundingClientRect().top - before) > 1
+          samples.push(`natural=${img.naturalWidth} ${(el as HTMLElement).style.visibility}${moved ? ' moved' : ''}`)
+        }
+        return samples
+      })
+    // natural=0 shows the test really is in the loading state.
+    expect(seen).toEqual(Array(8).fill('natural=0 visible'))
   })
 
   test('the zoom view is watermarked too, on the part of the picture in view', async ({ page }) => {

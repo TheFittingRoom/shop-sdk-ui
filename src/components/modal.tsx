@@ -35,9 +35,23 @@ export interface ContentModalProps {
   title: ReactNode
   onBackClick?: () => void
   children: ReactNode
+  // fillHeight makes the body take the frame's whole height, less room for a
+  // pinned PoweredByFooter, so a child with `flex: 1` (the landing screen's
+  // video) can grow into whatever height the screen has. Without it the body
+  // is as tall as its content and sits centred in the frame.
+  fillHeight?: boolean
 }
 
-export function ContentModal({ onRequestClose, title, onBackClick, children }: ContentModalProps) {
+// FOOTER_SPACE is the bottom margin of a fillHeight body: it ends just above
+// PoweredByFooter's logo row. That row is 24px tall and sits 16px above the
+// frame's inner bottom edge; the body already stops 16px short of that edge
+// (the frame's padding); and 8px of gap. The footer's own paddingTop is not
+// counted: it is empty, and the footer ignores pointer events, so the body
+// may run under it. (It was 64px, which counted all of that again and left
+// 40px of blank space above the footer on a 720px-tall laptop screen.)
+const FOOTER_SPACE = '32px'
+
+export function ContentModal({ onRequestClose, title, onBackClick, children, fillHeight = false }: ContentModalProps) {
   const deviceLayout = useMainStore((state) => state.deviceLayout)
   const css = useCss((theme) => ({
     frameContentBase: {
@@ -75,6 +89,14 @@ export function ContentModal({ onRequestClose, title, onBackClick, children }: C
       overflowY: 'auto',
       minHeight: 0,
     },
+    bodyFill: {
+      flex: '1 1 auto',
+      display: 'flex',
+      flexDirection: 'column',
+      // Half the usual top margin: on a short screen every pixel is video.
+      marginTop: '8px',
+      marginBottom: FOOTER_SPACE,
+    },
     contentContainer: {
       maxWidth: '390px',
       marginLeft: 'auto',
@@ -83,6 +105,13 @@ export function ContentModal({ onRequestClose, title, onBackClick, children }: C
       flexDirection: 'column',
       gap: '0',
       alignItems: 'center',
+    },
+    // Fills the body's height. As a flex item it never shrinks below its
+    // content's minimum, so the body still scrolls when the screen is too
+    // short for even the smallest layout.
+    contentContainerFill: {
+      flex: '1 0 auto',
+      width: '100%',
     },
   }))
 
@@ -93,8 +122,8 @@ export function ContentModal({ onRequestClose, title, onBackClick, children }: C
       contentStyle={deviceLayout === DeviceLayout.MOBILE_PORTRAIT ? css.frameContentFullScreen : css.frameContentBase}
     >
       <ModalTitlebar title={title} onBackClick={onBackClick} onCloseClick={onRequestClose} />
-      <div css={css.body}>
-        <div css={css.contentContainer}>{children}</div>
+      <div css={[css.body, fillHeight && css.bodyFill]}>
+        <div css={[css.contentContainer, fillHeight && css.contentContainerFill]}>{children}</div>
       </div>
     </ModalFrame>
   )
