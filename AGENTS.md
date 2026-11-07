@@ -755,9 +755,9 @@ shopper's own avatar arrives" fails without it.
 **UI pieces**, each rendering nothing for a shopper with their own avatar so
 layouts can place them unconditionally:
 
-- `DemoWatermark` — "DEMO" / "AVATAR", one word per line, over every
-  try-on image: inside `AvatarFrameViewer` (fitting room, quick view) and
-  the desktop `ZoomModal`. `pointer-events: none`, so dragging and pinching
+- `DemoWatermark` — "DEMO" / "AVATAR", one word per line, 26px (18px
+  until WEB-49), over every try-on image: inside `AvatarFrameViewer`
+  (fitting room, quick view) and the desktop `ZoomModal`. `pointer-events: none`, so dragging and pinching
   still reach the image. See "Where the watermark goes" below.
 - `MiniMePill` — "Create your Mini Me", TFR teal, opens `GetAppPopup`: the
   get-app content as its own modal over the current overlay, so closing it
@@ -823,6 +823,7 @@ caught):
 | clipping ancestors ignored | zoom view (watermark scrolled off) |
 | the walk counts `<body>` | all four placement tests |
 | occluders ignored / quick view's sheet not marked | quick view stays above the collapsed sheet |
+| no remembered picture size while a frame loads | stays put while the next frame loads |
 
 Not covered: the French copy, and the fitting room's own gender prompt
 (the same component as quick view's, but its call site is untested).
@@ -853,6 +854,13 @@ on a `<body>` that can be much shorter than the screen; counting it put the
 watermark mid-image. The watermark hides until the image has a size, and
 when the visible picture is too small to hold it.
 
+**It keeps the last picture size while a frame loads.** Each step of a
+rotation points the `<img>` at the next frame; the browser keeps painting the
+old picture but reports a natural size of 0 until the new one has loaded. The
+watermark used to hide in those moments, so it blinked through every rotation
+and was missing from quick-view screenshots. `visibleImageRect` now takes the
+size last seen (every frame of a set is the same size).
+
 `demo-avatar.spec.ts` checks placement with 2:3 frames (the default mock
 frame is a square 1x1) and, on mobile, with a viewport meta added, since the
 host page has none and the phone profile would otherwise lay out 980px wide.
@@ -876,17 +884,31 @@ directions. Below the floor the body scrolls, and the sign-in line still ends
 above the footer. Browsers without container units fall back to the old fixed
 `min(100%, 30vh)`. The landing's text lines also set `lineHeight: 1.4`;
 inherited from the store (Dawn's is ~1.8), they took height the video now gets.
-On the demo storefront this took the video from 270px to 341px on a
-1440x900 desktop, and from 218px to 251px on a Pixel 5. A fixed 30vh had been
-too small on tall screens and still too big on a 1280x720 laptop, where the
-sign-in line sat under the footer.
+
+**On a short screen every pixel is video, so the spacing is tight on
+purpose.** `FOOTER_SPACE` (32px) ends the body 8px above the footer's logo
+row. It used to be 64px, which counted the frame's padding and the footer's
+empty `paddingTop` a second time and left a 40px blank band above the footer.
+The body now runs under that empty padding, which is why `PoweredByFooter`
+has `pointerEvents: 'none'`: otherwise it swallows taps on the sign-in link
+just above it. A fillHeight body also has an 8px top margin (16px elsewhere),
+and the landing's gaps above the video, the demo line and the sign-in line
+are 8px, 12px and 12px.
+
+Video size on the demo storefront (`main` → now): 1280x720 laptop 216px →
+217px, with the sign-in line now in view (on `main` it sat under the footer);
+1366x768 265px; 1440x900 desktop 270px → 390px, which is the content width,
+so as big as it gets; Pixel 5 218px → 307px. An iPhone SE (568px tall) is
+below the floor, and its body scrolls.
 
 Guarded by `demo-avatar.spec.ts` "the intro video grows into the height the
 screen leaves, staying square" and "on a short screen the sign-in line scrolls
-into view above the footer". The mutants: no `fillHeight`, the fixed 30vh (on
-the poster and on the video), no footer space, and the body's fill style
-ignored; all caught. The second test requires 16px of clearance, because the
-test page's font is smaller than a storefront's.
+into view above the footer". The second test scrolls the body to the bottom
+and requires 4–20px between the sign-in line and the footer, then taps the
+link. The mutants, all caught: no `fillHeight`; the fixed 30vh (on the poster
+and on the video); the body's fill style ignored; `FOOTER_SPACE` 0 (overlap);
+`FOOTER_SPACE` 64px (the blank band); the footer catching pointer events (the
+tap is intercepted).
 
 The poster is the video's first frame ("Step 1 — Download the app"), so
 playback starts on exactly what was shown. Swapping it is an upload to the

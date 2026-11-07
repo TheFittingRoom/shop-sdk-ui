@@ -48,7 +48,7 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
     // to be a fixed 30vh, small on tall screens and still too big on short
     // ones, where it pushed the sign-in line under the "Powered by" footer).
     videoContainer: {
-      marginTop: '16px',
+      marginTop: '8px',
       flex: '1 1 0',
       minHeight: MIN_VIDEO_PX,
       containerType: 'size',
@@ -103,7 +103,7 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
       },
     },
     demoCta: {
-      marginTop: '16px',
+      marginTop: '12px',
       fontSize: '14px',
       textAlign: 'center',
       lineHeight: TEXT_LINE_HEIGHT,
@@ -118,7 +118,7 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
       lineHeight: TEXT_LINE_HEIGHT,
     },
     signInContainer: {
-      marginTop: '16px',
+      marginTop: '12px',
       lineHeight: TEXT_LINE_HEIGHT,
     },
   }))

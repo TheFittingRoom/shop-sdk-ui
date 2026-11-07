@@ -160,9 +160,18 @@ test('on a short screen the sign-in line scrolls into view above the footer', as
   const footerBox = await dialog.getByText('Powered by').boundingBox()
   expect(signInBox && footerBox).toBeTruthy()
   expect(signInBox?.y ?? 0).toBeGreaterThan(0)
-  // Clear of the footer with room to spare, not just touching: the host page's
-  // default font is smaller than a storefront's, so 0px here overlaps there.
-  expect((signInBox?.y ?? 0) + (signInBox?.height ?? 0)).toBeLessThanOrEqual((footerBox?.y ?? 0) - 16)
+  // Clear of the footer's text. The body ends 8px above the footer's logo row
+  // (FOOTER_SPACE); with the body scrolled to the bottom the sign-in line ends
+  // there too, whatever the font, so 4px leaves room for rounding.
+  const clearance = (footerBox?.y ?? 0) - ((signInBox?.y ?? 0) + (signInBox?.height ?? 0))
+  expect(clearance).toBeGreaterThanOrEqual(4)
+  // Not far above it either: reserving too much left a blank band above the
+  // footer on a 720px laptop, height the video could have had.
+  expect(clearance).toBeLessThanOrEqual(20)
+  // ...and it takes a tap: the footer's empty padding reaches over the end of
+  // the body, so a footer that caught pointer events would swallow it.
+  await signIn.click()
+  await expect(dialog.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible()
 })
 
 test('sign-up creates the account, then tries on with the demo avatar', async ({ page }) => {
@@ -369,6 +378,38 @@ test.describe('desktop', () => {
     await bootFittingRoom(page, TEST_DEMO_USER_PROFILE, portraitFrames)
     await page.getByRole('button', { name: /Test Product/i }).click()
     await expectWatermarkOnPicture(page)
+  })
+
+  // Every step of a rotation points the <img> at the next frame, and until
+  // that has loaded the browser reports no natural size (it keeps painting
+  // the old picture). The watermark used to hide for those moments, so it
+  // blinked during rotations and was missing from screenshots.
+  test('the watermark stays put while the next frame loads', async ({ page }) => {
+    await bootFittingRoom(page, TEST_DEMO_USER_PROFILE, portraitFrames)
+    await page.getByRole('button', { name: /Test Product/i }).click()
+    await expectWatermarkOnPicture(page)
+    await page.route('**/frame-that-never-loads.png', () => {
+      // Never answered: the frame stays loading.
+    })
+    const seen = await watermark(page)
+      .first()
+      .evaluate(async (el) => {
+        const img = el.parentElement?.querySelector('img')
+        if (!img) {
+          return ['no image']
+        }
+        const before = el.getBoundingClientRect().top
+        img.src = `${location.origin}/frame-that-never-loads.png`
+        const samples: string[] = []
+        for (let i = 0; i < 8; i++) {
+          await new Promise((resolve) => setTimeout(resolve, 60))
+          const moved = Math.abs(el.getBoundingClientRect().top - before) > 1
+          samples.push(`natural=${img.naturalWidth} ${(el as HTMLElement).style.visibility}${moved ? ' moved' : ''}`)
+        }
+        return samples
+      })
+    // natural=0 shows the test really is in the loading state.
+    expect(seen).toEqual(Array(8).fill('natural=0 visible'))
   })
 
   test('the zoom view is watermarked too, on the part of the picture in view', async ({ page }) => {

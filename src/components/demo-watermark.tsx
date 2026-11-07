@@ -36,8 +36,16 @@ function intersect(a: Rect, b: Rect): Rect {
 //   - cut to every ancestor that clips (the viewer box, a scroll area);
 //   - stopping above any element marked AVATAR_OCCLUDER_ATTRIBUTE that is
 //     drawn over it.
-export function visibleImageRect(img: HTMLImageElement): Rect | null {
-  if (!img.naturalWidth || !img.naturalHeight || !img.clientWidth || !img.clientHeight) {
+//
+// `known` is the picture's size from an earlier frame of the set, used while
+// the image has none of its own: when <img src> moves to the next frame (every
+// step of a rotation) the browser keeps painting the old picture, but reports
+// a natural size of 0 until the new one has loaded. Every frame of a set has
+// the same size, so the old one is right.
+export function visibleImageRect(img: HTMLImageElement, known?: { width: number; height: number }): Rect | null {
+  const naturalWidth = img.naturalWidth || known?.width || 0
+  const naturalHeight = img.naturalHeight || known?.height || 0
+  if (!naturalWidth || !naturalHeight || !img.clientWidth || !img.clientHeight) {
     return null
   }
   // The box without the transform: the offset parent's position plus the
@@ -53,10 +61,10 @@ export function visibleImageRect(img: HTMLImageElement): Rect | null {
 
   const fit = getComputedStyle(img).objectFit
   if (fit === 'contain' || fit === 'scale-down') {
-    const scale = Math.min(img.clientWidth / img.naturalWidth, img.clientHeight / img.naturalHeight)
+    const scale = Math.min(img.clientWidth / naturalWidth, img.clientHeight / naturalHeight)
     const s = fit === 'scale-down' ? Math.min(scale, 1) : scale
-    width = img.naturalWidth * s
-    height = img.naturalHeight * s
+    width = naturalWidth * s
+    height = naturalHeight * s
     // object-position defaults to centred, which is all this SDK uses.
     left = boxLeft + (img.clientWidth - width) / 2
     top = boxTop + (img.clientHeight - height) / 2
@@ -119,8 +127,8 @@ export function DemoWatermark({ imageRef }: { imageRef: RefObject<HTMLImageEleme
     },
     text: {
       display: 'block',
-      // 18px until WEB-49 asked for it a bit bigger.
-      fontSize: '22px',
+      // 18px until WEB-49 asked for it bigger.
+      fontSize: '26px',
       fontWeight: '700',
       lineHeight: 1.1,
       letterSpacing: '2.5px',
@@ -140,11 +148,18 @@ export function DemoWatermark({ imageRef }: { imageRef: RefObject<HTMLImageEleme
       return
     }
     let frame = 0
+    // The last picture size seen, for the moments a frame is loading (see
+    // visibleImageRect). Without it the watermark blinked off at every step
+    // of a rotation.
+    let known: { width: number; height: number } | undefined
     const place = () => {
       const mark = markRef.current
       const img = imageRef.current
       if (mark && img) {
-        const visible = visibleImageRect(img)
+        if (img.naturalWidth && img.naturalHeight) {
+          known = { width: img.naturalWidth, height: img.naturalHeight }
+        }
+        const visible = visibleImageRect(img, known)
         const parent = mark.offsetParent
         const fits =
           visible &&

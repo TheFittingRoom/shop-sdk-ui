@@ -42,10 +42,14 @@ export interface ContentModalProps {
   fillHeight?: boolean
 }
 
-// FOOTER_SPACE is the height PoweredByFooter takes at the bottom of the frame
-// (bottom 16px + paddingTop 24px + its 24px logo row), kept clear of a
-// fillHeight body so nothing scrolls underneath the footer.
-const FOOTER_SPACE = '64px'
+// FOOTER_SPACE is the bottom margin of a fillHeight body: it ends just above
+// PoweredByFooter's logo row. That row is 24px tall and sits 16px above the
+// frame's inner bottom edge; the body already stops 16px short of that edge
+// (the frame's padding); and 8px of gap. The footer's own paddingTop is not
+// counted: it is empty, and the footer ignores pointer events, so the body
+// may run under it. (It was 64px, which counted all of that again and left
+// 40px of blank space above the footer on a 720px-tall laptop screen.)
+const FOOTER_SPACE = '32px'
 
 export function ContentModal({ onRequestClose, title, onBackClick, children, fillHeight = false }: ContentModalProps) {
   const deviceLayout = useMainStore((state) => state.deviceLayout)
@@ -89,6 +93,8 @@ export function ContentModal({ onRequestClose, title, onBackClick, children, fil
       flex: '1 1 auto',
       display: 'flex',
       flexDirection: 'column',
+      // Half the usual top margin: on a short screen every pixel is video.
+      marginTop: '8px',
       marginBottom: FOOTER_SPACE,
     },
     contentContainer: {
