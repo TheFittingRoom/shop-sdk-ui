@@ -1,5 +1,5 @@
 import type { StyleCategory, StyleCategoryGroup } from '@/api/gen/responses'
-import type { ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
+import type { EffectiveCategory, ResolvedFittingRoom, ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
 import { isItemTuckable } from '@/lib/fitting-room-data'
 import { resolveContainerExpansion } from '@/lib/product'
 
@@ -69,7 +69,7 @@ function catName(c: StyleCategory): string {
 // itemsCompatible returns true if `a` and `b` can coexist in the same outfit,
 // considering each item's EFFECTIVE categories (children for containers, self
 // for single-garment). Fails if any A-child × B-child pair is incompatible
-// under pairCompatible.
+// under pairCompatible, or stacks full sleeves under a layer that forbids it.
 export function itemsCompatible(a: ResolvedFittingRoomItem, b: ResolvedFittingRoomItem): boolean {
   if (a.effective.length === 0 || b.effective.length === 0) {
     return true
@@ -79,9 +79,49 @@ export function itemsCompatible(a: ResolvedFittingRoomItem, b: ResolvedFittingRo
       if (!pairCompatible(ae.category, be.category, ae.group)) {
         return false
       }
+      if (fullSleevesBeneath(ae, be) || fullSleevesBeneath(be, ae)) {
+        return false
+      }
     }
   }
   return true
+}
+
+const FULL_SLEEVE = 'full_sleeve'
+
+// garmentSleeves: the category's fixed value for an `auto` category, the
+// style's own for a `per_style` one, and null where sleeves don't apply or
+// weren't set. Null is never full sleeve.
+function garmentSleeves(e: EffectiveCategory): string | null {
+  switch (e.category.sleeve_selection) {
+    case 'auto':
+      return e.category.sleeve_auto_value != null ? String(e.category.sleeve_auto_value) : null
+    case 'per_style':
+      return e.sleeves
+    default:
+      return null
+  }
+}
+
+// The garment's layer order in each tuck state it can be in.
+function layerOrders(c: StyleCategory): number[] {
+  return c.tuckable ? [c.layer_order, c.layer_order_untucked] : [c.layer_order]
+}
+
+// fullSleevesBeneath (WEB-75): `over` is a full-sleeve garment whose category
+// has excludes_full_sleeves_beneath (a sweater or overshirt), and `under` is a
+// full-sleeve garment that layers below it whether tucked or not (a shirt, a
+// dress). The lower sleeves bunch up through the upper ones in the render, so
+// the two don't go together. A backend that predates the flag sends none,
+// and nothing changes.
+function fullSleevesBeneath(over: EffectiveCategory, under: EffectiveCategory): boolean {
+  if (!over.category.excludes_full_sleeves_beneath) {
+    return false
+  }
+  if (garmentSleeves(over) !== FULL_SLEEVE || garmentSleeves(under) !== FULL_SLEEVE) {
+    return false
+  }
+  return Math.max(...layerOrders(under.category)) < Math.min(...layerOrders(over.category))
 }
 
 // pairCompatible returns true if `a` and `b` can coexist in the same outfit.

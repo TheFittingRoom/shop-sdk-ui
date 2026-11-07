@@ -60,6 +60,7 @@ const GROUPS = [
   { name: 'sets', label: 'Sets', same_group_default: 'exclusive', display_order: 3 },
   // Unused by default; a test moves the T-shirt here so it clashes with nothing.
   { name: 'outerwear', label: 'Outerwear', same_group_default: 'exclusive', display_order: 4 },
+  { name: 'sweaters_and_vests', label: 'Sweaters and Vests', same_group_default: 'exclusive', display_order: 5 },
 ]
 
 const PRODUCTS = [
@@ -70,11 +71,14 @@ const PRODUCTS = [
 
 // Opens the desktop fitting room holding Test Product (T-shirt), Second
 // Product (pants) and Test Suit Set (inner top + bottoms), none selected.
-// `secondProductCategory` re-categorises Second Product (pants by default).
+// `secondProductCategory` re-categorises Second Product (pants by default);
+// `styles` overrides fields of Test Product's, Second Product's and the Set's
+// first piece's style (their `sleeves`, say).
 async function bootFittingRoom(
   page: Page,
   categories: unknown[] = [TSHIRT, PANTS, SET, INNER_TOPS, BOTTOMS],
   secondProductCategory = 'pants',
+  styles: { first?: object; second?: object; setTop?: object } = {},
 ) {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.addInitScript(
@@ -95,9 +99,14 @@ async function bootFittingRoom(
     productCatalog: [TEST_CURRENT_PRODUCT_B, TEST_CONTAINER_CURRENT_PRODUCT],
     firestoreDocs: {
       styles: {
-        'test-style': TEST_SEEDED_STYLE,
-        'test-style-b': { ...TEST_SEEDED_STYLE_B, style_category_name: secondProductCategory },
-        'container-style-1': TEST_CONTAINER_SEEDED_STYLE,
+        'test-style': { ...TEST_SEEDED_STYLE, ...styles.first },
+        'test-style-b': { ...TEST_SEEDED_STYLE_B, style_category_name: secondProductCategory, ...styles.second },
+        'container-style-1': {
+          ...TEST_CONTAINER_SEEDED_STYLE,
+          children: TEST_CONTAINER_SEEDED_STYLE.children.map((child, i) =>
+            i === 0 ? { ...child, ...styles.setTop } : child,
+          ),
+        },
       },
     },
     apiOverrides: {
@@ -170,6 +179,88 @@ test('a cross-group Excludes rule swaps too', async ({ page }) => {
 // --- The swap notice ---------------------------------------------------------
 
 const notice = (page: Page) => page.getByRole('status').filter({ hasText: /from your outfit/ })
+
+// --- Full sleeves under a sweater (WEB-75) -------------------------------------
+//
+// A full-sleeve sweater (or overshirt) can't go over a full-sleeve garment that
+// layers beneath it: the lower sleeves bunch up through the upper ones in the
+// render. The category says so with excludes_full_sleeves_beneath; the
+// garments' sleeves come from the category (auto) or the style (per_style).
+// Second Product is the sweater in these tests, Test Product the shirt.
+
+// A tuckable shirt with per-style sleeves: layer 60 tucked, 130 untucked.
+const SHIRT = { ...TSHIRT, tuckable: true, layer_order_untucked: 130, sleeve_selection: 'per_style' }
+const SWEATER = {
+  ...BASE_CATEGORY,
+  name: 'sweaters',
+  label: 'Sweaters, cardigans, hoodies',
+  label_singular: 'Sweater',
+  group: 'sweaters_and_vests',
+  layer_order: 150,
+  sleeve_selection: 'auto',
+  sleeve_auto_value: 'full_sleeve',
+  excludes_full_sleeves_beneath: true,
+}
+const SWEATER_CATEGORIES = [SHIRT, SWEATER, PANTS, SET, { ...INNER_TOPS, sleeve_selection: 'per_style' }, BOTTOMS]
+const FULL = { sleeves: 'full_sleeve' }
+
+test('a sweater and a full-sleeve shirt swap each other out, with the notice', async ({ page }) => {
+  await bootFittingRoom(page, SWEATER_CATEGORIES, 'sweaters', { first: FULL })
+  await card(page, /Test Product/i).click()
+  await card(page, /Second Product/i).click()
+  await expectOutfit(page, { in: ['Sweater'], out: ['T-Shirt'] })
+  await expect(notice(page)).toHaveText(/Removed Test Product from your outfit/)
+
+  // Either way round: the shirt evicts the sweater.
+  await card(page, /Test Product/i).click()
+  await expectOutfit(page, { in: ['T-Shirt'], out: ['Sweater'] })
+})
+
+for (const [what, sleeves] of [
+  ['a half-sleeve shirt', { sleeves: 'half_sleeve' }],
+  ['a shirt whose sleeves are not set', {}],
+] as const) {
+  test(`${what} goes under a sweater`, async ({ page }) => {
+    await bootFittingRoom(page, SWEATER_CATEGORIES, 'sweaters', { first: sleeves })
+    await card(page, /Test Product/i).click()
+    await card(page, /Second Product/i).click()
+    await expectOutfit(page, { in: ['T-Shirt', 'Sweater'], out: [] })
+  })
+}
+
+test('without the rule on the category (an older backend), a full-sleeve shirt goes under a sweater', async ({
+  page,
+}) => {
+  const categories = [SHIRT, { ...SWEATER, excludes_full_sleeves_beneath: undefined }, PANTS, SET, INNER_TOPS, BOTTOMS]
+  await bootFittingRoom(page, categories, 'sweaters', { first: FULL })
+  await card(page, /Test Product/i).click()
+  await card(page, /Second Product/i).click()
+  await expectOutfit(page, { in: ['T-Shirt', 'Sweater'], out: [] })
+})
+
+test('a full-sleeve jacket goes over a sweater: the rule is about what is beneath', async ({ page }) => {
+  // Test Product as a jacket: full sleeves, layered above the sweater.
+  const JACKET = {
+    ...TSHIRT,
+    label_singular: 'Jacket',
+    group: 'outerwear',
+    layer_order: 190,
+    layer_order_untucked: 190,
+    sleeve_selection: 'auto',
+    sleeve_auto_value: 'full_sleeve',
+  }
+  await bootFittingRoom(page, [JACKET, SWEATER, PANTS, SET, INNER_TOPS, BOTTOMS], 'sweaters')
+  await card(page, /Test Product/i).click()
+  await card(page, /Second Product/i).click()
+  await expectOutfit(page, { in: ['Jacket', 'Sweater'], out: [] })
+})
+
+test("a Set whose top has full sleeves can't go under a sweater", async ({ page }) => {
+  await bootFittingRoom(page, SWEATER_CATEGORIES, 'sweaters', { setTop: FULL })
+  await card(page, /Test Suit Set/i).click()
+  await card(page, /Second Product/i).click()
+  await expectOutfit(page, { in: ['Sweater'], out: ['Set'] })
+})
 
 test('a clash swap shows a teal notice naming what left, and Undo restores it', async ({ page }) => {
   await bootFittingRoom(page)

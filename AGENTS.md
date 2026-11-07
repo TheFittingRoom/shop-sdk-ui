@@ -664,6 +664,34 @@ the rules alone would let two coexist.
 garment cap, and counts the cap **after** those evictions (shirt + pants, then
 a 3-piece Set with a shirt and trousers: both leave, 0 + 3 = 3, allowed).
 
+### Full sleeves under a sweater layer (WEB-75)
+
+A full-sleeve garment whose category has `excludes_full_sleeves_beneath`
+(Sweaters and Overshirts today) can't be worn over a full-sleeve garment
+that layers beneath it, tucked or untucked: a shirt, top, dress, jumpsuit or
+bodysuit. The lower sleeves bunch up through the upper ones in the render.
+It is a clash like any other: selecting one evicts the other, with the swap
+notice. `fullSleevesBeneath` in `fitting-room-outfit.ts` applies it per
+garment (a Set's pieces each count):
+
+- **A garment's sleeves** (`garmentSleeves`) come from the category's
+  `sleeve_auto_value` for an `auto` category, or from the garment's own style
+  (`sleeves`, the child style's for a Set piece, carried on
+  `EffectiveCategory.sleeves`) for a `per_style` one. **Not set means not full
+  sleeve**: an untagged shirt goes under a sweater until someone sets its
+  sleeves in the dashboard.
+- **"Beneath"** means every layer order the garment can take (both tuck
+  states) is below every one of the over-layer's. A jacket over a sweater is
+  fine.
+- **The backend owns which categories carry the flag** (tfr-backend
+  AGENTS.md, "Full sleeves under a sweater layer"). A backend that predates
+  it sends no flag, and nothing changes.
+
+Guarded by the WEB-75 tests in `e2e/outfit-conflicts.spec.ts`. Each mutant
+was caught: the rule never firing; only one direction checked (each way);
+the lower garment's sleeves ignored; unset sleeves counted as full; the flag
+ignored; layer order ignored; a Set's pieces carrying no sleeves.
+
 ### The garment cap: 3, temporarily (WEB-36)
 
 `MAX_OUTFIT_ITEMS` caps the garments in a try-on, a Set counting one per
