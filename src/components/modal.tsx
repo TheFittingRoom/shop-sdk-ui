@@ -35,9 +35,19 @@ export interface ContentModalProps {
   title: ReactNode
   onBackClick?: () => void
   children: ReactNode
+  // fillHeight makes the body take the frame's whole height, less room for a
+  // pinned PoweredByFooter, so a child with `flex: 1` (the landing screen's
+  // video) can grow into whatever height the screen has. Without it the body
+  // is as tall as its content and sits centred in the frame.
+  fillHeight?: boolean
 }
 
-export function ContentModal({ onRequestClose, title, onBackClick, children }: ContentModalProps) {
+// FOOTER_SPACE is the height PoweredByFooter takes at the bottom of the frame
+// (bottom 16px + paddingTop 24px + its 24px logo row), kept clear of a
+// fillHeight body so nothing scrolls underneath the footer.
+const FOOTER_SPACE = '64px'
+
+export function ContentModal({ onRequestClose, title, onBackClick, children, fillHeight = false }: ContentModalProps) {
   const deviceLayout = useMainStore((state) => state.deviceLayout)
   const css = useCss((theme) => ({
     frameContentBase: {
@@ -75,6 +85,12 @@ export function ContentModal({ onRequestClose, title, onBackClick, children }: C
       overflowY: 'auto',
       minHeight: 0,
     },
+    bodyFill: {
+      flex: '1 1 auto',
+      display: 'flex',
+      flexDirection: 'column',
+      marginBottom: FOOTER_SPACE,
+    },
     contentContainer: {
       maxWidth: '390px',
       marginLeft: 'auto',
@@ -83,6 +99,13 @@ export function ContentModal({ onRequestClose, title, onBackClick, children }: C
       flexDirection: 'column',
       gap: '0',
       alignItems: 'center',
+    },
+    // Fills the body's height. As a flex item it never shrinks below its
+    // content's minimum, so the body still scrolls when the screen is too
+    // short for even the smallest layout.
+    contentContainerFill: {
+      flex: '1 0 auto',
+      width: '100%',
     },
   }))
 
@@ -93,8 +116,8 @@ export function ContentModal({ onRequestClose, title, onBackClick, children }: C
       contentStyle={deviceLayout === DeviceLayout.MOBILE_PORTRAIT ? css.frameContentFullScreen : css.frameContentBase}
     >
       <ModalTitlebar title={title} onBackClick={onBackClick} onCloseClick={onRequestClose} />
-      <div css={css.body}>
-        <div css={css.contentContainer}>{children}</div>
+      <div css={[css.body, fillHeight && css.bodyFill]}>
+        <div css={[css.contentContainer, fillHeight && css.contentContainerFill]}>{children}</div>
       </div>
     </ModalFrame>
   )

@@ -11,6 +11,10 @@ import { useCss } from '@/lib/theme'
 import type { OverlayProps } from '@/lib/view'
 import { OverlayName } from '@/lib/view'
 
+// The smallest the intro video gets before the screen scrolls instead.
+const MIN_VIDEO_PX = '180px'
+const TEXT_LINE_HEIGHT = 1.4
+
 export interface LandingOverlayProps extends OverlayProps {
   returnToOverlay?: OverlayName
 }
@@ -29,24 +33,36 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
     headerText: {
       fontSize: '32px',
     },
+    // The text lines set their own line height: otherwise they inherit the
+    // storefront's (Dawn's is ~1.8), and the height they take is height the
+    // video doesn't get.
     description: {
       fontSize: '14px',
       textAlign: 'center',
+      lineHeight: TEXT_LINE_HEIGHT,
     },
+    // The video takes whatever height the screen leaves (the modal body fills
+    // the frame: ContentModal fillHeight), down to MIN_VIDEO_PX, below which
+    // the body scrolls instead. It is a size container so the square inside
+    // can be as big as the smaller of its width and height (WEB-45; it used
+    // to be a fixed 30vh, small on tall screens and still too big on short
+    // ones, where it pushed the sign-in line under the "Powered by" footer).
     videoContainer: {
       marginTop: '16px',
+      flex: '1 1 0',
+      minHeight: MIN_VIDEO_PX,
+      containerType: 'size',
       display: 'flex',
       justifyContent: 'center',
+      alignItems: 'center',
       width: '100%',
     },
     // The poster and the video share one square box, so starting playback
-    // moves nothing. Capped to a share of the screen: with the demo account
-    // buttons the screen is tall enough that a full-size square pushes the
-    // sign-in line under the pinned "Powered by" footer on shorter screens
-    // (and with storefront fonts, which run larger).
+    // moves nothing. The first width is for browsers without container
+    // units (the old fixed cap); the second wins where they exist.
     media: {
       display: 'block',
-      width: 'min(100%, 30vh)',
+      width: ['min(100%, 30vh)', 'min(100cqw, 100cqh)'],
       aspectRatio: '1 / 1',
       objectFit: 'cover',
       backgroundColor: '#11272b',
@@ -58,7 +74,7 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
       border: 'none',
       background: 'none',
       cursor: 'pointer',
-      width: 'min(100%, 30vh)',
+      width: ['min(100%, 30vh)', 'min(100cqw, 100cqh)'],
     },
     posterImage: {
       display: 'block',
@@ -90,6 +106,7 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
       marginTop: '16px',
       fontSize: '14px',
       textAlign: 'center',
+      lineHeight: TEXT_LINE_HEIGHT,
     },
     buttonContainer: {
       marginTop: '8px',
@@ -98,9 +115,11 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
     or: {
       marginTop: '8px',
       fontSize: '14px',
+      lineHeight: TEXT_LINE_HEIGHT,
     },
     signInContainer: {
       marginTop: '16px',
+      lineHeight: TEXT_LINE_HEIGHT,
     },
   }))
   // The intro video, and its poster (a frame of it). Tapping the poster plays
@@ -120,7 +139,11 @@ export default function LandingOverlay({ returnToOverlay }: LandingOverlayProps)
   }, [openOverlay, returnToOverlay])
 
   return (
-    <ContentModal onRequestClose={closeOverlay} title={<TextT variant="brand" css={css.titleText} t="try_it_on" />}>
+    <ContentModal
+      onRequestClose={closeOverlay}
+      fillHeight
+      title={<TextT variant="brand" css={css.titleText} t="try_it_on" />}
+    >
       <div css={css.headerText}>
         <TextT variant="brand" css={css.headerText} t={t('landing.header')} />
       </div>

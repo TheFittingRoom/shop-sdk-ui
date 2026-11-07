@@ -119,10 +119,11 @@ export function DemoWatermark({ imageRef }: { imageRef: RefObject<HTMLImageEleme
     },
     text: {
       display: 'block',
-      fontSize: '18px',
+      // 18px until WEB-49 asked for it a bit bigger.
+      fontSize: '22px',
       fontWeight: '700',
       lineHeight: 1.1,
-      letterSpacing: '2px',
+      letterSpacing: '2.5px',
       textTransform: 'uppercase',
       // The copy carries its own line break: one word per line.
       whiteSpace: 'pre-line',

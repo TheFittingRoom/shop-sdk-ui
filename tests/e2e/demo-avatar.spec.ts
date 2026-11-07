@@ -109,6 +109,62 @@ test('the landing screen plays the intro video, and offers a demo account, the a
   await expect(page.getByRole('img', { name: 'QR Code' })).toBeVisible()
 })
 
+// WEB-45: the intro video takes the height the screen leaves (it was a fixed
+// 30vh), as a square, so it grows on taller screens; the body reserves the
+// pinned "Powered by" footer's space, so on a short screen the sign-in line
+// scrolls into view above the footer instead of under it.
+async function openLanding(page: Page, width: number, height: number) {
+  await page.setViewportSize({ width, height })
+  await bootSdk(page, { loggedIn: false })
+  await page.getByRole('button', { name: /quick view/i }).click()
+  const poster = page.getByRole('dialog').getByRole('button', { name: 'Play the video' })
+  await expect(poster).toBeVisible()
+  return poster
+}
+
+test('the intro video grows into the height the screen leaves, staying square', async ({ page }) => {
+  const sizes: number[] = []
+  for (const height of [700, 900]) {
+    const poster = await openLanding(page, 1440, height)
+    const box = await poster.boundingBox()
+    expect(box).not.toBeNull()
+    expect(Math.abs((box?.width ?? 0) - (box?.height ?? 0))).toBeLessThanOrEqual(1)
+    sizes.push(box?.width ?? 0)
+  }
+  // 30vh at 900 would be 270.
+  expect(sizes[1]).toBeGreaterThan(0.3 * 900 + 20)
+  expect(sizes[1]).toBeGreaterThan(sizes[0] + 50)
+
+  // Playing swaps in the video at the poster's size, so nothing moves.
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('button', { name: 'Play the video' }).click()
+  const videoBox = await dialog.locator('video').boundingBox()
+  expect(Math.abs((videoBox?.width ?? 0) - sizes[1])).toBeLessThanOrEqual(1)
+})
+
+test('on a short screen the sign-in line scrolls into view above the footer', async ({ page }) => {
+  await openLanding(page, 1280, 560)
+  const dialog = page.getByRole('dialog')
+  const signIn = dialog.getByText('Sign in.')
+  // Scroll the modal body all the way down: the sign-in line is the last
+  // thing in it, so this is where the footer would cover it.
+  await signIn.evaluate((el) => {
+    for (let e = el.parentElement; e; e = e.parentElement) {
+      if (/(auto|scroll)/.test(getComputedStyle(e).overflowY)) {
+        e.scrollTop = e.scrollHeight
+        return
+      }
+    }
+  })
+  const signInBox = await signIn.boundingBox()
+  const footerBox = await dialog.getByText('Powered by').boundingBox()
+  expect(signInBox && footerBox).toBeTruthy()
+  expect(signInBox?.y ?? 0).toBeGreaterThan(0)
+  // Clear of the footer with room to spare, not just touching: the host page's
+  // default font is smaller than a storefront's, so 0px here overlaps there.
+  expect((signInBox?.y ?? 0) + (signInBox?.height ?? 0)).toBeLessThanOrEqual((footerBox?.y ?? 0) - 16)
+})
+
 test('sign-up creates the account, then tries on with the demo avatar', async ({ page }) => {
   const putUserBodies: unknown[] = []
   const boot = quickViewBoot()
