@@ -26,6 +26,10 @@ const logger = getLogger('fitting-room-data')
 export interface EffectiveCategory {
   category: StyleCategory
   group: StyleCategoryGroup | null
+  // The garment's own style's `sleeves` (the child's, for a container
+  // piece), or null when not set. Composition reads it for WEB-75's
+  // full-sleeves-beneath rule; see garmentSleeves in fitting-room-outfit.ts.
+  sleeves: string | null
 }
 
 export interface ResolvedFittingRoomItem {
@@ -202,11 +206,19 @@ function resolveItem(
         const childName = String(child.style_category_name)
         const childCat = index.byName(childName)
         if (childCat) {
-          effective.push({ category: childCat, group: index.groupForCategory(childName) })
+          effective.push({
+            category: childCat,
+            group: index.groupForCategory(childName),
+            sleeves: child.sleeves || null,
+          })
         }
       }
     } else if (styleCategory) {
-      effective.push({ category: styleCategory, group: styleCategoryGroup })
+      effective.push({
+        category: styleCategory,
+        group: styleCategoryGroup,
+        sleeves: loadedProduct.style.sleeves || null,
+      })
     }
   }
 

@@ -803,6 +803,14 @@ export interface StyleCategory {
    */
   excludes: any /* enums.StyleCategory */[];
   /**
+   * ExcludesFullSleevesBeneath: a full-sleeve garment in this category
+   * does not compose with a full-sleeve garment whose layer order (tucked
+   * or untucked) is below this category's. A garment's sleeves are its
+   * style's `sleeves`, or SleeveAutoValue for an `auto` category; unset
+   * is not full sleeve. Clients apply it with Includes/Excludes (WEB-75).
+   */
+  excludes_full_sleeves_beneath: boolean;
+  /**
    * IsContainer marks the category as a container (parent-style) type:
    * Style rows in this category own N child Style rows and are expanded
    * to N component CSAs at VTO composition time. Dashboard / SDK branch
