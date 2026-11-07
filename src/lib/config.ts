@@ -52,8 +52,6 @@ export enum EnvName {
   // No production backend exists yet. Kept in the enum so init() reaches
   // getConfig's error for it instead of reporting an invalid name.
   PRODUCTION = 'production',
-  // Hosted demo server (demo.thefittingroom.xyz).
-  DEMO = 'demo',
   // The local-deployment Docker stack running on the developer's host.
   LOCAL = 'local',
 }
@@ -104,32 +102,6 @@ const CONFIGS: Record<Exclude<EnvName, EnvName.PRODUCTION>, Config> = {
     },
     frames: {
       baseUrl: 'https://objects.infra.thefittingroom.xyz/tfr-assets-dev',
-    },
-    features: {
-      vtoPrefetch: true,
-    },
-    ...SHARED_CONFIG,
-  },
-  [EnvName.DEMO]: {
-    firebase: {
-      apiKey: 'AIzaSyDfjBWzpmzb-mhGN8VSURxzLg6nkzmKUD8',
-      authDomain: 'fittingroom-dev-5d248.firebaseapp.com',
-      projectId: 'fittingroom-dev-5d248',
-      storageBucket: 'fittingroom-dev-5d248.appspot.com',
-      messagingSenderId: '2298664147',
-      appId: '1:2298664147:web:340bda75cd5d25f3997026',
-      measurementId: 'G-B7GDQ1Y9LL',
-    },
-    api: {
-      baseUrl: 'https://demo.thefittingroom.xyz/api',
-      vtoTimeoutMs: 120000,
-      vtoPrefetchDelayMs: 3000,
-    },
-    asset: {
-      baseUrl: 'http://demo.thefittingroom.xyz/s3/tfr-assets-dev/shop-sdk/assets/v5',
-    },
-    frames: {
-      baseUrl: 'http://demo.thefittingroom.xyz/s3/tfr-assets-dev',
     },
     features: {
       vtoPrefetch: true,

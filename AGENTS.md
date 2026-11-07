@@ -275,18 +275,22 @@ caught that the e2e host page never showed:
 
 ## Environment selection
 
-`InitParams.environment` is an `EnvName` (`development` | `demo` | `local`;
+`InitParams.environment` is an `EnvName` (`development` | `local`;
 `production` is in the enum but `getConfig` throws for it because no production
 backend exists yet). `src/lib/config.ts` maps each to firebase/api/asset/frames
 URLs; `tests/e2e/environment-contract.spec.ts` pins which Firebase project each
 API host is paired with, and every host today verifies tokens against the dev
 project. `development` points at the shared dev backend
 (`tfr.dev.thefittingroom.xyz`);
-`demo` points at the hosted demo server (`demo.thefittingroom.xyz`); `local`
-points at the `local-deployment` Docker stack on the developer's host
+`local` points at the `local-deployment` Docker stack on the developer's host
 (`http://localhost:8080`, s3proxy at `:9000`). The Shopify theme defaults to
-`development` and switches to `local` or `demo` via `?tfr-source` (see README
-"Environments").
+`development` and switches to `local` via `?tfr-source` (see README
+"Environments"). A `demo` profile for the hosted demo server existed until the
+server was retired (2026-11); `init` rejects the name now.
+
+The e2e harness (`host.html`, `bootSdk`) runs on `local`: every request is
+mocked by path, so the host only matters for a request a test forgot to mock,
+and localhost sends that nowhere real. Don't switch it to `development`.
 
 ## Frame URL rewriting
 
