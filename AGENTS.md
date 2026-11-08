@@ -259,10 +259,23 @@ storefront. For any visual change, also run
 `node scripts/storefront-screenshots.cjs <out-dir>` (after `npm run build`):
 it loads the demo storefront in a headless browser and answers the store's
 unpkg request with `dist/index.js`, so the theme runs this build (desktop and
-phone; signed-out screens only, so no renders). It deliberately doesn't use
+phone; signed-out screens by default). It deliberately doesn't use
 `?tfr-source=local-dev`: Chrome's local network access rules block a public
-site loading from localhost unless the user has allowed it. Two things it
-caught that the e2e host page never showed:
+site loading from localhost unless the user has allowed it.
+
+**Signed in on the real store:** `--storage-state <file>` runs it as the test
+account saved in a Playwright storage state, against the real dev backend and
+Firebase (the e2e suite mocks both). local-deployment's `scripts/login.sh
+<account>` writes those files (`local-data/sessions/<account>.storage.json`);
+a person runs it, agents only use the result (local-deployment AGENTS.md,
+"People create sessions"). It shoots the product page and the first signed-in
+screen, and exits non-zero if the session didn't sign in. VTO requests are
+blocked unless `--allow-renders` (the try-on then shows "Couldn't load the
+try-on", and the run logs the block): a render on dev costs sim-vis time, so
+ask before allowing one. Signed in, the page never goes network-idle (the
+SDK's Firestore listener), so that run waits for `load`.
+
+Two things the storefront run caught that the e2e host page never showed:
 
 - **Storefront themes hide empty elements** (Shopify Dawn has
   `div:empty { display: none }`). Never rely on an empty element for spacing

@@ -66,9 +66,10 @@ files to use others. Renders are scans of real people, so none are committed
 here; without the seed data every frame is a grey placeholder. The scenes
 live in `tests/screenshots/scenes.spec.ts`; add one there for a new screen.
 
-The host page has none of a store's fonts or CSS. For the signed-out screens
-on the real demo storefront, use `node scripts/storefront-screenshots.cjs`
-(AGENTS.md, "The host page is not the store").
+The host page has none of a store's fonts or CSS. For the real demo
+storefront, use `node scripts/storefront-screenshots.cjs`: signed-out screens
+by default, or signed in with `--storage-state` (AGENTS.md, "The host page is
+not the store").
 
 ## Release process
 

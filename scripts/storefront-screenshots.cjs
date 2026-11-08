@@ -5,7 +5,7 @@
 //
 //   npm run build
 //   node scripts/storefront-screenshots.cjs <out-dir> [product-handle] \
-//     [--asset <name>=<local-file> ...]
+//     [--asset <name>=<local-file> ...] [--storage-state <file> [--allow-renders]]
 //
 // --asset answers requests for an SDK asset (config.asset.baseUrl/<name>,
 // e.g. intro-video-poster.jpg) with a local file, to preview new images or
@@ -18,8 +18,13 @@
 // network access rules stop a public site loading from localhost unless the
 // user has allowed it, and a fresh headless browser hasn't.
 //
-// Signed out only: the landing, sign-up and sign-in screens. Nothing here
-// renders a try-on, so nothing costs sim-vis time.
+// Signed out by default: the landing, sign-up and sign-in screens.
+//
+// --storage-state <file> runs signed in instead, as the account saved in a
+// Playwright storage state (local-deployment's `scripts/login.sh <account>`
+// writes one per test account, in local-data/sessions/). Signed in, opening
+// the try-on can start a real render on dev, which costs sim-vis time, so VTO
+// requests are blocked unless --allow-renders is given.
 const fs = require('fs')
 const path = require('path')
 const { chromium, devices } = require('@playwright/test')
@@ -27,9 +32,19 @@ const { chromium, devices } = require('@playwright/test')
 const STORE = 'https://tfrshop-1346.myshopify.com'
 const positional = []
 const assets = {}
+let storageState
+let allowRenders = false
 const argv = process.argv.slice(2)
 for (let i = 0; i < argv.length; i++) {
-  if (argv[i] === '--asset') {
+  if (argv[i] === '--storage-state') {
+    storageState = argv[++i]
+    if (!storageState || !fs.existsSync(storageState)) {
+      console.error(`--storage-state needs an existing file, got ${storageState}`)
+      process.exit(2)
+    }
+  } else if (argv[i] === '--allow-renders') {
+    allowRenders = true
+  } else if (argv[i] === '--asset') {
     const [name, file] = (argv[++i] ?? '').split('=')
     if (!name || !file || !fs.existsSync(file)) {
       console.error(`--asset needs <name>=<existing-file>, got ${argv[i]}`)
@@ -43,7 +58,7 @@ for (let i = 0; i < argv.length; i++) {
 const [outDir, handle = 'camisole-vest'] = positional
 if (!outDir) {
   console.error(
-    'usage: node scripts/storefront-screenshots.cjs <out-dir> [product-handle] [--asset <name>=<local-file> ...]',
+    'usage: node scripts/storefront-screenshots.cjs <out-dir> [product-handle] [--asset <name>=<local-file> ...] [--storage-state <file> [--allow-renders]]',
   )
   process.exit(2)
 }
@@ -69,7 +84,15 @@ async function launch() {
 async function capture(name, contextOptions) {
   const browser = await launch()
   try {
-    const context = await browser.newContext(contextOptions)
+    const context = await browser.newContext({ ...contextOptions, storageState })
+    if (storageState && !allowRenders) {
+      // The try-on then shows "Couldn't load the try-on": that's this block.
+      await context.route(/\/v1\/vto-compositions/, (route) => {
+        if (route.request().method() !== 'POST') return route.continue()
+        console.log(`[${name}] blocked a VTO render request (pass --allow-renders to allow)`)
+        return route.abort()
+      })
+    }
     await context.route(/unpkg\.com\/@thefittingroom\/shop-ui/, (route) =>
       route.fulfill({
         status: 200,
@@ -100,10 +123,25 @@ async function capture(name, contextOptions) {
       console.log(file)
     }
 
-    await page.goto(`${STORE}/products/${handle}`, { waitUntil: 'networkidle' })
+    // Signed in, the SDK keeps a Firestore listener open, so the page never
+    // goes network-idle; the quick-view wait below covers readiness.
+    await page.goto(`${STORE}/products/${handle}`, { waitUntil: storageState ? 'load' : 'networkidle' })
     const quickView = page.getByRole('button', { name: /quick view/i }).first()
     await quickView.waitFor({ timeout: 20000 })
     await shot('0-pdp')
+    if (storageState) {
+      await quickView.click()
+      await page.waitForTimeout(6000)
+      await shot('1-signed-in')
+      if (await page.getByRole('button', { name: 'Try it now, scan later' }).isVisible()) {
+        console.error(
+          `[${name}] still signed out: the session in ${storageState} didn't work; ` +
+            'ask a person to run local-deployment `scripts/login.sh <account>` again',
+        )
+        process.exitCode = 1
+      }
+      return
+    }
     await quickView.click()
     await page.getByRole('button', { name: 'Try it now, scan later' }).waitFor({ timeout: 15000 })
     await shot('1-landing')
