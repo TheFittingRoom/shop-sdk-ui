@@ -830,6 +830,26 @@ export interface StyleCategoryGroup {
 }
 
 //////////
+// source: system.go
+
+/**
+ * VtoCacheStatus is GET /v1/system/vto-cache: how many VTO compositions are
+ * stored (Total, what a clear deletes) and how many of them a try-on would
+ * get as a cache hit (Ready: ready and not expired).
+ */
+export interface VtoCacheStatus {
+  total: number /* int64 */;
+  ready: number /* int64 */;
+}
+/**
+ * VtoCacheCleared is DELETE /v1/system/vto-cache: how many compositions the
+ * clear deleted.
+ */
+export interface VtoCacheCleared {
+  deleted: number /* int64 */;
+}
+
+//////////
 // source: system_info.go
 
 /**
