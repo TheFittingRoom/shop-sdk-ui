@@ -3,6 +3,13 @@ import { expect, test } from '@playwright/test'
 import { bootSdk } from './helpers/boot'
 import {
   TEST_BRAND_ID,
+  TEST_CONTAINER_CHILD_PANTS_CSA_ID,
+  TEST_CONTAINER_CHILD_SHIRT_CSA_ID,
+  TEST_CONTAINER_CURRENT_PRODUCT,
+  TEST_CONTAINER_EXTERNAL_ID,
+  TEST_CONTAINER_HANDLE,
+  TEST_CONTAINER_SEEDED_STYLE,
+  TEST_CONTAINER_SIZE_FIT_RECOMMENDATION,
   TEST_CURRENT_PRODUCT,
   TEST_PRODUCT_EXTERNAL_ID,
   TEST_PRODUCT_HANDLE,
@@ -287,4 +294,95 @@ test('quick view: a size click is saved for a product in the fitting room; a col
 
   await dialog.getByRole('button', { name: 'S', exact: true }).first().click()
   await expect.poll(async () => (await storedEntry(page))?.size).toBe('S')
+})
+
+test('a Set: a chosen size whose pieces are no longer mapped falls back to the recommendation', async ({ page }) => {
+  // The Set comes in M/32 (recommended, mapped to its shirt and trousers) and
+  // L/34, which is offered and sold but has no piece mapping (the merchant
+  // removed it). A shopper who chose L/34 must still get a try-on, in M/32,
+  // rather than the Set silently dropping out of the outfit.
+  const unmapped = {
+    id: 6101,
+    label: 'L/34',
+    size_value: { value: 'L/34' },
+    colorway_size_assets: [{ id: 6002, sku: 'SET-L34-DEFAULT', colorway_id: 4100, colorway_name: 'default' }],
+  }
+  const rec = {
+    ...TEST_CONTAINER_SIZE_FIT_RECOMMENDATION,
+    available_sizes: [...TEST_CONTAINER_SIZE_FIT_RECOMMENDATION.available_sizes, unmapped],
+    fits: [...TEST_CONTAINER_SIZE_FIT_RECOMMENDATION.fits, { size_id: 6101, measurement_location_fits: [] }],
+  }
+  const product = {
+    ...TEST_CONTAINER_CURRENT_PRODUCT,
+    variants: [
+      ...TEST_CONTAINER_CURRENT_PRODUCT.variants,
+      {
+        ...TEST_CONTAINER_CURRENT_PRODUCT.variants[0],
+        sku: 'SET-L34-DEFAULT',
+        size: 'L/34',
+        skuName: 'SET-L34-DEFAULT',
+      },
+    ],
+  }
+  const base = { ...TSHIRT_CATEGORY, layer_order: 60, layer_order_untucked: 60, includes: [], excludes: [] }
+  const categories = [
+    {
+      ...base,
+      name: 'suits_and_sets',
+      label: 'Suits & Sets',
+      label_singular: 'Set',
+      group: 'sets',
+      is_container: true,
+    },
+    { ...base, name: 'inner_tops', label: 'Tops', label_singular: 'Top', group: 'tops' },
+    { ...base, name: 'bottoms', label: 'Bottoms', label_singular: 'Bottom', group: 'bottoms' },
+  ]
+  const groups = ['tops', 'bottoms', 'sets'].map((name, i) => ({
+    name,
+    label: name,
+    same_group_default: 'exclusive',
+    display_order: i + 1,
+  }))
+
+  await page.addInitScript(
+    ({ brandId, uid, item }) => {
+      window.localStorage.setItem('tfr:fitting-room:v1', JSON.stringify({ [String(brandId)]: { [uid]: [item] } }))
+    },
+    {
+      brandId: TEST_BRAND_ID,
+      uid: TEST_UID,
+      item: {
+        externalId: TEST_CONTAINER_EXTERNAL_ID,
+        handle: TEST_CONTAINER_HANDLE,
+        size: 'L/34',
+        color: null,
+        addedAt: 1,
+      },
+    },
+  )
+  const vtoRequests: number[][] = []
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await bootSdk(page, {
+    productCatalog: [product],
+    firestoreDocs: { styles: { 'container-style': TEST_CONTAINER_SEEDED_STYLE } },
+    apiOverrides: {
+      sizeRecommendation: (route) => route.fulfill({ json: rec }),
+      styleCategories: (route) => route.fulfill({ json: categories }),
+      styleCategoryGroups: (route) => route.fulfill({ json: groups }),
+      vtoComposition: (route) => {
+        const body = route.request().postDataJSON() as { items: { colorway_size_asset_id: number }[] }
+        vtoRequests.push(body.items.map((i) => i.colorway_size_asset_id))
+        return route.fulfill({ json: TEST_VTO_COMPOSITION })
+      },
+    },
+  })
+  await page.getByRole('button', { name: 'Fitting Room', exact: true }).click()
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Test Suit Set/i })
+    .click()
+
+  expect((await lastRequest(vtoRequests)).sort()).toEqual(
+    [TEST_CONTAINER_CHILD_SHIRT_CSA_ID, TEST_CONTAINER_CHILD_PANTS_CSA_ID].sort(),
+  )
 })
