@@ -32,6 +32,22 @@ export interface EffectiveCategory {
   sleeves: string | null
 }
 
+// The size, colour and colorway-size asset an item is tried on and bought in
+// (WEB-105). Derived on every resolve, never stored: storage holds only what
+// the shopper chose (a size they clicked, a colour), and everything else
+// comes from the current size recommendation, so an unchosen size follows
+// the recommendation when it changes (a re-scan, a size-rec change, a brand
+// editing measurements) instead of keeping whatever was recommended once.
+export interface FittingRoomSelection {
+  sizeLabel: string
+  colorLabel: string | null
+  colorwaySizeAssetId: number
+  priceFormatted: string
+  // sizeChosen: the size is one the shopper picked (still offered), rather
+  // than the current recommendation.
+  sizeChosen: boolean
+}
+
 export interface ResolvedFittingRoomItem {
   externalId: string
   storage: FittingRoomItem
@@ -48,6 +64,10 @@ export interface ResolvedFittingRoomItem {
   effective: EffectiveCategory[]
   isReady: boolean
   needsResize: boolean
+  // selection: what the item is tried on and bought in, or null until its
+  // data has loaded (and for an item with no usable size). See
+  // FittingRoomSelection.
+  selection: FittingRoomSelection | null
 }
 
 export interface ResolvedFittingRoomGroup {
@@ -263,7 +283,7 @@ function resolveItem(
 
   const isReady = !!merchantProduct && !!loadedProduct && !!styleCategory && !needsResize
 
-  return {
+  const resolved: ResolvedFittingRoomItem = {
     externalId: item.externalId,
     storage: item,
     merchantProduct,
@@ -275,6 +295,33 @@ function resolveItem(
     effective,
     isReady,
     needsResize,
+    selection: null,
+  }
+  resolved.selection = deriveSelection(item, buildVtoProductDataFromResolved(resolved))
+  return resolved
+}
+
+// deriveSelection works out the size, colour and colorway-size asset to use:
+// the size the shopper chose if it is still offered, otherwise the current
+// recommendation; the colour they chose if that size comes in it, otherwise
+// the size's first colour. Null when the data hasn't loaded or the
+// recommended size has no colour the merchant sells.
+export function deriveSelection(item: FittingRoomItem, data: VtoProductData | null): FittingRoomSelection | null {
+  if (!data) {
+    return null
+  }
+  const chosen = item.size != null ? data.sizes.find((s) => s.sizeLabel === item.size) : undefined
+  const size = chosen ?? data.sizes.find((s) => s.isRecommended)
+  if (!size || size.colors.length === 0) {
+    return null
+  }
+  const color = size.colors.find((c) => c.colorLabel === item.color) ?? size.colors[0]
+  return {
+    sizeLabel: size.sizeLabel,
+    colorLabel: color.colorLabel,
+    colorwaySizeAssetId: color.colorwaySizeAssetId,
+    priceFormatted: color.priceFormatted,
+    sizeChosen: !!chosen,
   }
 }
 
