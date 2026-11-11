@@ -180,10 +180,8 @@ export const TEST_SEEDED_STYLE_B = {
   style_category_name: 'pants',
 }
 
-// Recommended size M, matching TEST_CURRENT_PRODUCT_B's only variant, so
-// ensureSizeForItem writes a size label consistent with the CSA it resolves.
-// A non-recommended size paired with the recommended size *label* leaves the
-// item half-resolved and silently dropped from the outfit.
+// Recommended size M, matching TEST_CURRENT_PRODUCT_B's only variant, so an
+// item with no chosen size resolves to a size the merchant actually sells.
 export const TEST_SIZE_FIT_RECOMMENDATION_B = {
   fit_classification: 'regular_fit',
   recommended_size: {
