@@ -73,39 +73,10 @@ export function DetailAccordionItem({
   // ends.
   const noFit = useMemo(() => isItemNoFit(item), [item])
 
-  const selectedSizeLabel = useMemo(() => {
-    if (!productData) {
-      return null
-    }
-    const csaId = item.storage.colorwaySizeAssetId
-    if (csaId == null) {
-      return null
-    }
-    for (const sizeRec of productData.sizes) {
-      if (sizeRec.colors.some((c) => c.colorwaySizeAssetId === csaId)) {
-        return sizeRec.sizeLabel
-      }
-    }
-    return null
-  }, [productData, item.storage.colorwaySizeAssetId])
-
-  // Currently-selected price: look up via stored colorwaySizeAssetId.
-  const currentPrice = useMemo(() => {
-    if (!productData) {
-      return null
-    }
-    const csaId = item.storage.colorwaySizeAssetId
-    if (csaId == null) {
-      return null
-    }
-    for (const sizeRec of productData.sizes) {
-      const c = sizeRec.colors.find((c) => c.colorwaySizeAssetId === csaId)
-      if (c) {
-        return c.priceFormatted
-      }
-    }
-    return null
-  }, [productData, item.storage.colorwaySizeAssetId])
+  // The selected size and its price come from the item's derived selection
+  // (WEB-105): the shopper's chosen size, or the current recommendation.
+  const selectedSizeLabel = item.selection?.sizeLabel ?? null
+  const currentPrice = item.selection?.priceFormatted ?? null
 
   // Available colours for the currently-selected size. Drives the colour
   // dropdown; ColorSelector hides itself when there are fewer than two.

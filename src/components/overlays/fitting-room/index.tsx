@@ -347,17 +347,13 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
         logger.logWarn('No addToCart callback configured; skipping', { externalId })
         return { ok: false, detail: null }
       }
-      const item = resolved.items.find((i) => i.externalId === externalId)
-      if (!item || !item.storage.size || !item.storage.color) {
-        logger.logWarn('Cannot add to cart: missing size or color', {
-          externalId,
-          size: item?.storage.size,
-          color: item?.storage.color,
-        })
+      const selection = resolved.items.find((i) => i.externalId === externalId)?.selection
+      if (!selection) {
+        logger.logWarn('Cannot add to cart: no size selected yet', { externalId })
         return { ok: false, detail: null }
       }
       try {
-        await addToCart(externalId, { size: item.storage.size, color: item.storage.color })
+        await addToCart(externalId, { size: selection.sizeLabel, color: selection.colorLabel })
         return { ok: true }
       } catch (error) {
         logger.logError('addToCart failed', { error, externalId })
