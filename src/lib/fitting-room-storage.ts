@@ -1,14 +1,24 @@
 import { getAuthManager } from '@/lib/firebase'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
-import { getSizeLabelFromSize } from '@/lib/util'
 
+// A fitting-room entry holds only what the shopper chose (WEB-105): `size`
+// is set when they click a size (in the fitting room or quick view) and is
+// otherwise null, `color` is their colour pick. The size, colour and
+// colorway-size asset actually used are derived from these plus the current
+// size recommendation (FittingRoomSelection, fitting-room-data.ts), so
+// nothing stored here can go stale when the recommendation changes.
+//
+// Entries saved before WEB-105 also carry a `colorwaySizeAssetId` and may
+// hold a size the shopper never clicked (an auto-picked recommendation).
+// The id is dropped on read (normalizeItems); the size is kept and treated
+// as chosen — Ky's call, so existing selections aren't reset. Revisit if
+// wrong-size reports keep coming from fitting rooms saved before then.
 export interface FittingRoomItem {
   externalId: string
   handle: string | null
   size: string | null
   color: string | null
-  colorwaySizeAssetId: number | null
   addedAt: number
 }
 
@@ -78,10 +88,25 @@ function readBrandBuckets(all: StoredShape, brandId: number): UserBuckets {
   return {}
 }
 
+// normalizeItems keeps only the fields FittingRoomItem has, dropping what
+// older entries carried (colorwaySizeAssetId before WEB-105), so the next
+// write stores the current shape.
+function normalizeItems(items: unknown): FittingRoomItem[] {
+  if (!Array.isArray(items)) {
+    return []
+  }
+  return items.map((item: FittingRoomItem) => ({
+    externalId: item.externalId,
+    handle: item.handle ?? null,
+    size: item.size ?? null,
+    color: item.color ?? null,
+    addedAt: item.addedAt,
+  }))
+}
+
 export function readFittingRoom(brandId: number): FittingRoomItem[] {
   const buckets = readBrandBuckets(readAll(), brandId)
-  const items = buckets[currentBucketKey]
-  return Array.isArray(items) ? items : []
+  return normalizeItems(buckets[currentBucketKey])
 }
 
 export function writeFittingRoom(brandId: number, items: FittingRoomItem[]): void {
@@ -94,15 +119,15 @@ export function writeFittingRoom(brandId: number, items: FittingRoomItem[]): voi
 
 // Called by the auth listener when a shopper logs in. Merges the
 // anonymous bucket into the user's bucket (user's picks win on
-// externalId collision — an anonymous CSA might be invalid for the
-// new user's avatar), clears anonymous, and returns the resulting
+// externalId collision — a size picked while signed out was picked
+// against another avatar's recommendation), clears anonymous, and returns the resulting
 // user-bucket contents. Idempotent: if anonymous is already empty,
 // nothing changes.
 function mergeAnonymousIntoUser(brandId: number, userId: string): FittingRoomItem[] {
   const all = readAll()
   const buckets = readBrandBuckets(all, brandId)
-  const anon = buckets[ANONYMOUS_BUCKET_KEY] ?? []
-  const user = buckets[userId] ?? []
+  const anon = normalizeItems(buckets[ANONYMOUS_BUCKET_KEY])
+  const user = normalizeItems(buckets[userId])
   const userExternalIds = new Set(user.map((item) => item.externalId))
   const additions = anon.filter((item) => !userExternalIds.has(item.externalId))
   const merged = [...user, ...additions]
@@ -164,44 +189,13 @@ export function _init(): void {
   })
 }
 
-// Resolve a colorway_size_asset id from a (size, color) selection for
-// currentProduct. Returns null when productData hasn't loaded yet, when the
-// size doesn't match any known recommendation, or when the color doesn't
-// match any variant's SKU. Callers store the null and downstream resolve
-// paths (e.g. ensureSizeForItem in the fitting-room overlay) re-derive when
-// productData becomes available.
-function resolveCurrentProductCsaId(productId: string, size: string | null, color: string | null): number | null {
-  if (size == null) {
-    return null
-  }
-  const { currentProduct } = getStaticData()
-  if (!currentProduct) {
-    return null
-  }
-  const stored = useMainStore.getState().productData[productId]
-  if (!stored || 'error' in stored) {
-    return null
-  }
-  const sizeRec = stored.sizeFitRecommendation.available_sizes.find((s) => getSizeLabelFromSize(s) === size)
-  if (!sizeRec) {
-    return null
-  }
-  const csa = sizeRec.colorway_size_assets.find((c) => {
-    const variant = currentProduct.variants.find((v) => v.sku === c.sku)
-    return variant?.color === color
-  })
-  return csa?.id ?? null
-}
-
 // The add path shared by toggleFittingRoomItem and ensureFittingRoomItem.
 //
 // We deliberately do NOT capture the PDP's currently-selected size. Size
-// belongs to the TFR size-recommendation flow: the fitting-room overlay's
-// ensureSizeForItem auto-picks the recommended size for the stored color
-// the first time the shopper selects the item, and the overlay's own size
-// selector is the only place size is ever persisted. Storing the PDP size
-// here would override that — typically with something the shopper picked
-// before the size recommendation existed.
+// belongs to the TFR size-recommendation flow: until the shopper clicks a
+// size in one of our overlays the item follows the current recommendation
+// (WEB-105). Storing the PDP size here would override that — typically with
+// something the shopper picked before the size recommendation existed.
 async function addFittingRoomItem(productId: string, handle: string | null, isPdp: boolean): Promise<void> {
   const state = useMainStore.getState()
   logger.logDebug('{{ts}} - Adding to fitting room', { productId, handle, isPdp })
@@ -229,7 +223,6 @@ async function addFittingRoomItem(productId: string, handle: string | null, isPd
     handle: resolvedHandle,
     size: null,
     color,
-    colorwaySizeAssetId: null,
     addedAt: Date.now(),
   })
   state.setLastAddEvent(productId)
@@ -243,8 +236,7 @@ async function addFittingRoomItem(productId: string, handle: string | null, isPd
 //
 // PDP size is deliberately ignored — size belongs to the TFR size-rec flow,
 // not the PDP. Any size the shopper picked inside a TFR overlay is
-// preserved; we recompute CSA from (existing size, new color) so the stored
-// CSA stays consistent with the new color choice.
+// preserved; only the colour is written.
 //
 // No-op when there's no currentProduct (e.g. we're on a collection page),
 // when the product isn't in the fitting room, or when the new color matches
@@ -273,13 +265,8 @@ export async function syncCurrentProductSelection(): Promise<void> {
     return
   }
 
-  const colorwaySizeAssetId = resolveCurrentProductCsaId(currentProduct.externalId, existing.size, color)
-  state.updateFittingRoomItem(currentProduct.externalId, { color, colorwaySizeAssetId })
-  logger.logDebug('{{ts}} - Synced PDP color into fitting-room', {
-    externalId: currentProduct.externalId,
-    color,
-    colorwaySizeAssetId,
-  })
+  state.updateFittingRoomItem(currentProduct.externalId, { color })
+  logger.logDebug('{{ts}} - Synced PDP color into fitting-room', { externalId: currentProduct.externalId, color })
 }
 
 export async function toggleFittingRoomItem(productId: string, handle: string | null, isPdp: boolean): Promise<void> {

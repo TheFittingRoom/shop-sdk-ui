@@ -18,8 +18,8 @@ export const MAX_OUTFIT_ITEMS = 3
 // Garment count per resolved item: containers contribute one per child (via
 // EffectiveCategory list); single-garment items contribute 1. Returns 0
 // when the style-category index hasn't populated yet — treating an
-// unresolved item as weightless is safer than blocking the add, and the
-// isReady flag on the caller handles the display-time skip.
+// unresolved item as weightless is safer than blocking the add, and
+// buildOutfit skips an item with no selection yet.
 function getGarmentCount(item: ResolvedFittingRoomItem): number {
   if (item.effective.length > 0) {
     return item.effective.length

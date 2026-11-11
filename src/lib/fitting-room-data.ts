@@ -62,8 +62,6 @@ export interface ResolvedFittingRoomItem {
   styleCategory: StyleCategory | null
   styleCategoryGroup: StyleCategoryGroup | null
   effective: EffectiveCategory[]
-  isReady: boolean
-  needsResize: boolean
   // selection: what the item is tried on and bought in, or null until its
   // data has loaded (and for an item with no usable size). See
   // FittingRoomSelection.
@@ -242,47 +240,6 @@ function resolveItem(
     }
   }
 
-  // needsResize: csa is null OR csa is no longer in the current size rec.
-  let needsResize = item.colorwaySizeAssetId == null
-  if (!needsResize && loadedProduct && item.colorwaySizeAssetId != null) {
-    const found = loadedProduct.sizeFitRecommendation.available_sizes.some((sz) =>
-      sz.colorway_size_assets.some((csa) => csa.id === item.colorwaySizeAssetId),
-    )
-    if (!found) {
-      needsResize = true
-      logger.logDebug('csa no longer in size rec, marking needsResize', {
-        externalId: item.externalId,
-        csa: item.colorwaySizeAssetId,
-      })
-    }
-    // Defensive: also re-validate that size label still resolves
-    if (!needsResize && item.size) {
-      const sizeStillExists = loadedProduct.sizeFitRecommendation.available_sizes.some(
-        (sz) => getSizeLabelFromSize(sz) === item.size,
-      )
-      if (!sizeStillExists) {
-        needsResize = true
-      }
-    }
-    // Container-specific: the stored parent CSA may still be in size-rec
-    // but the merchant might have deleted the corresponding set_size_mappings
-    // rows between sessions. Attempt the expansion and mark needsResize if
-    // it fails — surfacing the "pick a size" affordance is a better UX than
-    // silently dropping the item at wire-build time.
-    if (!needsResize && loadedProduct.container && item.colorwaySizeAssetId != null) {
-      const expanded = resolveContainerExpansion(loadedProduct, item.colorwaySizeAssetId)
-      if (!expanded) {
-        needsResize = true
-        logger.logDebug('container mapping resolved to empty, marking needsResize', {
-          externalId: item.externalId,
-          csa: item.colorwaySizeAssetId,
-        })
-      }
-    }
-  }
-
-  const isReady = !!merchantProduct && !!loadedProduct && !!styleCategory && !needsResize
-
   const resolved: ResolvedFittingRoomItem = {
     externalId: item.externalId,
     storage: item,
@@ -293,11 +250,20 @@ function resolveItem(
     styleCategory,
     styleCategoryGroup,
     effective,
-    isReady,
-    needsResize,
     selection: null,
   }
-  resolved.selection = deriveSelection(item, buildVtoProductDataFromResolved(resolved))
+  const data = buildVtoProductDataFromResolved(resolved)
+  resolved.selection = deriveSelection(item, data)
+  // A Set's chosen size whose piece mapping the merchant has since removed
+  // can't be tried on; fall back to the recommendation, as an unchosen size
+  // would, rather than dropping the Set from the outfit.
+  if (
+    resolved.selection?.sizeChosen &&
+    loadedProduct?.container &&
+    !resolveContainerExpansion(loadedProduct, resolved.selection.colorwaySizeAssetId)
+  ) {
+    resolved.selection = deriveSelection({ ...item, size: null }, data)
+  }
   return resolved
 }
 
@@ -482,29 +448,4 @@ export function buildVtoProductDataFromResolved(item: ResolvedFittingRoomItem): 
     sizes,
     styleCategoryLabel: item.styleCategory?.label_singular ?? loadedProduct.style.style_category_label ?? null,
   }
-}
-
-// findRecommendedColorSize returns the CSA + price for the recommended size
-// using the currently-stored color preference, falling back to the first
-// colorway when the preferred color is missing.
-export function findRecommendedColorSize(data: VtoProductData, preferredColor: string | null): VtoSizeColorData | null {
-  const recommended = data.sizes.find((s) => s.isRecommended)
-  if (!recommended || recommended.colors.length === 0) {
-    return null
-  }
-  return recommended.colors.find((c) => c.colorLabel === preferredColor) ?? recommended.colors[0]
-}
-
-// findCsaByLabel returns the CSA matching the given size label + color (or
-// first color in that size when preferredColor is missing).
-export function findCsaByLabel(
-  data: VtoProductData,
-  sizeLabel: string,
-  preferredColor: string | null,
-): VtoSizeColorData | null {
-  const sizeRecord = data.sizes.find((s) => s.sizeLabel === sizeLabel)
-  if (!sizeRecord || sizeRecord.colors.length === 0) {
-    return null
-  }
-  return sizeRecord.colors.find((c) => c.colorLabel === preferredColor) ?? sizeRecord.colors[0]
 }

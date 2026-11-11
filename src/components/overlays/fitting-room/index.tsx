@@ -9,19 +9,13 @@ import { TextT } from '@/components/text'
 import type { VtoCompositionItem } from '@/lib/api'
 import { getAuthManager } from '@/lib/firebase'
 import type { ResolvedFittingRoomItem } from '@/lib/fitting-room-data'
-import {
-  buildVtoProductDataFromResolved,
-  findCsaByLabel,
-  findRecommendedColorSize,
-  isItemNoFit,
-  useResolvedFittingRoom,
-} from '@/lib/fitting-room-data'
+import { isItemNoFit, useResolvedFittingRoom } from '@/lib/fitting-room-data'
 import { cartErrorDetail } from '@/lib/cart-error'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 import { useCss } from '@/lib/theme'
 import { useMobileSheetSnap } from '@/lib/use-mobile-sheet-snap'
-import { applyFrameBaseUrl, getSizeLabelFromSize } from '@/lib/util'
+import { applyFrameBaseUrl } from '@/lib/util'
 import { DeviceLayout, OverlayName } from '@/lib/view'
 import type { Availability, OutfitItem } from '@/lib/fitting-room-outfit'
 import { buildOutfit, computeAvailability, getOutfitConflicts } from '@/lib/fitting-room-outfit'
@@ -183,43 +177,6 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
     return out
   }, [resolved, selectedExternalIds])
 
-  // Auto-size-rec: when a selected item has no colorwaySizeAssetId yet, OR its
-  // stored id has gone stale (item.needsResize — the CSA is no longer in the
-  // current size rec, e.g. the style was re-saved/re-published and the row was
-  // replaced, or the colorway/size was removed), fall back to the DEFAULT: the
-  // recommended size for the item's stored colour preference, or the first
-  // colorway when that colour is gone (findRecommendedColorSize handles both).
-  // Write back via updateFittingRoomItem so the corrected choice persists and a
-  // stale id is never sent to VTO.
-  const ensureSizeForItem = useCallback(
-    (item: ResolvedFittingRoomItem) => {
-      if (item.storage.colorwaySizeAssetId != null && !item.needsResize) {
-        return
-      }
-      const productData = buildVtoProductDataFromResolved(item)
-      if (!productData) {
-        return
-      }
-      const csa = findRecommendedColorSize(productData, item.storage.color)
-      if (!csa) {
-        return
-      }
-      const sizeRec = item.loadedProduct?.sizeFitRecommendation
-      const sizeLabel = sizeRec ? getSizeLabelFromSize(sizeRec.recommended_size) : productData.recommendedSizeLabel
-      updateFittingRoomItem(item.externalId, {
-        colorwaySizeAssetId: csa.colorwaySizeAssetId,
-        size: sizeLabel,
-        color: csa.colorLabel,
-      })
-      logger.logDebug('Auto-picked recommended size', {
-        externalId: item.externalId,
-        sizeLabel,
-        csaId: csa.colorwaySizeAssetId,
-      })
-    },
-    [updateFittingRoomItem],
-  )
-
   // Handle selecting/deselecting a card.
   const handleSelectItem = useCallback(
     (externalId: string) => {
@@ -256,7 +213,6 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
             at: Date.now(),
           })
         }
-        ensureSizeForItem(item)
         setLastAddedExternalId(externalId)
         // Trigger a one-shot auto-rotation when the new product's VTO frames
         // arrive (see useAutoRotate). Size/color changes don't bump this so
@@ -271,64 +227,26 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
       }
       setSelectedExternalIds(nextSelected)
     },
-    [resolved, selectedExternalIds, isMobileLayout, ensureSizeForItem],
+    [resolved, selectedExternalIds, isMobileLayout],
   )
 
+  // A size click is the one place a size is stored (WEB-105): it records the
+  // shopper's choice and nothing else. The colour stays whatever they chose,
+  // and the colorway-size asset is derived (ResolvedFittingRoomItem.selection).
   const handleChangeSize = useCallback(
     (externalId: string, sizeLabel: string) => {
-      const item = resolved.items.find((i) => i.externalId === externalId)
-      if (!item) {
-        return
-      }
-      const productData = buildVtoProductDataFromResolved(item)
-      if (!productData) {
-        return
-      }
-      const csa = findCsaByLabel(productData, sizeLabel, item.storage.color)
-      if (!csa) {
-        return
-      }
-      updateFittingRoomItem(externalId, {
-        colorwaySizeAssetId: csa.colorwaySizeAssetId,
-        size: sizeLabel,
-        color: csa.colorLabel,
-      })
+      updateFittingRoomItem(externalId, { size: sizeLabel })
     },
-    [resolved.items, updateFittingRoomItem],
+    [updateFittingRoomItem],
   )
 
-  // Mirror handleChangeSize but vary the colour for the currently-stored size.
-  // Resolves to a CSA via findCsaByLabel and writes the new size/color/csaId.
-  // When the item has no stored size yet (catalog-add path — shopper hasn't
-  // opened the accordion to pick one), fall back to the recommended size
-  // from the size-fit recommendation. Without this fallback, the rail-card
-  // swatch row's colour click would early-return and silently do nothing
-  // for fresh-from-catalog items.
+  // A colour click stores the colour only. The size stays the shopper's
+  // choice if they made one, otherwise it keeps following the recommendation.
   const handleChangeColor = useCallback(
     (externalId: string, colorLabel: string | null) => {
-      const item = resolved.items.find((i) => i.externalId === externalId)
-      if (!item) {
-        return
-      }
-      const productData = buildVtoProductDataFromResolved(item)
-      if (!productData) {
-        return
-      }
-      const effectiveSize = item.storage.size ?? productData.recommendedSizeLabel
-      if (!effectiveSize) {
-        return
-      }
-      const csa = findCsaByLabel(productData, effectiveSize, colorLabel)
-      if (!csa) {
-        return
-      }
-      updateFittingRoomItem(externalId, {
-        colorwaySizeAssetId: csa.colorwaySizeAssetId,
-        size: effectiveSize,
-        color: csa.colorLabel,
-      })
+      updateFittingRoomItem(externalId, { color: colorLabel })
     },
-    [resolved.items, updateFittingRoomItem],
+    [updateFittingRoomItem],
   )
 
   // Wire to the merchant's addToCart callback (StaticData) when configured.
@@ -507,10 +425,8 @@ export default function FittingRoomOverlay({ preselectExternalId }: FittingRoomO
   // "Try It On" CTA. The CTA adds the product to the fitting room
   // asynchronously, so wait until both the storage entry AND its backing data
   // (merchantProduct + loadedProduct) have landed before running the normal
-  // selection path. Without the load-complete gate, ensureSizeForItem fires
-  // too early (buildVtoProductDataFromResolved returns null without
-  // loadedProduct), leaves the new item's CSA as null, and the outfit
-  // builder silently drops it — producing a bare avatar with no VTO.
+  // selection path, which needs the item's categories to work out what the
+  // selection evicts.
   const preselectAppliedRef = useRef(false)
   useEffect(() => {
     if (preselectAppliedRef.current || !preselectExternalId) {
