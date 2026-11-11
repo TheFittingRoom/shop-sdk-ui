@@ -550,6 +550,80 @@ metaobject, both fields come through `null` and `ColorSwatchRow` falls
 through image → hex → text-label rendering. See `shopify/AGENTS.md` →
 "Colour swatches (Storefront API token)" for the merchant-side setup.
 
+## Fitting-room selection: store what was chosen, derive the rest (WEB-105)
+
+A fitting-room entry in localStorage (`FittingRoomItem`,
+`fitting-room-storage.ts`) holds **only what the shopper chose**: `size` is
+set when they click a size button — in the fitting room or in quick view —
+and is otherwise null; `color` is their colour pick (from a swatch, quick
+view's colour select, or the product page's colour sync). Nothing else
+writes them. In particular **selecting an item, or picking a colour, never
+stores a size.**
+
+The size, colour and colorway-size asset (CSA) an item is tried on and bought
+in are derived on every resolve, as `ResolvedFittingRoomItem.selection`
+(`deriveSelection`, `fitting-room-data.ts`):
+
+- size: the chosen size if the recommendation still offers it, otherwise the
+  current recommended size;
+- colour: the chosen colour if that size comes in it, otherwise its first;
+- CSA and price: what those resolve to. **The CSA is never stored.**
+
+Everything that needs a selection reads that one value: the try-on outfit and
+its prefetch alternates, the detail panel's size and price, Add to cart and
+Add all, the rail card's variant. Don't read `storage.size` as "the size":
+it is only the shopper's choice, and null means "follow the recommendation".
+
+**Why (WEB-98):** the first time an item was selected the SDK used to store
+the size recommended at that moment, and keep it as if chosen. It was only
+replaced when it disappeared from the offered sizes, which include the sizes
+either side of the recommendation, so when a recommendation moved (a re-scan,
+a demo → own avatar switch, a size-rec change, a brand editing measurements)
+the shopper stayed on a size they never picked. A stored CSA had the same
+problem when a style was re-saved and its rows replaced; it needed its own
+stale-detection (`needsResize`), now gone with it.
+
+- **A chosen size that is no longer offered** falls back to the
+  recommendation. The stored size is left alone, so it applies again if the
+  size comes back.
+- **A Set** (`loadedProduct.container`): a chosen size whose piece mapping
+  the merchant removed falls back to the recommendation too, rather than the
+  Set dropping out of the outfit (`resolveItem`).
+- **Entries saved before WEB-105** may hold a size the shopper never clicked
+  (an auto-picked recommendation); it is kept and treated as chosen. That was
+  Ky's call (2026-11-11): keeping shoppers' selections intact beat clearing
+  the old auto-picks. **Revisit if wrong-size reports keep coming from
+  fitting rooms saved before the release**; a one-time reset of stored sizes,
+  keeping colours, clears them. Their old `colorwaySizeAssetId` is dropped on
+  read (`normalizeItems`), and since the sign-in merge writes the shopper's
+  bucket on every boot, it is gone from storage after their first page load.
+- **Quick view opens on the recommendation**, not on a size stored for the
+  product; a size click there is stored (when the product is in the fitting
+  room).
+
+Guarded by `e2e/fitting-room-selection.spec.ts`. Each mutant below, applied
+to `src/` alone, failed the tests named (2026-11-11, all 11 caught):
+
+| Mutant | Fails |
+|---|---|
+| selecting an item stores the recommended size | no saved size; an unchosen size follows the recommendation; clicking a colour |
+| the chosen size ignored | a chosen size survives; clicking a size |
+| a chosen size that is no longer offered not replaced | no longer offered falls back |
+| the chosen colour ignored | a chosen colour is kept; clicking a colour; clicking a size |
+| a colour click also stores a size | clicking a colour |
+| a size click also stores a CSA | clicking a size |
+| an old entry's CSA kept on read | an entry saved before WEB-105 |
+| Add to cart needs a stored size | add to cart with no saved size |
+| a quick-view colour change also stores a size | quick view |
+| a quick-view size click not stored | quick view |
+| the Set fallback removed | a Set: a chosen size whose pieces are no longer mapped |
+
+Two of those mutants first *survived*, and it was the mutant at fault: they
+read state inside a `useCallback` whose dependency list didn't include it, so
+they saw first-render values (no selection, a null size) and stored the null
+the test expects. A mutant that reads React state needs the same care as the
+code it imitates.
+
 ## Fitting-room desktop detail accordion
 
 The desktop middle pane (`detail-accordion.tsx` → `DesktopAccordionItem` in
@@ -634,8 +708,9 @@ once the merchant product and our size recommendation have both settled
 (loaded or failed) and there is still no usable size, the row shows quick
 view's "no well fitting sizes" message instead of "Loading..." — open or
 collapsed, desktop and mobile. **Add all to cart is disabled** while any
-selected item is no-fit: it would otherwise go in at its remembered PDP size,
-which we've just said doesn't fit. The row's message is the explanation.
+selected item is no-fit: such an item has no selection (see "Fitting-room
+selection" below), so there is no size to add it in. The row's message is the
+explanation.
 
 **A failed cart add shows an error** — the single-item Add to cart (desktop
 and mobile) as well as Add all. The snackbar is our own message, plus the
