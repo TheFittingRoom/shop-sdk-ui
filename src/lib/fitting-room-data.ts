@@ -43,9 +43,6 @@ export interface FittingRoomSelection {
   colorLabel: string | null
   colorwaySizeAssetId: number
   priceFormatted: string
-  // sizeChosen: the size is one the shopper picked (still offered), rather
-  // than the current recommendation.
-  sizeChosen: boolean
 }
 
 export interface ResolvedFittingRoomItem {
@@ -256,9 +253,12 @@ function resolveItem(
   resolved.selection = deriveSelection(item, data)
   // A Set's chosen size whose piece mapping the merchant has since removed
   // can't be tried on; fall back to the recommendation, as an unchosen size
-  // would, rather than dropping the Set from the outfit.
+  // would, rather than dropping the Set from the outfit. (When the stored size
+  // isn't offered the selection already is the recommendation, and
+  // re-deriving it changes nothing.)
   if (
-    resolved.selection?.sizeChosen &&
+    resolved.selection &&
+    item.size != null &&
     loadedProduct?.container &&
     !resolveContainerExpansion(loadedProduct, resolved.selection.colorwaySizeAssetId)
   ) {
@@ -287,7 +287,6 @@ export function deriveSelection(item: FittingRoomItem, data: VtoProductData | nu
     colorLabel: color.colorLabel,
     colorwaySizeAssetId: color.colorwaySizeAssetId,
     priceFormatted: color.priceFormatted,
-    sizeChosen: !!chosen,
   }
 }
 

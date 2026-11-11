@@ -2,6 +2,9 @@ import { getAuthManager } from '@/lib/firebase'
 import { getLogger } from '@/lib/logger'
 import { getStaticData, useMainStore } from '@/lib/store'
 
+// FittingRoomItem is the browser storage contract: exactly what is persisted
+// in localStorage under STORAGE_KEY, one per product, per brand and shopper.
+//
 // A fitting-room entry holds only what the shopper chose (WEB-105): `size`
 // is set when they click a size (in the fitting room or quick view) and is
 // otherwise null, `color` is their colour pick. The size, colour and
