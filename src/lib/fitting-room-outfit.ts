@@ -18,8 +18,8 @@ export const MAX_OUTFIT_ITEMS = 3
 // Garment count per resolved item: containers contribute one per child (via
 // EffectiveCategory list); single-garment items contribute 1. Returns 0
 // when the style-category index hasn't populated yet — treating an
-// unresolved item as weightless is safer than blocking the add, and the
-// isReady flag on the caller handles the display-time skip.
+// unresolved item as weightless is safer than blocking the add, and
+// buildOutfit skips an item with no selection yet.
 function getGarmentCount(item: ResolvedFittingRoomItem): number {
   if (item.effective.length > 0) {
     return item.effective.length
@@ -250,11 +250,10 @@ function makeOutfitItem(r: ResolvedFittingRoomItem, forceUntuck: boolean): Outfi
   if (!r.styleCategory) {
     return null
   }
-  // No chosen CSA yet, OR the stored CSA is stale (needsResize — no longer in
-  // the current size rec). Drop it from the wire request so an invalid id never
-  // reaches VTO; ensureSizeForItem re-resolves it to the default and the next
-  // build picks up the corrected id.
-  if (r.storage.colorwaySizeAssetId == null || r.needsResize) {
+  // No selection until the item's data has loaded (or when it has no usable
+  // size); it joins the outfit on the next build once it has one.
+  const selection = r.selection
+  if (!selection) {
     return null
   }
   // Tuckable is a per-CHILD trait; the container's own category
@@ -277,7 +276,7 @@ function makeOutfitItem(r: ResolvedFittingRoomItem, forceUntuck: boolean): Outfi
   // (the backend rejects parent CSAs as VTO items).
   let childCsaIds: number[] | undefined
   if (r.loadedProduct?.container) {
-    const resolved = resolveContainerExpansion(r.loadedProduct, r.storage.colorwaySizeAssetId)
+    const resolved = resolveContainerExpansion(r.loadedProduct, selection.colorwaySizeAssetId)
     if (!resolved) {
       return null
     }
@@ -285,7 +284,7 @@ function makeOutfitItem(r: ResolvedFittingRoomItem, forceUntuck: boolean): Outfi
   }
   const outfitItem: OutfitItem = {
     externalId: r.externalId,
-    colorwaySizeAssetId: r.storage.colorwaySizeAssetId,
+    colorwaySizeAssetId: selection.colorwaySizeAssetId,
     ...(untucked ? { untucked: true as const } : {}),
     ...(childCsaIds ? { childCsaIds } : {}),
   }
@@ -350,7 +349,7 @@ export function buildAlternateOutfits(
   if (!lastAddedResolved || !lastAddedResolved.loadedProduct) {
     return []
   }
-  const currentCsaId = lastAddedResolved.storage.colorwaySizeAssetId
+  const currentCsaId = lastAddedResolved.selection?.colorwaySizeAssetId
   if (currentCsaId == null) {
     return []
   }

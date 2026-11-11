@@ -412,35 +412,34 @@ export default function QuickViewOverlay() {
       logger.logError('Error during logout:', { error })
     })
   }, [closeOverlay])
-  // Wrap the color setter so a color change inside quick-view also persists
-  // to the fitting-room storage entry for the current product (when it's
-  // already in the room). Without this, changing color here and then opening
-  // the fitting-room overlay later would show the *previously stored* color,
-  // not what the shopper actually picked — and the rail card would render
-  // the wrong variant image.
+  // A colour or size picked here is the shopper's choice, so when the product
+  // is already in the fitting room it is stored there too (WEB-105): opening
+  // the fitting room later shows what they picked, and the rail card renders
+  // that variant. Each stores only what was clicked — a colour click doesn't
+  // store quick view's size, which may only be the recommendation.
+  const storeChoiceInFittingRoom = useCallback(
+    (choice: { size: string } | { color: string | null }) => {
+      const currentProduct = getStaticData().currentProduct
+      if (!currentProduct || !fittingRoomItems.some((item) => item.externalId === currentProduct.externalId)) {
+        return
+      }
+      updateFittingRoomItem(currentProduct.externalId, choice)
+    },
+    [fittingRoomItems, updateFittingRoomItem],
+  )
   const handleChangeColor = useCallback(
     (newColorLabel: string | null) => {
       setSelectedColorLabel(newColorLabel)
-      const currentProduct = getStaticData().currentProduct
-      if (!currentProduct) {
-        return
-      }
-      const inRoom = fittingRoomItems.some((item) => item.externalId === currentProduct.externalId)
-      if (!inRoom || !vtoProductData || !selectedSizeLabel) {
-        return
-      }
-      const sizeRec = vtoProductData.sizes.find((s) => s.sizeLabel === selectedSizeLabel)
-      const csa = sizeRec?.colors.find((c) => c.colorLabel === newColorLabel)
-      if (!csa) {
-        return
-      }
-      updateFittingRoomItem(currentProduct.externalId, {
-        colorwaySizeAssetId: csa.colorwaySizeAssetId,
-        size: selectedSizeLabel,
-        color: csa.colorLabel,
-      })
+      storeChoiceInFittingRoom({ color: newColorLabel })
     },
-    [fittingRoomItems, selectedSizeLabel, updateFittingRoomItem, vtoProductData],
+    [storeChoiceInFittingRoom],
+  )
+  const handleChangeSize = useCallback(
+    (newSizeLabel: string) => {
+      setSelectedSizeLabel(newSizeLabel)
+      storeChoiceInFittingRoom({ size: newSizeLabel })
+    },
+    [storeChoiceInFittingRoom],
   )
   const handleAddToCartClick = useCallback(async () => {
     try {
@@ -501,7 +500,7 @@ export default function QuickViewOverlay() {
         setModalStyle={setModalStyle}
         onClose={closeOverlay}
         onChangeColor={handleChangeColor}
-        onChangeSize={setSelectedSizeLabel}
+        onChangeSize={handleChangeSize}
         onAddToCart={handleAddToCartClick}
         onSignOut={handleSignOutClick}
         containerTuckable={containerTuckable}

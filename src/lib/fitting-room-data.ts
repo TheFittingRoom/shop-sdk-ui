@@ -32,6 +32,19 @@ export interface EffectiveCategory {
   sleeves: string | null
 }
 
+// The size, colour and colorway-size asset an item is tried on and bought in
+// (WEB-105). Derived on every resolve, never stored: storage holds only what
+// the shopper chose (a size they clicked, a colour), and everything else
+// comes from the current size recommendation, so an unchosen size follows
+// the recommendation when it changes (a re-scan, a size-rec change, a brand
+// editing measurements) instead of keeping whatever was recommended once.
+export interface FittingRoomSelection {
+  sizeLabel: string
+  colorLabel: string | null
+  colorwaySizeAssetId: number
+  priceFormatted: string
+}
+
 export interface ResolvedFittingRoomItem {
   externalId: string
   storage: FittingRoomItem
@@ -46,8 +59,10 @@ export interface ResolvedFittingRoomItem {
   styleCategory: StyleCategory | null
   styleCategoryGroup: StyleCategoryGroup | null
   effective: EffectiveCategory[]
-  isReady: boolean
-  needsResize: boolean
+  // selection: what the item is tried on and bought in, or null until its
+  // data has loaded (and for an item with no usable size). See
+  // FittingRoomSelection.
+  selection: FittingRoomSelection | null
 }
 
 export interface ResolvedFittingRoomGroup {
@@ -222,48 +237,7 @@ function resolveItem(
     }
   }
 
-  // needsResize: csa is null OR csa is no longer in the current size rec.
-  let needsResize = item.colorwaySizeAssetId == null
-  if (!needsResize && loadedProduct && item.colorwaySizeAssetId != null) {
-    const found = loadedProduct.sizeFitRecommendation.available_sizes.some((sz) =>
-      sz.colorway_size_assets.some((csa) => csa.id === item.colorwaySizeAssetId),
-    )
-    if (!found) {
-      needsResize = true
-      logger.logDebug('csa no longer in size rec, marking needsResize', {
-        externalId: item.externalId,
-        csa: item.colorwaySizeAssetId,
-      })
-    }
-    // Defensive: also re-validate that size label still resolves
-    if (!needsResize && item.size) {
-      const sizeStillExists = loadedProduct.sizeFitRecommendation.available_sizes.some(
-        (sz) => getSizeLabelFromSize(sz) === item.size,
-      )
-      if (!sizeStillExists) {
-        needsResize = true
-      }
-    }
-    // Container-specific: the stored parent CSA may still be in size-rec
-    // but the merchant might have deleted the corresponding set_size_mappings
-    // rows between sessions. Attempt the expansion and mark needsResize if
-    // it fails — surfacing the "pick a size" affordance is a better UX than
-    // silently dropping the item at wire-build time.
-    if (!needsResize && loadedProduct.container && item.colorwaySizeAssetId != null) {
-      const expanded = resolveContainerExpansion(loadedProduct, item.colorwaySizeAssetId)
-      if (!expanded) {
-        needsResize = true
-        logger.logDebug('container mapping resolved to empty, marking needsResize', {
-          externalId: item.externalId,
-          csa: item.colorwaySizeAssetId,
-        })
-      }
-    }
-  }
-
-  const isReady = !!merchantProduct && !!loadedProduct && !!styleCategory && !needsResize
-
-  return {
+  const resolved: ResolvedFittingRoomItem = {
     externalId: item.externalId,
     storage: item,
     merchantProduct,
@@ -273,8 +247,46 @@ function resolveItem(
     styleCategory,
     styleCategoryGroup,
     effective,
-    isReady,
-    needsResize,
+    selection: null,
+  }
+  const data = buildVtoProductDataFromResolved(resolved)
+  resolved.selection = deriveSelection(item, data)
+  // A Set's chosen size whose piece mapping the merchant has since removed
+  // can't be tried on; fall back to the recommendation, as an unchosen size
+  // would, rather than dropping the Set from the outfit. (When the stored size
+  // isn't offered the selection already is the recommendation, and
+  // re-deriving it changes nothing.)
+  if (
+    resolved.selection &&
+    item.size != null &&
+    loadedProduct?.container &&
+    !resolveContainerExpansion(loadedProduct, resolved.selection.colorwaySizeAssetId)
+  ) {
+    resolved.selection = deriveSelection({ ...item, size: null }, data)
+  }
+  return resolved
+}
+
+// deriveSelection works out the size, colour and colorway-size asset to use:
+// the size the shopper chose if it is still offered, otherwise the current
+// recommendation; the colour they chose if that size comes in it, otherwise
+// the size's first colour. Null when the data hasn't loaded or the
+// recommended size has no colour the merchant sells.
+export function deriveSelection(item: FittingRoomItem, data: VtoProductData | null): FittingRoomSelection | null {
+  if (!data) {
+    return null
+  }
+  const chosen = item.size != null ? data.sizes.find((s) => s.sizeLabel === item.size) : undefined
+  const size = chosen ?? data.sizes.find((s) => s.isRecommended)
+  if (!size || size.colors.length === 0) {
+    return null
+  }
+  const color = size.colors.find((c) => c.colorLabel === item.color) ?? size.colors[0]
+  return {
+    sizeLabel: size.sizeLabel,
+    colorLabel: color.colorLabel,
+    colorwaySizeAssetId: color.colorwaySizeAssetId,
+    priceFormatted: color.priceFormatted,
   }
 }
 
@@ -435,29 +447,4 @@ export function buildVtoProductDataFromResolved(item: ResolvedFittingRoomItem): 
     sizes,
     styleCategoryLabel: item.styleCategory?.label_singular ?? loadedProduct.style.style_category_label ?? null,
   }
-}
-
-// findRecommendedColorSize returns the CSA + price for the recommended size
-// using the currently-stored color preference, falling back to the first
-// colorway when the preferred color is missing.
-export function findRecommendedColorSize(data: VtoProductData, preferredColor: string | null): VtoSizeColorData | null {
-  const recommended = data.sizes.find((s) => s.isRecommended)
-  if (!recommended || recommended.colors.length === 0) {
-    return null
-  }
-  return recommended.colors.find((c) => c.colorLabel === preferredColor) ?? recommended.colors[0]
-}
-
-// findCsaByLabel returns the CSA matching the given size label + color (or
-// first color in that size when preferredColor is missing).
-export function findCsaByLabel(
-  data: VtoProductData,
-  sizeLabel: string,
-  preferredColor: string | null,
-): VtoSizeColorData | null {
-  const sizeRecord = data.sizes.find((s) => s.sizeLabel === sizeLabel)
-  if (!sizeRecord || sizeRecord.colors.length === 0) {
-    return null
-  }
-  return sizeRecord.colors.find((c) => c.colorLabel === preferredColor) ?? sizeRecord.colors[0]
 }
