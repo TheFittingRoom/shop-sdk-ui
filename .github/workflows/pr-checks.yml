@@ -20,7 +20,10 @@ jobs:
     # check-run, and GitHub counts `skipped` as success for
     # required-status-checks, so any branch-name exemption lets an
     # unverified commit merge.
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: ubuntu-latest moved to 26.04, where Playwright
+    # 1.60 refuses to install its browser (WEB-119). Return to ubuntu-latest
+    # after upgrading to a Playwright that supports 26.04.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
